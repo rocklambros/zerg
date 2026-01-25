@@ -15,12 +15,29 @@ You write specs. ZERG spawns multiple Claude Code instances. They build your fea
 
 ## Requirements
 
+- Python 3.11+
 - Docker
 - Claude Code CLI (`npm install -g @anthropic-ai/claude-code`)
 - Git
 - `ANTHROPIC_API_KEY` environment variable
 
 ## Installation
+
+### As a Python Package (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/yourname/zerg.git
+cd zerg
+
+# Install in development mode
+pip install -e .
+
+# Verify installation
+python -m zerg --help
+```
+
+### In Your Project
 
 ```bash
 cd your-project
@@ -56,6 +73,8 @@ claude
 
 ## Commands
 
+### Slash Commands (in Claude Code)
+
 | Command | Description |
 |---------|-------------|
 | `/zerg:init` | Detect project, capture infrastructure, generate devcontainer |
@@ -64,6 +83,34 @@ claude
 | `/zerg:rush` | Launch parallel workers (default 5, max 10) |
 | `/zerg:status` | Show progress across all workers and tasks |
 | `/zerg:worker` | Enter worker execution mode (used by containers) |
+| `/zerg:logs` | View worker logs with filtering |
+| `/zerg:stop` | Stop workers gracefully or forcefully |
+| `/zerg:cleanup` | Remove ZERG artifacts (worktrees, branches, containers) |
+
+### CLI Commands
+
+```bash
+# Initialize ZERG in a project
+python -m zerg init
+
+# Launch workers
+python -m zerg rush --feature=myfeature --workers=5
+
+# Check status
+python -m zerg status --feature=myfeature
+
+# View logs
+python -m zerg logs --worker=0
+
+# Stop workers
+python -m zerg stop --feature=myfeature
+
+# Retry failed tasks
+python -m zerg retry TASK-001
+
+# Cleanup after completion
+python -m zerg cleanup --feature=myfeature
+```
 
 ## How It Works
 

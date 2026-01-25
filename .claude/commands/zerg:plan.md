@@ -297,16 +297,36 @@ Files Created:
 Please review the requirements document.
 
 Reply with:
-  • "approved" - to proceed to design phase
-  • "changes needed" - describe what needs to change
+  • "APPROVED" - to proceed to design phase
+  • "REJECTED" - describe what needs to change
   • Specific questions or concerns
 
 ═══════════════════════════════════════════════════════════════
 ```
 
+## Status Markers
+
+Use these markers in requirements.md to track status:
+
+- **Status: DRAFT** - Initial creation, still gathering requirements
+- **Status: REVIEW** - Requirements complete, awaiting approval
+- **Status: APPROVED** - Requirements approved, ready for design
+- **Status: REJECTED** - Requirements need revision
+
 ## Completion Criteria
 
 - requirements.md exists with Status: APPROVED
 - All open questions resolved or accepted
-- User has explicitly approved
+- User has explicitly approved with "APPROVED"
 - Infrastructure needs identified and documented
+
+## Example Output
+
+```markdown
+## Metadata
+- **Feature**: user-authentication
+- **Status**: APPROVED
+- **Created**: 2026-01-25T10:30:00
+- **Approved**: 2026-01-25T11:45:00
+- **Author**: Factory Plan Mode
+```

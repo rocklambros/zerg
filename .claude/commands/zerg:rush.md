@@ -313,3 +313,116 @@ After each level completes:
 - Identifies conflicting commits
 - Re-runs one worker's tasks on merged base
 - Continues after resolution
+
+## CLI Flags
+
+```
+zerg rush [OPTIONS]
+
+Options:
+  -w, --workers INTEGER    Number of workers to launch (default: 5, max: 10)
+  -f, --feature TEXT       Feature name (auto-detected if not provided)
+  -l, --level INTEGER      Start from specific level (default: 1)
+  -g, --task-graph PATH    Path to task-graph.json
+  --dry-run                Show execution plan without starting workers
+  --resume                 Continue from previous run
+  --timeout INTEGER        Max execution time in seconds (default: 3600)
+  -v, --verbose            Enable verbose output
+```
+
+## Resume Instructions
+
+To resume a stopped or interrupted execution:
+
+```bash
+# Resume with same configuration
+zerg rush --resume
+
+# Resume with different worker count
+zerg rush --resume --workers 3
+
+# Resume from specific level (skip earlier levels)
+zerg rush --resume --level 3
+```
+
+Resume behavior:
+1. Loads existing state from `.zerg/state/{feature}.json`
+2. Identifies incomplete and failed tasks
+3. Restores worker assignments where possible
+4. Continues from last checkpoint
+
+## Progress Display
+
+During execution, the orchestrator shows:
+
+```
+═══════════════════════════════════════════════════════════════
+Progress: ████████████░░░░░░░░ 60% (24/40 tasks)
+
+Level 3 of 5 │ Workers: 5 active
+
+┌────────┬────────────────────────────────┬──────────┬─────────┐
+│ Worker │ Current Task                   │ Progress │ Status  │
+├────────┼────────────────────────────────┼──────────┼─────────┤
+│ W-0    │ TASK-015: Implement login API  │ ████░░   │ RUNNING │
+│ W-1    │ TASK-016: Create user service  │ ██████   │ VERIFY  │
+│ W-2    │ TASK-017: Add auth middleware  │ ██░░░░   │ RUNNING │
+│ W-3    │ (waiting for dependency)       │ ░░░░░░   │ IDLE    │
+│ W-4    │ TASK-018: Database migrations  │ ████░░   │ RUNNING │
+└────────┴────────────────────────────────┴──────────┴─────────┘
+
+Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
+═══════════════════════════════════════════════════════════════
+```
+
+## worker-assignments.json Format
+
+```json
+{
+  "feature": "user-auth",
+  "generated": "2026-01-25T10:30:00Z",
+  "workers": [
+    {
+      "id": 0,
+      "branch": "zerg/user-auth/worker-0",
+      "worktree": ".zerg/worktrees/user-auth-worker-0",
+      "port": 49152,
+      "container_id": "abc123",
+      "status": "running",
+      "assignments": {
+        "1": ["TASK-001", "TASK-003"],
+        "2": ["TASK-005", "TASK-007"],
+        "3": ["TASK-009"]
+      },
+      "completed_tasks": ["TASK-001"],
+      "current_task": "TASK-003",
+      "context_usage": 0.45
+    }
+  ],
+  "execution_plan": [
+    {
+      "level": 1,
+      "workers_active": [0, 1, 2, 3, 4],
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005"],
+      "status": "complete",
+      "merge_after": true,
+      "merge_result": "success"
+    },
+    {
+      "level": 2,
+      "workers_active": [0, 1, 2, 3, 4],
+      "tasks": ["TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010"],
+      "status": "in_progress",
+      "merge_after": true
+    }
+  ],
+  "stats": {
+    "total_tasks": 40,
+    "completed_tasks": 24,
+    "failed_tasks": 0,
+    "blocked_tasks": 0,
+    "start_time": "2026-01-25T10:30:00Z",
+    "elapsed_minutes": 45
+  }
+}
+```

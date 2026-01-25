@@ -167,7 +167,7 @@ fi
 
 ### Step 5: Context Management
 
-Monitor your context usage:
+Monitor your context usage. **The 70% threshold is critical** for ensuring clean handoffs.
 
 ```
 IF context_usage > 70%:
@@ -268,3 +268,82 @@ Final commit: {hash}
 Worker shutting down.
 ═══════════════════════════════════════════════════════════════
 ```
+
+## Exit Codes
+
+Workers use specific exit codes to signal state to the orchestrator:
+
+| Code | Constant | Meaning |
+|------|----------|---------|
+| 0 | SUCCESS | All assigned tasks completed successfully |
+| 1 | ERROR | Unrecoverable error, check logs |
+| 2 | CHECKPOINT | Context limit reached (70%), needs restart |
+| 3 | BLOCKED | All remaining tasks blocked, intervention needed |
+| 130 | INTERRUPTED | Received stop signal, graceful shutdown |
+
+## Task Claiming Protocol
+
+Workers claim tasks atomically to prevent conflicts:
+
+```python
+# 1. Check task availability
+task = state.get_pending_task(level=current_level, worker_id=my_id)
+
+# 2. Atomic claim (returns False if already claimed)
+if state.claim_task(task.id, worker_id=my_id):
+    # 3. Execute task
+    execute_task(task)
+else:
+    # Another worker claimed it, get next task
+    continue
+```
+
+## WIP Commit Format
+
+Work-in-progress commits follow a specific format for recovery:
+
+```
+WIP: ZERG [worker-{id}] checkpoint during {task_id}
+
+Status: {percentage}% complete
+Files modified:
+  - path/to/file1.py (added)
+  - path/to/file2.py (modified)
+
+Resume context:
+  - Current step: {description}
+  - Next action: {what to do}
+  - Blockers: {any issues}
+
+Worker-ID: {id}
+Feature: {feature}
+Context-Usage: {percentage}%
+```
+
+## Protocol Specification
+
+### Task State Transitions
+
+```
+PENDING → IN_PROGRESS → COMPLETE
+                    ↘→ FAILED → PENDING (on retry)
+                    ↘→ BLOCKED (after 3 failures)
+                    ↘→ PAUSED (on checkpoint)
+```
+
+### Worker State Transitions
+
+```
+STARTING → RUNNING → STOPPED
+              ↓         ↑
+          CHECKPOINT ────┘
+              ↓
+           CRASHED (on error)
+```
+
+### Communication Channels
+
+1. **State File**: `.zerg/state/{feature}.json` - shared task state
+2. **Progress Log**: `.gsd/specs/{feature}/progress.md` - human-readable log
+3. **Worker Log**: `.zerg/logs/worker-{id}.log` - detailed worker output
+4. **Event Stream**: State manager appends events for orchestrator

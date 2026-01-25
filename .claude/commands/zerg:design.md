@@ -489,3 +489,69 @@ Reply with:
 - All tasks have verification commands
 - File ownership is exclusive (no conflicts)
 - User has explicitly approved
+
+## Task Graph JSON Schema
+
+The task-graph.json must conform to this schema:
+
+```json
+{
+  "feature": "string (required) - feature name",
+  "version": "string (required) - schema version, use 1.0",
+  "generated": "string (required) - ISO timestamp",
+  "total_tasks": "number (required) - count of tasks",
+  "estimated_duration_minutes": "number (required) - total minutes",
+  "max_parallelization": "number (required) - max concurrent tasks",
+  "critical_path_minutes": "number (optional) - longest path duration",
+
+  "tasks": [
+    {
+      "id": "string (required) - unique task ID, format: FEATURE-LN-NNN",
+      "title": "string (required) - short task title",
+      "description": "string (required) - detailed description",
+      "phase": "string (required) - foundation|core|integration|testing|quality",
+      "level": "number (required) - 1-5",
+      "dependencies": ["array of task IDs this depends on"],
+      "files": {
+        "create": ["files to create"],
+        "modify": ["files to modify"],
+        "read": ["files to read only"]
+      },
+      "verification": {
+        "command": "string (required) - command to verify completion",
+        "timeout_seconds": "number (default: 60)"
+      },
+      "estimate_minutes": "number (required) - time estimate",
+      "critical_path": "boolean (optional) - true if on critical path",
+      "skills_required": ["optional skill tags"]
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "string (required) - level name",
+      "tasks": ["task IDs in this level"],
+      "parallel": "boolean - can tasks run in parallel",
+      "estimated_minutes": "number - level duration",
+      "depends_on_levels": ["level numbers this depends on"]
+    }
+  }
+}
+```
+
+## File Ownership Rules
+
+1. **Exclusive Create**: Each file can only be created by ONE task
+2. **Exclusive Modify**: Each file can only be modified by ONE task per level
+3. **Read is Shared**: Multiple tasks can read the same file
+4. **Level Boundaries**: A file modified in level N cannot be modified again until level N+1
+
+## Level Criteria
+
+| Level | Name | Characteristics |
+|-------|------|-----------------|
+| 1 | Foundation | No dependencies, types/schemas/config |
+| 2 | Core | Depends on L1, business logic/services |
+| 3 | Integration | Depends on L2, APIs/routes/handlers |
+| 4 | Testing | Depends on L3, tests/validation |
+| 5 | Quality | Depends on L4, docs/polish/final |

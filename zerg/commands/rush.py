@@ -1,0 +1,240 @@
+"""ZERG rush command - launch parallel execution."""
+
+from pathlib import Path
+
+import click
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
+
+from zerg.config import ZergConfig
+from zerg.logging import get_logger, setup_logging
+from zerg.orchestrator import Orchestrator
+from zerg.parser import TaskParser
+from zerg.validation import load_and_validate_task_graph
+
+console = Console()
+logger = get_logger("rush")
+
+
+@click.command()
+@click.option("--workers", "-w", default=5, type=int, help="Number of workers to launch")
+@click.option("--feature", "-f", help="Feature name (auto-detected if not provided)")
+@click.option("--level", "-l", type=int, help="Start from specific level")
+@click.option("--dry-run", is_flag=True, help="Show plan without executing")
+@click.option("--resume", is_flag=True, help="Continue from previous run")
+@click.option("--timeout", default=3600, type=int, help="Max execution time (seconds)")
+@click.option("--task-graph", "-g", help="Path to task-graph.json")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.pass_context
+def rush(
+    ctx: click.Context,
+    workers: int,
+    feature: str | None,
+    level: int | None,
+    dry_run: bool,
+    resume: bool,
+    timeout: int,
+    task_graph: str | None,
+    verbose: bool,
+) -> None:
+    """Launch parallel worker execution.
+
+    Spawns workers, assigns tasks, and monitors progress until completion.
+
+    Examples:
+
+        zerg rush --workers 5
+
+        zerg rush --feature user-auth --dry-run
+
+        zerg rush --resume --workers 3
+    """
+    # Setup logging
+    if verbose:
+        setup_logging(level="debug", console_output=True)
+    else:
+        setup_logging(level="info", console_output=True)
+
+    try:
+        # Load configuration
+        config = ZergConfig.load()
+
+        # Auto-detect feature and task graph
+        if task_graph:
+            task_graph_path = Path(task_graph)
+        else:
+            # Look for task-graph.json
+            task_graph_path = find_task_graph(feature)
+
+        if not task_graph_path or not task_graph_path.exists():
+            console.print("[red]Error:[/red] No task-graph.json found")
+            console.print("Run [cyan]zerg design[/cyan] first to create a task graph")
+            raise SystemExit(1)
+
+        # Auto-detect feature from task graph
+        if not feature:
+            parser = TaskParser()
+            parser.parse(task_graph_path)
+            feature = parser.feature_name
+
+        console.print(f"\n[bold cyan]ZERG Rush[/bold cyan] - {feature}\n")
+
+        # Validate task graph
+        with console.status("Validating task graph..."):
+            task_data = load_and_validate_task_graph(task_graph_path)
+
+        # Show summary
+        show_summary(task_data, workers)
+
+        if dry_run:
+            show_dry_run(task_data, workers, feature)
+            return
+
+        # Confirm before starting
+        if not resume:
+            if not click.confirm("\nStart execution?", default=True):
+                console.print("[yellow]Aborted[/yellow]")
+                return
+
+        # Create orchestrator and start
+        orchestrator = Orchestrator(feature, config)
+
+        # Register callbacks
+        orchestrator.on_task_complete(lambda tid: console.print(f"[green]✓[/green] Task {tid} complete"))
+        orchestrator.on_level_complete(lambda lvl: console.print(f"\n[bold green]Level {lvl} complete![/bold green]\n"))
+
+        # Start execution
+        console.print(f"\n[bold]Starting {workers} workers...[/bold]\n")
+
+        orchestrator.start(
+            task_graph_path=task_graph_path,
+            worker_count=workers,
+            start_level=level,
+            dry_run=False,
+        )
+
+        # Show final status
+        status = orchestrator.status()
+        if status["is_complete"]:
+            console.print("\n[bold green]✓ All tasks complete![/bold green]")
+        else:
+            console.print(f"\n[yellow]Execution stopped at {status['progress']['percent']:.0f}%[/yellow]")
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Interrupted[/yellow]")
+        raise SystemExit(130)
+    except Exception as e:
+        console.print(f"\n[red]Error:[/red] {e}")
+        if verbose:
+            console.print_exception()
+        raise SystemExit(1)
+
+
+def find_task_graph(feature: str | None) -> Path | None:
+    """Find task-graph.json for a feature.
+
+    Args:
+        feature: Feature name or None
+
+    Returns:
+        Path to task graph or None
+    """
+    # Check common locations
+    candidates = [
+        Path(".gsd/tasks/task-graph.json"),
+        Path("task-graph.json"),
+    ]
+
+    if feature:
+        candidates.insert(0, Path(f".gsd/specs/{feature}/task-graph.json"))
+
+    for path in candidates:
+        if path.exists():
+            return path
+
+    # Search for any task-graph.json
+    for path in Path(".gsd").rglob("task-graph.json"):
+        return path
+
+    return None
+
+
+def show_summary(task_data: dict, workers: int) -> None:
+    """Show execution summary.
+
+    Args:
+        task_data: Task graph data
+        workers: Worker count
+    """
+    tasks = task_data.get("tasks", [])
+    levels = task_data.get("levels", {})
+
+    table = Table(title="Execution Summary", show_header=False, box=None)
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value")
+
+    table.add_row("Feature", task_data.get("feature", "unknown"))
+    table.add_row("Total Tasks", str(len(tasks)))
+    table.add_row("Levels", str(len(levels)))
+    table.add_row("Workers", str(workers))
+    table.add_row("Max Parallelization", str(task_data.get("max_parallelization", workers)))
+
+    if "critical_path_minutes" in task_data:
+        table.add_row("Critical Path", f"{task_data['critical_path_minutes']} min")
+
+    console.print(table)
+
+
+def show_dry_run(task_data: dict, workers: int, feature: str) -> None:
+    """Show dry run plan.
+
+    Args:
+        task_data: Task graph data
+        workers: Worker count
+        feature: Feature name
+    """
+    console.print("\n[bold]Dry Run - Execution Plan[/bold]\n")
+
+    tasks = task_data.get("tasks", [])
+    levels = task_data.get("levels", {})
+
+    # Group tasks by level
+    level_tasks: dict[int, list[dict]] = {}
+    for task in tasks:
+        lvl = task.get("level", 1)
+        if lvl not in level_tasks:
+            level_tasks[lvl] = []
+        level_tasks[lvl].append(task)
+
+    # Show each level
+    from zerg.assign import WorkerAssignment
+
+    assigner = WorkerAssignment(workers)
+    assigner.assign(tasks, feature)
+
+    for level_num in sorted(level_tasks.keys()):
+        level_info = levels.get(str(level_num), {})
+        console.print(f"[bold cyan]Level {level_num}[/bold cyan] - {level_info.get('name', 'unnamed')}")
+
+        table = Table(show_header=True)
+        table.add_column("Task", style="cyan", width=15)
+        table.add_column("Title", width=40)
+        table.add_column("Worker", justify="center", width=8)
+        table.add_column("Est.", justify="right", width=6)
+
+        for task in level_tasks[level_num]:
+            worker = assigner.get_task_worker(task["id"])
+            critical = "⭐ " if task.get("critical_path") else ""
+            table.add_row(
+                task["id"],
+                critical + task.get("title", ""),
+                str(worker) if worker is not None else "-",
+                f"{task.get('estimate_minutes', '?')}m",
+            )
+
+        console.print(table)
+        console.print()
+
+    console.print("[dim]No workers will be started in dry-run mode[/dim]")

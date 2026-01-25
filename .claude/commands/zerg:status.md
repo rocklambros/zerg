@@ -197,3 +197,102 @@ factory/auth/worker-1:
   ghi9012 feat(auth): Create user schema (TASK-002)
   jkl3456 feat(auth): Implement session service (TASK-005) [WIP]
 ```
+
+## CLI Options
+
+```
+zerg status [OPTIONS]
+
+Options:
+  -f, --feature TEXT       Feature to show status for (auto-detected)
+  -w, --watch              Continuous update mode (refresh every N seconds)
+  --interval INTEGER       Watch interval in seconds (default: 5)
+  -l, --level INTEGER      Filter to specific level
+  --json                   Output as JSON for scripting
+```
+
+## Watch Mode
+
+Enable continuous status updates:
+
+```bash
+# Watch with default 5-second refresh
+zerg status --watch
+
+# Watch with custom interval
+zerg status --watch --interval 2
+```
+
+Output updates in-place:
+
+```
+Progress: ████████████████░░░░ 80% (32/40 tasks)
+Level 4/5 │ Workers: 5 │ Updated: 2s ago
+```
+
+## JSON Output Schema
+
+```json
+{
+  "feature": "user-auth",
+  "phase": "executing",
+  "current_level": 3,
+  "paused": false,
+  "error": null,
+  "progress": {
+    "total": 40,
+    "completed": 24,
+    "in_progress": 5,
+    "failed": 1,
+    "blocked": 0,
+    "pending": 10,
+    "percent": 60.0
+  },
+  "levels": {
+    "1": {"status": "complete", "tasks": 8, "completed": 8},
+    "2": {"status": "complete", "tasks": 10, "completed": 10},
+    "3": {"status": "running", "tasks": 9, "completed": 6},
+    "4": {"status": "pending", "tasks": 8, "completed": 0},
+    "5": {"status": "pending", "tasks": 5, "completed": 0}
+  },
+  "workers": [
+    {
+      "id": 0,
+      "status": "running",
+      "port": 49152,
+      "current_task": "TASK-015",
+      "tasks_completed": 5,
+      "context_usage": 0.45
+    }
+  ],
+  "recent_events": [
+    {"timestamp": "10:30:45", "event": "task_complete", "task_id": "TASK-014"}
+  ],
+  "stats": {
+    "start_time": "2026-01-25T10:00:00Z",
+    "elapsed_minutes": 30,
+    "estimated_remaining_minutes": 20
+  }
+}
+```
+
+## Worker State Meanings
+
+| Status | Icon | Meaning |
+|--------|------|---------|
+| running | 🟢 | Worker actively executing a task |
+| idle | 🟡 | Worker waiting for task (dependencies not met) |
+| verifying | 🔵 | Worker running verification command |
+| stopped | ⬜ | Worker gracefully stopped |
+| crashed | 🔴 | Worker exited unexpectedly |
+| checkpoint | 🟠 | Worker checkpointing for context limit |
+
+## Progress Bar Legend
+
+```
+Progress: ████████████░░░░░░░░ 60%
+          │         │ │
+          │         │ └── Pending (░)
+          │         └──── In Progress (█ lighter)
+          └──────────────── Completed (█ solid)
+```

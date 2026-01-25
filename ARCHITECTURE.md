@@ -189,6 +189,96 @@ project/
 
 Diminishing returns beyond the widest level's parallelizable tasks.
 
+## Python Package Components
+
+### Core Modules (`zerg/`)
+
+| Module | Purpose |
+|--------|---------|
+| `config.py` | Configuration loading and validation (ZergConfig, QualityGate) |
+| `constants.py` | Enums and constants (Level, TaskStatus, GateResult, WorkerStatus) |
+| `types.py` | Type definitions (Task, TaskGraph, WorkerState, LevelStatus) |
+| `exceptions.py` | Exception hierarchy (ZergError and 15 specific exceptions) |
+| `logging.py` | Structured logging with Rich formatting |
+| `validation.py` | Task graph schema validation |
+
+### Execution Modules
+
+| Module | Purpose |
+|--------|---------|
+| `orchestrator.py` | Fleet management and coordination |
+| `levels.py` | Level-based execution control |
+| `gates.py` | Quality gate runner |
+| `verify.py` | Task verification executor |
+| `assign.py` | Worker assignment calculator |
+| `parser.py` | Task graph parser |
+
+### Infrastructure Modules
+
+| Module | Purpose |
+|--------|---------|
+| `worktree.py` | Git worktree management |
+| `git_ops.py` | Git operations (branch, merge, rebase) |
+| `ports.py` | Port allocation for workers |
+| `containers.py` | Docker container management |
+| `state.py` | State persistence |
+
+### Integration Modules
+
+| Module | Purpose |
+|--------|---------|
+| `merge.py` | Merge coordination with conflict detection |
+| `worker_protocol.py` | Worker communication protocol |
+| `security.py` | Security checks and git hooks |
+
+### CLI Commands (`zerg/commands/`)
+
+| Command | Module | Purpose |
+|---------|--------|---------|
+| `init` | `init.py` | Project initialization |
+| `rush` | `rush.py` | Launch parallel workers |
+| `status` | `status.py` | Progress monitoring |
+| `stop` | `stop.py` | Stop workers |
+| `retry` | `retry.py` | Retry failed tasks |
+| `logs` | `logs.py` | View worker logs |
+| `cleanup` | `cleanup.py` | Remove artifacts |
+| `merge` | `merge_cmd.py` | Manual merge control |
+
+## Data Flow
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  /zerg:plan │ -> │  /zerg:design│ -> │  /zerg:rush │
+└─────────────┘    └─────────────┘    └─────────────┘
+       │                  │                  │
+       v                  v                  v
+  requirements.md    design.md         task-graph.json
+                     task-graph.json         │
+                                            v
+                                    ┌───────────────┐
+                                    │  Orchestrator │
+                                    └───────────────┘
+                                            │
+                    ┌───────────────────────┼───────────────────────┐
+                    v                       v                       v
+            ┌───────────┐           ┌───────────┐           ┌───────────┐
+            │ Worker 0  │           │ Worker 1  │           │ Worker N  │
+            │ (worktree)│           │ (worktree)│           │ (worktree)│
+            └───────────┘           └───────────┘           └───────────┘
+                    │                       │                       │
+                    └───────────────────────┼───────────────────────┘
+                                            v
+                                    ┌───────────────┐
+                                    │ Level Merge   │
+                                    │ Quality Gates │
+                                    └───────────────┘
+                                            │
+                                            v
+                                    ┌───────────────┐
+                                    │  Main Branch  │
+                                    └───────────────┘
+```
+
 ## Future Considerations
 
 - **Dashboard**: Web UI for real-time progress
