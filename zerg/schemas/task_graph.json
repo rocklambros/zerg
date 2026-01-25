@@ -1,0 +1,189 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://zerg.dev/schemas/task-graph-v1.json",
+  "title": "ZERG Task Graph",
+  "description": "Schema for ZERG task graph definition",
+  "type": "object",
+  "required": ["feature", "tasks"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference"
+    },
+    "feature": {
+      "type": "string",
+      "description": "Feature name identifier",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "description": "Task graph version",
+      "default": "1.0"
+    },
+    "generated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 timestamp of generation"
+    },
+    "total_tasks": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total number of tasks"
+    },
+    "estimated_duration_minutes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total estimated duration in minutes"
+    },
+    "max_parallelization": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum number of parallel tasks"
+    },
+    "critical_path": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "List of task IDs on the critical path"
+    },
+    "critical_path_minutes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Duration of critical path in minutes"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/task"},
+      "minItems": 1,
+      "description": "List of tasks"
+    },
+    "levels": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/level"},
+      "description": "Level definitions keyed by level number"
+    }
+  },
+  "definitions": {
+    "task": {
+      "type": "object",
+      "required": ["id", "title", "level"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z]+-L[0-9]+-[0-9]+$",
+          "description": "Task identifier (e.g., ZERG-L1-001)"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Short task title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed task description"
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Dependency level (1-10)"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "List of task IDs this task depends on"
+        },
+        "files": {
+          "$ref": "#/definitions/file_spec"
+        },
+        "verification": {
+          "$ref": "#/definitions/verification"
+        },
+        "estimate_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120,
+          "description": "Estimated duration in minutes"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["todo", "pending", "claimed", "in_progress", "verifying", "complete", "failed", "blocked", "paused"],
+          "default": "todo",
+          "description": "Current task status"
+        },
+        "critical_path": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether task is on critical path"
+        }
+      }
+    },
+    "file_spec": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Files to create"
+        },
+        "modify": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Files to modify"
+        },
+        "read": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Files to read"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Command to verify task completion"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600,
+          "default": 30,
+          "description": "Command timeout in seconds"
+        }
+      }
+    },
+    "level": {
+      "type": "object",
+      "required": ["name", "tasks"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Level name"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Task IDs in this level"
+        },
+        "parallel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether tasks can run in parallel"
+        },
+        "estimated_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total estimated minutes for level"
+        },
+        "depends_on_levels": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "description": "Levels that must complete before this one"
+        }
+      }
+    }
+  }
+}

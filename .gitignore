@@ -1,0 +1,53 @@
+# ZERG Factory
+.zerg-worktrees/
+.zerg/logs/
+.zerg/*.pid
+.factory/temp/
+
+# Environment
+.env
+.env.local
+*.env
+credentials.env
+
+# Claude
+.claude/tasks/
+.claude/mcp_servers.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+*.log
+*.tmp
+*.temp
+
+# Archives
+*.zip
+*.tar.gz

@@ -1,0 +1,52 @@
+# ZERG Configuration
+# Generated: 2026-01-25
+
+project:
+  name: zerg
+  description: Parallel Claude Code execution system
+
+# Worker settings
+workers:
+  max_concurrent: 5
+  timeout_minutes: 30
+  retry_attempts: 3
+  context_threshold_percent: 70
+
+# Port allocation
+ports:
+  range_start: 49152
+  range_end: 65535
+  ports_per_worker: 10
+
+# Quality gates (run after each level merge)
+quality_gates:
+  - name: lint
+    command: "echo 'No linter configured'"
+    required: false
+  - name: typecheck
+    command: "echo 'No typecheck configured'"
+    required: false
+  - name: test
+    command: "echo 'No tests configured'"
+    required: false
+  - name: build
+    command: "echo 'No build configured'"
+    required: false
+
+# MCP servers available to workers
+mcp_servers:
+  - filesystem
+  - github
+  - fetch
+
+# Resource limits per worker
+resources:
+  cpu_cores: 2
+  memory_gb: 4
+  disk_gb: 10
+
+# Logging
+logging:
+  level: info
+  directory: .zerg/logs
+  retain_days: 7

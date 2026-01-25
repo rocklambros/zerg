@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  workspace:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-20}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.12}
+    volumes:
+      - ..:/workspace:cached
+      - zerg-claude-tasks:/root/.claude/tasks
+      - zerg-claude-config:/root/.claude
+    environment:
+      - CLAUDE_CODE_TASK_LIST_ID=${ZERG_FEATURE:-default}
+      - ZERG_WORKER_ID=${ZERG_WORKER_ID:-0}
+      - ZERG_FEATURE=${ZERG_FEATURE:-unknown}
+      - ZERG_BRANCH=${ZERG_BRANCH:-main}
+      - ZERG_PORT=${ZERG_PORT:-49152}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    ports:
+      - "${ZERG_PORT:-49152}:${ZERG_PORT:-49152}"
+    networks:
+      - factory-network
+    stdin_open: true
+    tty: true
+    init: true
+    privileged: true
+
+  # Optional: PostgreSQL for projects that need it
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${ZERG_FEATURE:-factory}_db
+      POSTGRES_USER: factory
+      POSTGRES_PASSWORD: factory_dev
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - factory-network
+    profiles:
+      - with-postgres
+
+  # Optional: Redis for projects that need it
+  redis:
+    image: redis:7-alpine
+    networks:
+      - factory-network
+    profiles:
+      - with-redis
+
+volumes:
+  zerg-claude-tasks:
+    name: zerg-claude-tasks-${ZERG_FEATURE:-default}
+  zerg-claude-config:
+    name: zerg-claude-config
+  postgres-data:
+    name: factory-postgres-${ZERG_FEATURE:-default}
+
+networks:
+  factory-network:
+    driver: bridge
+    name: factory-network-${ZERG_FEATURE:-default}

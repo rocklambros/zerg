@@ -1,0 +1,849 @@
+{
+  "$schema": "https://zerg.dev/schemas/task-graph-v1.json",
+  "feature": "zerg-implementation",
+  "version": "1.0",
+  "generated": "2026-01-25T20:00:00Z",
+  "total_tasks": 42,
+  "estimated_duration_minutes": 1260,
+  "max_parallelization": 8,
+  "critical_path": ["ZERG-L1-001", "ZERG-L1-003", "ZERG-L2-001", "ZERG-L2-004", "ZERG-L3-001", "ZERG-L3-004", "ZERG-L4-004", "ZERG-L5-003"],
+  "critical_path_minutes": 330,
+  
+  "tasks": [
+    {
+      "id": "ZERG-L1-001",
+      "title": "Python Package Structure",
+      "description": "Create Python package skeleton with proper module layout",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/__init__.py", "zerg/py.typed", "pyproject.toml", "requirements.txt"],
+        "modify": [],
+        "read": [".zerg/config.yaml"]
+      },
+      "verification": {
+        "command": "python -c \"import zerg; print(zerg.__version__)\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L1-002",
+      "title": "Type Definitions",
+      "description": "Define TypedDict and dataclass types for all domain objects",
+      "level": 1,
+      "dependencies": ["ZERG-L1-001"],
+      "files": {
+        "create": ["zerg/types.py"],
+        "modify": [],
+        "read": [".gsd/specs/phase2/architecture_synthesis.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.types import TaskGraph, WorkerState, LevelStatus\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L1-003",
+      "title": "Configuration Schema",
+      "description": "Config loader with Pydantic validation, defaults from config.yaml",
+      "level": 1,
+      "dependencies": ["ZERG-L1-002"],
+      "files": {
+        "create": ["zerg/config.py"],
+        "modify": [],
+        "read": [".zerg/config.yaml", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.config import ZergConfig; c = ZergConfig.load(); print(c.workers.max_concurrent)\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L1-004",
+      "title": "Constants and Enums",
+      "description": "Define level names, task statuses, gate results, error codes",
+      "level": 1,
+      "dependencies": ["ZERG-L1-001"],
+      "files": {
+        "create": ["zerg/constants.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.constants import Level, TaskStatus, GateResult\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L1-005",
+      "title": "Logging Setup",
+      "description": "Structured JSON logging with worker ID context, file rotation",
+      "level": 1,
+      "dependencies": ["ZERG-L1-003"],
+      "files": {
+        "create": ["zerg/logging.py"],
+        "modify": [],
+        "read": ["zerg/config.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.logging import get_logger; log = get_logger('test'); log.info('works')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L1-006",
+      "title": "Exception Hierarchy",
+      "description": "Define ZergError base and specific exceptions for each failure mode",
+      "level": 1,
+      "dependencies": ["ZERG-L1-001"],
+      "files": {
+        "create": ["zerg/exceptions.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.exceptions import ZergError, TaskVerificationFailed, MergeConflict\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L1-007",
+      "title": "Task Graph Schema Validator",
+      "description": "JSON Schema for task-graph.json with validation functions",
+      "level": 1,
+      "dependencies": ["ZERG-L1-002"],
+      "files": {
+        "create": ["zerg/schemas/task_graph.json", "zerg/schemas/__init__.py", "zerg/validation.py"],
+        "modify": [],
+        "read": [".gsd/specs/phase2/architecture_synthesis.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.validation import validate_task_graph\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L1-008",
+      "title": "CLI Entry Point Skeleton",
+      "description": "Click-based CLI with subcommand structure, no implementation",
+      "level": 1,
+      "dependencies": ["ZERG-L1-001", "ZERG-L1-005"],
+      "files": {
+        "create": ["zerg/cli.py"],
+        "modify": ["pyproject.toml"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m zerg --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-001",
+      "title": "Worktree Manager",
+      "description": "Git worktree create/delete/list, branch management, path resolution",
+      "level": 2,
+      "dependencies": ["ZERG-L1-003", "ZERG-L1-006"],
+      "files": {
+        "create": ["zerg/worktree.py"],
+        "modify": [],
+        "read": ["zerg/config.py", "zerg/types.py", "zerg/exceptions.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.worktree import WorktreeManager; wm = WorktreeManager('.'); print(wm.list_worktrees())\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 45,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L2-002",
+      "title": "Port Allocator",
+      "description": "Random port selection in ephemeral range, collision detection, tracking",
+      "level": 2,
+      "dependencies": ["ZERG-L1-003"],
+      "files": {
+        "create": ["zerg/ports.py"],
+        "modify": [],
+        "read": ["zerg/config.py", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.ports import PortAllocator; pa = PortAllocator(); print(pa.allocate(5))\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-003",
+      "title": "Task Parser",
+      "description": "Load task-graph.json, parse into domain objects, validate dependencies",
+      "level": 2,
+      "dependencies": ["ZERG-L1-002", "ZERG-L1-007", "ZERG-L1-006"],
+      "files": {
+        "create": ["zerg/parser.py"],
+        "modify": [],
+        "read": ["zerg/types.py", "zerg/validation.py", "zerg/exceptions.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.parser import TaskParser\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-004",
+      "title": "Level Controller",
+      "description": "Track level completion, block N+1 until N done, emit level events",
+      "level": 2,
+      "dependencies": ["ZERG-L1-002", "ZERG-L1-004", "ZERG-L1-005"],
+      "files": {
+        "create": ["zerg/levels.py"],
+        "modify": [],
+        "read": ["zerg/types.py", "zerg/constants.py", "zerg/logging.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.levels import LevelController; lc = LevelController()\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 35,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L2-005",
+      "title": "State Manager",
+      "description": "Adapter for Claude Native Tasks API, state persistence, polling",
+      "level": 2,
+      "dependencies": ["ZERG-L1-002", "ZERG-L1-003", "ZERG-L1-005"],
+      "files": {
+        "create": ["zerg/state.py"],
+        "modify": [],
+        "read": ["zerg/types.py", "zerg/config.py", "zerg/logging.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.state import StateManager\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 40,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-006",
+      "title": "Quality Gate Runner",
+      "description": "Execute gate commands, capture output, determine pass/fail, timeout handling",
+      "level": 2,
+      "dependencies": ["ZERG-L1-003", "ZERG-L1-005", "ZERG-L1-006"],
+      "files": {
+        "create": ["zerg/gates.py"],
+        "modify": [],
+        "read": ["zerg/config.py", "zerg/types.py", "zerg/logging.py", "zerg/exceptions.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.gates import GateRunner; gr = GateRunner()\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-007",
+      "title": "Verification Executor",
+      "description": "Run task verification commands, handle timeouts, capture results",
+      "level": 2,
+      "dependencies": ["ZERG-L1-002", "ZERG-L1-005", "ZERG-L1-006"],
+      "files": {
+        "create": ["zerg/verify.py"],
+        "modify": [],
+        "read": ["zerg/types.py", "zerg/logging.py", "zerg/exceptions.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.verify import VerificationExecutor\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-008",
+      "title": "Worker Assignment Calculator",
+      "description": "Distribute tasks to workers, balance by level, respect file ownership",
+      "level": 2,
+      "dependencies": ["ZERG-L1-002", "ZERG-L2-003"],
+      "files": {
+        "create": ["zerg/assign.py"],
+        "modify": [],
+        "read": ["zerg/types.py", "zerg/parser.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.assign import WorkerAssignment\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-009",
+      "title": "Container Manager",
+      "description": "Docker/devcontainer lifecycle: build, start, stop, health check",
+      "level": 2,
+      "dependencies": ["ZERG-L1-003", "ZERG-L2-002", "ZERG-L1-005"],
+      "files": {
+        "create": ["zerg/containers.py"],
+        "modify": [],
+        "read": ["zerg/config.py", "zerg/types.py", "zerg/ports.py", "zerg/logging.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.containers import ContainerManager\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 45,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L2-010",
+      "title": "Git Operations",
+      "description": "Branch create/delete, merge, rebase, conflict detection, staging branch",
+      "level": 2,
+      "dependencies": ["ZERG-L1-002", "ZERG-L1-005", "ZERG-L1-006"],
+      "files": {
+        "create": ["zerg/git_ops.py"],
+        "modify": [],
+        "read": ["zerg/types.py", "zerg/logging.py", "zerg/exceptions.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.git_ops import GitOps; go = GitOps('.')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 40,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L3-001",
+      "title": "Orchestrator Core",
+      "description": "Main event loop: worker lifecycle, level transitions, status polling",
+      "level": 3,
+      "dependencies": ["ZERG-L2-004", "ZERG-L2-005", "ZERG-L2-009"],
+      "files": {
+        "create": ["zerg/orchestrator.py"],
+        "modify": [],
+        "read": ["zerg/config.py", "zerg/types.py", "zerg/levels.py", "zerg/state.py", "zerg/containers.py", "zerg/logging.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.orchestrator import Orchestrator\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 60,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L3-002",
+      "title": "Merge Gate Integration",
+      "description": "Combine git ops + quality gates + level controller for merge workflow",
+      "level": 3,
+      "dependencies": ["ZERG-L2-006", "ZERG-L2-010", "ZERG-L2-004"],
+      "files": {
+        "create": ["zerg/merge.py"],
+        "modify": [],
+        "read": ["zerg/git_ops.py", "zerg/gates.py", "zerg/levels.py", "zerg/logging.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.merge import MergeCoordinator\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 45,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L3-003",
+      "title": "Worker Protocol Handler",
+      "description": "Worker startup sequence, task claiming, completion reporting, exit handling",
+      "level": 3,
+      "dependencies": ["ZERG-L2-005", "ZERG-L2-007", "ZERG-L2-001"],
+      "files": {
+        "create": ["zerg/worker_protocol.py"],
+        "modify": [],
+        "read": ["zerg/state.py", "zerg/verify.py", "zerg/worktree.py", "zerg/logging.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.worker_protocol import WorkerProtocol\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 50,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L3-004",
+      "title": "Rush Command Implementation",
+      "description": "Full /zerg rush flow: parse graph, assign workers, launch containers, monitor",
+      "level": 3,
+      "dependencies": ["ZERG-L3-001", "ZERG-L2-003", "ZERG-L2-008", "ZERG-L2-001"],
+      "files": {
+        "create": ["zerg/commands/rush.py", "zerg/commands/__init__.py"],
+        "modify": ["zerg/cli.py"],
+        "read": ["zerg/orchestrator.py", "zerg/parser.py", "zerg/assign.py", "zerg/worktree.py"]
+      },
+      "verification": {
+        "command": "python -m zerg rush --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 45,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L3-005",
+      "title": "Status Command Implementation",
+      "description": "/zerg status output: progress bars, worker table, event log",
+      "level": 3,
+      "dependencies": ["ZERG-L3-001", "ZERG-L2-005"],
+      "files": {
+        "create": ["zerg/commands/status.py"],
+        "modify": ["zerg/cli.py"],
+        "read": ["zerg/state.py", "zerg/orchestrator.py", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "python -m zerg status --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L3-006",
+      "title": "Stop Command Implementation",
+      "description": "/zerg stop flow: graceful shutdown, checkpoint, container cleanup",
+      "level": 3,
+      "dependencies": ["ZERG-L3-001", "ZERG-L2-009"],
+      "files": {
+        "create": ["zerg/commands/stop.py"],
+        "modify": ["zerg/cli.py"],
+        "read": ["zerg/orchestrator.py", "zerg/containers.py", "zerg/state.py"]
+      },
+      "verification": {
+        "command": "python -m zerg stop --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L3-007",
+      "title": "Retry Command Implementation",
+      "description": "/zerg retry flow: reset task state, re-queue for execution",
+      "level": 3,
+      "dependencies": ["ZERG-L3-001", "ZERG-L2-005"],
+      "files": {
+        "create": ["zerg/commands/retry.py"],
+        "modify": ["zerg/cli.py"],
+        "read": ["zerg/state.py", "zerg/orchestrator.py"]
+      },
+      "verification": {
+        "command": "python -m zerg retry --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L3-008",
+      "title": "Logs Command Implementation",
+      "description": "/zerg logs: stream worker logs, filtering, tail/follow modes",
+      "level": 3,
+      "dependencies": ["ZERG-L1-005", "ZERG-L2-009"],
+      "files": {
+        "create": ["zerg/commands/logs.py"],
+        "modify": ["zerg/cli.py"],
+        "read": ["zerg/logging.py", "zerg/containers.py"]
+      },
+      "verification": {
+        "command": "python -m zerg logs --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L3-009",
+      "title": "Cleanup Command Implementation",
+      "description": "/zerg cleanup: remove worktrees, branches, logs, containers",
+      "level": 3,
+      "dependencies": ["ZERG-L2-001", "ZERG-L2-010", "ZERG-L2-009"],
+      "files": {
+        "create": ["zerg/commands/cleanup.py"],
+        "modify": ["zerg/cli.py"],
+        "read": ["zerg/worktree.py", "zerg/git_ops.py", "zerg/containers.py"]
+      },
+      "verification": {
+        "command": "python -m zerg cleanup --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-001",
+      "title": "Init Command Refinement",
+      "description": "Update /zerg init prompt with detection logic, generate config",
+      "level": 4,
+      "dependencies": ["ZERG-L1-003", "ZERG-L1-008"],
+      "files": {
+        "create": ["zerg/commands/init.py"],
+        "modify": [".claude/commands/zerg:init.md", "zerg/cli.py"],
+        "read": ["zerg/config.py"]
+      },
+      "verification": {
+        "command": "python -m zerg init --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-002",
+      "title": "Plan Command Refinement",
+      "description": "Update /zerg plan prompt with requirements template, approval flow",
+      "level": 4,
+      "dependencies": ["ZERG-L3-001"],
+      "files": {
+        "create": [],
+        "modify": [".claude/commands/zerg:plan.md"],
+        "read": [".gsd/specs/phase2/architecture_synthesis.md"]
+      },
+      "verification": {
+        "command": "grep -q 'APPROVED' .claude/commands/zerg:plan.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-003",
+      "title": "Design Command Refinement",
+      "description": "Update /zerg design prompt with task graph generation, validation",
+      "level": 4,
+      "dependencies": ["ZERG-L1-007"],
+      "files": {
+        "create": [],
+        "modify": [".claude/commands/zerg:design.md"],
+        "read": ["zerg/validation.py", ".gsd/specs/phase2/architecture_synthesis.md"]
+      },
+      "verification": {
+        "command": "grep -q 'task-graph.json' .claude/commands/zerg:design.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 25,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-004",
+      "title": "Rush Command Prompt Update",
+      "description": "Sync /zerg rush prompt with Python implementation, add examples",
+      "level": 4,
+      "dependencies": ["ZERG-L3-004"],
+      "files": {
+        "create": [],
+        "modify": [".claude/commands/zerg:rush.md"],
+        "read": ["zerg/commands/rush.py"]
+      },
+      "verification": {
+        "command": "grep -q 'worker-assignments.json' .claude/commands/zerg:rush.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L4-005",
+      "title": "Status Command Prompt Update",
+      "description": "Sync /zerg status prompt with Python implementation, add output examples",
+      "level": 4,
+      "dependencies": ["ZERG-L3-005"],
+      "files": {
+        "create": [],
+        "modify": [".claude/commands/zerg:status.md"],
+        "read": ["zerg/commands/status.py"]
+      },
+      "verification": {
+        "command": "grep -q 'Progress:' .claude/commands/zerg:status.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-006",
+      "title": "Worker Command Refinement",
+      "description": "Update /zerg worker prompt with protocol, context handling, exit codes",
+      "level": 4,
+      "dependencies": ["ZERG-L3-003"],
+      "files": {
+        "create": [],
+        "modify": [".claude/commands/zerg:worker.md"],
+        "read": ["zerg/worker_protocol.py"]
+      },
+      "verification": {
+        "command": "grep -q '70%' .claude/commands/zerg:worker.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 25,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-007",
+      "title": "Merge Command Creation",
+      "description": "Create /zerg merge prompt for manual gate triggering",
+      "level": 4,
+      "dependencies": ["ZERG-L3-002"],
+      "files": {
+        "create": [".claude/commands/zerg:merge.md", "zerg/commands/merge_cmd.py"],
+        "modify": ["zerg/cli.py"],
+        "read": ["zerg/merge.py"]
+      },
+      "verification": {
+        "command": "python -m zerg merge --help",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-008",
+      "title": "Logs Command Prompt Creation",
+      "description": "Create /zerg logs prompt with filtering, streaming examples",
+      "level": 4,
+      "dependencies": ["ZERG-L3-008"],
+      "files": {
+        "create": [".claude/commands/zerg:logs.md"],
+        "modify": [],
+        "read": ["zerg/commands/logs.py"]
+      },
+      "verification": {
+        "command": "test -f .claude/commands/zerg:logs.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-009",
+      "title": "Stop Command Prompt Creation",
+      "description": "Create /zerg stop prompt with graceful/force options",
+      "level": 4,
+      "dependencies": ["ZERG-L3-006"],
+      "files": {
+        "create": [".claude/commands/zerg:stop.md"],
+        "modify": [],
+        "read": ["zerg/commands/stop.py"]
+      },
+      "verification": {
+        "command": "test -f .claude/commands/zerg:stop.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L4-010",
+      "title": "Cleanup Command Prompt Creation",
+      "description": "Create /zerg cleanup prompt with options documentation",
+      "level": 4,
+      "dependencies": ["ZERG-L3-009"],
+      "files": {
+        "create": [".claude/commands/zerg:cleanup.md"],
+        "modify": [],
+        "read": ["zerg/commands/cleanup.py"]
+      },
+      "verification": {
+        "command": "test -f .claude/commands/zerg:cleanup.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L5-001",
+      "title": "Unit Tests Foundation",
+      "description": "Pytest setup, fixtures, test utilities for core components",
+      "level": 5,
+      "dependencies": ["ZERG-L1-002", "ZERG-L1-003"],
+      "files": {
+        "create": ["tests/__init__.py", "tests/conftest.py", "tests/test_config.py", "tests/test_types.py"],
+        "modify": ["pyproject.toml"],
+        "read": ["zerg/config.py", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "pytest tests/test_config.py -v",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 40,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L5-002",
+      "title": "Core Component Tests",
+      "description": "Tests for worktree, levels, gates, verification, git ops",
+      "level": 5,
+      "dependencies": ["ZERG-L2-001", "ZERG-L2-004", "ZERG-L2-006", "ZERG-L2-010"],
+      "files": {
+        "create": ["tests/test_worktree.py", "tests/test_levels.py", "tests/test_gates.py", "tests/test_git_ops.py"],
+        "modify": [],
+        "read": ["zerg/worktree.py", "zerg/levels.py", "zerg/gates.py", "zerg/git_ops.py"]
+      },
+      "verification": {
+        "command": "pytest tests/test_worktree.py tests/test_levels.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 60,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L5-003",
+      "title": "Integration Tests",
+      "description": "End-to-end tests: rush with mock containers, level progression, merge flow",
+      "level": 5,
+      "dependencies": ["ZERG-L3-001", "ZERG-L3-002"],
+      "files": {
+        "create": ["tests/integration/__init__.py", "tests/integration/test_rush_flow.py", "tests/integration/test_merge_flow.py"],
+        "modify": [],
+        "read": ["zerg/orchestrator.py", "zerg/merge.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/ -v",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 90,
+      "status": "todo",
+      "critical_path": true
+    },
+    {
+      "id": "ZERG-L5-004",
+      "title": "Security Hooks",
+      "description": "Pre-commit hook for non-ASCII detection, commit message validation",
+      "level": 5,
+      "dependencies": ["ZERG-L3-001"],
+      "files": {
+        "create": [".zerg/hooks/pre-commit", "zerg/security.py"],
+        "modify": [],
+        "read": [".gsd/specs/phase2/architecture_synthesis.md"]
+      },
+      "verification": {
+        "command": "bash .zerg/hooks/pre-commit",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "status": "todo",
+      "critical_path": false
+    },
+    {
+      "id": "ZERG-L5-005",
+      "title": "Documentation Update",
+      "description": "Update README, ARCHITECTURE.md with final implementation details",
+      "level": 5,
+      "dependencies": ["ZERG-L4-004", "ZERG-L4-005"],
+      "files": {
+        "create": [],
+        "modify": ["README.md", "ARCHITECTURE.md"],
+        "read": ["zerg/*.py", ".claude/commands/*.md"]
+      },
+      "verification": {
+        "command": "grep -q 'pip install' README.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 45,
+      "status": "todo",
+      "critical_path": false
+    }
+  ],
+  
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["ZERG-L1-001", "ZERG-L1-002", "ZERG-L1-003", "ZERG-L1-004", "ZERG-L1-005", "ZERG-L1-006", "ZERG-L1-007", "ZERG-L1-008"],
+      "parallel": true,
+      "estimated_minutes": 140
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["ZERG-L2-001", "ZERG-L2-002", "ZERG-L2-003", "ZERG-L2-004", "ZERG-L2-005", "ZERG-L2-006", "ZERG-L2-007", "ZERG-L2-008", "ZERG-L2-009", "ZERG-L2-010"],
+      "parallel": true,
+      "estimated_minutes": 340,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["ZERG-L3-001", "ZERG-L3-002", "ZERG-L3-003", "ZERG-L3-004", "ZERG-L3-005", "ZERG-L3-006", "ZERG-L3-007", "ZERG-L3-008", "ZERG-L3-009"],
+      "parallel": true,
+      "estimated_minutes": 320,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "commands",
+      "tasks": ["ZERG-L4-001", "ZERG-L4-002", "ZERG-L4-003", "ZERG-L4-004", "ZERG-L4-005", "ZERG-L4-006", "ZERG-L4-007", "ZERG-L4-008", "ZERG-L4-009", "ZERG-L4-010"],
+      "parallel": true,
+      "estimated_minutes": 200,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["ZERG-L5-001", "ZERG-L5-002", "ZERG-L5-003", "ZERG-L5-004", "ZERG-L5-005"],
+      "parallel": true,
+      "estimated_minutes": 265,
+      "depends_on_levels": [4]
+    }
+  }
+}

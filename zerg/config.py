@@ -1,0 +1,177 @@
+"""ZERG configuration management using Pydantic."""
+
+from pathlib import Path
+from typing import Any
+
+import yaml
+from pydantic import BaseModel, Field
+
+from zerg.constants import (
+    DEFAULT_CONTEXT_THRESHOLD,
+    DEFAULT_PORT_RANGE_END,
+    DEFAULT_PORT_RANGE_START,
+    DEFAULT_PORTS_PER_WORKER,
+    DEFAULT_RETRY_ATTEMPTS,
+    DEFAULT_TIMEOUT_MINUTES,
+    DEFAULT_WORKERS,
+)
+
+
+class ProjectConfig(BaseModel):
+    """Project identification configuration."""
+
+    name: str = "zerg"
+    description: str = "Parallel Claude Code execution system"
+
+
+class WorkersConfig(BaseModel):
+    """Worker configuration settings."""
+
+    max_concurrent: int = Field(default=DEFAULT_WORKERS, ge=1, le=10)
+    timeout_minutes: int = Field(default=DEFAULT_TIMEOUT_MINUTES, ge=1, le=120)
+    retry_attempts: int = Field(default=DEFAULT_RETRY_ATTEMPTS, ge=0, le=10)
+    context_threshold_percent: int = Field(
+        default=int(DEFAULT_CONTEXT_THRESHOLD * 100), ge=50, le=90
+    )
+
+
+class PortsConfig(BaseModel):
+    """Port allocation configuration."""
+
+    range_start: int = Field(default=DEFAULT_PORT_RANGE_START, ge=1024, le=65535)
+    range_end: int = Field(default=DEFAULT_PORT_RANGE_END, ge=1024, le=65535)
+    ports_per_worker: int = Field(default=DEFAULT_PORTS_PER_WORKER, ge=1, le=100)
+
+
+class QualityGate(BaseModel):
+    """Single quality gate configuration."""
+
+    name: str
+    command: str
+    required: bool = False
+    timeout: int = Field(default=300, ge=1, le=3600)
+    coverage_threshold: int | None = None
+
+
+class ResourcesConfig(BaseModel):
+    """Resource limits per worker."""
+
+    cpu_cores: int = Field(default=2, ge=1, le=32)
+    memory_gb: int = Field(default=4, ge=1, le=64)
+    disk_gb: int = Field(default=10, ge=1, le=500)
+
+
+class LoggingConfig(BaseModel):
+    """Logging configuration."""
+
+    level: str = Field(default="info", pattern="^(debug|info|warn|error)$")
+    directory: str = ".zerg/logs"
+    retain_days: int = Field(default=7, ge=1, le=365)
+
+
+class SecurityConfig(BaseModel):
+    """Security configuration."""
+
+    level: str = Field(default="standard", pattern="^(minimal|standard|strict)$")
+    pre_commit_hooks: bool = True
+    audit_logging: bool = True
+    container_readonly: bool = True
+
+
+class ZergConfig(BaseModel):
+    """Complete ZERG configuration."""
+
+    project: ProjectConfig = Field(default_factory=ProjectConfig)
+    workers: WorkersConfig = Field(default_factory=WorkersConfig)
+    ports: PortsConfig = Field(default_factory=PortsConfig)
+    quality_gates: list[QualityGate] = Field(default_factory=list)
+    mcp_servers: list[str] = Field(default_factory=lambda: ["filesystem", "github", "fetch"])
+    resources: ResourcesConfig = Field(default_factory=ResourcesConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    security: SecurityConfig = Field(default_factory=SecurityConfig)
+
+    @classmethod
+    def load(cls, config_path: str | Path | None = None) -> "ZergConfig":
+        """Load configuration from YAML file.
+
+        Args:
+            config_path: Path to config file. Defaults to .zerg/config.yaml
+
+        Returns:
+            ZergConfig instance
+        """
+        if config_path is None:
+            config_path = Path(".zerg/config.yaml")
+        else:
+            config_path = Path(config_path)
+
+        if not config_path.exists():
+            return cls()
+
+        with open(config_path) as f:
+            data = yaml.safe_load(f) or {}
+
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ZergConfig":
+        """Create configuration from dictionary.
+
+        Args:
+            data: Configuration dictionary
+
+        Returns:
+            ZergConfig instance
+        """
+        return cls(**data)
+
+    def save(self, config_path: str | Path | None = None) -> None:
+        """Save configuration to YAML file.
+
+        Args:
+            config_path: Path to save config. Defaults to .zerg/config.yaml
+        """
+        if config_path is None:
+            config_path = Path(".zerg/config.yaml")
+        else:
+            config_path = Path(config_path)
+
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(config_path, "w") as f:
+            yaml.dump(self.to_dict(), f, default_flow_style=False, sort_keys=False)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert configuration to dictionary.
+
+        Returns:
+            Configuration as dictionary
+        """
+        return self.model_dump()
+
+    @property
+    def context_threshold(self) -> float:
+        """Get context threshold as a float (0.0 to 1.0)."""
+        return self.workers.context_threshold_percent / 100.0
+
+    def get_gate(self, name: str) -> QualityGate | None:
+        """Get a quality gate by name.
+
+        Args:
+            name: Gate name
+
+        Returns:
+            QualityGate or None if not found
+        """
+        for gate in self.quality_gates:
+            if gate.name == name:
+                return gate
+        return None
+
+    def get_required_gates(self) -> list[QualityGate]:
+        """Get all required quality gates.
+
+        Returns:
+            List of required QualityGate instances
+        """
+        return [g for g in self.quality_gates if g.required]
