@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["task_id", "worker_id", "current_step"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "worker_id": {"type": "string"},
+    "timestamp": {"type": ["string", "null"], "format": "date-time"},
+    "files_created": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "files_modified": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "current_step": {"type": "integer", "minimum": 0},
+    "state_data": {"type": "object"}
+  }
+}

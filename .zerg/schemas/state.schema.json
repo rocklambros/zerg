@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["feature", "started_at", "current_level", "tasks"],
+  "properties": {
+    "feature": {"type": "string"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "current_level": {"type": "integer", "minimum": 0},
+    "tasks": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/task"}
+    },
+    "workers": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/worker"}
+    },
+    "checkpoints": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  },
+  "definitions": {
+    "task": {
+      "type": "object",
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"type": "string"},
+        "status": {"enum": ["pending", "running", "complete", "failed", "blocked"]},
+        "worker_id": {"type": ["string", "null"]},
+        "started_at": {"type": ["string", "null"]},
+        "completed_at": {"type": ["string", "null"]},
+        "error": {"type": ["string", "null"]}
+      }
+    },
+    "worker": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {"type": "string"},
+        "status": {"type": "string"},
+        "current_task": {"type": ["string", "null"]},
+        "tasks_completed": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
