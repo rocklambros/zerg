@@ -15,6 +15,7 @@ from zerg.constants import (
     DEFAULT_TIMEOUT_MINUTES,
     DEFAULT_WORKERS,
 )
+from zerg.launcher import LauncherType
 
 
 class ProjectConfig(BaseModel):
@@ -33,6 +34,7 @@ class WorkersConfig(BaseModel):
     context_threshold_percent: int = Field(
         default=int(DEFAULT_CONTEXT_THRESHOLD * 100), ge=50, le=90
     )
+    launcher_type: str = Field(default="subprocess", pattern="^(subprocess|container)$")
 
 
 class PortsConfig(BaseModel):
@@ -175,3 +177,11 @@ class ZergConfig(BaseModel):
             List of required QualityGate instances
         """
         return [g for g in self.quality_gates if g.required]
+
+    def get_launcher_type(self) -> LauncherType:
+        """Get the configured launcher type.
+
+        Returns:
+            LauncherType enum value
+        """
+        return LauncherType(self.workers.launcher_type)

@@ -1,9 +1,6 @@
 """Tests for zerg.config module."""
 
-import json
 from pathlib import Path
-
-import pytest
 
 from zerg.config import QualityGate, WorkersConfig, ZergConfig
 
@@ -142,3 +139,40 @@ mcp_servers: []
         assert sample_config.workers.max_concurrent == 5
         assert sample_config.context_threshold == 0.7
         assert len(sample_config.quality_gates) == 2
+
+    def test_launcher_type_default(self) -> None:
+        """Test default launcher type is subprocess."""
+        config = ZergConfig()
+        assert config.workers.launcher_type == "subprocess"
+
+    def test_launcher_type_container(self) -> None:
+        """Test container launcher type."""
+        from zerg.config import WorkersConfig
+
+        workers = WorkersConfig(launcher_type="container")
+        assert workers.launcher_type == "container"
+
+    def test_get_launcher_type(self) -> None:
+        """Test get_launcher_type method."""
+        from zerg.launcher import LauncherType
+
+        config = ZergConfig()
+        launcher_type = config.get_launcher_type()
+
+        assert launcher_type == LauncherType.SUBPROCESS
+
+    def test_launcher_type_from_yaml(self, tmp_path: Path, monkeypatch) -> None:
+        """Test loading launcher type from YAML."""
+        monkeypatch.chdir(tmp_path)
+
+        config_dir = tmp_path / ".zerg"
+        config_dir.mkdir()
+
+        config_file = config_dir / "config.yaml"
+        config_file.write_text("""
+workers:
+  launcher_type: container
+""")
+
+        config = ZergConfig.load()
+        assert config.workers.launcher_type == "container"

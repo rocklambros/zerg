@@ -61,6 +61,23 @@ class MergeStatus(Enum):
     FAILED = "failed"
 
 
+class LevelMergeStatus(Enum):
+    """Level merge protocol status.
+
+    Tracks the state of merging all worker branches after a level completes.
+    """
+
+    PENDING = "pending"  # Level not yet complete, merge not started
+    WAITING = "waiting"  # Waiting for all workers to finish level
+    COLLECTING = "collecting"  # Gathering worker branches for merge
+    MERGING = "merging"  # Merge in progress
+    VALIDATING = "validating"  # Running quality gates on merged code
+    REBASING = "rebasing"  # Rebasing worker branches onto merged base
+    COMPLETE = "complete"  # Merge successful, ready for next level
+    CONFLICT = "conflict"  # Merge conflict detected, needs intervention
+    FAILED = "failed"  # Merge or validation failed
+
+
 class ExitCode(IntEnum):
     """Worker exit codes."""
 

@@ -1,22 +1,54 @@
 """Worker protocol handler for ZERG workers."""
 
 import os
+import subprocess
 import sys
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from zerg.config import ZergConfig
 from zerg.constants import DEFAULT_CONTEXT_THRESHOLD, ExitCode, TaskStatus
-from zerg.exceptions import TaskVerificationFailed
+from zerg.context_tracker import ContextTracker
 from zerg.git_ops import GitOps
 from zerg.logging import get_logger, set_worker_context
+from zerg.parser import TaskParser
 from zerg.state import StateManager
 from zerg.types import Task
 from zerg.verify import VerificationExecutor
 
 logger = get_logger("worker_protocol")
+
+# Default Claude Code invocation settings
+CLAUDE_CLI_DEFAULT_TIMEOUT = 1800  # 30 minutes
+CLAUDE_CLI_COMMAND = "claude"
+
+
+@dataclass
+class ClaudeInvocationResult:
+    """Result of Claude Code CLI invocation."""
+
+    success: bool
+    exit_code: int
+    stdout: str
+    stderr: str
+    duration_ms: int
+    task_id: str
+    timestamp: datetime = field(default_factory=datetime.now)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "success": self.success,
+            "exit_code": self.exit_code,
+            "stdout": self.stdout[:1000] if len(self.stdout) > 1000 else self.stdout,
+            "stderr": self.stderr[:1000] if len(self.stderr) > 1000 else self.stderr,
+            "duration_ms": self.duration_ms,
+            "task_id": self.task_id,
+            "timestamp": self.timestamp.isoformat(),
+        }
 
 
 @dataclass
@@ -45,6 +77,7 @@ class WorkerProtocol:
         worker_id: int | None = None,
         feature: str | None = None,
         config: ZergConfig | None = None,
+        task_graph_path: Path | str | None = None,
     ) -> None:
         """Initialize worker protocol.
 
@@ -52,12 +85,20 @@ class WorkerProtocol:
             worker_id: Worker ID (from env if not provided)
             feature: Feature name (from env if not provided)
             config: ZERG configuration
+            task_graph_path: Path to task graph JSON (from env if not provided)
         """
         # Get from environment if not provided
         self.worker_id = worker_id or int(os.environ.get("ZERG_WORKER_ID", "0"))
         self.feature = feature or os.environ.get("ZERG_FEATURE", "unknown")
         self.branch = os.environ.get("ZERG_BRANCH", f"zerg/{self.feature}/worker-{self.worker_id}")
         self.worktree_path = Path(os.environ.get("ZERG_WORKTREE", ".")).resolve()
+
+        # Task graph path from arg or env
+        if task_graph_path:
+            self.task_graph_path = Path(task_graph_path)
+        else:
+            env_path = os.environ.get("ZERG_TASK_GRAPH")
+            self.task_graph_path = Path(env_path) if env_path else None
 
         self.config = config or ZergConfig.load()
         self.context_threshold = self.config.context_threshold
@@ -66,11 +107,26 @@ class WorkerProtocol:
         self.state = StateManager(self.feature)
         self.verifier = VerificationExecutor()
         self.git = GitOps(self.worktree_path)
+        self.context_tracker = ContextTracker(
+            threshold_percent=self.context_threshold * 100
+        )
+
+        # Task parser for loading task details
+        self.task_parser: TaskParser | None = None
+        if self.task_graph_path and self.task_graph_path.exists():
+            self.task_parser = TaskParser()
+            try:
+                self.task_parser.parse(self.task_graph_path)
+                logger.info(f"Loaded task graph from {self.task_graph_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load task graph: {e}")
+                self.task_parser = None
 
         # Runtime state
         self.current_task: Task | None = None
         self.tasks_completed = 0
         self._started_at: datetime | None = None
+        self._is_ready = False
 
         # Set logging context
         set_worker_context(worker_id=self.worker_id, feature=self.feature)
@@ -85,6 +141,9 @@ class WorkerProtocol:
 
         # Load state
         self.state.load()
+
+        # Signal ready to orchestrator
+        self.signal_ready()
 
         # Main execution loop
         while True:
@@ -111,8 +170,49 @@ class WorkerProtocol:
         logger.info(f"Worker {self.worker_id} completed {self.tasks_completed} tasks")
         sys.exit(ExitCode.SUCCESS)
 
+    def signal_ready(self) -> None:
+        """Signal to orchestrator that worker is ready for tasks.
+
+        Updates state and logs event for orchestrator polling.
+        """
+        logger.info(f"Worker {self.worker_id} signaling ready")
+
+        self._is_ready = True
+        self.state.set_worker_ready(self.worker_id)
+        self.state.append_event("worker_ready", {
+            "worker_id": self.worker_id,
+            "worktree": str(self.worktree_path),
+            "branch": self.branch,
+        })
+
+    def wait_for_ready(self, timeout: float = 30.0) -> bool:
+        """Wait until worker is ready.
+
+        Used primarily for testing and synchronization.
+
+        Args:
+            timeout: Maximum seconds to wait
+
+        Returns:
+            True if ready, False if timeout
+        """
+        start = time.time()
+        while time.time() - start < timeout:
+            if self._is_ready:
+                return True
+            time.sleep(0.1)
+        return False
+
+    @property
+    def is_ready(self) -> bool:
+        """Check if worker is ready for tasks."""
+        return self._is_ready
+
     def claim_next_task(self) -> Task | None:
         """Claim the next available task.
+
+        Attempts to claim tasks assigned to this worker from the pending queue.
+        Loads full task details from the task graph if available.
 
         Returns:
             Task to execute or None if no tasks available
@@ -123,20 +223,48 @@ class WorkerProtocol:
         for task_id in pending:
             # Try to claim this task
             if self.state.claim_task(task_id, self.worker_id):
-                # Load task details (would come from task graph in real impl)
-                task: Task = {
-                    "id": task_id,
-                    "title": f"Task {task_id}",
-                    "level": 1,
-                }
+                # Load full task from task graph if available
+                task = self._load_task_details(task_id)
                 self.current_task = task
-                logger.info(f"Claimed task {task_id}")
+                logger.info(f"Claimed task {task_id}: {task.get('title', 'untitled')}")
                 return task
 
         return None
 
+    def _load_task_details(self, task_id: str) -> Task:
+        """Load full task details from task graph.
+
+        Args:
+            task_id: Task identifier
+
+        Returns:
+            Task with full details or minimal stub
+        """
+        # Try to load from task parser
+        if self.task_parser:
+            parsed_task = self.task_parser.get_task(task_id)
+            if parsed_task:
+                logger.debug(f"Loaded task {task_id} from task graph")
+                return parsed_task
+
+        # Fall back to minimal stub
+        logger.warning(f"Task {task_id} not found in graph, using stub")
+        return {
+            "id": task_id,
+            "title": f"Task {task_id}",
+            "level": 1,
+        }
+
     def execute_task(self, task: Task) -> bool:
-        """Execute a task.
+        """Execute a task using Claude Code CLI.
+
+        The full task execution flow:
+        1. Update status to IN_PROGRESS
+        2. Build task prompt from task spec
+        3. Invoke Claude Code CLI with the prompt
+        4. Run verification command if specified
+        5. Commit changes if successful
+        6. Track context usage
 
         Args:
             task: Task to execute
@@ -151,35 +279,288 @@ class WorkerProtocol:
         self.state.set_task_status(task_id, TaskStatus.IN_PROGRESS, worker_id=self.worker_id)
 
         try:
-            # Execute the task (in real implementation, this would run Claude Code)
-            # For now, we simulate by running verification
-            verification = task.get("verification")
+            # Step 1: Invoke Claude Code to implement the task
+            claude_result = self.invoke_claude_code(task)
 
-            if verification:
-                command = verification.get("command", "")
-                timeout = verification.get("timeout_seconds", 30)
+            if not claude_result.success:
+                logger.error(f"Claude Code invocation failed for {task_id}")
+                self.state.append_event("claude_failed", {
+                    "task_id": task_id,
+                    "worker_id": self.worker_id,
+                    "exit_code": claude_result.exit_code,
+                    "stderr": claude_result.stderr[:500],
+                })
+                return False
 
-                result = self.verifier.verify(
-                    command,
-                    task_id,
-                    timeout=timeout,
-                    cwd=self.worktree_path,
-                )
+            # Step 2: Run verification if specified
+            if task.get("verification") and not self.run_verification(task):
+                logger.error(f"Verification failed for {task_id}")
+                return False
 
-                if not result.success:
-                    return False
+            # Step 3: Commit changes
+            if not self.commit_task_changes(task):
+                logger.error(f"Commit failed for {task_id}")
+                return False
 
-            # Commit changes
-            if self.git.has_changes():
-                self.git.commit(
-                    f"ZERG [{self.worker_id}]: Complete {task_id}",
-                    add_all=True,
-                )
+            # Step 4: Track context usage
+            self.context_tracker.track_task_execution(task_id)
 
             return True
 
         except Exception as e:
             logger.error(f"Task {task_id} failed: {e}")
+            self.state.append_event("task_exception", {
+                "task_id": task_id,
+                "worker_id": self.worker_id,
+                "error": str(e),
+            })
+            return False
+
+    def invoke_claude_code(
+        self,
+        task: Task,
+        timeout: int | None = None,
+    ) -> ClaudeInvocationResult:
+        """Invoke Claude Code CLI to implement a task.
+
+        Builds a prompt from the task specification and runs Claude Code
+        in non-interactive mode with --print flag.
+
+        Args:
+            task: Task to implement
+            timeout: Timeout in seconds (default: CLAUDE_CLI_DEFAULT_TIMEOUT)
+
+        Returns:
+            ClaudeInvocationResult with success status and output
+        """
+        task_id = task["id"]
+        timeout = timeout or CLAUDE_CLI_DEFAULT_TIMEOUT
+
+        # Build the prompt from task specification
+        prompt = self._build_task_prompt(task)
+
+        # Build command - use --print for non-interactive execution
+        cmd = [
+            CLAUDE_CLI_COMMAND,
+            "--print",
+            prompt,
+        ]
+
+        logger.info(f"Invoking Claude Code for task {task_id}")
+        logger.debug(f"Prompt: {prompt[:200]}...")
+
+        start_time = time.time()
+
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=str(self.worktree_path),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                env={
+                    **os.environ,
+                    "ZERG_TASK_ID": task_id,
+                    "ZERG_WORKER_ID": str(self.worker_id),
+                },
+            )
+
+            duration_ms = int((time.time() - start_time) * 1000)
+            success = result.returncode == 0
+
+            if success:
+                logger.info(f"Claude Code completed for {task_id} ({duration_ms}ms)")
+            else:
+                logger.warning(f"Claude Code failed for {task_id} (exit {result.returncode})")
+
+            return ClaudeInvocationResult(
+                success=success,
+                exit_code=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+                duration_ms=duration_ms,
+                task_id=task_id,
+            )
+
+        except subprocess.TimeoutExpired:
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.error(f"Claude Code timed out for {task_id} after {timeout}s")
+
+            return ClaudeInvocationResult(
+                success=False,
+                exit_code=-1,
+                stdout="",
+                stderr=f"Claude Code invocation timed out after {timeout}s",
+                duration_ms=duration_ms,
+                task_id=task_id,
+            )
+
+        except FileNotFoundError:
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.error(f"Claude CLI not found: {CLAUDE_CLI_COMMAND}")
+
+            return ClaudeInvocationResult(
+                success=False,
+                exit_code=-1,
+                stdout="",
+                stderr=f"Claude CLI not found: {CLAUDE_CLI_COMMAND}",
+                duration_ms=duration_ms,
+                task_id=task_id,
+            )
+
+        except Exception as e:
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.error(f"Claude Code invocation error: {e}")
+
+            return ClaudeInvocationResult(
+                success=False,
+                exit_code=-1,
+                stdout="",
+                stderr=str(e),
+                duration_ms=duration_ms,
+                task_id=task_id,
+            )
+
+    def _build_task_prompt(self, task: Task) -> str:
+        """Build a Claude Code prompt from task specification.
+
+        Args:
+            task: Task specification
+
+        Returns:
+            Formatted prompt string
+        """
+        parts = []
+
+        # Task header
+        parts.append(f"# Task: {task.get('title', task['id'])}")
+        parts.append("")
+
+        # Description
+        if description := task.get("description"):
+            parts.append("## Description")
+            parts.append(description)
+            parts.append("")
+
+        # Files to work with
+        if files := task.get("files"):
+            parts.append("## Files")
+            if create := files.get("create"):
+                parts.append(f"Create: {', '.join(create)}")
+            if modify := files.get("modify"):
+                parts.append(f"Modify: {', '.join(modify)}")
+            if read := files.get("read"):
+                parts.append(f"Reference: {', '.join(read)}")
+            parts.append("")
+
+        # Verification command
+        if verification := task.get("verification"):
+            parts.append("## Verification")
+            parts.append(f"Command: `{verification.get('command', '')}`")
+            parts.append("")
+
+        # Instructions
+        parts.append("## Instructions")
+        parts.append("Implement the task as specified. Make all necessary changes.")
+        parts.append("Do NOT commit - the orchestrator handles commits.")
+
+        return "\n".join(parts)
+
+    def run_verification(
+        self,
+        task: Task,
+        max_retries: int = 2,
+    ) -> bool:
+        """Run task verification with retry support.
+
+        Args:
+            task: Task to verify
+            max_retries: Maximum retry attempts on failure
+
+        Returns:
+            True if verification passed
+        """
+        task_id = task["id"]
+        verification = task.get("verification")
+
+        if not verification:
+            logger.info(f"No verification for {task_id} - auto-pass")
+            return True
+
+        command = verification.get("command", "")
+        timeout = verification.get("timeout_seconds", 30)
+
+        if not command:
+            logger.info(f"Empty verification command for {task_id} - auto-pass")
+            return True
+
+        logger.info(f"Running verification for {task_id}: {command}")
+
+        # Use verifier with retry support
+        result = self.verifier.verify_with_retry(
+            command,
+            task_id,
+            max_retries=max_retries,
+            timeout=timeout,
+            cwd=self.worktree_path,
+        )
+
+        if result.success:
+            logger.info(f"Verification passed for {task_id}")
+            self.state.append_event("verification_passed", {
+                "task_id": task_id,
+                "worker_id": self.worker_id,
+                "duration_ms": result.duration_ms,
+            })
+            return True
+        else:
+            logger.error(f"Verification failed for {task_id}: {result.stderr}")
+            self.state.append_event("verification_failed", {
+                "task_id": task_id,
+                "worker_id": self.worker_id,
+                "exit_code": result.exit_code,
+                "stderr": result.stderr[:500],
+            })
+            return False
+
+    def commit_task_changes(self, task: Task) -> bool:
+        """Commit changes for a completed task.
+
+        Args:
+            task: Completed task
+
+        Returns:
+            True if commit succeeded (or no changes)
+        """
+        task_id = task["id"]
+
+        if not self.git.has_changes():
+            logger.info(f"No changes to commit for {task_id}")
+            return True
+
+        try:
+            # Build commit message
+            title = task.get("title", task_id)
+            commit_msg = f"ZERG [{self.worker_id}]: {title}\n\nTask-ID: {task_id}"
+
+            self.git.commit(commit_msg, add_all=True)
+            logger.info(f"Committed changes for {task_id}")
+
+            self.state.append_event("task_committed", {
+                "task_id": task_id,
+                "worker_id": self.worker_id,
+                "branch": self.branch,
+            })
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Commit failed for {task_id}: {e}")
+            self.state.append_event("commit_failed", {
+                "task_id": task_id,
+                "worker_id": self.worker_id,
+                "error": str(e),
+            })
             return False
 
     def report_complete(self, task_id: str) -> None:
@@ -228,16 +609,9 @@ class WorkerProtocol:
         Returns:
             Context usage as float 0.0-1.0
         """
-        # In a real implementation, this would check Claude Code's context
-        # For now, we estimate based on time and tasks
-        if not self._started_at:
-            return 0.0
-
-        # Simulate context growth
-        elapsed = (datetime.now() - self._started_at).total_seconds()
-        tasks_factor = self.tasks_completed * 0.1  # 10% per task
-
-        return min(tasks_factor + (elapsed / 3600) * 0.5, 1.0)
+        # Use context tracker for estimation
+        usage = self.context_tracker.get_usage()
+        return usage.usage_percent / 100.0
 
     def should_checkpoint(self) -> bool:
         """Check if worker should checkpoint and exit.
@@ -245,8 +619,20 @@ class WorkerProtocol:
         Returns:
             True if context threshold exceeded
         """
-        usage = self.check_context_usage()
-        return usage >= self.context_threshold
+        return self.context_tracker.should_checkpoint()
+
+    def track_file_read(self, path: str | Path, size: int | None = None) -> None:
+        """Track a file read for context estimation.
+
+        Args:
+            path: File path that was read
+            size: Optional file size (auto-detected if not provided)
+        """
+        self.context_tracker.track_file_read(path, size)
+
+    def track_tool_call(self) -> None:
+        """Track a tool invocation for context estimation."""
+        self.context_tracker.track_tool_call()
 
     def checkpoint_and_exit(self) -> None:
         """Checkpoint current work and exit.

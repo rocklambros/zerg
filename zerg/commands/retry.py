@@ -6,9 +6,9 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from zerg.config import ZergConfig
 from zerg.constants import TaskStatus
 from zerg.logging import get_logger
+from zerg.orchestrator import Orchestrator
 from zerg.state import StateManager
 
 console = Console()
@@ -68,10 +68,10 @@ def retry(
         state.load()
 
         # Get tasks to retry
-        if all_failed:
-            tasks_to_retry = get_failed_tasks(state)
-        else:
-            tasks_to_retry = [task_id] if task_id else []
+        tasks_to_retry = (
+            get_failed_tasks(state) if all_failed
+            else [task_id] if task_id else []
+        )
 
         if not tasks_to_retry:
             console.print("[yellow]No tasks to retry[/yellow]")
@@ -104,7 +104,7 @@ def retry(
 
     except Exception as e:
         console.print(f"\n[red]Error:[/red] {e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 def detect_feature() -> str | None:
@@ -187,23 +187,42 @@ def retry_task(
     task_id: str,
     reset: bool,
     worker_id: int | None,
+    orchestrator: Orchestrator | None = None,
 ) -> bool:
     """Retry a single task.
+
+    Uses orchestrator's retry method if available for proper retry count handling.
 
     Args:
         state: State manager
         task_id: Task ID
         reset: Whether to reset
         worker_id: Target worker
+        orchestrator: Optional orchestrator for enhanced retry logic
 
     Returns:
         True if successful
     """
     try:
-        # Reset task status
+        # Use orchestrator retry method if available (handles retry counts)
+        if orchestrator and not reset:
+            success = orchestrator.retry_task(task_id)
+            if not success:
+                # Fall back to manual retry
+                logger.warning(f"Orchestrator retry failed for {task_id}, using manual")
+            else:
+                # Assign to worker if specified
+                if worker_id is not None:
+                    state.assign_task(task_id, worker_id)
+                return True
+
+        # Manual retry path
         if reset:
+            # Full reset - clear retry count and status
+            state.reset_task_retry(task_id)
             state.set_task_status(task_id, TaskStatus.PENDING, worker_id=None, error=None)
         else:
+            # Simple requeue
             state.set_task_status(task_id, TaskStatus.PENDING)
 
         # Assign to specific worker if requested
@@ -222,3 +241,41 @@ def retry_task(
     except Exception as e:
         logger.error(f"Failed to retry task {task_id}: {e}")
         return False
+
+
+def retry_all_failed_tasks(
+    feature: str,
+    reset: bool = False,
+) -> tuple[int, list[str]]:
+    """Retry all failed tasks using orchestrator.
+
+    Args:
+        feature: Feature name
+        reset: Whether to reset retry counts
+
+    Returns:
+        Tuple of (count retried, list of failed task IDs)
+    """
+    try:
+        orchestrator = Orchestrator(feature)
+
+        if reset:
+            # Manual reset of all failed tasks
+            state = StateManager(feature)
+            state.load()
+            failed_tasks = get_failed_tasks(state)
+            retried = []
+
+            for task_id in failed_tasks:
+                if retry_task(state, task_id, reset=True, worker_id=None):
+                    retried.append(task_id)
+
+            return len(retried), retried
+        else:
+            # Use orchestrator's retry_all_failed
+            retried = orchestrator.retry_all_failed()
+            return len(retried), retried
+
+    except Exception as e:
+        logger.error(f"Failed to retry all failed tasks: {e}")
+        return 0, []

@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from zerg.constants import STATE_DIR, TaskStatus, WorkerStatus
+from zerg.constants import STATE_DIR, LevelMergeStatus, TaskStatus, WorkerStatus
 from zerg.exceptions import StateError
 from zerg.logging import get_logger
 from zerg.types import ExecutionEvent, WorkerState
@@ -395,3 +395,180 @@ class StateManager:
             True if state file exists
         """
         return self._state_file.exists()
+
+    # === Merge Status Tracking ===
+
+    def get_level_merge_status(self, level: int) -> LevelMergeStatus | None:
+        """Get the merge status for a level.
+
+        Args:
+            level: Level number
+
+        Returns:
+            LevelMergeStatus or None if not set
+        """
+        with self._lock:
+            level_data = self._state.get("levels", {}).get(str(level), {})
+            merge_status = level_data.get("merge_status")
+            if merge_status:
+                return LevelMergeStatus(merge_status)
+            return None
+
+    def set_level_merge_status(
+        self,
+        level: int,
+        merge_status: LevelMergeStatus,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        """Set the merge status for a level.
+
+        Args:
+            level: Level number
+            merge_status: New merge status
+            details: Additional details (conflicting files, etc.)
+        """
+        with self._lock:
+            if "levels" not in self._state:
+                self._state["levels"] = {}
+
+            if str(level) not in self._state["levels"]:
+                self._state["levels"][str(level)] = {}
+
+            level_state = self._state["levels"][str(level)]
+            level_state["merge_status"] = merge_status.value
+            level_state["merge_updated_at"] = datetime.now().isoformat()
+
+            if details:
+                level_state["merge_details"] = details
+
+            if merge_status == LevelMergeStatus.COMPLETE:
+                level_state["merge_completed_at"] = datetime.now().isoformat()
+
+        self.save()
+        logger.debug(f"Level {level} merge status: {merge_status.value}")
+
+    # === Retry Tracking ===
+
+    def get_task_retry_count(self, task_id: str) -> int:
+        """Get the retry count for a task.
+
+        Args:
+            task_id: Task identifier
+
+        Returns:
+            Number of retries (0 if never retried)
+        """
+        with self._lock:
+            task_state = self._state.get("tasks", {}).get(task_id, {})
+            return task_state.get("retry_count", 0)
+
+    def increment_task_retry(self, task_id: str) -> int:
+        """Increment and return the retry count for a task.
+
+        Args:
+            task_id: Task identifier
+
+        Returns:
+            New retry count
+        """
+        with self._lock:
+            if "tasks" not in self._state:
+                self._state["tasks"] = {}
+
+            if task_id not in self._state["tasks"]:
+                self._state["tasks"][task_id] = {}
+
+            task_state = self._state["tasks"][task_id]
+            retry_count = task_state.get("retry_count", 0) + 1
+            task_state["retry_count"] = retry_count
+            task_state["last_retry_at"] = datetime.now().isoformat()
+
+        self.save()
+        logger.debug(f"Task {task_id} retry count: {retry_count}")
+        return retry_count
+
+    def reset_task_retry(self, task_id: str) -> None:
+        """Reset the retry count for a task.
+
+        Args:
+            task_id: Task identifier
+        """
+        with self._lock:
+            if task_id in self._state.get("tasks", {}):
+                self._state["tasks"][task_id]["retry_count"] = 0
+                self._state["tasks"][task_id].pop("last_retry_at", None)
+
+        self.save()
+        logger.debug(f"Task {task_id} retry count reset")
+
+    def get_failed_tasks(self) -> list[dict[str, Any]]:
+        """Get all failed tasks with their retry information.
+
+        Returns:
+            List of failed task info dictionaries
+        """
+        with self._lock:
+            failed = []
+            for task_id, task_state in self._state.get("tasks", {}).items():
+                if task_state.get("status") == TaskStatus.FAILED.value:
+                    failed.append({
+                        "task_id": task_id,
+                        "retry_count": task_state.get("retry_count", 0),
+                        "error": task_state.get("error"),
+                        "last_retry_at": task_state.get("last_retry_at"),
+                    })
+            return failed
+
+    # === Worker Ready Status ===
+
+    def set_worker_ready(self, worker_id: int) -> None:
+        """Mark a worker as ready to receive tasks.
+
+        Args:
+            worker_id: Worker identifier
+        """
+        with self._lock:
+            worker_data = self._state.get("workers", {}).get(str(worker_id), {})
+            if worker_data:
+                worker_data["status"] = WorkerStatus.READY.value
+                worker_data["ready_at"] = datetime.now().isoformat()
+
+        self.save()
+        logger.debug(f"Worker {worker_id} marked ready")
+
+    def get_ready_workers(self) -> list[int]:
+        """Get list of workers in ready state.
+
+        Returns:
+            List of ready worker IDs
+        """
+        with self._lock:
+            ready = []
+            for wid_str, worker_data in self._state.get("workers", {}).items():
+                if worker_data.get("status") == WorkerStatus.READY.value:
+                    ready.append(int(wid_str))
+            return ready
+
+    def wait_for_workers_ready(self, worker_ids: list[int], timeout: float = 60.0) -> bool:
+        """Wait for specified workers to become ready.
+
+        Note: This is a polling implementation. For production, consider
+        using proper synchronization.
+
+        Args:
+            worker_ids: Workers to wait for
+            timeout: Maximum wait time in seconds
+
+        Returns:
+            True if all workers became ready before timeout
+        """
+        import time
+
+        start = time.time()
+        while time.time() - start < timeout:
+            self.load()  # Refresh state
+            ready = self.get_ready_workers()
+            if all(wid in ready for wid in worker_ids):
+                return True
+            time.sleep(0.5)
+        return False

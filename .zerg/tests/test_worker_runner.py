@@ -321,3 +321,243 @@ class TestSelfReviewChecklist:
         for keyword in keywords:
             found = any(keyword.lower() in item.lower() for item in checklist)
             assert found, f"Checklist should include {keyword}"
+
+
+class TestClaudeInvocationResult:
+    """Tests for ClaudeInvocationResult dataclass."""
+
+    def test_claude_result_creation(self):
+        """Test ClaudeInvocationResult can be created."""
+        from worker_runner import ClaudeInvocationResult
+
+        result = ClaudeInvocationResult(
+            success=True,
+            exit_code=0,
+            stdout="Output",
+            stderr="",
+            duration_ms=1000,
+            task_id="TASK-001",
+        )
+        assert result.success is True
+        assert result.exit_code == 0
+
+    def test_claude_result_to_dict(self):
+        """Test ClaudeInvocationResult.to_dict()."""
+        from worker_runner import ClaudeInvocationResult
+
+        result = ClaudeInvocationResult(
+            success=True,
+            exit_code=0,
+            stdout="Output",
+            stderr="",
+            duration_ms=1000,
+            task_id="TASK-001",
+        )
+        d = result.to_dict()
+        assert d["success"] is True
+        assert d["task_id"] == "TASK-001"
+        assert "timestamp" in d
+
+    def test_claude_result_truncates_long_output(self):
+        """Test that long output is truncated."""
+        from worker_runner import ClaudeInvocationResult
+
+        long_output = "x" * 5000
+        result = ClaudeInvocationResult(
+            success=True,
+            exit_code=0,
+            stdout=long_output,
+            stderr=long_output,
+            duration_ms=1000,
+            task_id="TASK-001",
+        )
+        d = result.to_dict()
+        assert len(d["stdout"]) == 2000
+        assert len(d["stderr"]) == 2000
+
+
+class TestWorkerRunResult:
+    """Tests for WorkerRunResult dataclass."""
+
+    def test_worker_run_result_creation(self):
+        """Test WorkerRunResult can be created."""
+        from worker_runner import WorkerRunResult
+
+        result = WorkerRunResult(
+            task_id="TASK-001",
+            success=True,
+            tdd_complete=True,
+            verification_passed=True,
+        )
+        assert result.success is True
+        assert result.task_id == "TASK-001"
+
+    def test_worker_run_result_to_dict(self):
+        """Test WorkerRunResult.to_dict()."""
+        from worker_runner import WorkerRunResult
+
+        result = WorkerRunResult(
+            task_id="TASK-001",
+            success=True,
+            tdd_complete=True,
+            verification_passed=True,
+        )
+        d = result.to_dict()
+        assert d["success"] is True
+        assert d["tdd_complete"] is True
+        assert d["verification_passed"] is True
+        assert "started_at" in d
+
+
+class TestWorkerRunnerRun:
+    """Tests for WorkerRunner.run() method (L4-001)."""
+
+    @patch("worker_runner.subprocess.run")
+    def test_run_success(self, mock_subprocess):
+        """Test successful task execution."""
+        from worker_runner import TaskSpec, WorkerRunner
+
+        # Mock Claude Code success
+        mock_subprocess.return_value = MagicMock(
+            returncode=0,
+            stdout="Done",
+            stderr="",
+        )
+
+        spec = TaskSpec(
+            task_id="TASK-001",
+            title="Test Task",
+            files_create=["new.py"],
+            files_modify=[],
+            verification_command="echo ok",
+        )
+        runner = WorkerRunner(spec)
+        result = runner.run()
+
+        assert result.success is True
+        assert result.verification_passed is True
+        assert result.tdd_complete is True
+        assert result.claude_result is not None
+        assert result.completed_at is not None
+
+    @patch("worker_runner.subprocess.run")
+    def test_run_claude_failure(self, mock_subprocess):
+        """Test task execution when Claude Code fails."""
+        from worker_runner import TaskSpec, WorkerRunner
+
+        # Mock Claude Code failure
+        mock_subprocess.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="Error",
+        )
+
+        spec = TaskSpec(
+            task_id="TASK-001",
+            title="Test Task",
+            files_create=[],
+            files_modify=[],
+            verification_command="echo ok",
+        )
+        runner = WorkerRunner(spec)
+        result = runner.run()
+
+        assert result.success is False
+        assert result.error is not None
+        assert "Claude Code failed" in result.error
+
+    @patch("worker_runner.subprocess.run")
+    def test_run_verification_failure(self, mock_subprocess):
+        """Test task execution when verification fails."""
+        from worker_runner import TaskSpec, WorkerRunner
+
+        # First call: Claude Code success, Second call: verification fail
+        mock_subprocess.side_effect = [
+            MagicMock(returncode=0, stdout="Done", stderr=""),  # Claude
+            MagicMock(returncode=1, stdout="", stderr="Test failed"),  # Verify
+        ]
+
+        spec = TaskSpec(
+            task_id="TASK-001",
+            title="Test Task",
+            files_create=[],
+            files_modify=[],
+            verification_command="pytest",
+        )
+        runner = WorkerRunner(spec)
+        result = runner.run()
+
+        assert result.success is False
+        assert result.verification_passed is False
+
+    def test_build_prompt(self):
+        """Test prompt building from task spec."""
+        from worker_runner import TaskSpec, WorkerRunner
+
+        spec = TaskSpec(
+            task_id="TASK-001",
+            title="Implement Feature",
+            files_create=["src/feature.py"],
+            files_modify=["src/main.py"],
+            verification_command="pytest tests/",
+            acceptance_criteria=["Must pass tests", "Must be documented"],
+        )
+        runner = WorkerRunner(spec)
+        prompt = runner._build_prompt()
+
+        assert "# Task: Implement Feature" in prompt
+        assert "## Files" in prompt
+        assert "Create: src/feature.py" in prompt
+        assert "Modify: src/main.py" in prompt
+        assert "## Verification" in prompt
+        assert "pytest tests/" in prompt
+        assert "## Acceptance Criteria" in prompt
+        assert "Must pass tests" in prompt
+
+    @patch("worker_runner.subprocess.run")
+    def test_verify_with_retry_success_first_try(self, mock_subprocess):
+        """Test verification with retry succeeds first try."""
+        from worker_runner import TaskSpec, WorkerRunner
+
+        mock_subprocess.return_value = MagicMock(
+            returncode=0,
+            stdout="Pass",
+            stderr="",
+        )
+
+        spec = TaskSpec(
+            task_id="TASK-001",
+            title="Test",
+            files_create=[],
+            files_modify=[],
+            verification_command="echo ok",
+        )
+        runner = WorkerRunner(spec)
+        result = runner.verify_with_retry(max_retries=2)
+
+        assert result.passed is True
+        assert mock_subprocess.call_count == 1
+
+    @patch("worker_runner.subprocess.run")
+    def test_verify_with_retry_success_on_retry(self, mock_subprocess):
+        """Test verification with retry succeeds on second try."""
+        from worker_runner import TaskSpec, WorkerRunner
+
+        # First call fails, second succeeds
+        mock_subprocess.side_effect = [
+            MagicMock(returncode=1, stdout="", stderr="Fail"),
+            MagicMock(returncode=0, stdout="Pass", stderr=""),
+        ]
+
+        spec = TaskSpec(
+            task_id="TASK-001",
+            title="Test",
+            files_create=[],
+            files_modify=[],
+            verification_command="pytest",
+        )
+        runner = WorkerRunner(spec)
+        result = runner.verify_with_retry(max_retries=2)
+
+        assert result.passed is True
+        assert mock_subprocess.call_count == 2

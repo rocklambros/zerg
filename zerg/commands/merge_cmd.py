@@ -4,15 +4,14 @@ from pathlib import Path
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 from zerg.config import ZergConfig
 from zerg.constants import GateResult
 from zerg.gates import GateRunner
-from zerg.git_ops import GitOps
 from zerg.logging import get_logger
 from zerg.merge import MergeCoordinator
+from zerg.orchestrator import Orchestrator
 from zerg.state import StateManager
 
 console = Console()
@@ -94,7 +93,7 @@ def merge_cmd(
             gate_result = run_quality_gates(config, feature, level)
 
             if gate_result != GateResult.PASS:
-                console.print(f"\n[red]Quality gates failed[/red]")
+                console.print("\n[red]Quality gates failed[/red]")
                 console.print("Use [cyan]--skip-gates[/cyan] to merge anyway (not recommended)")
                 raise SystemExit(1)
 
@@ -105,26 +104,55 @@ def merge_cmd(
             console.print("[yellow]Aborted[/yellow]")
             return
 
-        # Execute merge
+        # Execute merge using orchestrator for proper state tracking
         console.print("\n[bold]Merging branches...[/bold]")
-        result = merge_coordinator.merge_level(level)
 
-        if result.success:
-            console.print(f"\n[green]✓ Level {level} merged successfully[/green]")
-            console.print(f"  Merged {len(result.merged_branches)} branches")
-            console.print(f"  Target: {target}")
-        else:
-            console.print(f"\n[red]Merge failed[/red]")
-            if result.conflicts:
-                console.print("\nConflicts in:")
-                for conflict in result.conflicts:
-                    console.print(f"  - {conflict}")
-            console.print("\nResolve conflicts manually or use [cyan]zerg retry[/cyan]")
-            raise SystemExit(1)
+        try:
+            # Use orchestrator for merge with proper state management
+            orchestrator = Orchestrator(feature)
+            result = orchestrator._merge_level(level)
+
+            if result.success:
+                console.print(f"\n[green]✓ Level {level} merged successfully[/green]")
+                if result.merge_commit:
+                    console.print(f"  Merge commit: {result.merge_commit[:8]}")
+                console.print(f"  Target: {target}")
+
+                # Show merge status
+                merge_status = state.get_level_merge_status(level)
+                if merge_status:
+                    console.print(f"  Status: {merge_status.value}")
+            else:
+                console.print("\n[red]Merge failed[/red]")
+                if result.error:
+                    console.print(f"  Error: {result.error}")
+                if result.conflicts:
+                    console.print("\nConflicts in:")
+                    for conflict in result.conflicts:
+                        console.print(f"  - {conflict}")
+                console.print("\nResolve conflicts manually or use [cyan]zerg retry[/cyan]")
+                raise SystemExit(1)
+
+        except Exception as e:
+            # Fall back to direct merge coordinator
+            logger.warning(f"Orchestrator merge failed, using direct coordinator: {e}")
+            result = merge_coordinator.merge_level(level)
+
+            if result.success:
+                console.print(f"\n[green]✓ Level {level} merged successfully[/green]")
+                console.print(f"  Target: {target}")
+            else:
+                console.print("\n[red]Merge failed[/red]")
+                if hasattr(result, "conflicts") and result.conflicts:
+                    console.print("\nConflicts in:")
+                    for conflict in result.conflicts:
+                        console.print(f"  - {conflict}")
+                console.print("\nResolve conflicts manually or use [cyan]zerg retry[/cyan]")
+                raise SystemExit(1) from None
 
     except Exception as e:
         console.print(f"\n[red]Error:[/red] {e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 def detect_feature() -> str | None:
@@ -204,7 +232,8 @@ def show_merge_plan(plan: dict, dry_run: bool) -> None:
     table.add_row("Target Branch", plan["target"])
     table.add_row("Staging Branch", plan["staging_branch"])
     table.add_row("Branches to Merge", str(len(plan["branches"])))
-    table.add_row("Quality Gates", ", ".join(plan["gates"]) if plan["gates"] else "[dim]skipped[/dim]")
+    gates_display = ", ".join(plan["gates"]) if plan["gates"] else "[dim]skipped[/dim]"
+    table.add_row("Quality Gates", gates_display)
 
     console.print(table)
 
