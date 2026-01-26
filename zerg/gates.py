@@ -2,7 +2,6 @@
 
 import subprocess
 import time
-from datetime import datetime
 from pathlib import Path
 
 from zerg.config import QualityGate, ZergConfig

@@ -251,6 +251,60 @@ Task backlog in markdown with (created in the tasks directory):
 Output task backlog as persistent artifact. Update after each development session with completion status and blockers.
 </state_management>
 
+/sc:implement ZERG-BUILD: Implement ZERG to completion by executing all sessions in .gsd/tasks/claude-code-prompts.md sequentially.
+
+Instructions:
+1. Read .gsd/tasks/claude-code-prompts.md for session definitions
+2. Read .gsd/tasks/session-tracker.md for current progress
+3. Identify the next incomplete session
+4. Execute all tasks in that session
+5. Run each verification command - stop if any fails
+6. Update .gsd/tasks/session-tracker.md marking completed tasks
+7. Repeat from step 3 until all 13 sessions complete
+
+Reference docs:
+- Architecture: .gsd/specs/phase2/architecture_synthesis.md
+- Task specs: .gsd/specs/phase3/implementation_backlog.md
+- Task graph: .gsd/tasks/task-graph.json
+
+On verification failure:
+- Log the failure in session-tracker.md blockers section
+- Attempt to fix the issue
+- Re-run verification
+- If still failing after 3 attempts, stop and report
+
+On session completion:
+- Run all verification commands for that session
+- Update session-tracker.md with COMPLETE status
+- Proceed to next session
+
+Continue until SESSION 13 final verification passes or a blocking failure occurs. --ultrathink
 
 
+/sc:document create detailed documentation for this project in README.md and other files that gives users step-by-step instructions for how to install and use with  
+  a sample worflow for designing a fictitious e-commerce site that sells coffee. All commands and flags must be documented.   
 
+
+<task>
+Produce a development plan for remediating all critical gaps and importang gaps identified between the current state implementation vs. the architecture spec using superclaude workflows to maximize parallelization. Use the new claude tasks feature and save tasks in the task directory
+</task>
+
+<planning_approach>
+Apply ZERG's own methodology manually:
+1. Break implementation into atomic tasks with exclusive file ownership
+2. Order tasks by dependency level
+3. Define verification command for each task
+4. Estimate parallelization potential for future ZERG self-improvement
+</planning_approach>
+
+<output>
+Task backlog in markdown with (created in the tasks directory):
+- Task ID, description, files owned, dependencies, verification command
+- Grouped by implementation level
+- Critical path highlighted
+- Total estimated sessions to completion
+</output>
+
+<state_management>
+Output task backlog as persistent artifact. Update after each development session with completion status and blockers.
+</state_management>

@@ -2,14 +2,12 @@
 
 import json
 import time
-from datetime import datetime
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.text import Text
 
-from zerg.config import ZergConfig
 from zerg.logging import get_logger
 
 console = Console()

@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from zerg.config import ZergConfig
-from zerg.constants import ExitCode, WorkerStatus
+from zerg.constants import WorkerStatus
 from zerg.containers import ContainerManager
 from zerg.logging import get_logger
 from zerg.state import StateManager

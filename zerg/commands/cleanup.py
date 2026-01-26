@@ -1,6 +1,5 @@
 """ZERG cleanup command - remove ZERG artifacts."""
 
-import shutil
 from pathlib import Path
 
 import click

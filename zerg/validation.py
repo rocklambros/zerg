@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from zerg.exceptions import ValidationError
-from zerg.schemas import get_schema_path
 
 
 def validate_task_graph(data: dict[str, Any]) -> tuple[bool, list[str]]:

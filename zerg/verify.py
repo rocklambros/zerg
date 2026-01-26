@@ -9,7 +9,7 @@ from typing import Any
 
 from zerg.exceptions import TaskTimeoutError, TaskVerificationFailed
 from zerg.logging import get_logger
-from zerg.types import Task, VerificationResult, VerificationSpec
+from zerg.types import Task
 
 logger = get_logger("verify")
 

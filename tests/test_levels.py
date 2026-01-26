@@ -2,7 +2,7 @@
 
 import pytest
 
-from zerg.constants import Level, TaskStatus
+from zerg.constants import TaskStatus
 from zerg.exceptions import LevelError
 from zerg.levels import LevelController
 from zerg.types import Task

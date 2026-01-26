@@ -203,7 +203,7 @@ class TaskParser:
             TaskDependencyError: If there is a cycle
         """
         # Kahn's algorithm
-        in_degree: dict[str, int] = {tid: 0 for tid in self._tasks}
+        in_degree: dict[str, int] = dict.fromkeys(self._tasks, 0)
         for task_id, deps in self._dependencies.items():
             in_degree[task_id] = len(deps)
 
@@ -248,8 +248,8 @@ class TaskParser:
         # Calculate if not provided
         # Use dynamic programming: longest path to each node
         topo_order = self.topological_sort()
-        dist: dict[str, int] = {tid: 0 for tid in self._tasks}
-        pred: dict[str, str | None] = {tid: None for tid in self._tasks}
+        dist: dict[str, int] = dict.fromkeys(self._tasks, 0)
+        pred: dict[str, str | None] = dict.fromkeys(self._tasks)
 
         for task_id in topo_order:
             task = self._tasks[task_id]

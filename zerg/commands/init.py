@@ -1,15 +1,12 @@
 """ZERG init command - initialize ZERG for a project."""
 
 import json
-import os
 from pathlib import Path
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
-from zerg.config import ZergConfig
 from zerg.logging import get_logger
 
 console = Console()

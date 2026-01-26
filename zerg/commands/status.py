@@ -8,10 +8,8 @@ import click
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, TaskID, TextColumn
 from rich.table import Table
 
-from zerg.config import ZergConfig
 from zerg.constants import TaskStatus, WorkerStatus
 from zerg.logging import get_logger
 from zerg.state import StateManager
@@ -310,7 +308,6 @@ def build_status_output(state: StateManager, feature: str, level_filter: int | N
     Returns:
         Panel with status
     """
-    from rich.text import Text
 
     lines = []
 

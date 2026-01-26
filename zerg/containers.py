@@ -5,7 +5,6 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus

@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TypedDict
 
-from zerg.constants import GateResult, Level, MergeStatus, TaskStatus, WorkerStatus
-
+from zerg.constants import GateResult, Level, MergeStatus, WorkerStatus
 
 # ============================================================================
 # Task-related types

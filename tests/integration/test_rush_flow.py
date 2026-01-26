@@ -2,14 +2,11 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.config import QualityGate, ZergConfig
 from zerg.constants import TaskStatus
 from zerg.levels import LevelController
-from zerg.types import Task
 
 
 class TestRushFlowDryRun:
@@ -176,7 +173,6 @@ class TestRushFlowCheckpoint:
         status = controller.get_status()
 
         # Status should be serializable
-        import json
 
         serialized = json.dumps(status)
         deserialized = json.loads(serialized)

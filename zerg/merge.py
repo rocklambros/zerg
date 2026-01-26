@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from zerg.config import ZergConfig
-from zerg.constants import GateResult, MergeStatus
-from zerg.exceptions import GateFailure, MergeConflict
+from zerg.constants import MergeStatus
+from zerg.exceptions import MergeConflict
 from zerg.gates import GateRunner
 from zerg.git_ops import GitOps
 from zerg.logging import get_logger

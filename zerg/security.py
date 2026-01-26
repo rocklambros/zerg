@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import stat
-import subprocess
 from pathlib import Path
 
 from zerg.logging import get_logger
@@ -308,7 +307,7 @@ def run_security_scan(path: str | Path = ".") -> dict:
     for filepath in all_files:
         if Path(filepath).suffix in text_extensions:
             try:
-                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                with open(filepath, encoding="utf-8", errors="ignore") as f:
                     content = f.read()
                     secrets = check_for_secrets(content)
                     if secrets:
@@ -316,7 +315,7 @@ def run_security_scan(path: str | Path = ".") -> dict:
                             "file": filepath,
                             "findings": secrets,
                         })
-            except (IOError, OSError):
+            except OSError:
                 pass
 
     # Determine if scan passed
