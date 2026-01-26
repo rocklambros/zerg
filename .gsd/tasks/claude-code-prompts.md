@@ -7,7 +7,7 @@ Copy each prompt into Claude Code in sequence. Wait for completion before procee
 ## SESSION 1
 
 ```
-Implement ZERG Level 1 Foundation tasks (Part 1).
+/sc:implement Implement ZERG Level 1 Foundation tasks (Part 1).
 
 Read specs: .gsd/specs/phase3/implementation_backlog.md, .gsd/specs/phase2/architecture_synthesis.md
 
@@ -25,7 +25,7 @@ Execute in order:
 4. ZERG-L1-002: Create zerg/types.py with TypedDict/dataclass: Task, TaskGraph, WorkerState, LevelStatus, GateConfig, MergeResult
    Verify: python -c "from zerg.types import TaskGraph, WorkerState, LevelStatus"
 
-Update .gsd/tasks/session-tracker.md marking these COMPLETE.
+Update .gsd/tasks/session-tracker.md marking these COMPLETE. --ultrathink
 ```
 
 ---
@@ -33,7 +33,7 @@ Update .gsd/tasks/session-tracker.md marking these COMPLETE.
 ## SESSION 2
 
 ```
-Implement ZERG Level 1 Foundation tasks (Part 2).
+/sc:implement Implement ZERG Level 1 Foundation tasks (Part 2).
 
 Execute in order:
 
@@ -49,7 +49,7 @@ Execute in order:
 4. ZERG-L1-008: Create zerg/cli.py with Click group and stub subcommands: init, plan, design, rush, status, stop, retry, logs, merge, cleanup. Add entry point to pyproject.toml.
    Verify: python -m zerg --help
 
-Update .gsd/tasks/session-tracker.md marking Level 1 COMPLETE.
+Update .gsd/tasks/session-tracker.md marking Level 1 COMPLETE. --ultrathink
 ```
 
 ---
@@ -57,7 +57,7 @@ Update .gsd/tasks/session-tracker.md marking Level 1 COMPLETE.
 ## SESSION 3
 
 ```
-Implement ZERG Level 2 Core tasks (Part 1).
+/sc:implement Implement ZERG Level 2 Core tasks (Part 1).
 
 Execute in order:
 
@@ -70,7 +70,7 @@ Execute in order:
 3. ZERG-L2-010: Create zerg/git_ops.py with GitOps class: current_branch(), create_branch(), delete_branch(), merge(), rebase(), has_conflicts(), commit(), create_staging_branch()
    Verify: python -c "from zerg.git_ops import GitOps; go = GitOps('.'); print(go.current_branch())"
 
-Update .gsd/tasks/session-tracker.md marking these COMPLETE.
+Update .gsd/tasks/session-tracker.md marking these COMPLETE. --ultrathink
 ```
 
 ---
@@ -78,7 +78,7 @@ Update .gsd/tasks/session-tracker.md marking these COMPLETE.
 ## SESSION 4
 
 ```
-Implement ZERG Level 2 Core tasks (Part 2).
+/sc:implement Implement ZERG Level 2 Core tasks (Part 2).
 
 Execute in order:
 
@@ -94,7 +94,7 @@ Execute in order:
 4. ZERG-L2-007: Create zerg/verify.py with VerificationExecutor class: verify(), verify_task(). Return VerificationResult with success, exit_code, stdout, stderr, duration_ms.
    Verify: python -c "from zerg.verify import VerificationExecutor"
 
-Update .gsd/tasks/session-tracker.md marking these COMPLETE.
+Update .gsd/tasks/session-tracker.md marking these COMPLETE. --ultrathink
 ```
 
 ---
@@ -102,7 +102,7 @@ Update .gsd/tasks/session-tracker.md marking these COMPLETE.
 ## SESSION 5
 
 ```
-Implement ZERG Level 2 Core tasks (Part 3).
+/sc:implement Implement ZERG Level 2 Core tasks (Part 3).
 
 Execute in order:
 
@@ -115,7 +115,7 @@ Execute in order:
 3. ZERG-L2-009: Create zerg/containers.py with ContainerManager class: build(), start_worker(), stop_worker(), stop_all(), get_status(), get_logs(), health_check(), exec_in_worker(). Use docker/docker-compose.
    Verify: python -c "from zerg.containers import ContainerManager"
 
-Update .gsd/tasks/session-tracker.md marking Level 2 COMPLETE.
+Update .gsd/tasks/session-tracker.md marking Level 2 COMPLETE. --ultrathink
 ```
 
 ---
@@ -123,7 +123,7 @@ Update .gsd/tasks/session-tracker.md marking Level 2 COMPLETE.
 ## SESSION 6
 
 ```
-Implement ZERG Level 3 Integration tasks (Part 1).
+/sc:implement Implement ZERG Level 3 Integration tasks (Part 1).
 
 Execute in order:
 
@@ -136,7 +136,7 @@ Execute in order:
 3. ZERG-L3-003: Create zerg/worker_protocol.py with WorkerProtocol class: start(), claim_next_task(), execute_task(), report_complete(), report_failed(), check_context_usage(), should_checkpoint(), checkpoint_and_exit(). Exit codes: 0=done, 1=error, 2=checkpoint, 3=blocked.
    Verify: python -c "from zerg.worker_protocol import WorkerProtocol"
 
-Update .gsd/tasks/session-tracker.md marking these COMPLETE.
+Update .gsd/tasks/session-tracker.md marking these COMPLETE. --ultrathink
 ```
 
 ---
@@ -144,7 +144,7 @@ Update .gsd/tasks/session-tracker.md marking these COMPLETE.
 ## SESSION 7
 
 ```
-Implement ZERG Level 3 Integration tasks (Part 2).
+/sc:implement Implement ZERG Level 3 Integration tasks (Part 2).
 
 Execute in order:
 
@@ -157,7 +157,7 @@ Execute in order:
 3. ZERG-L3-006: Create zerg/commands/stop.py with Click command: stop(feature, worker_id, force). Graceful checkpoint or force terminate. Update zerg/cli.py.
    Verify: python -m zerg stop --help
 
-Update .gsd/tasks/session-tracker.md marking these COMPLETE.
+Update .gsd/tasks/session-tracker.md marking these COMPLETE. --ultrathink
 ```
 
 ---
@@ -165,7 +165,7 @@ Update .gsd/tasks/session-tracker.md marking these COMPLETE.
 ## SESSION 8
 
 ```
-Implement ZERG Level 3 Integration tasks (Part 3).
+/sc:implement Implement ZERG Level 3 Integration tasks (Part 3).
 
 Execute in order:
 
@@ -178,15 +178,13 @@ Execute in order:
 3. ZERG-L3-009: Create zerg/commands/cleanup.py with Click command: cleanup(feature, all_features, keep_logs, dry_run). Remove worktrees, branches, containers. Update zerg/cli.py.
    Verify: python -m zerg cleanup --help
 
-Update .gsd/tasks/session-tracker.md marking Level 3 COMPLETE.
+Update .gsd/tasks/session-tracker.md marking Level 3 COMPLETE. --ultrathink
 ```
-
----
 
 ## SESSION 9
 
 ```
-Implement ZERG Level 4 Command tasks (Part 1).
+/sc:implement Implement ZERG Level 4 Command tasks (Part 1).
 
 Execute in order:
 
@@ -205,15 +203,13 @@ Execute in order:
 5. ZERG-L4-005: Update .claude/commands/zerg:status.md with output examples, watch mode, JSON schema, worker state meanings.
    Verify: grep -q "Progress:" .claude/commands/zerg:status.md
 
-Update .gsd/tasks/session-tracker.md marking these COMPLETE.
+Update .gsd/tasks/session-tracker.md marking these COMPLETE. --ultrathink
 ```
-
----
 
 ## SESSION 10
 
 ```
-Implement ZERG Level 4 Command tasks (Part 2).
+/sc:implement Implement ZERG Level 4 Command tasks (Part 2).
 
 Execute in order:
 
@@ -232,15 +228,13 @@ Execute in order:
 5. ZERG-L4-010: Create .claude/commands/zerg:cleanup.md with cleanup scope, dry-run usage, recovery.
    Verify: test -f .claude/commands/zerg:cleanup.md
 
-Update .gsd/tasks/session-tracker.md marking Level 4 COMPLETE.
+Update .gsd/tasks/session-tracker.md marking Level 4 COMPLETE. --ultrathink
 ```
-
----
 
 ## SESSION 11
 
 ```
-Implement ZERG Level 5 Quality tasks (Part 1).
+/sc:implement Implement ZERG Level 5 Quality tasks (Part 1).
 
 Execute in order:
 
@@ -250,15 +244,13 @@ Execute in order:
 2. ZERG-L5-002: Create tests/test_worktree.py, tests/test_levels.py, tests/test_gates.py, tests/test_git_ops.py with unit tests for each component.
    Verify: pytest tests/test_worktree.py tests/test_levels.py -v
 
-Update .gsd/tasks/session-tracker.md marking these COMPLETE.
+Update .gsd/tasks/session-tracker.md marking these COMPLETE. --ultrathink
 ```
-
----
 
 ## SESSION 12
 
 ```
-Implement ZERG Level 5 Quality tasks (Part 2).
+/sc:implement Implement ZERG Level 5 Quality tasks (Part 2).
 
 Execute in order:
 
@@ -271,15 +263,13 @@ Execute in order:
 3. ZERG-L5-005: Update README.md with installation (pip install -e .), quick start, command reference. Update ARCHITECTURE.md with final component list and data flow.
    Verify: grep -q "pip install" README.md
 
-Update .gsd/tasks/session-tracker.md marking Level 5 COMPLETE.
+Update .gsd/tasks/session-tracker.md marking Level 5 COMPLETE. --ultrathink
 ```
-
----
 
 ## SESSION 13: Final Verification
 
 ```
-Run final verification for ZERG implementation.
+/sc:implement Run final verification for ZERG implementation.
 
 1. Run full test suite with coverage:
    pytest --cov=zerg --cov-report=term-missing
@@ -300,7 +290,7 @@ Run final verification for ZERG implementation.
    test -f README.md && grep -q "pip install" README.md
    test -f ARCHITECTURE.md
 
-Report final status and any failures. Update .gsd/tasks/session-tracker.md with IMPLEMENTATION COMPLETE.
+Report final status and any failures. Update .gsd/tasks/session-tracker.md with IMPLEMENTATION COMPLETE. --ultrathink
 ```
 
 ---

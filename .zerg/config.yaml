@@ -1,67 +1,28 @@
-# ZERG Configuration
-# Generated: 2026-01-25
-
-project:
-  name: zerg
-  description: Parallel Claude Code execution system
-
-# Worker settings
+version: '1.0'
+project_type: python
 workers:
-  max_concurrent: 5
-  timeout_minutes: 30
-  retry_attempts: 3
-  context_threshold_percent: 70
-
-# Port allocation
-ports:
-  range_start: 49152
-  range_end: 65535
-  ports_per_worker: 10
-
-# Quality gates (run after each level merge)
-# SECURITY: Configure these with real commands before production use
-# Set required: true for gates that must pass before merge
-quality_gates:
-  - name: lint
-    command: "ruff check zerg/ .zerg/"
-    required: true
-    timeout: 120
-  - name: typecheck
-    command: "python -m mypy zerg/ --ignore-missing-imports"
-    required: false
-    timeout: 180
-  - name: test
-    command: "python -m pytest tests/ -v --tb=short"
-    required: true
-    timeout: 300
-  - name: build
-    command: "echo 'No build configured'"
-    required: false
-    timeout: 60
-
-# Security settings
+  default_count: 5
+  max_count: 10
+  context_threshold: 0.7
+  timeout_seconds: 3600
 security:
-  # Validate commands against allowlist before execution
-  validate_commands: true
-  # Log all command executions for audit
-  audit_logging: true
-  # Block dangerous environment variables
-  block_dangerous_env_vars: true
-
-# MCP servers available to workers
+  network_isolation: true
+  filesystem_sandbox: true
+  secrets_scanning: true
+quality_gates:
+  lint:
+    command: ruff check .
+    required: true
+  typecheck:
+    command: mypy .
+    required: false
+  test:
+    command: pytest
+    required: true
 mcp_servers:
-  - filesystem
-  - github
-  - fetch
-
-# Resource limits per worker
-resources:
-  cpu_cores: 2
-  memory_gb: 4
-  disk_gb: 10
-
-# Logging
-logging:
-  level: info
-  directory: .zerg/logs
-  retain_days: 7
+- name: filesystem
+  command: npx
+  args:
+  - -y
+  - '@anthropic/mcp-filesystem'
+  env: {}

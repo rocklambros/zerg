@@ -45,3 +45,18 @@ Workers not starting? Check Docker, ANTHROPIC_API_KEY, and port availability.
 Tasks failing? Check verification commands in task-graph.json.
 
 Need to restart? ZERG is crash-safe. Run `/zerg:rush` again to resume.
+
+<!-- SECURITY_RULES_START -->
+# Security Rules
+
+Auto-generated from [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules)
+
+## Detected Stack
+
+- **Languages**: python
+
+## Imported Rules
+
+@security-rules/_core/owasp-2025.md
+
+<!-- SECURITY_RULES_END -->
