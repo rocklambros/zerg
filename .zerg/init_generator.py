@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from devcontainer import DevcontainerConfig, DevcontainerGenerator
+from quality_tools import QualityConfigGenerator
 
 
 @dataclass
@@ -185,6 +186,10 @@ class ConfigGenerator:
         Returns:
             Configuration dictionary
         """
+        # Auto-detect quality tools
+        quality_gen = QualityConfigGenerator(self.project_path)
+        quality_config = quality_gen.generate(self.project_info.language)
+
         return {
             "version": "2.0.0",
             "project": {
@@ -197,10 +202,9 @@ class ConfigGenerator:
                 "heartbeat_interval": 30,
                 "context_threshold": 0.70,
             },
-            "quality_gates": {
-                "stage_1": ["spec_compliance"],
-                "stage_2": ["lint", "test", "security"],
-            },
+            "quality_gates": quality_config["quality_gates"],
+            "two_stage_gates": quality_config["two_stage_gates"],
+            "detected_tools": quality_config["tools"],
         }
 
 
