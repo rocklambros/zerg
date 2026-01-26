@@ -1,13 +1,60 @@
 # ZERG Security
 
-Security review, vulnerability scanning, and hardening recommendations.
+Security review, vulnerability scanning, secure coding rules, and hardening recommendations.
 
 ## Usage
 
 ```bash
+# Vulnerability scanning
 /zerg:security [--preset owasp|pci|hipaa|soc2]
                [--autofix]
                [--format text|json|sarif]
+
+# Secure coding rules management
+zerg security-rules detect      # Detect project stack
+zerg security-rules list        # List rules for your stack
+zerg security-rules fetch       # Download rules
+zerg security-rules integrate   # Full integration with CLAUDE.md
+```
+
+## Secure Coding Rules
+
+ZERG integrates with [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules) to provide stack-specific security guidance.
+
+### Automatic Stack Detection
+
+```bash
+$ zerg security-rules detect
+Detected Project Stack:
+  Languages:      python
+  Frameworks:     fastapi, langchain
+  Databases:      pinecone
+  Infrastructure: docker, github-actions
+  AI/ML:          yes
+  RAG:            yes
+```
+
+### Intelligent Rule Selection
+
+Only fetches rules relevant to your stack:
+
+| Stack | Rules Fetched |
+|-------|---------------|
+| Python | `owasp-2025.md`, `python.md` |
+| Python + FastAPI | + `fastapi.md` |
+| Python + LangChain | + `ai-security.md`, `langchain.md` |
+| Python + Pinecone | + `rag-security.md`, `pinecone.md` |
+
+### Integration with CLAUDE.md
+
+Rules are automatically imported into your project's `CLAUDE.md`:
+
+```markdown
+<!-- SECURITY_RULES_START -->
+# Security Rules
+@.claude/security-rules/_core/owasp-2025.md
+@.claude/security-rules/languages/python.md
+<!-- SECURITY_RULES_END -->
 ```
 
 ## Presets

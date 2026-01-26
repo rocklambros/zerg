@@ -2,6 +2,19 @@
 
 Initialize the ZERG for this project.
 
+## Quick Start
+
+```bash
+# Initialize with defaults (includes security rules)
+zerg init
+
+# Initialize without security rules
+zerg init --no-security-rules
+
+# Initialize with specific settings
+zerg init --workers 3 --security strict
+```
+
 ## Pre-Flight Checks
 
 ```bash
@@ -12,7 +25,7 @@ git rev-parse --git-dir > /dev/null 2>&1 || {
 }
 
 # Create factory directories if they don't exist
-mkdir -p .factory .devcontainer/mcp-servers .claude/commands .claude/agents .gsd/specs
+mkdir -p .zerg .devcontainer/mcp-servers .claude/commands .claude/agents .gsd/specs
 ```
 
 ## Phase 1: Project Discovery
@@ -342,7 +355,94 @@ DATABASE_URL=
 # Add project-specific credentials below
 ```
 
-## Phase 6: Generate PROJECT.md
+## Phase 6: Integrate Secure Coding Rules
+
+Automatically fetch relevant security rules from [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules) based on detected project stack.
+
+### Step 1: Detect Project Stack
+
+```bash
+# Run stack detection
+zerg security-rules detect --json-output
+```
+
+This detects:
+- **Languages**: Python, JavaScript, TypeScript, Go, Rust, Java, C#, Ruby, etc.
+- **Frameworks**: FastAPI, Django, React, Next.js, LangChain, etc.
+- **Databases**: PostgreSQL, MongoDB, Pinecone, Chroma, Neo4j, etc.
+- **Infrastructure**: Docker, Kubernetes, Terraform, GitHub Actions, etc.
+- **AI/ML & RAG**: LangChain, LlamaIndex, vector databases, etc.
+
+### Step 2: Fetch Relevant Rules Only
+
+```bash
+# List rules that will be fetched (based on detected stack)
+zerg security-rules list
+
+# Example output for Python + FastAPI project:
+#   - rules/_core/owasp-2025.md
+#   - rules/languages/python.md
+#   - rules/backend/fastapi.md
+```
+
+### Step 3: Download Rules
+
+```bash
+# Fetch rules to .claude/security-rules/
+zerg security-rules fetch
+```
+
+Rules are cached locally in `.claude/security-rules/` with directory structure:
+```
+.claude/security-rules/
+├── _core/
+│   └── owasp-2025.md
+├── languages/
+│   └── python.md
+└── backend/
+    └── fastapi.md
+```
+
+### Step 4: Update CLAUDE.md
+
+The integration updates `CLAUDE.md` with imports:
+
+```markdown
+<!-- SECURITY_RULES_START -->
+# Security Rules
+
+Auto-generated from TikiTribe/claude-secure-coding-rules
+
+## Detected Stack
+- **Languages**: python
+- **Frameworks**: fastapi
+- **AI/ML**: Yes
+
+## Imported Rules
+@.claude/security-rules/_core/owasp-2025.md
+@.claude/security-rules/languages/python.md
+@.claude/security-rules/backend/fastapi.md
+<!-- SECURITY_RULES_END -->
+```
+
+### Skip Security Rules
+
+To skip security rules integration:
+```bash
+zerg init --no-security-rules
+```
+
+### Update Rules Later
+
+```bash
+# Re-fetch rules (e.g., after adding new dependencies)
+zerg security-rules integrate
+
+# Force refresh (bypass cache)
+zerg security-rules fetch --no-cache
+```
+
+## Phase 7: Generate PROJECT.md
 
 Create `.gsd/PROJECT.md`:
 
@@ -377,7 +477,7 @@ Create `.gsd/PROJECT.md`:
 
 ```
 ═══════════════════════════════════════════════════════════════
-                 FACTORY INITIALIZED
+                 ZERG INITIALIZED
 ═══════════════════════════════════════════════════════════════
 
 Project: {project_name}
@@ -387,15 +487,22 @@ Infrastructure:
   • Services: {services}
   • MCP Servers: {mcp_servers}
 
+Security Rules:
+  • Detected Stack: {languages}, {frameworks}
+  • Rules Fetched: {N} files
+  • Location: .claude/security-rules/
+
 Files Created:
-  • .zerg/config.yaml           ✓
+  • .zerg/config.yaml              ✓
   • .devcontainer/devcontainer.json ✓
-  • .devcontainer/Dockerfile       ✓
-  • .devcontainer/post-create.sh   ✓
-  • .devcontainer/post-start.sh    ✓
-  • .devcontainer/mcp-servers/     ✓
-  • .gsd/PROJECT.md                ✓
-  • .gsd/INFRASTRUCTURE.md         ✓
+  • .devcontainer/Dockerfile        ✓
+  • .devcontainer/post-create.sh    ✓
+  • .devcontainer/post-start.sh     ✓
+  • .devcontainer/mcp-servers/      ✓
+  • .claude/security-rules/         ✓
+  • .gsd/PROJECT.md                 ✓
+  • .gsd/INFRASTRUCTURE.md          ✓
+  • CLAUDE.md (updated)             ✓
 
 ───────────────────────────────────────────────────────────────
 
