@@ -5,6 +5,14 @@ from datetime import datetime
 from pathlib import Path
 
 import docker
+from devcontainer import DevcontainerBuilder, DevcontainerManager
+
+__all__ = [
+    "ContainerConfig",
+    "RunningContainer",
+    "ResourceLimits",
+    "ContainerLauncher",
+]
 
 
 @dataclass
@@ -57,11 +65,45 @@ class ResourceLimits:
 class ContainerLauncher:
     """Manages Docker containers for worker isolation."""
 
-    def __init__(self):
-        """Initialize container launcher."""
+    def __init__(self, project_path: Path | None = None):
+        """Initialize container launcher.
+
+        Args:
+            project_path: Path to project root (for devcontainer operations)
+        """
         self.client = docker.from_env()
         self.containers: dict[str, RunningContainer] = {}
+        self.project_path = project_path or Path(".")
+        self.devcontainer_manager = DevcontainerManager(self.project_path)
         self._ensure_network()
+
+    def ensure_image(
+        self,
+        language: str = "python",
+        force_build: bool = False,
+    ) -> tuple[bool, str]:
+        """Ensure worker image is available, building if necessary.
+
+        Args:
+            language: Project language for image selection
+            force_build: Force rebuild even if image exists
+
+        Returns:
+            Tuple of (success, image_name or error)
+        """
+        image_name = f"zerg-worker-{language}"
+        builder = DevcontainerBuilder(self.project_path)
+
+        # Check if image exists
+        if not force_build and builder.image_exists(image_name):
+            return True, image_name
+
+        # Need to build - ensure devcontainer is generated
+        result = self.devcontainer_manager.ensure_ready(language)
+        if not result.success:
+            return False, result.error
+
+        return True, image_name
 
     def launch(self, worker_id: str, config: ContainerConfig) -> RunningContainer:
         """Launch worker container.

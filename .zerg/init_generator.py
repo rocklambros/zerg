@@ -5,6 +5,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from devcontainer import DevcontainerConfig, DevcontainerGenerator
+
 
 @dataclass
 class ProjectInfo:
@@ -217,8 +219,12 @@ class InitGenerator:
         self.project_path = project_path
         self.zerg_dir = project_path / ".zerg"
 
-    def generate(self) -> None:
-        """Generate ZERG v2 structure."""
+    def generate(self, generate_devcontainer: bool = True) -> None:
+        """Generate ZERG v2 structure.
+
+        Args:
+            generate_devcontainer: Whether to generate devcontainer files
+        """
         # Create directories
         self._create_directories()
 
@@ -234,6 +240,10 @@ class InitGenerator:
 
         # Copy templates
         self._copy_templates()
+
+        # Generate devcontainer
+        if generate_devcontainer:
+            self._generate_devcontainer(info)
 
     def _create_directories(self) -> None:
         """Create ZERG directory structure."""
@@ -271,3 +281,19 @@ class InitGenerator:
         if source_templates.exists():
             for template_file in source_templates.glob("*.md"):
                 shutil.copy(template_file, target_templates / template_file.name)
+
+    def _generate_devcontainer(self, info: ProjectInfo) -> None:
+        """Generate devcontainer configuration.
+
+        Args:
+            info: Detected project information
+        """
+        config = DevcontainerConfig(
+            name=f"zerg-worker-{self.project_path.name}",
+            image_name=f"zerg-worker-{info.language}",
+        )
+        generator = DevcontainerGenerator(self.project_path, config)
+        generator.generate(
+            language=info.language,
+            framework=info.framework,
+        )
