@@ -1,9 +1,9 @@
 """Quality gate execution for ZERG."""
 
-import subprocess
 import time
 from pathlib import Path
 
+from zerg.command_executor import CommandExecutor, CommandValidationError
 from zerg.config import QualityGate, ZergConfig
 from zerg.constants import GateResult
 from zerg.exceptions import GateFailure, GateTimeoutError
@@ -25,6 +25,14 @@ class GateRunner:
         self.config = config or ZergConfig.load()
         self._results: list[GateRunResult] = []
 
+    def _get_executor(self, cwd: Path | None = None, timeout: int = 60) -> CommandExecutor:
+        """Get command executor for gate execution."""
+        return CommandExecutor(
+            working_dir=cwd,
+            allow_unlisted=True,  # Allow custom gate commands with warning
+            timeout=timeout,
+        )
+
     def run_gate(
         self,
         gate: QualityGate,
@@ -42,51 +50,53 @@ class GateRunner:
             GateRunResult with execution details
         """
         start_time = time.time()
-        cwd = Path(cwd) if cwd else Path.cwd()
+        cwd_path = Path(cwd) if cwd else Path.cwd()
 
         logger.info(f"Running gate: {gate.name}")
         logger.debug(f"Command: {gate.command}")
 
         try:
-            result = subprocess.run(
+            # Use secure command executor - no shell=True
+            executor = self._get_executor(cwd_path, timeout=gate.timeout)
+            result = executor.execute(
                 gate.command,
-                shell=True,
-                cwd=str(cwd),
-                capture_output=True,
-                text=True,
                 timeout=gate.timeout,
                 env=env,
             )
 
             duration_ms = int((time.time() - start_time) * 1000)
 
-            if result.returncode == 0:
+            if result.success:
                 gate_result = GateResult.PASS
                 logger.info(f"Gate {gate.name} passed ({duration_ms}ms)")
+            elif "timed out" in result.stderr.lower():
+                # CommandExecutor returns timeout info in stderr
+                gate_result = GateResult.TIMEOUT
+                logger.warning(f"Gate {gate.name} timed out")
             else:
                 gate_result = GateResult.FAIL
-                logger.warning(f"Gate {gate.name} failed with exit code {result.returncode}")
+                logger.warning(f"Gate {gate.name} failed with exit code {result.exit_code}")
 
             run_result = GateRunResult(
                 gate_name=gate.name,
                 result=gate_result,
                 command=gate.command,
-                exit_code=result.returncode,
+                exit_code=result.exit_code,
                 stdout=result.stdout,
                 stderr=result.stderr,
                 duration_ms=duration_ms,
             )
 
-        except subprocess.TimeoutExpired:
+        except CommandValidationError as e:
             duration_ms = int((time.time() - start_time) * 1000)
-            logger.error(f"Gate {gate.name} timed out after {gate.timeout}s")
+            logger.error(f"Gate {gate.name} command validation failed: {e}")
 
             run_result = GateRunResult(
                 gate_name=gate.name,
-                result=GateResult.TIMEOUT,
+                result=GateResult.ERROR,
                 command=gate.command,
                 exit_code=-1,
-                stderr=f"Timeout after {gate.timeout}s",
+                stderr=f"Command validation failed: {e}",
                 duration_ms=duration_ms,
             )
 

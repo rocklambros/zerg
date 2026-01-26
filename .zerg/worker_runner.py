@@ -3,11 +3,16 @@
 import os
 import re
 import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+# Import secure command executor
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from zerg.command_executor import CommandExecutor, CommandValidationError
 
 
 @dataclass
@@ -94,13 +99,19 @@ class TDDEnforcer:
 class VerificationEnforcer:
     """Enforces verification-before-completion protocol."""
 
-    def __init__(self, spec: TaskSpec):
+    def __init__(self, spec: TaskSpec, working_dir: Path | None = None):
         """Initialize verification enforcer.
 
         Args:
             spec: Task specification
+            working_dir: Working directory for command execution
         """
         self.spec = spec
+        self.executor = CommandExecutor(
+            working_dir=working_dir,
+            allow_unlisted=True,  # Allow custom verification commands with warning
+            timeout=spec.verification_timeout,
+        )
 
     def run(self) -> VerificationResult:
         """Run verification command.
@@ -111,24 +122,22 @@ class VerificationEnforcer:
             VerificationResult with command output
         """
         try:
-            result = subprocess.run(
+            # Use secure command executor - no shell=True
+            cmd_result = self.executor.execute(
                 self.spec.verification_command,
-                shell=True,
-                capture_output=True,
-                text=True,
                 timeout=self.spec.verification_timeout,
             )
             return VerificationResult(
                 command=self.spec.verification_command,
-                exit_code=result.returncode,
-                output=result.stdout + result.stderr,
-                passed=result.returncode == 0,
+                exit_code=cmd_result.exit_code,
+                output=cmd_result.stdout + cmd_result.stderr,
+                passed=cmd_result.success,
             )
-        except subprocess.TimeoutExpired:
+        except CommandValidationError as e:
             return VerificationResult(
                 command=self.spec.verification_command,
                 exit_code=-1,
-                output=f"Timeout after {self.spec.verification_timeout}s",
+                output=f"Command validation failed: {e}",
                 passed=False,
             )
         except Exception as e:
@@ -269,7 +278,7 @@ class WorkerRunner:
         self.working_dir = Path(working_dir) if working_dir else Path.cwd()
         self.worker_id = worker_id
         self.tdd_enforcer = TDDEnforcer(spec)
-        self.verification_enforcer = VerificationEnforcer(spec)
+        self.verification_enforcer = VerificationEnforcer(spec, working_dir=self.working_dir)
 
     def run(self) -> WorkerRunResult:
         """Execute the task with protocol enforcement.

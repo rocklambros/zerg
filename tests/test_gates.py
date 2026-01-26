@@ -36,7 +36,8 @@ class TestGateRunner:
     def test_run_gate_failure(self, sample_config: ZergConfig, tmp_path: Path) -> None:
         """Test running a failing gate."""
         runner = GateRunner(sample_config)
-        gate = QualityGate(name="test", command="exit 1", required=True)
+        # Use 'false' command which is a real executable that returns exit code 1
+        gate = QualityGate(name="test", command="false", required=True)
 
         result = runner.run_gate(gate, cwd=tmp_path)
 
@@ -83,7 +84,7 @@ class TestGateRunner:
     ) -> None:
         """Test running gates stops on first failure."""
         sample_config.quality_gates = [
-            QualityGate(name="fail", command="exit 1", required=True),
+            QualityGate(name="fail", command="false", required=True),
             QualityGate(name="skip", command="echo skip", required=True),
         ]
         runner = GateRunner(sample_config)
@@ -100,7 +101,7 @@ class TestGateRunner:
     ) -> None:
         """Test optional gate failure doesn't stop execution."""
         sample_config.quality_gates = [
-            QualityGate(name="optional", command="exit 1", required=False),
+            QualityGate(name="optional", command="false", required=False),
             QualityGate(name="required", command="echo pass", required=True),
         ]
         runner = GateRunner(sample_config)
@@ -228,7 +229,7 @@ class TestGateRunner:
         """Test getting results summary."""
         sample_config.quality_gates = [
             QualityGate(name="pass", command="echo pass", required=True),
-            QualityGate(name="fail", command="exit 1", required=False),
+            QualityGate(name="fail", command="false", required=False),
         ]
         runner = GateRunner(sample_config)
 

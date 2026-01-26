@@ -1,10 +1,83 @@
 """ZERG validation functions for task graphs and configurations."""
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from zerg.exceptions import ValidationError
+
+# Task ID validation patterns
+# Strict pattern: TASK-001, GAP-L0-001, etc.
+TASK_ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9_-]*[0-9]+$")
+# Relaxed pattern: allows more formats but still safe
+TASK_ID_RELAXED_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
+
+
+def validate_task_id(task_id: str, strict: bool = False) -> tuple[bool, str | None]:
+    """Validate a task ID for security and format.
+
+    Task IDs are used in log messages, commit messages, and file paths.
+    They must be safe against injection attacks.
+
+    Args:
+        task_id: Task ID to validate
+        strict: If True, enforce strict TASK-NNN pattern
+
+    Returns:
+        Tuple of (is_valid, error_message or None)
+    """
+    if not task_id:
+        return False, "Task ID cannot be empty"
+
+    if not isinstance(task_id, str):
+        return False, f"Task ID must be a string, got {type(task_id).__name__}"
+
+    # Check length
+    if len(task_id) > 64:
+        return False, f"Task ID too long: {len(task_id)} chars (max 64)"
+
+    # Check for dangerous characters
+    dangerous_chars = set(";|&`$(){}[]<>\\\"'\n\r\t")
+    found_dangerous = set(task_id) & dangerous_chars
+    if found_dangerous:
+        return False, f"Task ID contains dangerous characters: {found_dangerous}"
+
+    # Check pattern
+    if strict:
+        if not TASK_ID_PATTERN.match(task_id):
+            return False, f"Task ID doesn't match pattern [A-Z][A-Z0-9_-]*[0-9]+: {task_id}"
+    else:
+        if not TASK_ID_RELAXED_PATTERN.match(task_id):
+            return False, f"Task ID doesn't match pattern [A-Za-z][A-Za-z0-9_-]{{0,63}}: {task_id}"
+
+    return True, None
+
+
+def sanitize_task_id(task_id: str) -> str:
+    """Sanitize a task ID for safe use in logs, paths, and commands.
+
+    Args:
+        task_id: Task ID to sanitize
+
+    Returns:
+        Sanitized task ID safe for use in logs/paths
+    """
+    if not task_id:
+        return "unknown"
+
+    # Remove any dangerous characters
+    sanitized = re.sub(r"[^A-Za-z0-9_-]", "_", str(task_id))
+
+    # Limit length
+    if len(sanitized) > 64:
+        sanitized = sanitized[:64]
+
+    # Ensure starts with letter
+    if sanitized and not sanitized[0].isalpha():
+        sanitized = "T" + sanitized
+
+    return sanitized or "unknown"
 
 
 def validate_task_graph(data: dict[str, Any]) -> tuple[bool, list[str]]:
@@ -75,8 +148,13 @@ def _validate_task(task: dict[str, Any], index: int, existing_ids: set[str]) -> 
     # Required fields
     if "id" not in task:
         errors.append(f"{prefix}: missing required field 'id'")
-    elif task["id"] in existing_ids:
-        errors.append(f"{prefix}: duplicate id '{task['id']}'")
+    else:
+        # Validate task ID format and security
+        is_valid, error = validate_task_id(task["id"])
+        if not is_valid:
+            errors.append(f"{prefix}: invalid task ID - {error}")
+        elif task["id"] in existing_ids:
+            errors.append(f"{prefix}: duplicate id '{task['id']}'")
 
     if "title" not in task:
         errors.append(f"{prefix}: missing required field 'title'")

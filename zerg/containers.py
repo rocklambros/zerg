@@ -352,11 +352,52 @@ class ContainerManager:
         status = self.get_status(worker_id)
         return status == WorkerStatus.RUNNING
 
+    # Allowlist of commands that can be executed in containers
+    ALLOWED_EXEC_COMMANDS = {
+        # Test commands
+        "pytest", "python -m pytest", "npm test", "cargo test", "go test",
+        # Lint commands
+        "ruff", "ruff check", "flake8", "mypy", "eslint", "prettier",
+        # Build commands
+        "make", "npm run build", "cargo build", "go build",
+        # Git commands (read-only)
+        "git status", "git diff", "git log",
+        # Info commands
+        "pwd", "ls", "cat", "echo", "which",
+    }
+
+    def _validate_exec_command(self, command: str) -> tuple[bool, str | None]:
+        """Validate a command for container execution.
+
+        Args:
+            command: Command to validate
+
+        Returns:
+            Tuple of (is_valid, error_message or None)
+        """
+        if not command:
+            return False, "Empty command"
+
+        # Check for shell metacharacters that could enable injection
+        dangerous_chars = set(";|&`$(){}[]<>\\")
+        found_dangerous = set(command) & dangerous_chars
+        if found_dangerous:
+            return False, f"Command contains shell metacharacters: {found_dangerous}"
+
+        # Check if command starts with an allowed prefix
+        command_lower = command.lower().strip()
+        for allowed in self.ALLOWED_EXEC_COMMANDS:
+            if command_lower.startswith(allowed.lower()):
+                return True, None
+
+        return False, f"Command not in allowlist: {command.split()[0] if command.split() else command}"
+
     def exec_in_worker(
         self,
         worker_id: int,
         command: str,
         timeout: int = 60,
+        validate: bool = True,
     ) -> tuple[int, str, str]:
         """Execute a command in a worker container.
 
@@ -364,6 +405,7 @@ class ContainerManager:
             worker_id: Worker identifier
             command: Command to execute
             timeout: Command timeout
+            validate: Whether to validate command against allowlist
 
         Returns:
             Tuple of (exit_code, stdout, stderr)
@@ -371,6 +413,13 @@ class ContainerManager:
         info = self._containers.get(worker_id)
         if not info:
             return -1, "", "Worker not found"
+
+        # Validate command if requested
+        if validate:
+            is_valid, error = self._validate_exec_command(command)
+            if not is_valid:
+                logger.warning(f"Blocked container exec command: {error}")
+                return -1, "", f"Command validation failed: {error}"
 
         result = self._run_docker(
             "exec", info.container_id, "sh", "-c", command,

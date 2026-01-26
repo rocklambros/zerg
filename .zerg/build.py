@@ -1,11 +1,15 @@
 """ZERG v2 Build Command - Build orchestration with error recovery."""
 
 import json
-import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+
+# Import secure command executor
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from zerg.command_executor import CommandExecutor, CommandValidationError
 
 
 class BuildSystem(Enum):
@@ -153,6 +157,18 @@ class BuildRunner:
         BuildSystem.PYTHON: {"dev": "pip install -e .", "prod": "python -m build"},
     }
 
+    def __init__(self) -> None:
+        """Initialize build runner."""
+        self._executor: CommandExecutor | None = None
+
+    def _get_executor(self, cwd: str = ".") -> CommandExecutor:
+        """Get command executor for build execution."""
+        return CommandExecutor(
+            working_dir=Path(cwd),
+            allow_unlisted=True,  # Allow build commands
+            timeout=600,
+        )
+
     def get_command(self, system: BuildSystem, mode: str = "dev") -> str:
         """Get build command for system and mode."""
         commands = self.COMMANDS.get(system, {})
@@ -166,17 +182,12 @@ class BuildRunner:
         start = time.time()
 
         try:
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=cwd,
-                timeout=600,
-            )
+            # Use secure command executor - no shell=True
+            executor = self._get_executor(cwd)
+            result = executor.execute(command, timeout=600)
             duration = time.time() - start
 
-            if result.returncode == 0:
+            if result.success:
                 return BuildResult(
                     success=True,
                     duration_seconds=duration,
@@ -189,12 +200,12 @@ class BuildRunner:
                     artifacts=[],
                     errors=[result.stderr or result.stdout],
                 )
-        except subprocess.TimeoutExpired:
+        except CommandValidationError as e:
             return BuildResult(
                 success=False,
-                duration_seconds=600,
+                duration_seconds=time.time() - start,
                 artifacts=[],
-                errors=["Build timed out"],
+                errors=[f"Command validation failed: {e}"],
             )
         except Exception as e:
             return BuildResult(

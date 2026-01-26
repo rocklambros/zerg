@@ -1,9 +1,15 @@
 """ZERG v2 Analyze Command - Static analysis, complexity, and quality assessment."""
 
 import json
-import subprocess
+import shlex
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
+
+# Import secure command executor
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from zerg.command_executor import CommandExecutor, CommandValidationError
 
 
 class CheckType(Enum):
@@ -58,6 +64,10 @@ class LintChecker(BaseChecker):
     def __init__(self, command: str = "ruff check"):
         """Initialize lint checker."""
         self.command = command
+        self._executor = CommandExecutor(
+            allow_unlisted=True,  # Allow lint commands
+            timeout=120,
+        )
 
     def supported_languages(self) -> list[str]:
         """Return supported languages."""
@@ -71,11 +81,16 @@ class LintChecker(BaseChecker):
             )
 
         try:
-            cmd = f"{self.command} {' '.join(files)}"
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=120
-            )
-            if result.returncode == 0:
+            # Sanitize file paths to prevent injection
+            sanitized_files = self._executor.sanitize_paths(files)
+            # Build command as list to avoid shell injection
+            cmd_parts = shlex.split(self.command)
+            cmd_parts.extend(sanitized_files)
+
+            # Use secure command executor - no shell=True
+            result = self._executor.execute(cmd_parts, timeout=120)
+
+            if result.success:
                 return AnalysisResult(
                     check_type=CheckType.LINT, passed=True, issues=[], score=100.0
                 )
@@ -88,11 +103,11 @@ class LintChecker(BaseChecker):
                     issues=issues,
                     score=float(score),
                 )
-        except subprocess.TimeoutExpired:
+        except CommandValidationError as e:
             return AnalysisResult(
                 check_type=CheckType.LINT,
                 passed=False,
-                issues=["Lint check timed out"],
+                issues=[f"Command validation failed: {e}"],
                 score=0.0,
             )
         except Exception as e:

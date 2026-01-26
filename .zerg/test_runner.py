@@ -1,10 +1,14 @@
 """ZERG v2 Test Runner - Test generation, execution, and coverage analysis."""
 
 import json
-import subprocess
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+
+# Import secure command executor
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from zerg.command_executor import CommandExecutor, CommandValidationError
 
 
 class TestFramework(Enum):
@@ -138,6 +142,14 @@ class TestRunner:
         """Initialize test runner."""
         self.config = config or TestConfig()
 
+    def _get_executor(self, cwd: str = ".") -> CommandExecutor:
+        """Get command executor for test execution."""
+        return CommandExecutor(
+            working_dir=Path(cwd),
+            allow_unlisted=True,  # Allow test commands
+            timeout=self.config.timeout_seconds,
+        )
+
     def get_command(self, framework: TestFramework) -> str:
         """Get test command for framework.
 
@@ -194,25 +206,20 @@ class TestRunner:
         cmd = self.get_command(framework)
 
         try:
-            result = subprocess.run(
-                cmd,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=self.config.timeout_seconds,
-                cwd=path,
-            )
+            # Use secure command executor - no shell=True
+            executor = self._get_executor(path)
+            result = executor.execute(cmd, timeout=self.config.timeout_seconds)
 
             # Parse output based on framework
-            return self._parse_output(framework, result.stdout, result.returncode)
+            return self._parse_output(framework, result.stdout, result.exit_code)
 
-        except subprocess.TimeoutExpired:
+        except CommandValidationError as e:
             return TestResult(
                 total=0,
                 passed=0,
                 failed=0,
                 skipped=0,
-                errors=["Test execution timed out"],
+                errors=[f"Command validation failed: {e}"],
             )
         except Exception as e:
             return TestResult(

@@ -1,7 +1,13 @@
 """ZERG v2 Quality Gates - Two-stage quality verification."""
 
-import subprocess
+import shlex
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
+
+# Import secure command executor
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from zerg.command_executor import CommandExecutor, CommandValidationError
 
 
 @dataclass
@@ -125,6 +131,10 @@ class CodeQualityGate:
     def __init__(self, config: QualityConfig | None = None):
         """Initialize with optional config."""
         self.config = config or QualityConfig()
+        self._executor = CommandExecutor(
+            allow_unlisted=True,  # Allow lint commands
+            timeout=60,
+        )
 
     def run(self, level: int, changed_files: list[str]) -> GateResult:
         """Run all code quality checks.
@@ -158,17 +168,22 @@ class CodeQualityGate:
             return CheckResult(passed=True, issues=[])
 
         try:
-            cmd = f"{self.config.lint_command} {' '.join(files)}"
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=60
-            )
-            if result.returncode != 0:
+            # Sanitize file paths to prevent injection
+            sanitized_files = self._executor.sanitize_paths(files)
+            # Build command as list to avoid shell injection
+            cmd_parts = shlex.split(self.config.lint_command)
+            cmd_parts.extend(sanitized_files)
+
+            # Use secure command executor - no shell=True
+            result = self._executor.execute(cmd_parts, timeout=60)
+
+            if not result.success:
                 return CheckResult(
                     passed=False, issues=[f"Lint failed: {result.stdout or result.stderr}"]
                 )
             return CheckResult(passed=True, issues=[])
-        except subprocess.TimeoutExpired:
-            return CheckResult(passed=False, issues=["Lint timed out"])
+        except CommandValidationError as e:
+            return CheckResult(passed=False, issues=[f"Command validation failed: {e}"])
         except Exception as e:
             return CheckResult(passed=False, issues=[f"Lint error: {e}"])
 

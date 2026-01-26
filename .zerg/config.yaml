@@ -19,19 +19,34 @@ ports:
   ports_per_worker: 10
 
 # Quality gates (run after each level merge)
+# SECURITY: Configure these with real commands before production use
+# Set required: true for gates that must pass before merge
 quality_gates:
   - name: lint
-    command: "echo 'No linter configured'"
-    required: false
+    command: "ruff check zerg/ .zerg/"
+    required: true
+    timeout: 120
   - name: typecheck
-    command: "echo 'No typecheck configured'"
+    command: "python -m mypy zerg/ --ignore-missing-imports"
     required: false
+    timeout: 180
   - name: test
-    command: "echo 'No tests configured'"
-    required: false
+    command: "python -m pytest tests/ -v --tb=short"
+    required: true
+    timeout: 300
   - name: build
     command: "echo 'No build configured'"
     required: false
+    timeout: 60
+
+# Security settings
+security:
+  # Validate commands against allowlist before execution
+  validate_commands: true
+  # Log all command executions for audit
+  audit_logging: true
+  # Block dangerous environment variables
+  block_dangerous_env_vars: true
 
 # MCP servers available to workers
 mcp_servers:

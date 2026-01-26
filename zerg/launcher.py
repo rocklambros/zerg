@@ -19,6 +19,83 @@ from zerg.logging import get_logger
 logger = get_logger("launcher")
 
 
+# Allowlisted environment variables that can be set from config
+ALLOWED_ENV_VARS = {
+    # ZERG-specific
+    "ZERG_WORKER_ID",
+    "ZERG_FEATURE",
+    "ZERG_WORKTREE",
+    "ZERG_BRANCH",
+    "ZERG_TASK_ID",
+    "ZERG_LOG_LEVEL",
+    "ZERG_DEBUG",
+    # Common development env vars
+    "CI",
+    "DEBUG",
+    "LOG_LEVEL",
+    "VERBOSE",
+    "TERM",
+    "COLORTERM",
+    "NO_COLOR",
+    # API keys (user-provided)
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    # Build/test env vars
+    "NODE_ENV",
+    "PYTHON_ENV",
+    "RUST_BACKTRACE",
+    "PYTEST_CURRENT_TEST",
+}
+
+# Dangerous environment variables that should NEVER be overridden
+DANGEROUS_ENV_VARS = {
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "DYLD_INSERT_LIBRARIES",
+    "DYLD_LIBRARY_PATH",
+    "PATH",
+    "PYTHONPATH",
+    "NODE_PATH",
+    "HOME",
+    "USER",
+    "SHELL",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+}
+
+
+def validate_env_vars(env: dict[str, str]) -> dict[str, str]:
+    """Validate and filter environment variables.
+
+    Args:
+        env: Environment variables to validate
+
+    Returns:
+        Validated environment variables
+    """
+    validated = {}
+
+    for key, value in env.items():
+        # Check for dangerous vars
+        if key.upper() in DANGEROUS_ENV_VARS:
+            logger.warning(f"Blocked dangerous environment variable: {key}")
+            continue
+
+        # Check if in allowlist or is a ZERG_ prefixed var
+        if key.upper() in ALLOWED_ENV_VARS or key.upper().startswith("ZERG_"):
+            # Validate value doesn't contain shell metacharacters
+            if any(c in value for c in [";", "|", "&", "`", "$", "(", ")", "<", ">"]):
+                logger.warning(f"Blocked env var with shell metacharacters: {key}")
+                continue
+
+            validated[key] = value
+        else:
+            logger.debug(f"Skipping unlisted environment variable: {key}")
+
+    return validated
+
+
 class LauncherType(Enum):
     """Worker launcher backend types."""
 
@@ -235,7 +312,7 @@ class SubprocessLauncher(WorkerLauncher):
             SpawnResult with handle or error
         """
         try:
-            # Build environment
+            # Build environment with ZERG-specific vars (always allowed)
             worker_env = os.environ.copy()
             worker_env.update({
                 "ZERG_WORKER_ID": str(worker_id),
@@ -243,10 +320,14 @@ class SubprocessLauncher(WorkerLauncher):
                 "ZERG_WORKTREE": str(worktree_path),
                 "ZERG_BRANCH": branch,
             })
+            # Validate additional env vars from config
             if self.config.env_vars:
-                worker_env.update(self.config.env_vars)
+                validated_config_env = validate_env_vars(self.config.env_vars)
+                worker_env.update(validated_config_env)
+            # Validate additional env vars from caller
             if env:
-                worker_env.update(env)
+                validated_env = validate_env_vars(env)
+                worker_env.update(validated_env)
 
             # Build command
             cmd = [
@@ -265,9 +346,13 @@ class SubprocessLauncher(WorkerLauncher):
             stdout_file = None
             stderr_file = None
             if self.config.log_dir:
+                # Validate worker_id is an integer to prevent path injection
+                if not isinstance(worker_id, int) or worker_id < 0:
+                    raise ValueError(f"Invalid worker_id: {worker_id}")
                 self.config.log_dir.mkdir(parents=True, exist_ok=True)
-                stdout_file = open(self.config.log_dir / f"worker-{worker_id}.stdout.log", "w")
-                stderr_file = open(self.config.log_dir / f"worker-{worker_id}.stderr.log", "w")
+                # Use safe integer formatting for log file names
+                stdout_file = open(self.config.log_dir / f"worker-{int(worker_id)}.stdout.log", "w")
+                stderr_file = open(self.config.log_dir / f"worker-{int(worker_id)}.stderr.log", "w")
 
             # Spawn process
             process = subprocess.Popen(

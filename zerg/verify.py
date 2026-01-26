@@ -1,12 +1,12 @@
 """Task verification execution for ZERG."""
 
-import subprocess
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from zerg.command_executor import CommandExecutor, CommandValidationError
 from zerg.exceptions import TaskTimeoutError, TaskVerificationFailed
 from zerg.logging import get_logger
 from zerg.types import Task
@@ -52,6 +52,15 @@ class VerificationExecutor:
         """
         self.default_timeout = default_timeout
         self._results: list[VerificationExecutionResult] = []
+        self._executor: CommandExecutor | None = None
+
+    def _get_executor(self, cwd: Path | None = None) -> CommandExecutor:
+        """Get or create command executor for the given working directory."""
+        return CommandExecutor(
+            working_dir=cwd,
+            allow_unlisted=True,  # Allow custom verification commands with warning
+            timeout=self.default_timeout,
+        )
 
     def verify(
         self,
@@ -64,7 +73,7 @@ class VerificationExecutor:
         """Run a verification command.
 
         Args:
-            command: Shell command to run
+            command: Command to run (will be parsed safely)
             task_id: Task ID for logging
             timeout: Timeout in seconds
             cwd: Working directory
@@ -74,50 +83,47 @@ class VerificationExecutor:
             VerificationExecutionResult
         """
         timeout = timeout or self.default_timeout
-        cwd = Path(cwd) if cwd else Path.cwd()
+        cwd_path = Path(cwd) if cwd else Path.cwd()
 
         logger.info(f"Verifying task {task_id}: {command}")
         start_time = time.time()
 
         try:
-            result = subprocess.run(
+            # Use secure command executor - no shell=True
+            executor = self._get_executor(cwd_path)
+            result = executor.execute(
                 command,
-                shell=True,
-                cwd=str(cwd),
-                capture_output=True,
-                text=True,
                 timeout=timeout,
                 env=env,
             )
 
             duration_ms = int((time.time() - start_time) * 1000)
-            success = result.returncode == 0
 
-            if success:
+            if result.success:
                 logger.info(f"Task {task_id} verification passed ({duration_ms}ms)")
             else:
-                logger.warning(f"Task {task_id} verification failed (exit code {result.returncode})")
+                logger.warning(f"Task {task_id} verification failed (exit code {result.exit_code})")
 
             exec_result = VerificationExecutionResult(
                 task_id=task_id,
-                success=success,
-                exit_code=result.returncode,
+                success=result.success,
+                exit_code=result.exit_code,
                 stdout=result.stdout,
                 stderr=result.stderr,
                 duration_ms=duration_ms,
                 command=command,
             )
 
-        except subprocess.TimeoutExpired:
+        except CommandValidationError as e:
             duration_ms = int((time.time() - start_time) * 1000)
-            logger.error(f"Task {task_id} verification timed out after {timeout}s")
+            logger.error(f"Task {task_id} command validation failed: {e}")
 
             exec_result = VerificationExecutionResult(
                 task_id=task_id,
                 success=False,
                 exit_code=-1,
                 stdout="",
-                stderr=f"Verification timed out after {timeout}s",
+                stderr=f"Command validation failed: {e}",
                 duration_ms=duration_ms,
                 command=command,
             )

@@ -2,6 +2,7 @@
 
 import json
 import os
+import subprocess
 from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -10,6 +11,16 @@ import pytest
 
 from zerg.config import QualityGate, ZergConfig
 from zerg.types import Task, TaskGraph
+
+
+def _run_git(*args: str, cwd: Path | None = None) -> None:
+    """Run git command safely without shell=True."""
+    subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        capture_output=True,
+        check=True,
+    )
 
 
 @pytest.fixture
@@ -21,14 +32,16 @@ def tmp_repo(tmp_path: Path) -> Generator[Path, None, None]:
     """
     orig_dir = os.getcwd()
     os.chdir(tmp_path)
-    os.system("git init -q")
-    os.system("git config user.email 'test@test.com'")
-    os.system("git config user.name 'Test'")
+
+    # Use subprocess.run with argument list - no shell=True
+    _run_git("init", "-q", cwd=tmp_path)
+    _run_git("config", "user.email", "test@test.com", cwd=tmp_path)
+    _run_git("config", "user.name", "Test", cwd=tmp_path)
 
     # Create initial commit
     (tmp_path / "README.md").write_text("# Test Repo")
-    os.system("git add -A")
-    os.system("git commit -q -m 'Initial commit'")
+    _run_git("add", "-A", cwd=tmp_path)
+    _run_git("commit", "-q", "-m", "Initial commit", cwd=tmp_path)
 
     yield tmp_path
 
