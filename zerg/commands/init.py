@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 from zerg.logging import get_logger
+from zerg.security_rules import integrate_security_rules
 
 console = Console()
 logger = get_logger("init")
@@ -34,6 +35,11 @@ PROJECT_PATTERNS = {
     default="standard",
     help="Security level",
 )
+@click.option(
+    "--with-security-rules/--no-security-rules",
+    default=True,
+    help="Fetch secure coding rules from TikiTribe/claude-secure-coding-rules",
+)
 @click.option("--force", is_flag=True, help="Overwrite existing configuration")
 @click.pass_context
 def init(
@@ -41,6 +47,7 @@ def init(
     detect: bool,
     workers: int,
     security: str,
+    with_security_rules: bool,
     force: bool,
 ) -> None:
     """Initialize ZERG for the current project.
@@ -84,8 +91,24 @@ def init(
         # Create devcontainer if needed
         create_devcontainer(project_type, security)
 
+        # Integrate secure coding rules if requested
+        security_rules_result = None
+        if with_security_rules:
+            console.print("\n[bold]Integrating secure coding rules...[/bold]")
+            try:
+                security_rules_result = integrate_security_rules(
+                    project_path=Path("."),
+                    update_claude_md=True,
+                )
+                console.print(
+                    f"  [green]✓[/green] Fetched {security_rules_result['rules_fetched']} "
+                    f"security rules for detected stack"
+                )
+            except Exception as e:
+                console.print(f"  [yellow]⚠[/yellow] Could not fetch security rules: {e}")
+
         # Show summary
-        show_summary(workers, security, project_type)
+        show_summary(workers, security, project_type, security_rules_result)
 
         console.print("\n[green]✓[/green] ZERG initialized successfully!")
         console.print("\nNext steps:")
@@ -95,7 +118,7 @@ def init(
 
     except Exception as e:
         console.print(f"\n[red]Error:[/red] {e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 def detect_project_type() -> str | None:
@@ -328,13 +351,19 @@ def create_devcontainer(project_type: str | None, security: str) -> None:
     console.print(f"  [green]✓[/green] Created {devcontainer_path}")
 
 
-def show_summary(workers: int, security: str, project_type: str | None) -> None:
+def show_summary(
+    workers: int,
+    security: str,
+    project_type: str | None,
+    security_rules_result: dict | None = None,
+) -> None:
     """Show initialization summary.
 
     Args:
         workers: Worker count
         security: Security level
         project_type: Project type
+        security_rules_result: Results from security rules integration
     """
     table = Table(title="ZERG Configuration", show_header=False)
     table.add_column("Setting", style="cyan")
@@ -345,6 +374,14 @@ def show_summary(workers: int, security: str, project_type: str | None) -> None:
     table.add_row("Security Level", security)
     table.add_row("Config Location", ".zerg/config.yaml")
     table.add_row("Devcontainer", ".devcontainer/devcontainer.json")
+
+    if security_rules_result:
+        stack = security_rules_result.get("stack", {})
+        languages = ", ".join(stack.get("languages", [])) or "none"
+        frameworks = ", ".join(stack.get("frameworks", [])) or "none"
+        table.add_row("Security Rules", f"{security_rules_result['rules_fetched']} files")
+        table.add_row("Detected Languages", languages)
+        table.add_row("Detected Frameworks", frameworks)
 
     console.print()
     console.print(table)

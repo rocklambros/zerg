@@ -4,7 +4,17 @@ import click
 from rich.console import Console
 
 from zerg import __version__
-from zerg.commands import cleanup, init, logs, merge_cmd, retry, rush, status, stop
+from zerg.commands import (
+    cleanup,
+    init,
+    logs,
+    merge_cmd,
+    retry,
+    rush,
+    security_rules_group,
+    status,
+    stop,
+)
 
 console = Console()
 
@@ -31,6 +41,7 @@ cli.add_command(logs)
 cli.add_command(merge_cmd)
 cli.add_command(retry)
 cli.add_command(rush)
+cli.add_command(security_rules_group)
 cli.add_command(status)
 cli.add_command(stop)
 
