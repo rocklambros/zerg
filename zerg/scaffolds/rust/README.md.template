@@ -1,0 +1,48 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Quick Start
+
+```bash
+# Build the project
+cargo build
+
+# Run the application
+{% if framework in ['axum', 'actix-web'] %}
+cargo run
+# Server runs on http://localhost:3000 (axum) or http://localhost:8080 (actix)
+{% elif framework == 'clap' %}
+cargo run -- --help
+{% else %}
+cargo run
+{% endif %}
+
+# Run tests
+cargo test
+
+# Run linting
+cargo clippy
+
+# Format code
+cargo fmt
+```
+
+## Project Structure
+
+```
+src/
+└── main.rs          # Application entry point
+Cargo.toml           # Package manifest
+```
+
+## Development
+
+This project uses:
+- **Cargo** for build and dependency management
+- **clippy** for linting
+- **rustfmt** for formatting
+
+---
+
+*Created with ZERG Inception Mode*

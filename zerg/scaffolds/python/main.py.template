@@ -1,0 +1,105 @@
+"""{{ description }}"""
+{% if framework == 'fastapi' %}
+
+from fastapi import FastAPI
+
+app = FastAPI(
+    title="{{ project_name }}",
+    description="{{ description }}",
+    version="0.1.0",
+)
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Root endpoint."""
+    return {"message": "Hello from {{ project_name }}!"}
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "healthy"}
+{% elif framework == 'flask' %}
+
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def root():
+    """Root endpoint."""
+    return jsonify({"message": "Hello from {{ project_name }}!"})
+
+
+@app.route("/health")
+def health():
+    """Health check endpoint."""
+    return jsonify({"status": "healthy"})
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+{% elif framework == 'typer' %}
+
+import typer
+from rich.console import Console
+
+app = typer.Typer(help="{{ description }}")
+console = Console()
+
+
+@app.command()
+def hello(name: str = "World") -> None:
+    """Say hello."""
+    console.print(f"Hello, [bold green]{name}[/bold green]!")
+
+
+@app.command()
+def version() -> None:
+    """Show version."""
+    console.print("{{ project_name }} v0.1.0")
+
+
+if __name__ == "__main__":
+    app()
+{% elif framework == 'click' %}
+
+import click
+from rich.console import Console
+
+console = Console()
+
+
+@click.group()
+def cli() -> None:
+    """{{ description }}"""
+    pass
+
+
+@cli.command()
+@click.option("--name", default="World", help="Name to greet")
+def hello(name: str) -> None:
+    """Say hello."""
+    console.print(f"Hello, [bold green]{name}[/bold green]!")
+
+
+@cli.command()
+def version() -> None:
+    """Show version."""
+    console.print("{{ project_name }} v0.1.0")
+
+
+if __name__ == "__main__":
+    cli()
+{% else %}
+
+def main() -> None:
+    """Main entry point."""
+    print("Hello from {{ project_name }}!")
+
+
+if __name__ == "__main__":
+    main()
+{% endif %}

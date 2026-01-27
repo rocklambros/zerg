@@ -1,0 +1,52 @@
+/**
+ * Tests for {{ project_name }}
+ */
+
+import { describe, it, expect } from 'vitest';
+{% if framework == 'fastify' %}
+import { app } from './index';
+
+describe('{{ project_name }}', () => {
+  it('should return hello message on root', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/',
+    });
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload)).toHaveProperty('message');
+  });
+
+  it('should return healthy on /health', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+    });
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload).status).toBe('healthy');
+  });
+});
+{% elif framework in ['express', 'hono'] %}
+
+describe('{{ project_name }}', () => {
+  it('should export app', async () => {
+    const { app } = await import('./index');
+    expect(app).toBeDefined();
+  });
+});
+{% elif framework == 'commander' %}
+
+describe('{{ project_name }}', () => {
+  it('should export program', async () => {
+    const { program } = await import('./index');
+    expect(program).toBeDefined();
+  });
+});
+{% else %}
+
+describe('{{ project_name }}', () => {
+  it('should export main function', async () => {
+    const { main } = await import('./index');
+    expect(main).toBeInstanceOf(Function);
+  });
+});
+{% endif %}

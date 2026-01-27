@@ -22,20 +22,13 @@
 
 ## Part 1: Project Setup & Devcontainer
 
-In this part, we'll set up ZERG and prepare a new project for parallel development.
+In this part, we'll set up ZERG and prepare a new project for parallel development. We'll use **Inception Mode** to create the project from scratch.
 
 ### 1.1 Installing ZERG
 
-First, create a new project directory and install ZERG:
+First, install ZERG:
 
 ```bash
-# Create project directory
-mkdir minerals-store
-cd minerals-store
-
-# Initialize git repository
-git init
-
 # Install ZERG
 pip install zerg
 
@@ -45,37 +38,118 @@ zerg --help
 
 You should see the ZERG help output showing all available commands.
 
-### 1.2 Project Initialization
+### 1.2 Inception Mode - Starting from an Empty Directory
 
-Initialize ZERG in your project:
+ZERG has two initialization modes:
+- **Inception Mode**: For empty directories - creates a new project from scratch
+- **Discovery Mode**: For existing projects - analyzes and configures ZERG
+
+Since we're building the Minerals Store from scratch, we'll use **Inception Mode**:
 
 ```bash
-zerg init --security standard --workers 5
+# Create an empty directory
+mkdir minerals-store
+cd minerals-store
+
+# Run ZERG init - Inception Mode activates automatically
+zerg init --security standard
 ```
 
 **Expected output:**
 ```
-ZERG Init
+ZERG Init - Inception Mode
+Empty directory detected. Starting new project wizard...
 
-Detecting project type...
-  Language: python (detected)
-  Framework: none
-  Database: none
+┌─ New Project ─────────────────────────────┐
+│ Let's gather some information about your  │
+│ new project.                              │
+└───────────────────────────────────────────┘
+
+Project name: minerals-store
+Brief description: Starcraft 2 themed ecommerce for minerals and vespene gas
+Target platforms: api, web
+Architecture style: monolith
+Data storage: postgresql, redis
+...
+```
+
+### 1.3 Technology Selection
+
+After gathering requirements, ZERG recommends a technology stack:
+
+```
+┌─ Tech Stack ──────────────────────────────┐
+│ Based on your requirements, here's our    │
+│ recommendation.                           │
+└───────────────────────────────────────────┘
+
+┌──────────────────────────────────────────┐
+│ Component       │ Recommendation         │
+├─────────────────┼────────────────────────┤
+│ Language        │ python (3.12)          │
+│ Package Manager │ uv                     │
+│ Framework       │ fastapi                │
+│ Test Framework  │ pytest                 │
+│ Linter          │ ruff                   │
+│ ORM             │ sqlalchemy             │
+│ Database Driver │ asyncpg                │
+└──────────────────────────────────────────┘
+
+Primary language: python
+Framework: fastapi
+
+✓ Created 6 scaffold files
+✓ Created .gsd/PROJECT.md
+✓ Initialized git repository
+✓ Created initial commit
+
+✓ Inception complete!
+```
+
+### 1.4 Generated Project Structure
+
+Inception Mode creates a complete project scaffold:
+
+```
+minerals-store/
+├── minerals_store/
+│   ├── __init__.py
+│   └── main.py          # FastAPI app with health endpoint
+├── tests/
+│   ├── __init__.py
+│   └── test_main.py     # Initial test suite
+├── .gsd/
+│   └── PROJECT.md       # Project requirements document
+├── pyproject.toml       # Python project configuration
+├── README.md            # Project documentation
+├── .gitignore
+└── .git/
+```
+
+### 1.5 Continuing with Discovery Mode
+
+After Inception Mode completes, ZERG automatically continues with Discovery Mode to add infrastructure:
+
+```
+ZERG Init - Discovery Mode
+
+Detected languages: python
+Detected frameworks: fastapi
 
 Creating configuration...
   ✓ Created .zerg/config.yaml
   ✓ Created .devcontainer/devcontainer.json
 
 Fetching security rules...
-  ✓ Detected stack: python
-  ✓ Fetched rules: python.md, owasp-2025.md
+  ✓ Fetched rules: python.md, fastapi.md, owasp-2025.md
   ✓ Updated CLAUDE.md
 
 ✓ ZERG initialized!
 
 Next steps:
-  1. Review .zerg/config.yaml
-  2. Run: zerg plan <feature-name>
+  1. Run: zerg plan <feature-name>
+  2. Run: zerg design
+  3. Run: zerg rush
 ```
 
 ### 1.3 Devcontainer Configuration

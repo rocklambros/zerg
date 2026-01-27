@@ -1,0 +1,43 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run tests
+pnpm test
+
+# Run linting
+pnpm lint
+pnpm typecheck
+```
+
+## Project Structure
+
+```
+src/
+├── index.ts         # Application entry point
+├── index.test.ts    # Main tests
+```
+
+## Development
+
+This project uses:
+- **pnpm** for package management
+- **TypeScript** for type safety
+- **vitest** for testing
+- **eslint** + **prettier** for linting and formatting
+
+---
+
+*Created with ZERG Inception Mode*

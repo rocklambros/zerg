@@ -1,0 +1,62 @@
+// Tests for {{ project_name }}
+package main
+
+import (
+	"testing"
+{% if framework == 'gin' %}
+	"net/http"
+	"net/http/httptest"
+
+	"github.com/gin-gonic/gin"
+{% endif %}
+)
+
+{% if framework == 'gin' %}
+func setupRouter() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Hello from {{ project_name }}!",
+		})
+	})
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "healthy",
+		})
+	})
+
+	return r
+}
+
+func TestRootEndpoint(t *testing.T) {
+	router := setupRouter()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+}
+
+func TestHealthEndpoint(t *testing.T) {
+	router := setupRouter()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/health", nil)
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+}
+{% else %}
+func TestMain(t *testing.T) {
+	// Basic test to ensure main compiles
+	t.Log("{{ project_name }} compiles successfully")
+}
+{% endif %}

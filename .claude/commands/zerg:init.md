@@ -1,21 +1,114 @@
 # ZERG Initialize
 
-Initialize the ZERG for this project.
+Initialize ZERG for a project. Operates in two modes based on directory state.
+
+## Two Modes
+
+### Inception Mode (Empty Directory)
+When run in an empty directory, ZERG starts the **Inception Mode** wizard:
+1. **Requirements Gathering** - Interactive prompts to capture project goals
+2. **Technology Selection** - Recommends and confirms language/framework
+3. **Project Scaffolding** - Generates complete project structure
+4. **Git Initialization** - Creates initial commit
+
+### Discovery Mode (Existing Project)
+When run in a directory with existing code, ZERG runs **Discovery Mode**:
+1. **Language Detection** - Identifies languages and frameworks
+2. **Infrastructure Analysis** - Understands existing setup
+3. **Configuration Generation** - Creates .zerg/ and .devcontainer/
 
 ## Quick Start
 
 ```bash
-# Initialize with defaults (includes security rules)
+# Empty directory - starts Inception Mode wizard
+mkdir my-new-project && cd my-new-project
 zerg init
 
-# Initialize without security rules
-zerg init --no-security-rules
+# Existing project - runs Discovery Mode
+cd my-existing-project
+zerg init
 
-# Initialize with specific settings
+# Specify settings
 zerg init --workers 3 --security strict
 
-# Initialize and build devcontainer image
+# Skip security rules
+zerg init --no-security-rules
+
+# Build devcontainer image after init
 zerg init --with-containers
+```
+
+## Inception Mode Details
+
+When starting a new project from scratch:
+
+```bash
+$ mkdir my-api && cd my-api
+$ zerg init
+
+ZERG Init - Inception Mode
+Empty directory detected. Starting new project wizard...
+
+┌─ New Project ─────────────────────────────┐
+│ Let's gather some information about your  │
+│ new project.                              │
+└───────────────────────────────────────────┘
+
+Project name: my-api
+Brief description: A REST API for user management
+Target platforms: api
+Architecture style: monolith
+...
+
+┌─ Tech Stack ──────────────────────────────┐
+│ Based on your requirements, here's our    │
+│ recommendation.                           │
+└───────────────────────────────────────────┘
+
+┌──────────────────────────────────────────┐
+│ Component       │ Recommendation         │
+├─────────────────┼────────────────────────┤
+│ Language        │ python (3.12)          │
+│ Framework       │ fastapi                │
+│ Test Framework  │ pytest                 │
+└──────────────────────────────────────────┘
+
+Primary language: python
+Framework: fastapi
+
+✓ Created 6 scaffold files
+✓ Created .gsd/PROJECT.md
+✓ Initialized git repository
+✓ Created initial commit
+
+✓ Inception complete!
+```
+
+### Supported Languages
+
+| Language | Package Manager | Default Framework |
+|----------|-----------------|-------------------|
+| Python | uv | FastAPI / Typer |
+| TypeScript | pnpm | Fastify / Commander |
+| Go | go mod | Gin / Cobra |
+| Rust | cargo | Axum / Clap |
+
+### Generated Structure (Python Example)
+
+```
+my-api/
+├── my_api/
+│   ├── __init__.py
+│   └── main.py
+├── tests/
+│   ├── __init__.py
+│   └── test_main.py
+├── .gsd/
+│   └── PROJECT.md
+├── pyproject.toml
+├── README.md
+├── .gitignore
+└── .git/
 ```
 
 ## Multi-Language Detection

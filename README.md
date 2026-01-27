@@ -67,17 +67,56 @@ zerg init
 
 ## Quick Start
 
+ZERG operates in two modes depending on your starting point:
+
+### Inception Mode (New Project)
+
+Start a project from scratch with guided setup:
+
 ```bash
-# 1. Initialize ZERG in your project
+# Create empty directory
+mkdir my-new-api && cd my-new-api
+
+# Run ZERG init - detects empty directory, starts Inception Mode
 zerg init --security standard
 
-# 2. Plan a feature (captures requirements)
+# Follow the interactive prompts:
+#   - Project name and description
+#   - Target platform (api, cli, web, library)
+#   - Technology stack recommendation
+#   - Project scaffolding
+```
+
+Inception Mode:
+1. **Gathers Requirements** - Interactive prompts capture project goals
+2. **Recommends Technology** - Suggests language, framework, tools
+3. **Scaffolds Project** - Generates complete project structure
+4. **Initializes Git** - Creates initial commit
+
+### Discovery Mode (Existing Project)
+
+Add ZERG to an existing codebase:
+
+```bash
+# Navigate to your existing project
+cd your-existing-project
+
+# Initialize ZERG - detects existing project, runs Discovery Mode
+zerg init --security standard
+
+# ZERG analyzes your project and configures itself
+```
+
+### After Initialization
+
+```bash
+# 1. Plan a feature (captures requirements)
 zerg plan user-authentication --socratic
 
-# 3. Design the implementation (creates task graph)
+# 2. Design the implementation (creates task graph)
 zerg design --feature user-authentication
 
-# 4. Launch parallel workers
+# 3. Launch parallel workers
 zerg rush --workers 5
 
 # 5. Monitor progress

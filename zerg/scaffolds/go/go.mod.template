@@ -1,0 +1,18 @@
+module {{ project_name_kebab }}
+
+go 1.22
+
+require (
+{% if framework == 'gin' %}
+	github.com/gin-gonic/gin v1.10.0
+{% elif framework == 'echo' %}
+	github.com/labstack/echo/v4 v4.12.0
+{% elif framework == 'fiber' %}
+	github.com/gofiber/fiber/v2 v2.52.0
+{% elif framework == 'cobra' %}
+	github.com/spf13/cobra v1.8.0
+{% endif %}
+{% if database_driver %}
+	{{ database_driver }}
+{% endif %}
+)

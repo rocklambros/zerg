@@ -1,0 +1,51 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Quick Start
+
+```bash
+# Install dependencies
+uv sync
+
+# Run development server
+{% if framework == 'fastapi' %}
+uv run uvicorn {{ project_name_snake }}.main:app --reload
+{% elif framework == 'flask' %}
+uv run flask --app {{ project_name_snake }}.main run --debug
+{% elif framework in ['typer', 'click'] %}
+uv run {{ project_name_snake }} --help
+{% else %}
+uv run python -m {{ project_name_snake }}.main
+{% endif %}
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+uv run mypy .
+```
+
+## Project Structure
+
+```
+{{ project_name_snake }}/
+├── __init__.py
+├── main.py          # Application entry point
+tests/
+├── __init__.py
+├── test_main.py     # Main tests
+```
+
+## Development
+
+This project uses:
+- **uv** for dependency management
+- **pytest** for testing
+- **ruff** for linting and formatting
+- **mypy** for type checking
+
+---
+
+*Created with ZERG Inception Mode*

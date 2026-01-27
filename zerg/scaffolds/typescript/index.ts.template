@@ -1,0 +1,101 @@
+/**
+ * {{ project_name }}
+ * {{ description }}
+ */
+{% if framework == 'fastify' %}
+
+import Fastify from 'fastify';
+
+const app = Fastify({ logger: true });
+
+app.get('/', async () => {
+  return { message: 'Hello from {{ project_name }}!' };
+});
+
+app.get('/health', async () => {
+  return { status: 'healthy' };
+});
+
+const start = async () => {
+  try {
+    await app.listen({ port: 3000, host: '0.0.0.0' });
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();
+
+export { app };
+{% elif framework == 'express' %}
+
+import express, { Request, Response } from 'express';
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ message: 'Hello from {{ project_name }}!' });
+});
+
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({ status: 'healthy' });
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+
+export { app };
+{% elif framework == 'hono' %}
+
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+
+const app = new Hono();
+
+app.get('/', (c) => {
+  return c.json({ message: 'Hello from {{ project_name }}!' });
+});
+
+app.get('/health', (c) => {
+  return c.json({ status: 'healthy' });
+});
+
+serve({ fetch: app.fetch, port: 3000 });
+
+export { app };
+{% elif framework == 'commander' %}
+
+import { Command } from 'commander';
+import chalk from 'chalk';
+
+const program = new Command();
+
+program
+  .name('{{ project_name_kebab }}')
+  .description('{{ description }}')
+  .version('0.1.0');
+
+program
+  .command('hello')
+  .description('Say hello')
+  .option('-n, --name <name>', 'Name to greet', 'World')
+  .action((options) => {
+    console.log(chalk.green(`Hello, ${options.name}!`));
+  });
+
+program.parse();
+
+export { program };
+{% else %}
+
+function main(): void {
+  console.log('Hello from {{ project_name }}!');
+}
+
+main();
+
+export { main };
+{% endif %}

@@ -1,0 +1,123 @@
+//! {{ project_name }}
+//! {{ description }}
+
+{% if framework == 'axum' %}
+use axum::{routing::get, Json, Router};
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct Message {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct Health {
+    status: String,
+}
+
+async fn root() -> Json<Message> {
+    Json(Message {
+        message: "Hello from {{ project_name }}!".to_string(),
+    })
+}
+
+async fn health() -> Json<Health> {
+    Json(Health {
+        status: "healthy".to_string(),
+    })
+}
+
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/", get(root))
+        .route("/health", get(health));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .unwrap();
+
+    println!("Server running on http://localhost:3000");
+    axum::serve(listener, app).await.unwrap();
+}
+{% elif framework == 'actix-web' %}
+use actix_web::{get, web, App, HttpServer, Responder};
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct Message {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct Health {
+    status: String,
+}
+
+#[get("/")]
+async fn root() -> impl Responder {
+    web::Json(Message {
+        message: "Hello from {{ project_name }}!".to_string(),
+    })
+}
+
+#[get("/health")]
+async fn health() -> impl Responder {
+    web::Json(Health {
+        status: "healthy".to_string(),
+    })
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    println!("Server running on http://localhost:8080");
+    HttpServer::new(|| {
+        App::new()
+            .service(root)
+            .service(health)
+    })
+    .bind(("0.0.0.0", 8080))?
+    .run()
+    .await
+}
+{% elif framework == 'clap' %}
+use clap::{Parser, Subcommand};
+
+#[derive(Parser)]
+#[command(name = "{{ project_name_snake }}")]
+#[command(about = "{{ description }}")]
+#[command(version = "0.1.0")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Say hello
+    Hello {
+        /// Name to greet
+        #[arg(short, long, default_value = "World")]
+        name: String,
+    },
+    /// Print version
+    Version,
+}
+
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Hello { name } => {
+            println!("Hello, {}!", name);
+        }
+        Commands::Version => {
+            println!("{{ project_name }} v0.1.0");
+        }
+    }
+}
+{% else %}
+fn main() {
+    println!("Hello from {{ project_name }}!");
+}
+{% endif %}

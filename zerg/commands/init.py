@@ -15,6 +15,81 @@ console = Console()
 logger = get_logger("init")
 
 
+# Files/directories that indicate an existing project (not empty)
+PROJECT_INDICATORS = {
+    # Version control
+    ".git",
+    # Python
+    "pyproject.toml",
+    "setup.py",
+    "requirements.txt",
+    "Pipfile",
+    # JavaScript/TypeScript
+    "package.json",
+    "tsconfig.json",
+    # Go
+    "go.mod",
+    # Rust
+    "Cargo.toml",
+    # Java
+    "pom.xml",
+    "build.gradle",
+    # Ruby
+    "Gemfile",
+    # C#
+    "*.csproj",
+    "*.sln",
+    # Source directories
+    "src",
+    "lib",
+    "app",
+}
+
+
+def is_empty_project(path: Path | None = None) -> bool:
+    """Check if the current directory is an empty project (no code/config files).
+
+    An "empty project" means no recognizable project structure exists yet.
+    This determines whether to run Inception Mode (create from scratch) vs
+    Discovery Mode (analyze existing project).
+
+    Args:
+        path: Directory to check. Defaults to current working directory.
+
+    Returns:
+        True if the directory is empty or has no project indicators.
+    """
+    path = path or Path(".")
+
+    # Check if directory exists
+    if not path.exists():
+        return True
+
+    # Check if directory is completely empty
+    entries = list(path.iterdir())
+    if not entries:
+        return True
+
+    # Check for project indicators
+    for indicator in PROJECT_INDICATORS:
+        if "*" in indicator:
+            # Glob pattern (e.g., "*.csproj")
+            if list(path.glob(indicator)):
+                return False
+        else:
+            # Direct path check
+            if (path / indicator).exists():
+                return False
+
+    # Check for any source code files
+    code_extensions = {".py", ".js", ".ts", ".go", ".rs", ".java", ".rb", ".cs", ".cpp", ".c"}
+    for entry in entries:
+        if entry.is_file() and entry.suffix in code_extensions:
+            return False
+
+    return True
+
+
 @click.command()
 @click.option("--detect/--no-detect", default=True, help="Auto-detect project type")
 @click.option("--workers", "-w", default=5, type=int, help="Default worker count")
@@ -49,6 +124,10 @@ def init(
 
     Creates .zerg/ configuration and .devcontainer/ setup.
 
+    Operates in two modes:
+    - **Inception Mode**: For empty directories - creates project from scratch
+    - **Discovery Mode**: For existing projects - analyzes and configures ZERG
+
     Examples:
 
         zerg init
@@ -58,7 +137,22 @@ def init(
         zerg init --no-detect
     """
     try:
-        console.print("\n[bold cyan]ZERG Init[/bold cyan]\n")
+        # Check if this is an empty directory (Inception Mode)
+        if is_empty_project():
+            console.print("\n[bold cyan]ZERG Init - Inception Mode[/bold cyan]")
+            console.print("[dim]Empty directory detected. Starting new project wizard...[/dim]\n")
+
+            # Import and run inception mode
+            from zerg.inception import run_inception_mode
+
+            success = run_inception_mode(security_level=security)
+            if not success:
+                raise SystemExit(1)
+
+            # After inception, continue with ZERG setup
+            console.print("\n[bold]Configuring ZERG infrastructure...[/bold]")
+
+        console.print("\n[bold cyan]ZERG Init - Discovery Mode[/bold cyan]\n")
 
         # Check existing config
         zerg_dir = Path(".zerg")

@@ -1,0 +1,47 @@
+# {{ project_name }}
+
+{{ description }}
+
+## Quick Start
+
+```bash
+# Download dependencies
+go mod tidy
+
+# Run the application
+{% if framework in ['gin', 'echo', 'fiber'] %}
+go run main.go
+# Server runs on http://localhost:8080
+{% elif framework == 'cobra' %}
+go run main.go --help
+{% else %}
+go run main.go
+{% endif %}
+
+# Run tests
+go test -v ./...
+
+# Build
+go build -o {{ project_name_snake }}
+```
+
+## Project Structure
+
+```
+.
+├── main.go          # Application entry point
+├── main_test.go     # Tests
+├── go.mod           # Go module definition
+└── go.sum           # Dependency checksums
+```
+
+## Development
+
+This project uses:
+- **Go modules** for dependency management
+- **go test** for testing
+- **golangci-lint** for linting (optional)
+
+---
+
+*Created with ZERG Inception Mode*
