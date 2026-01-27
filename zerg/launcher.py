@@ -751,7 +751,8 @@ class ContainerLauncher(WorkerLauncher):
         # Mount main repo's .git and worktree metadata for git operations inside container
         if main_git_dir.exists() and git_worktree_dir.exists():
             # Mount the main .git to /repo/.git so git can find objects/refs
-            cmd.extend(["-v", f"{main_git_dir.absolute()}:/repo/.git:ro"])
+            # Note: Not read-only because git needs write access for commits
+            cmd.extend(["-v", f"{main_git_dir.absolute()}:/repo/.git"])
             # Mount the worktree metadata
             cmd.extend(["-v", f"{git_worktree_dir.absolute()}:/workspace/.git-worktree"])
             # Pass env vars so entry script can fix the git paths
