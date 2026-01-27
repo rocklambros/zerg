@@ -1,0 +1,150 @@
+{
+  "feature": "dc-012-integration-tests",
+  "created_at": "2026-01-27T00:00:00Z",
+  "tasks": [
+    {
+      "id": "DC12-001",
+      "title": "Create test infrastructure & conftest additions",
+      "description": "Create shared fixtures for container testing including docker_available() helper, mock_docker_run() fixture, multi_lang_project() fixture",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/integration/conftest_container.py"],
+        "modify": [],
+        "read": ["tests/conftest.py"]
+      },
+      "verification": {
+        "command": "python -c \"from tests.integration.conftest_container import docker_available\"",
+        "timeout_seconds": 30
+      }
+    },
+    {
+      "id": "DC12-002",
+      "title": "TestMultiLanguageDetection (2 tests)",
+      "description": "Implement test_detect_python_and_node and test_detect_go_and_rust to verify multi-language stack detection",
+      "level": 2,
+      "dependencies": ["DC12-001"],
+      "files": {
+        "create": ["tests/integration/test_container_detection.py"],
+        "modify": [],
+        "read": ["zerg/security_rules.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_detection.py -v",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "DC12-003",
+      "title": "TestDynamicDevcontainer (3 tests)",
+      "description": "Implement test_multi_language_features, test_custom_install_for_r, and test_write_devcontainer_file",
+      "level": 2,
+      "dependencies": ["DC12-001"],
+      "files": {
+        "create": ["tests/integration/test_container_devcontainer.py"],
+        "modify": [],
+        "read": ["zerg/devcontainer_features.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_devcontainer.py -v",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "DC12-004",
+      "title": "TestContainerLauncher (3 tests)",
+      "description": "Implement test_docker_available_check, test_image_exists_check, and test_spawn_requires_image",
+      "level": 2,
+      "dependencies": ["DC12-001"],
+      "files": {
+        "create": ["tests/integration/test_container_launcher_checks.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_launcher_checks.py -v",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "DC12-005",
+      "title": "TestOrchestratorModeSelection (2 tests)",
+      "description": "Implement test_auto_detect_without_devcontainer and test_container_mode_available_check",
+      "level": 2,
+      "dependencies": ["DC12-001"],
+      "files": {
+        "create": ["tests/integration/test_container_orchestrator.py"],
+        "modify": [],
+        "read": ["zerg/orchestrator.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_orchestrator.py -v",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "DC12-006",
+      "title": "TestInitCommand (1 test)",
+      "description": "Implement test_init_creates_multi_lang_devcontainer using Click CliRunner",
+      "level": 3,
+      "dependencies": ["DC12-003"],
+      "files": {
+        "create": ["tests/integration/test_container_init_cmd.py"],
+        "modify": [],
+        "read": ["zerg/commands/init.py", "zerg/cli.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_init_cmd.py -v",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "DC12-007",
+      "title": "TestRushCommand (1 test)",
+      "description": "Implement test_rush_help_shows_mode_option verifying --mode flag presence",
+      "level": 3,
+      "dependencies": ["DC12-005"],
+      "files": {
+        "create": ["tests/integration/test_container_rush_cmd.py"],
+        "modify": [],
+        "read": ["zerg/commands/rush.py", "zerg/cli.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_rush_cmd.py -v",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "DC12-008",
+      "title": "TestEndToEndFlow (1 test)",
+      "description": "Implement test_full_init_to_dry_run covering complete flow from project creation through rush --dry-run",
+      "level": 4,
+      "dependencies": ["DC12-006", "DC12-007"],
+      "files": {
+        "create": ["tests/integration/test_container_e2e.py"],
+        "modify": [],
+        "read": ["zerg/cli.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_e2e.py -v",
+        "timeout_seconds": 120
+      }
+    },
+    {
+      "id": "DC12-009",
+      "title": "Update backlog & verify all tests",
+      "description": "Mark DC-012 as COMPLETE in dynamic-devcontainer BACKLOG.md and run full test verification",
+      "level": 5,
+      "dependencies": ["DC12-008"],
+      "files": {
+        "create": [],
+        "modify": [".gsd/tasks/dynamic-devcontainer/BACKLOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_*.py -v",
+        "timeout_seconds": 120
+      }
+    }
+  ]
+}

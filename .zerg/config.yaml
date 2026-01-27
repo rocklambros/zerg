@@ -1,55 +1,53 @@
-version: '1.0'
-project_type: python
+# ZERG Configuration
+# Updated to match ZergConfig schema
+
+project:
+  name: zerg
+  description: Parallel Claude Code execution system
+
 workers:
-  default_count: 5
-  max_count: 10
-  context_threshold: 0.7
-  timeout_seconds: 3600
-security:
-  network_isolation: true
-  filesystem_sandbox: true
-  secrets_scanning: true
+  max_concurrent: 5
+  timeout_minutes: 60
+  retry_attempts: 2
+  context_threshold_percent: 70
+  launcher_type: subprocess
+
+ports:
+  range_start: 49152
+  range_end: 65535
+  ports_per_worker: 10
+
 quality_gates:
-  lint:
+  - name: lint
     command: ruff check .
     required: true
-  typecheck:
-    command: mypy .
+    timeout: 300
+  - name: typecheck
+    command: mypy . --ignore-missing-imports
     required: false
-  test:
-    command: pytest
+    timeout: 300
+  - name: test
+    command: pytest -x
     required: true
-hooks:
-  pre_commit:
-    enabled: true
-    security_checks:
-      secrets_detection: true  # AWS, GitHub PAT, OpenAI, Anthropic keys
-      sensitive_files: true    # .env, credentials.json, private keys
-      shell_injection: true    # shell=True, os.system, os.popen
-      code_injection: true     # eval, exec
-      unsafe_deserialize: true # pickle.load, pickle.loads
-      block_on_violation: true # Security issues block commits
-    quality_checks:
-      ruff_lint: true          # Run ruff on staged Python files
-      debugger_statements: true
-      merge_conflict_markers: true
-      large_files: true        # Files > 5MB
-      warn_on_violation: true  # Quality issues warn but don't block
-    zerg_checks:
-      branch_naming: true      # Validate zerg/{feature}/worker-{N}
-      no_print_in_zerg: true   # Warn on print() in zerg/ directory
-      hardcoded_localhost: true
-      warn_on_violation: true
-    exempt_paths:
-      - "tests/"
-      - "fixtures/"
-      - "*_test.py"
-      - "test_*.py"
-      - "conftest.py"
+    timeout: 600
+
 mcp_servers:
-- name: filesystem
-  command: npx
-  args:
-  - -y
-  - '@anthropic/mcp-filesystem'
-  env: {}
+  - filesystem
+  - github
+  - fetch
+
+resources:
+  cpu_cores: 2
+  memory_gb: 4
+  disk_gb: 10
+
+logging:
+  level: info
+  directory: .zerg/logs
+  retain_days: 7
+
+security:
+  level: standard
+  pre_commit_hooks: true
+  audit_logging: true
+  container_readonly: true
