@@ -37,10 +37,14 @@ RUN npm install -g \
     @anthropic-ai/mcp-server-github \
     2>/dev/null || true
 
-# Install Python dependencies for orchestrator
+# Install Python dependencies for ZERG
 RUN pip3 install --break-system-packages \
     pyyaml \
-    requests
+    requests \
+    pydantic \
+    click \
+    rich \
+    jsonschema
 
 # Create directories
 RUN mkdir -p /root/.claude/tasks /workspace

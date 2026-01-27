@@ -719,10 +719,15 @@ class ContainerLauncher(WorkerLauncher):
             Container ID or None on failure
         """
         # Build docker run command
+        # Mount worktree as workspace and share state directory from main repo
+        main_repo = worktree_path.parent.parent.parent  # .zerg-worktrees/feature/worker-N -> repo
+        state_dir = main_repo / ".zerg" / "state"
+
         cmd = [
             "docker", "run", "-d",
             "--name", container_name,
             "-v", f"{worktree_path.absolute()}:/workspace",
+            "-v", f"{state_dir.absolute()}:/workspace/.zerg/state",  # Share state with orchestrator
             "-w", "/workspace",
             "--network", self.network,
         ]
