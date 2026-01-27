@@ -19,29 +19,28 @@ echo "========================================"
 cd "$WORKTREE"
 
 # Fix git worktree paths for container environment
-# Git worktrees have several files with absolute paths that need to be fixed:
-# 1. .git file in worktree -> points to worktree metadata
-# 2. gitdir in worktree metadata -> points back to worktree's .git
-# 3. commondir in worktree metadata -> points to main repo's .git
+# The worktree metadata is mounted from the host but uses host-specific paths.
+# We create a local copy of the metadata and fix paths without modifying the mounted original.
 if [ -n "$ZERG_GIT_WORKTREE_DIR" ] && [ -d "$ZERG_GIT_WORKTREE_DIR" ]; then
-    echo "Fixing git worktree paths..."
-    echo "  Worktree metadata: $ZERG_GIT_WORKTREE_DIR"
-    echo "  Main git dir: $ZERG_GIT_MAIN_DIR"
+    echo "Setting up git worktree for container..."
+    LOCAL_GIT_DIR="$WORKTREE/.git-local"
 
-    # 1. Fix worktree's .git file to point to mounted worktree metadata
-    echo "gitdir: $ZERG_GIT_WORKTREE_DIR" > "$WORKTREE/.git"
+    # Create a local copy of worktree metadata
+    rm -rf "$LOCAL_GIT_DIR"
+    cp -r "$ZERG_GIT_WORKTREE_DIR" "$LOCAL_GIT_DIR"
 
-    # 2. Fix gitdir to point back to worktree's .git
-    if [ -f "$ZERG_GIT_WORKTREE_DIR/gitdir" ]; then
-        echo "$WORKTREE/.git" > "$ZERG_GIT_WORKTREE_DIR/gitdir"
+    # Point worktree's .git to local copy
+    echo "gitdir: $LOCAL_GIT_DIR" > "$WORKTREE/.git"
+
+    # Fix gitdir in local copy to point to this worktree
+    echo "$WORKTREE/.git" > "$LOCAL_GIT_DIR/gitdir"
+
+    # Fix commondir to point to mounted main repo's .git
+    if [ -n "$ZERG_GIT_MAIN_DIR" ]; then
+        echo "$ZERG_GIT_MAIN_DIR" > "$LOCAL_GIT_DIR/commondir"
     fi
 
-    # 3. Fix commondir to point to mounted main repo's .git
-    if [ -n "$ZERG_GIT_MAIN_DIR" ] && [ -f "$ZERG_GIT_WORKTREE_DIR/commondir" ]; then
-        echo "$ZERG_GIT_MAIN_DIR" > "$ZERG_GIT_WORKTREE_DIR/commondir"
-    fi
-
-    echo "Git worktree paths fixed"
+    echo "Git worktree configured: LOCAL_GIT_DIR=$LOCAL_GIT_DIR"
 fi
 
 # Install ZERG dependencies if not already installed
