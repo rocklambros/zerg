@@ -9,7 +9,12 @@ from typing import Any
 from zerg.constants import GSD_DIR, STATE_DIR, LevelMergeStatus, TaskStatus, WorkerStatus
 from zerg.exceptions import StateError
 from zerg.logging import get_logger
+from typing import TYPE_CHECKING
+
 from zerg.types import ExecutionEvent, WorkerState
+
+if TYPE_CHECKING:
+    from zerg.types import FeatureMetrics
 
 logger = get_logger("state")
 
@@ -75,6 +80,7 @@ class StateManager:
             "workers": {},
             "levels": {},
             "execution_log": [],
+            "metrics": None,
             "paused": False,
             "error": None,
         }
@@ -202,8 +208,9 @@ class StateManager:
             if existing_worker is not None and existing_worker != worker_id:
                 return False
 
-            # Claim it
+            # Claim it - now also records claimed_at
             self.set_task_status(task_id, TaskStatus.CLAIMED, worker_id=worker_id)
+            self.record_task_claimed(task_id, worker_id)
             logger.info(f"Worker {worker_id} claimed task {task_id}")
             return True
 
@@ -536,6 +543,71 @@ class StateManager:
 
         self.save()
         logger.debug(f"Worker {worker_id} marked ready")
+
+    # === Metrics Methods ===
+
+    def record_task_claimed(self, task_id: str, worker_id: int) -> None:
+        """Record when a task was claimed by a worker.
+
+        Sets the claimed_at timestamp for task metrics tracking.
+
+        Args:
+            task_id: Task identifier
+            worker_id: Worker that claimed the task
+        """
+        with self._lock:
+            if "tasks" not in self._state:
+                self._state["tasks"] = {}
+
+            if task_id not in self._state["tasks"]:
+                self._state["tasks"][task_id] = {}
+
+            self._state["tasks"][task_id]["claimed_at"] = datetime.now().isoformat()
+            self._state["tasks"][task_id]["worker_id"] = worker_id
+
+        self.save()
+        logger.debug(f"Task {task_id} claimed by worker {worker_id}")
+
+    def record_task_duration(self, task_id: str, duration_ms: int) -> None:
+        """Record task execution duration.
+
+        Args:
+            task_id: Task identifier
+            duration_ms: Execution duration in milliseconds
+        """
+        with self._lock:
+            if task_id in self._state.get("tasks", {}):
+                self._state["tasks"][task_id]["duration_ms"] = duration_ms
+
+        self.save()
+        logger.debug(f"Task {task_id} duration: {duration_ms}ms")
+
+    def store_metrics(self, metrics: "FeatureMetrics") -> None:
+        """Store computed metrics to state.
+
+        Args:
+            metrics: FeatureMetrics to persist
+        """
+        with self._lock:
+            self._state["metrics"] = metrics.to_dict()
+
+        self.save()
+        logger.debug("Stored feature metrics")
+
+    def get_metrics(self) -> "FeatureMetrics | None":
+        """Retrieve stored metrics.
+
+        Returns:
+            FeatureMetrics if available, None otherwise
+        """
+        with self._lock:
+            metrics_data = self._state.get("metrics")
+            if not metrics_data:
+                return None
+
+            # Import here to avoid circular import
+            from zerg.types import FeatureMetrics
+            return FeatureMetrics.from_dict(metrics_data)
 
     def get_ready_workers(self) -> list[int]:
         """Get list of workers in ready state.
