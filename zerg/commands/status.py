@@ -12,7 +12,9 @@ from rich.table import Table
 
 from zerg.constants import TaskStatus, WorkerStatus
 from zerg.logging import get_logger
+from zerg.metrics import MetricsCollector
 from zerg.state import StateManager
+from zerg.types import FeatureMetrics, LevelMetrics, WorkerMetrics
 
 console = Console()
 logger = get_logger("status")
@@ -128,6 +130,12 @@ def show_status(state: StateManager, feature: str, level_filter: int | None) -> 
 
     # Worker status
     show_worker_status(state)
+
+    # Worker metrics (timing, throughput)
+    show_worker_metrics(state)
+
+    # Level metrics (duration, percentiles)
+    show_level_metrics(state)
 
     # Recent events
     show_recent_events(state, limit=5)
@@ -345,6 +353,7 @@ def show_json_status(state: StateManager, level_filter: int | None) -> None:
         },
         "levels": state._state.get("levels", {}),
         "events": state.get_events(limit=10),
+        "metrics": get_metrics_dict(state),
     }
 
     console.print(json.dumps(output, indent=2, default=str))
@@ -363,3 +372,141 @@ def create_progress_bar(percent: float, width: int = 20) -> str:
     filled = int(width * percent / 100)
     empty = width - filled
     return f"[green]{'█' * filled}[/green][dim]{'░' * empty}[/dim]"
+
+
+def format_duration(ms: int | None) -> str:
+    """Format duration in milliseconds to human-readable string.
+
+    Args:
+        ms: Duration in milliseconds, or None
+
+    Returns:
+        Formatted string like "1.2s", "4m30s", "2h15m", or "-"
+    """
+    if ms is None:
+        return "-"
+
+    if ms < 1000:
+        return f"{ms}ms"
+
+    seconds = ms / 1000
+
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+
+    minutes = int(seconds // 60)
+    remaining_seconds = int(seconds % 60)
+
+    if minutes < 60:
+        if remaining_seconds > 0:
+            return f"{minutes}m{remaining_seconds}s"
+        return f"{minutes}m"
+
+    hours = int(minutes // 60)
+    remaining_minutes = int(minutes % 60)
+
+    if remaining_minutes > 0:
+        return f"{hours}h{remaining_minutes}m"
+    return f"{hours}h"
+
+
+def show_worker_metrics(state: StateManager) -> None:
+    """Show worker metrics table with timing information.
+
+    Args:
+        state: State manager
+    """
+    try:
+        collector = MetricsCollector(state)
+        feature_metrics = collector.compute_feature_metrics()
+    except Exception as e:
+        logger.debug(f"Could not compute metrics: {e}")
+        return
+
+    if not feature_metrics.worker_metrics:
+        return
+
+    console.print("[bold]Worker Metrics:[/bold]")
+
+    table = Table(show_header=True)
+    table.add_column("Worker", justify="center")
+    table.add_column("Init Time", justify="right")
+    table.add_column("Tasks", justify="center")
+    table.add_column("Avg Duration", justify="right")
+    table.add_column("Uptime", justify="right")
+
+    for wm in feature_metrics.worker_metrics:
+        tasks_display = f"{wm.tasks_completed}"
+        if wm.tasks_failed > 0:
+            tasks_display += f" [red]({wm.tasks_failed} failed)[/red]"
+
+        table.add_row(
+            f"worker-{wm.worker_id}",
+            format_duration(wm.initialization_ms),
+            tasks_display,
+            format_duration(int(wm.avg_task_duration_ms)) if wm.avg_task_duration_ms > 0 else "-",
+            format_duration(wm.uptime_ms),
+        )
+
+    console.print(table)
+    console.print()
+
+
+def show_level_metrics(state: StateManager) -> None:
+    """Show level metrics table with timing and percentiles.
+
+    Args:
+        state: State manager
+    """
+    try:
+        collector = MetricsCollector(state)
+        feature_metrics = collector.compute_feature_metrics()
+    except Exception as e:
+        logger.debug(f"Could not compute metrics: {e}")
+        return
+
+    if not feature_metrics.level_metrics:
+        return
+
+    console.print("[bold]Level Metrics:[/bold]")
+
+    table = Table(show_header=True)
+    table.add_column("Level", justify="center")
+    table.add_column("Duration", justify="right")
+    table.add_column("Tasks", justify="center")
+    table.add_column("p50", justify="right")
+    table.add_column("p95", justify="right")
+
+    for lm in sorted(feature_metrics.level_metrics, key=lambda x: x.level):
+        tasks_display = f"{lm.completed_count}/{lm.task_count}"
+        if lm.failed_count > 0:
+            tasks_display += f" [red]({lm.failed_count} failed)[/red]"
+
+        table.add_row(
+            str(lm.level),
+            format_duration(lm.duration_ms),
+            tasks_display,
+            format_duration(lm.p50_duration_ms) if lm.p50_duration_ms > 0 else "-",
+            format_duration(lm.p95_duration_ms) if lm.p95_duration_ms > 0 else "-",
+        )
+
+    console.print(table)
+    console.print()
+
+
+def get_metrics_dict(state: StateManager) -> dict | None:
+    """Get metrics as a dictionary for JSON output.
+
+    Args:
+        state: State manager
+
+    Returns:
+        Metrics dictionary or None if unavailable
+    """
+    try:
+        collector = MetricsCollector(state)
+        feature_metrics = collector.compute_feature_metrics()
+        return feature_metrics.to_dict()
+    except Exception as e:
+        logger.debug(f"Could not compute metrics: {e}")
+        return None
