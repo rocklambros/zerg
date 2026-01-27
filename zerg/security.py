@@ -25,6 +25,34 @@ SECRET_PATTERNS = [
     re.compile(r"AKIA[A-Z0-9]{16}", re.IGNORECASE),  # AWS Access Key ID
 ]
 
+# Hook patterns for pre-commit checks
+# These patterns are used by both the bash hook and Python validation
+HOOK_PATTERNS = {
+    # Security patterns (BLOCK on violation)
+    "security": {
+        "aws_key": r"AKIA[0-9A-Z]{16}",
+        "github_pat": r"(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{20,}_[a-zA-Z0-9]{40,})",
+        "openai_key": r"sk-[a-zA-Z0-9]{48}",
+        "anthropic_key": r"sk-ant-[a-zA-Z0-9\-]{90,}",
+        "private_key": r"-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----",
+        "generic_secret": r"(password|secret|api_key|apikey|access_token|auth_token)\s*[=:]\s*['\"][^'\"]{8,}['\"]",
+        "shell_injection": r"(shell\s*=\s*True|os\.system\s*\(|os\.popen\s*\()",
+        "code_injection": r"^[^#]*\b(eval|exec)\s*\(",
+        "pickle_load": r"pickle\.(load|loads)\s*\(",
+    },
+    # Quality patterns (WARN on violation)
+    "quality": {
+        "debugger": r"(breakpoint\s*\(\)|pdb\.set_trace\s*\(\)|import\s+i?pdb)",
+        "merge_conflict": r"^(<{7}|={7}|>{7})",
+        "print_stmt": r"^[^#]*\bprint\s*\(",
+    },
+    # ZERG-specific patterns
+    "zerg": {
+        "branch_name": r"^zerg/[a-z0-9-]+/worker-[0-9]+$",
+        "localhost": r"(localhost|127\.0\.0\.1|0\.0\.0\.0):[0-9]+",
+    },
+}
+
 # Sensitive file names to warn about
 SENSITIVE_FILES = [
     ".env",

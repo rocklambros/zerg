@@ -32,7 +32,8 @@ class TestTestCommand:
     def test_test_coverage_flag(self) -> None:
         """Test test --coverage flag works."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["test", "--coverage"])
+        # Use --dry-run to avoid actually running tests with coverage
+        result = runner.invoke(cli, ["test", "--coverage", "--dry-run"])
         assert "Invalid value" not in result.output
 
     def test_test_watch_flag(self) -> None:
@@ -45,7 +46,8 @@ class TestTestCommand:
     def test_test_parallel_option(self) -> None:
         """Test test --parallel option works."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["test", "--parallel", "8"])
+        # Use --dry-run to avoid actually running tests
+        result = runner.invoke(cli, ["test", "--parallel", "8", "--dry-run"])
         assert "Invalid value" not in result.output
 
     def test_test_framework_option(self) -> None:
@@ -53,7 +55,8 @@ class TestTestCommand:
         runner = CliRunner()
 
         for framework in ["pytest", "jest", "cargo", "go", "mocha", "vitest"]:
-            result = runner.invoke(cli, ["test", "--framework", framework])
+            # Use --dry-run to avoid actually running tests
+            result = runner.invoke(cli, ["test", "--framework", framework, "--dry-run"])
             assert "Invalid value" not in result.output
 
     def test_test_invalid_framework_rejected(self) -> None:
@@ -67,7 +70,8 @@ class TestTestCommand:
     def test_test_path_option(self) -> None:
         """Test test --path option works."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["test", "--path", "tests/"])
+        # Use --dry-run to avoid actually running tests
+        result = runner.invoke(cli, ["test", "--path", "tests/", "--dry-run"])
         assert "Invalid value" not in result.output
 
 
@@ -77,8 +81,9 @@ class TestTestOptions:
     def test_test_combined_options(self) -> None:
         """Test test with combined options."""
         runner = CliRunner()
+        # Use --dry-run to avoid actually running tests
         result = runner.invoke(
-            cli, ["test", "--coverage", "--parallel", "4", "--framework", "pytest"]
+            cli, ["test", "--coverage", "--parallel", "4", "--framework", "pytest", "--dry-run"]
         )
         assert "Invalid value" not in result.output
 

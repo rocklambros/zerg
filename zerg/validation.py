@@ -100,7 +100,7 @@ def validate_task_graph(data: dict[str, Any]) -> tuple[bool, list[str]]:
         return False, errors
 
     tasks = data.get("tasks", [])
-    if not isinstance(tasks, list) or len(tasks) == 0:
+    if not isinstance(tasks, list) or not tasks:
         errors.append("Tasks must be a non-empty list")
         return False, errors
 
@@ -124,7 +124,7 @@ def validate_task_graph(data: dict[str, Any]) -> tuple[bool, list[str]]:
         level_errors = _validate_levels(data["levels"], task_ids)
         errors.extend(level_errors)
 
-    return len(errors) == 0, errors
+    return not errors, errors
 
 
 def _validate_task(task: dict[str, Any], index: int, existing_ids: set[str]) -> list[str]:
@@ -249,7 +249,7 @@ def validate_file_ownership(task_graph: dict[str, Any]) -> tuple[bool, list[str]
             else:
                 file_owners[file_path] = task_id
 
-    return len(errors) == 0, errors
+    return not errors, errors
 
 
 def validate_dependencies(task_graph: dict[str, Any]) -> tuple[bool, list[str]]:
@@ -309,7 +309,7 @@ def validate_dependencies(task_graph: dict[str, Any]) -> tuple[bool, list[str]]:
         if task_id not in visited:
             has_cycle(task_id)
 
-    return len(errors) == 0, errors
+    return not errors, errors
 
 
 def load_and_validate_task_graph(path: str | Path) -> dict[str, Any]:

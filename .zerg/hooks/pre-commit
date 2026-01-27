@@ -1,6 +1,11 @@
 #!/bin/bash
 # ZERG Pre-commit Hook
 # Validates commits before they are created
+#
+# Categories:
+# - Security Checks (BLOCK on violation)
+# - Quality Checks (WARN on violation)
+# - ZERG-Specific Checks (WARN on violation)
 
 set -e
 
@@ -8,83 +13,273 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo "Running ZERG pre-commit checks..."
+echo ""
 
-# Track if any check failed
-FAILED=0
+# Track failures and warnings
+BLOCKED=0
+WARNINGS=0
+
+# Get staged files (excluding deleted files)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+STAGED_PYTHON=$(echo "$STAGED_FILES" | grep -E '\.py$' || true)
+
+# =============================================================================
+# SECURITY CHECKS (Block on violation)
+# =============================================================================
+echo -e "${BLUE}Security Checks${NC}"
 
 # 1. Non-ASCII filename check
-echo -n "  Checking for non-ASCII filenames... "
+echo -n "  Non-ASCII filenames... "
 if git diff --cached --name-only --diff-filter=A -z | LC_ALL=C tr -d '[ -~]\0' | read -r -n1; then
-    echo -e "${RED}FAILED${NC}"
-    echo "Error: Attempted to add file with non-ASCII filename."
-    echo "This can cause problems on different platforms."
-    FAILED=1
+    echo -e "${RED}BLOCKED${NC}"
+    echo "    Error: Non-ASCII filename detected. This can cause problems on different platforms."
+    BLOCKED=1
 else
     echo -e "${GREEN}OK${NC}"
 fi
 
-# 2. Secrets check - look for common secret patterns
-echo -n "  Checking for potential secrets... "
-SECRETS_PATTERN='(password|secret|api_key|apikey|access_token|auth_token|private_key|credentials)[[:space:]]*[=:][[:space:]]*["\047][^"\047]{8,}'
+# 2. Advanced secrets detection
+echo -n "  Secret patterns... "
+SECRETS_FOUND=0
 
-if git diff --cached --diff-filter=ACMR -U0 | grep -iE "$SECRETS_PATTERN" > /dev/null 2>&1; then
-    echo -e "${RED}FAILED${NC}"
-    echo "Error: Potential secret detected in staged changes."
-    echo "Please review your changes and remove any sensitive data."
-    FAILED=1
-else
+# AWS Access Key
+if git diff --cached --diff-filter=ACMR -U0 | grep -E 'AKIA[0-9A-Z]{16}' > /dev/null 2>&1; then
+    echo -e "${RED}BLOCKED${NC}"
+    echo "    Error: AWS Access Key pattern detected (AKIA...)"
+    SECRETS_FOUND=1
+fi
+
+# GitHub PAT (classic and fine-grained)
+if git diff --cached --diff-filter=ACMR -U0 | grep -E '(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{20,}_[a-zA-Z0-9]{40,})' > /dev/null 2>&1; then
+    if [ $SECRETS_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+    echo "    Error: GitHub Personal Access Token detected"
+    SECRETS_FOUND=1
+fi
+
+# OpenAI API Key
+if git diff --cached --diff-filter=ACMR -U0 | grep -E 'sk-[a-zA-Z0-9]{48}' > /dev/null 2>&1; then
+    if [ $SECRETS_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+    echo "    Error: OpenAI API Key pattern detected (sk-...)"
+    SECRETS_FOUND=1
+fi
+
+# Anthropic API Key
+if git diff --cached --diff-filter=ACMR -U0 | grep -E 'sk-ant-[a-zA-Z0-9-]{90,}' > /dev/null 2>&1; then
+    if [ $SECRETS_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+    echo "    Error: Anthropic API Key pattern detected (sk-ant-...)"
+    SECRETS_FOUND=1
+fi
+
+# Private Key Headers (use -- to prevent grep treating pattern as option)
+if git diff --cached --diff-filter=ACMR -U0 | grep -E -- '-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----' > /dev/null 2>&1; then
+    if [ $SECRETS_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+    echo "    Error: Private key header detected"
+    SECRETS_FOUND=1
+fi
+
+# Generic secrets (password=, secret=, api_key=)
+if git diff --cached --diff-filter=ACMR -U0 | grep -iE '(password|secret|api_key|apikey|access_token|auth_token)[[:space:]]*[=:][[:space:]]*["\047][^"\047]{8,}' > /dev/null 2>&1; then
+    if [ $SECRETS_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+    echo "    Error: Generic secret pattern detected (password/secret/api_key assignment)"
+    SECRETS_FOUND=1
+fi
+
+if [ $SECRETS_FOUND -eq 1 ]; then
+    BLOCKED=1
+elif [ $SECRETS_FOUND -eq 0 ]; then
     echo -e "${GREEN}OK${NC}"
 fi
 
-# 3. Check for common sensitive files
-echo -n "  Checking for sensitive files... "
-SENSITIVE_FILES=".env .env.local .env.production credentials.json service-account.json id_rsa"
-STAGED_FILES=$(git diff --cached --name-only)
+# 3. Sensitive files check
+echo -n "  Sensitive files... "
+SENSITIVE_FILES=".env .env.local .env.production .env.development credentials.json service-account.json id_rsa id_dsa id_ecdsa id_ed25519 .npmrc .pypirc"
+SENSITIVE_FOUND=0
 
 for file in $SENSITIVE_FILES; do
     if echo "$STAGED_FILES" | grep -qE "(^|/)$file$"; then
-        echo -e "${RED}FAILED${NC}"
-        echo "Error: Attempting to commit sensitive file: $file"
-        FAILED=1
-        break
+        if [ $SENSITIVE_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+        echo "    Error: Sensitive file staged: $file"
+        SENSITIVE_FOUND=1
     fi
 done
 
-if [ $FAILED -eq 0 ]; then
+if [ $SENSITIVE_FOUND -eq 1 ]; then
+    BLOCKED=1
+else
     echo -e "${GREEN}OK${NC}"
 fi
 
-# 4. Commit message validation (if message file exists)
-if [ -f "$1" ]; then
-    echo -n "  Validating commit message... "
-    COMMIT_MSG=$(head -n1 "$1")
+# 4. Shell injection detection (Python files only)
+echo -n "  Shell injection patterns... "
+SHELL_FOUND=0
 
-    # Check minimum length
-    if [ ${#COMMIT_MSG} -lt 10 ]; then
-        echo -e "${RED}FAILED${NC}"
-        echo "Error: Commit message too short (minimum 10 characters)."
-        FAILED=1
-    # Check for conventional commit prefix
-    elif ! echo "$COMMIT_MSG" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert|merge|wip)(\(.+\))?:|^Merge "; then
-        echo -e "${YELLOW}WARNING${NC}"
-        echo "Warning: Commit message doesn't follow conventional commit format."
-        echo "Consider using: feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert"
-    else
-        echo -e "${GREEN}OK${NC}"
-    fi
+if [ -n "$STAGED_PYTHON" ]; then
+    for file in $STAGED_PYTHON; do
+        # Skip test files
+        if echo "$file" | grep -qE '^tests/|test_|_test\.py$'; then
+            continue
+        fi
+
+        # Check for shell=True, os.system, os.popen
+        if git diff --cached -U0 -- "$file" | grep -E '(shell\s*=\s*True|os\.system\s*\(|os\.popen\s*\()' > /dev/null 2>&1; then
+            if [ $SHELL_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+            echo "    Error: Shell injection risk in $file (shell=True, os.system, or os.popen)"
+            SHELL_FOUND=1
+        fi
+    done
 fi
 
-# 5. Check for large files
-echo -n "  Checking for large files... "
-MAX_SIZE=5000000  # 5MB
+if [ $SHELL_FOUND -eq 1 ]; then
+    BLOCKED=1
+elif [ $SHELL_FOUND -eq 0 ]; then
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 5. Code injection detection (eval/exec)
+echo -n "  Code injection patterns... "
+CODE_INJ_FOUND=0
+
+if [ -n "$STAGED_PYTHON" ]; then
+    for file in $STAGED_PYTHON; do
+        # Skip test files and fixtures
+        if echo "$file" | grep -qE '^tests/|test_|_test\.py$|fixtures/'; then
+            continue
+        fi
+
+        # Check for eval/exec not in comments
+        if git diff --cached -U0 -- "$file" | grep -E '^\+[^#]*\b(eval|exec)\s*\(' > /dev/null 2>&1; then
+            if [ $CODE_INJ_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+            echo "    Error: Code injection risk in $file (eval/exec call)"
+            CODE_INJ_FOUND=1
+        fi
+    done
+fi
+
+if [ $CODE_INJ_FOUND -eq 1 ]; then
+    BLOCKED=1
+elif [ $CODE_INJ_FOUND -eq 0 ]; then
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 6. Unsafe deserialization (pickle.load/loads)
+echo -n "  Unsafe deserialization... "
+PICKLE_FOUND=0
+
+if [ -n "$STAGED_PYTHON" ]; then
+    for file in $STAGED_PYTHON; do
+        # Skip test files
+        if echo "$file" | grep -qE '^tests/|test_|_test\.py$|fixtures/'; then
+            continue
+        fi
+
+        if git diff --cached -U0 -- "$file" | grep -E 'pickle\.(load|loads)\s*\(' > /dev/null 2>&1; then
+            if [ $PICKLE_FOUND -eq 0 ]; then echo -e "${RED}BLOCKED${NC}"; fi
+            echo "    Error: Unsafe deserialization in $file (pickle.load/loads)"
+            PICKLE_FOUND=1
+        fi
+    done
+fi
+
+if [ $PICKLE_FOUND -eq 1 ]; then
+    BLOCKED=1
+elif [ $PICKLE_FOUND -eq 0 ]; then
+    echo -e "${GREEN}OK${NC}"
+fi
+
+echo ""
+
+# =============================================================================
+# QUALITY CHECKS (Warn on violation)
+# =============================================================================
+echo -e "${BLUE}Quality Checks${NC}"
+
+# 7. Ruff lint (staged Python files only)
+echo -n "  Ruff lint... "
+if command -v ruff &> /dev/null && [ -n "$STAGED_PYTHON" ]; then
+    # Only check staged Python files (not test fixtures)
+    RUFF_FILES=""
+    for file in $STAGED_PYTHON; do
+        if echo "$file" | grep -qE 'fixtures/hook_samples/'; then
+            continue
+        fi
+        if [ -f "$file" ]; then
+            RUFF_FILES="$RUFF_FILES $file"
+        fi
+    done
+
+    if [ -n "$RUFF_FILES" ]; then
+        # shellcheck disable=SC2086
+        if ! ruff check --quiet $RUFF_FILES 2>/dev/null; then
+            echo -e "${YELLOW}WARNING${NC}"
+            echo "    Warning: Ruff found issues. Run 'ruff check' for details."
+            WARNINGS=$((WARNINGS + 1))
+        else
+            echo -e "${GREEN}OK${NC}"
+        fi
+    else
+        echo -e "${GREEN}OK${NC} (no eligible files)"
+    fi
+else
+    echo -e "${GREEN}SKIP${NC} (ruff not installed or no Python files)"
+fi
+
+# 8. Debugger statement detection
+echo -n "  Debugger statements... "
+DEBUGGER_FOUND=0
+
+if [ -n "$STAGED_PYTHON" ]; then
+    for file in $STAGED_PYTHON; do
+        # Skip test files
+        if echo "$file" | grep -qE '^tests/|test_|_test\.py$|fixtures/'; then
+            continue
+        fi
+
+        if git diff --cached -U0 -- "$file" | grep -E '(breakpoint\s*\(\)|pdb\.set_trace\s*\(\)|import\s+i?pdb)' > /dev/null 2>&1; then
+            if [ $DEBUGGER_FOUND -eq 0 ]; then echo -e "${YELLOW}WARNING${NC}"; fi
+            echo "    Warning: Debugger statement in $file"
+            DEBUGGER_FOUND=1
+        fi
+    done
+fi
+
+if [ $DEBUGGER_FOUND -eq 1 ]; then
+    WARNINGS=$((WARNINGS + 1))
+elif [ $DEBUGGER_FOUND -eq 0 ]; then
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 9. Merge conflict marker detection
+echo -n "  Merge conflict markers... "
+MERGE_FOUND=0
+
+for file in $STAGED_FILES; do
+    if [ -f "$file" ]; then
+        if grep -qE '^(<{7}|={7}|>{7})' "$file" 2>/dev/null; then
+            if [ $MERGE_FOUND -eq 0 ]; then echo -e "${YELLOW}WARNING${NC}"; fi
+            echo "    Warning: Merge conflict marker in $file"
+            MERGE_FOUND=1
+        fi
+    fi
+done
+
+if [ $MERGE_FOUND -eq 1 ]; then
+    WARNINGS=$((WARNINGS + 1))
+elif [ $MERGE_FOUND -eq 0 ]; then
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 10. Large file check
+echo -n "  Large files (>5MB)... "
+MAX_SIZE=5000000
 
 LARGE_FILES=""
-for file in $(git diff --cached --name-only --diff-filter=ACM); do
+for file in $STAGED_FILES; do
     if [ -f "$file" ]; then
-        SIZE=$(wc -c < "$file")
+        SIZE=$(wc -c < "$file" | tr -d ' ')
         if [ "$SIZE" -gt "$MAX_SIZE" ]; then
             LARGE_FILES="$LARGE_FILES $file"
         fi
@@ -93,18 +288,102 @@ done
 
 if [ -n "$LARGE_FILES" ]; then
     echo -e "${YELLOW}WARNING${NC}"
-    echo "Warning: Large files detected (>5MB):$LARGE_FILES"
-    echo "Consider using Git LFS for large files."
+    echo "    Warning: Large files detected (>5MB):$LARGE_FILES"
+    echo "    Consider using Git LFS for large files."
+    WARNINGS=$((WARNINGS + 1))
 else
     echo -e "${GREEN}OK${NC}"
 fi
 
-# Exit with failure if any check failed
-if [ $FAILED -ne 0 ]; then
-    echo ""
-    echo -e "${RED}Pre-commit checks failed. Commit aborted.${NC}"
+echo ""
+
+# =============================================================================
+# ZERG-SPECIFIC CHECKS (Warn on violation)
+# =============================================================================
+echo -e "${BLUE}ZERG Checks${NC}"
+
+# 11. ZERG branch naming (only on zerg/* branches)
+echo -n "  Branch naming... "
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+if echo "$CURRENT_BRANCH" | grep -q '^zerg/'; then
+    # On a ZERG branch - validate naming convention
+    if echo "$CURRENT_BRANCH" | grep -qE '^zerg/[a-z0-9-]+/worker-[0-9]+$'; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${YELLOW}WARNING${NC}"
+        echo "    Warning: ZERG branch should follow pattern: zerg/{feature}/worker-{N}"
+        echo "    Current: $CURRENT_BRANCH"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+else
+    echo -e "${GREEN}OK${NC} (not a ZERG worker branch)"
+fi
+
+# 12. Print statement detection (zerg/ directory only)
+echo -n "  Print statements... "
+PRINT_FOUND=0
+
+ZERG_PYTHON=$(echo "$STAGED_PYTHON" | grep -E '^zerg/' || true)
+
+if [ -n "$ZERG_PYTHON" ]; then
+    for file in $ZERG_PYTHON; do
+        # Check for print statements not in comments
+        if git diff --cached -U0 -- "$file" | grep -E '^\+[^#]*\bprint\s*\(' > /dev/null 2>&1; then
+            if [ $PRINT_FOUND -eq 0 ]; then echo -e "${YELLOW}WARNING${NC}"; fi
+            echo "    Warning: Print statement in $file (use logging instead)"
+            PRINT_FOUND=1
+        fi
+    done
+fi
+
+if [ $PRINT_FOUND -eq 1 ]; then
+    WARNINGS=$((WARNINGS + 1))
+elif [ $PRINT_FOUND -eq 0 ]; then
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 13. Hardcoded localhost/IP (non-test files)
+echo -n "  Hardcoded localhost... "
+LOCALHOST_FOUND=0
+
+if [ -n "$STAGED_PYTHON" ]; then
+    for file in $STAGED_PYTHON; do
+        # Skip test files and fixtures
+        if echo "$file" | grep -qE '^tests/|test_|_test\.py$|fixtures/|conftest\.py'; then
+            continue
+        fi
+
+        if git diff --cached -U0 -- "$file" | grep -E '(localhost|127\.0\.0\.1|0\.0\.0\.0):[0-9]+' > /dev/null 2>&1; then
+            if [ $LOCALHOST_FOUND -eq 0 ]; then echo -e "${YELLOW}WARNING${NC}"; fi
+            echo "    Warning: Hardcoded localhost/IP in $file (use config instead)"
+            LOCALHOST_FOUND=1
+        fi
+    done
+fi
+
+if [ $LOCALHOST_FOUND -eq 1 ]; then
+    WARNINGS=$((WARNINGS + 1))
+elif [ $LOCALHOST_FOUND -eq 0 ]; then
+    echo -e "${GREEN}OK${NC}"
+fi
+
+echo ""
+
+# =============================================================================
+# FINAL RESULT
+# =============================================================================
+if [ $BLOCKED -ne 0 ]; then
+    echo -e "${RED}Pre-commit checks FAILED. Commit blocked.${NC}"
+    echo "Fix the security issues above before committing."
     exit 1
 fi
 
-echo -e "${GREEN}All pre-commit checks passed.${NC}"
+if [ $WARNINGS -ne 0 ]; then
+    echo -e "${YELLOW}Pre-commit checks passed with $WARNINGS warning(s).${NC}"
+    echo "Consider addressing the warnings above."
+else
+    echo -e "${GREEN}All pre-commit checks passed.${NC}"
+fi
+
 exit 0

@@ -36,7 +36,7 @@ class TestLevelController:
         level_1_tasks = controller.get_tasks_for_level(1)
 
         assert isinstance(level_1_tasks, list)
-        assert len(level_1_tasks) > 0
+        assert level_1_tasks
 
     def test_start_level(self, sample_task_graph) -> None:
         """Test starting a level."""

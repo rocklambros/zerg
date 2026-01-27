@@ -87,7 +87,7 @@ All Level 1 tasks run in parallel. When they're ALL done, ZERG merges their bran
 
 ### What Happens Under the Hood
 
-When you run `zerg rush`, here's what actually happens:
+When you run `/zerg:rush`, here's what actually happens:
 
 1. **Orchestrator starts**: The main ZERG process loads your task graph
 2. **Worktrees created**: Git worktrees give each worker an isolated copy of the codebase
@@ -139,46 +139,36 @@ Let's make sure everything is working:
 
 ```bash
 # Check ZERG is installed and see its version
-zerg --version
+/zerg:version
 
 # View all available commands
-zerg --help
+/zerg:help
 
 # Verify your API key is set (you should see your key, not empty output)
 echo $ANTHROPIC_API_KEY
 ```
 
-**Expected output from `zerg --help`:**
+**Expected output from `/zerg:help`:**
 ```
-Usage: zerg [OPTIONS] COMMAND [ARGS]...
-
-  ZERG - Parallel Claude Code execution system.
-
-Options:
-  --version      Show the version and exit.
-  -v, --verbose  Enable verbose output
-  -q, --quiet    Suppress non-essential output
-  --help         Show this message and exit.
-
-Commands:
-  analyze          Static analysis and quality metrics
-  build            Build with error recovery
-  cleanup          Remove ZERG artifacts
-  design           Generate architecture and task graph
-  git              Git operations and workflow
-  init             Initialize ZERG for a project
-  logs             Stream worker logs
-  merge            Merge level branches
-  plan             Capture feature requirements
-  refactor         Automated code improvement
-  retry            Retry failed tasks
-  review           Two-stage code review
-  rush             Launch parallel workers
-  security-rules   Security rules management
-  status           Show execution status
-  stop             Stop workers
-  test             Run tests with coverage
-  troubleshoot     Debug with root cause analysis
+Available ZERG commands:
+  /zerg:analyze      Static analysis and quality metrics
+  /zerg:build        Build with error recovery
+  /zerg:cleanup      Remove ZERG artifacts
+  /zerg:design       Generate architecture and task graph
+  /zerg:git          Git operations and workflow
+  /zerg:init         Initialize ZERG for a project
+  /zerg:logs         Stream worker logs
+  /zerg:merge        Merge level branches
+  /zerg:plan         Capture feature requirements
+  /zerg:refactor     Automated code improvement
+  /zerg:retry        Retry failed tasks
+  /zerg:review       Two-stage code review
+  /zerg:rush         Launch parallel workers
+  /zerg:security     Security rules management
+  /zerg:status       Show execution status
+  /zerg:stop         Stop workers
+  /zerg:test         Run tests with coverage
+  /zerg:troubleshoot Debug with root cause analysis
 ```
 
 If you see this output, you're ready to go.
@@ -204,7 +194,7 @@ mkdir my-api && cd my-api
 
 # Initialize ZERG
 # Because the directory is empty, Inception Mode activates automatically
-zerg init --security standard
+/zerg:init --security standard
 ```
 
 **What's happening behind the scenes:**
@@ -235,7 +225,7 @@ Now let's plan a feature. Planning is crucial because it creates the specificati
 
 ```bash
 # Start planning with Socratic discovery mode
-zerg plan user-auth --socratic
+/zerg:plan user-auth --socratic
 ```
 
 **What's happening:**
@@ -263,7 +253,7 @@ After the session, ZERG creates `.gsd/specs/user-auth/requirements.md` containin
 With requirements captured, generate the technical design:
 
 ```bash
-zerg design --feature user-auth
+/zerg:design --feature user-auth
 ```
 
 **What's happening:**
@@ -314,10 +304,10 @@ Time to build. This is where the magic happens:
 
 ```bash
 # Preview what will happen (no actual execution)
-zerg rush --dry-run
+/zerg:rush --dry-run
 
 # When ready, launch for real
-zerg rush --workers 5
+/zerg:rush --workers 5
 ```
 
 **What's happening:**
@@ -353,13 +343,13 @@ While workers are running:
 
 ```bash
 # See current status (one-time snapshot)
-zerg status
+/zerg:status
 
 # Watch continuously with live updates
-zerg status --watch
+/zerg:status --watch
 
 # View worker logs in real-time
-zerg logs --follow
+/zerg:logs --follow
 ```
 
 **What the status shows:**
@@ -375,13 +365,13 @@ If a task fails:
 
 ```bash
 # See what went wrong
-zerg logs 1 --level error  # Logs from worker 1, errors only
+/zerg:logs 1 --level error  # Logs from worker 1, errors only
 
 # Retry the failed task
-zerg retry AUTH-L2-003
+/zerg:retry AUTH-L2-003
 
 # Or retry all failed tasks
-zerg retry --all-failed
+/zerg:retry --all-failed
 ```
 
 **Why tasks fail:**
@@ -390,14 +380,14 @@ zerg retry --all-failed
 - Worker hits context limit (checkpoints and exits with code 2)
 - Actual implementation error
 
-For context limit issues, workers automatically checkpoint their progress. Just run `zerg rush --resume` to continue.
+For context limit issues, workers automatically checkpoint their progress. Just run `/zerg:rush --resume` to continue.
 
 ### Step 7: Cleanup
 
 When everything's done:
 
 ```bash
-zerg cleanup --feature user-auth
+/zerg:cleanup --feature user-auth
 ```
 
 **What gets cleaned:**
@@ -425,7 +415,7 @@ Initialization prepares your project for ZERG. It handles two scenarios:
 
 **Inception Mode (Empty Directory)**
 
-When you run `zerg init` in an empty directory, ZERG becomes a project bootstrapper:
+When you run `/zerg:init` in an empty directory, ZERG becomes a project bootstrapper:
 
 1. **Gathers requirements**: Asks about project name, description, target platforms
 2. **Recommends technology**: Suggests language, framework, package manager based on your needs
@@ -656,7 +646,7 @@ Now let's cover every command with all its options. For each command, I'll expla
 **When to use:** Once per project, at the very beginning.
 
 ```bash
-zerg init [OPTIONS]
+/zerg:init [OPTIONS]
 ```
 
 **Options Explained:**
@@ -682,19 +672,19 @@ zerg init [OPTIONS]
 
 ```bash
 # Basic initialization for most projects
-zerg init
+/zerg:init
 
 # Strict security for production codebase
-zerg init --security strict
+/zerg:init --security strict
 
 # Fast init without security rules (offline mode)
-zerg init --no-security-rules
+/zerg:init --no-security-rules
 
 # Reconfigure an existing ZERG project
-zerg init --force
+/zerg:init --force
 
 # Prepare for container mode immediately
-zerg init --with-containers
+/zerg:init --with-containers
 ```
 
 **What Gets Created:**
@@ -725,7 +715,7 @@ project/
 **When to use:** At the start of each new feature.
 
 ```bash
-zerg plan [FEATURE] [OPTIONS]
+/zerg:plan [FEATURE] [OPTIONS]
 ```
 
 **Arguments:**
@@ -777,16 +767,16 @@ These questions plan the HOW:
 
 ```bash
 # Simple feature with minimal template
-zerg plan caching --template minimal
+/zerg:plan caching --template minimal
 
 # Complex feature with extended Socratic discovery
-zerg plan user-authentication --socratic --rounds 5
+/zerg:plan user-authentication --socratic --rounds 5
 
 # Import requirements from GitHub issue
-zerg plan --from-issue https://github.com/org/repo/issues/42
+/zerg:plan --from-issue https://github.com/org/repo/issues/42
 
 # Non-interactive mode (for CI/scripts)
-zerg plan api-v2 --no-interactive --template default
+/zerg:plan api-v2 --no-interactive --template default
 ```
 
 **What Gets Created:**
@@ -809,7 +799,7 @@ zerg plan api-v2 --no-interactive --template default
 **When to use:** After requirements are approved and before rushing.
 
 ```bash
-zerg design [OPTIONS]
+/zerg:design [OPTIONS]
 ```
 
 **Options Explained:**
@@ -833,16 +823,16 @@ Task size affects parallelization:
 
 ```bash
 # Design current feature (auto-detected from .current-feature)
-zerg design
+/zerg:design
 
 # Design specific feature
-zerg design --feature payment-system
+/zerg:design --feature payment-system
 
 # Validate task graph after manual edits
-zerg design --validate-only
+/zerg:design --validate-only
 
 # Create smaller, more granular tasks
-zerg design --max-task-minutes 15 --min-task-minutes 5
+/zerg:design --max-task-minutes 15 --min-task-minutes 5
 ```
 
 **What Gets Created:**
@@ -863,7 +853,7 @@ zerg design --max-task-minutes 15 --min-task-minutes 5
 **When to use:** After design is complete and you're ready to build.
 
 ```bash
-zerg rush [OPTIONS]
+/zerg:rush [OPTIONS]
 ```
 
 **Options Explained:**
@@ -900,22 +890,22 @@ zerg rush [OPTIONS]
 
 ```bash
 # Preview execution plan first (always recommended)
-zerg rush --dry-run
+/zerg:rush --dry-run
 
 # Start with 5 workers (default)
-zerg rush
+/zerg:rush
 
 # Resume after interruption
-zerg rush --resume
+/zerg:rush --resume
 
 # Force subprocess mode (no Docker)
-zerg rush --mode subprocess --workers 3
+/zerg:rush --mode subprocess --workers 3
 
 # Skip to level 3 (levels 1-2 already done)
-zerg rush --level 3 --resume
+/zerg:rush --level 3 --resume
 
 # Extended timeout for large feature
-zerg rush --timeout 7200  # 2 hours
+/zerg:rush --timeout 7200  # 2 hours
 ```
 
 **What Gets Created During Rush:**
@@ -941,7 +931,7 @@ zerg rush --timeout 7200  # 2 hours
 **Purpose:** Display current execution status and progress. Your window into what workers are doing.
 
 ```bash
-zerg status [OPTIONS]
+/zerg:status [OPTIONS]
 ```
 
 **Options Explained:**
@@ -990,16 +980,16 @@ Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
 
 ```bash
 # Quick status check
-zerg status
+/zerg:status
 
 # Watch mode during active rush
-zerg status --watch
+/zerg:status --watch
 
 # Faster refresh rate
-zerg status --watch --interval 2
+/zerg:status --watch --interval 2
 
 # JSON for scripting
-zerg status --json
+/zerg:status --json
 ```
 
 ---
@@ -1009,7 +999,7 @@ zerg status --json
 **Purpose:** View worker and orchestrator logs. Essential for understanding what's happening and debugging issues.
 
 ```bash
-zerg logs [WORKER_ID] [OPTIONS]
+/zerg:logs [WORKER_ID] [OPTIONS]
 ```
 
 **Arguments:**
@@ -1041,16 +1031,16 @@ zerg logs [WORKER_ID] [OPTIONS]
 
 ```bash
 # View recent logs from all workers
-zerg logs
+/zerg:logs
 
 # Stream logs in real-time
-zerg logs --follow
+/zerg:logs --follow
 
 # Worker 1's errors only
-zerg logs 1 --level error
+/zerg:logs 1 --level error
 
 # Last 200 lines with debug detail
-zerg logs --tail 200 --level debug
+/zerg:logs --tail 200 --level debug
 ```
 
 ---
@@ -1060,7 +1050,7 @@ zerg logs --tail 200 --level debug
 **Purpose:** Stop worker execution, either gracefully (with checkpoint) or forcefully.
 
 ```bash
-zerg stop [OPTIONS]
+/zerg:stop [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1085,13 +1075,13 @@ zerg stop [OPTIONS]
 
 ```bash
 # Graceful stop all workers
-zerg stop
+/zerg:stop
 
 # Stop one problematic worker
-zerg stop --worker 3
+/zerg:stop --worker 3
 
 # Force stop when graceful hangs
-zerg stop --force
+/zerg:stop --force
 ```
 
 ---
@@ -1105,7 +1095,7 @@ zerg stop --force
 **Purpose:** Retry failed or blocked tasks. ZERG tracks retry counts to prevent infinite loops.
 
 ```bash
-zerg retry [TASK_IDS...] [OPTIONS]
+/zerg:retry [TASK_IDS...] [OPTIONS]
 ```
 
 **Arguments:**
@@ -1140,19 +1130,19 @@ Use `--force` or `--reset` sparingly, preferably after understanding why the tas
 
 ```bash
 # Retry specific task
-zerg retry AUTH-L2-001
+/zerg:retry AUTH-L2-001
 
 # Retry all failed tasks
-zerg retry --all-failed
+/zerg:retry --all-failed
 
 # Preview what would retry
-zerg retry --all-failed --dry-run
+/zerg:retry --all-failed --dry-run
 
 # Force retry past limit (use sparingly)
-zerg retry AUTH-L2-001 --force
+/zerg:retry AUTH-L2-001 --force
 
 # Reset all counters and retry
-zerg retry --all-failed --reset
+/zerg:retry --all-failed --reset
 ```
 
 ---
@@ -1162,7 +1152,7 @@ zerg retry --all-failed --reset
 **Purpose:** Merge worker branches after level completion. Usually automatic, but you can trigger manually.
 
 ```bash
-zerg merge [OPTIONS]
+/zerg:merge [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1198,16 +1188,16 @@ Gates catch these before they hit main.
 
 ```bash
 # Preview merge plan
-zerg merge --dry-run
+/zerg:merge --dry-run
 
 # Merge specific level
-zerg merge --level 2
+/zerg:merge --level 2
 
 # Abort failed merge
-zerg merge --abort
+/zerg:merge --abort
 
 # Skip gates for debugging (not for production)
-zerg merge --skip-gates
+/zerg:merge --skip-gates
 ```
 
 ---
@@ -1217,7 +1207,7 @@ zerg merge --skip-gates
 **Purpose:** Remove ZERG artifacts after feature completion. Preserves your code, removes infrastructure.
 
 ```bash
-zerg cleanup [OPTIONS]
+/zerg:cleanup [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1246,16 +1236,16 @@ zerg cleanup [OPTIONS]
 
 ```bash
 # Clean up completed feature
-zerg cleanup --feature user-auth
+/zerg:cleanup --feature user-auth
 
 # Preview cleanup first
-zerg cleanup --feature user-auth --dry-run
+/zerg:cleanup --feature user-auth --dry-run
 
 # Keep logs for post-mortem
-zerg cleanup --feature user-auth --keep-logs
+/zerg:cleanup --feature user-auth --keep-logs
 
 # Clean everything
-zerg cleanup --all
+/zerg:cleanup --all
 ```
 
 ---
@@ -1269,7 +1259,7 @@ zerg cleanup --all
 **Purpose:** Run tests with coverage analysis. Auto-detects your test framework.
 
 ```bash
-zerg test [OPTIONS]
+/zerg:test [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1298,19 +1288,19 @@ zerg test [OPTIONS]
 
 ```bash
 # Run all tests
-zerg test
+/zerg:test
 
 # With coverage report
-zerg test --coverage
+/zerg:test --coverage
 
 # Watch mode for TDD
-zerg test --watch
+/zerg:test --watch
 
 # Parallel for speed
-zerg test --parallel 4
+/zerg:test --parallel 4
 
 # Specific test path
-zerg test --path tests/unit/
+/zerg:test --path tests/unit/
 ```
 
 ---
@@ -1320,7 +1310,7 @@ zerg test --path tests/unit/
 **Purpose:** Build orchestration with intelligent error recovery and retry logic.
 
 ```bash
-zerg build [OPTIONS]
+/zerg:build [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1339,16 +1329,16 @@ zerg build [OPTIONS]
 
 ```bash
 # Development build
-zerg build
+/zerg:build
 
 # Production build
-zerg build --mode prod
+/zerg:build --mode prod
 
 # Clean build
-zerg build --clean
+/zerg:build --clean
 
 # Watch mode
-zerg build --watch
+/zerg:build --watch
 ```
 
 ---
@@ -1358,7 +1348,7 @@ zerg build --watch
 **Purpose:** Static analysis, complexity metrics, and security scanning.
 
 ```bash
-zerg analyze [PATH] [OPTIONS]
+/zerg:analyze [PATH] [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1383,19 +1373,19 @@ zerg analyze [PATH] [OPTIONS]
 
 ```bash
 # Full analysis
-zerg analyze
+/zerg:analyze
 
 # Lint only
-zerg analyze --check lint
+/zerg:analyze --check lint
 
 # Security scan
-zerg analyze --check security
+/zerg:analyze --check security
 
 # Custom complexity threshold
-zerg analyze --check complexity --threshold complexity=15
+/zerg:analyze --check complexity --threshold complexity=15
 
 # SARIF for IDE
-zerg analyze --format sarif
+/zerg:analyze --format sarif
 ```
 
 ---
@@ -1405,7 +1395,7 @@ zerg analyze --format sarif
 **Purpose:** Two-stage code review workflow for spec compliance and quality.
 
 ```bash
-zerg review [OPTIONS]
+/zerg:review [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1430,16 +1420,16 @@ zerg review [OPTIONS]
 
 ```bash
 # Full review
-zerg review
+/zerg:review
 
 # Prepare PR description
-zerg review --mode prepare
+/zerg:review --mode prepare
 
 # Self-review before PR
-zerg review --mode self
+/zerg:review --mode self
 
 # Save to file
-zerg review --output review.md
+/zerg:review --output review.md
 ```
 
 ---
@@ -1453,7 +1443,7 @@ zerg review --output review.md
 **Purpose:** Automated code improvement and cleanup using various transforms.
 
 ```bash
-zerg refactor [PATH] [OPTIONS]
+/zerg:refactor [PATH] [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1479,16 +1469,16 @@ zerg refactor [PATH] [OPTIONS]
 
 ```bash
 # All transforms, preview first
-zerg refactor --dry-run
+/zerg:refactor --dry-run
 
 # Interactive mode
-zerg refactor --interactive
+/zerg:refactor --interactive
 
 # Just remove dead code
-zerg refactor --transforms dead-code
+/zerg:refactor --transforms dead-code
 
 # Type improvements
-zerg refactor --transforms types
+/zerg:refactor --transforms types
 ```
 
 ---
@@ -1498,7 +1488,7 @@ zerg refactor --transforms types
 **Purpose:** Systematic debugging with root cause analysis using a four-phase diagnostic process.
 
 ```bash
-zerg troubleshoot [OPTIONS]
+/zerg:troubleshoot [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1522,13 +1512,13 @@ zerg troubleshoot [OPTIONS]
 
 ```bash
 # Analyze error message
-zerg troubleshoot --error "ImportError: No module named 'foo'"
+/zerg:troubleshoot --error "ImportError: No module named 'foo'"
 
 # Analyze stack trace file
-zerg troubleshoot --stacktrace error.log
+/zerg:troubleshoot --stacktrace error.log
 
 # Save diagnostic report
-zerg troubleshoot --error "ConnectionError" --output diagnostic.md
+/zerg:troubleshoot --error "ConnectionError" --output diagnostic.md
 ```
 
 ---
@@ -1538,7 +1528,7 @@ zerg troubleshoot --error "ConnectionError" --output diagnostic.md
 **Purpose:** Git operations with intelligent commit messages and workflow management.
 
 ```bash
-zerg git [OPTIONS]
+/zerg:git [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1568,16 +1558,16 @@ zerg git [OPTIONS]
 
 ```bash
 # Commit with auto-generated message
-zerg git --action commit
+/zerg:git --action commit
 
 # Commit and push
-zerg git --action commit --push
+/zerg:git --action commit --push
 
 # Create feature branch
-zerg git --action branch --name feature/auth
+/zerg:git --action branch --name feature/auth
 
 # Squash merge
-zerg git --action merge --branch feature/auth --strategy squash
+/zerg:git --action merge --branch feature/auth --strategy squash
 ```
 
 ---
@@ -1591,7 +1581,7 @@ zerg git --action merge --branch feature/auth --strategy squash
 **Purpose:** Manage secure coding rules from TikiTribe/claude-secure-coding-rules.
 
 ```bash
-zerg security-rules COMMAND [OPTIONS]
+/zerg:security COMMAND [OPTIONS]
 ```
 
 **Subcommands:**
@@ -1607,13 +1597,13 @@ zerg security-rules COMMAND [OPTIONS]
 
 ```bash
 # See detected stack
-zerg security-rules detect
+/zerg:security detect
 
 # List applicable rules
-zerg security-rules list
+/zerg:security list
 
 # Full integration
-zerg security-rules integrate
+/zerg:security integrate
 ```
 
 ---
@@ -1655,7 +1645,7 @@ project_type: python  # Detected or specified
 
 # Worker settings
 workers:
-  default_count: 5      # Default for zerg rush
+  default_count: 5      # Default for /zerg:rush
   max_count: 10         # Never spawn more than this
   context_threshold: 0.7  # Checkpoint at 70% context usage
   timeout_seconds: 3600   # 1 hour max per task
@@ -1708,6 +1698,71 @@ mcp_servers:
 | `ZERG_LOG_LEVEL` | No | Logging verbosity: debug, info, warn, error |
 | `ZERG_DEBUG` | No | Enable debug mode (very verbose) |
 
+### Pre-commit Hooks
+
+ZERG includes comprehensive pre-commit hooks that validate commits before creation. The hooks are located at `.zerg/hooks/pre-commit` and can be installed via `/zerg:init`.
+
+**Security Checks (Block on Violation)**
+
+| Check | What It Detects | Pattern Example |
+|-------|-----------------|-----------------|
+| AWS Keys | Access key IDs | `AKIA...` (20 chars) |
+| GitHub PATs | Personal access tokens | `ghp_...`, `github_pat_...` |
+| OpenAI Keys | API keys | `sk-...` (48 chars) |
+| Anthropic Keys | API keys | `sk-ant-...` |
+| Private Keys | RSA/DSA/EC/OPENSSH headers | `-----BEGIN RSA PRIVATE KEY-----` |
+| Shell Injection | Dangerous subprocess patterns | `shell=True`, `os.system()` |
+| Code Injection | Dynamic code execution | `eval()`, `exec()` |
+| Unsafe Deserialization | Pickle vulnerabilities | `pickle.load()`, `pickle.loads()` |
+| Sensitive Files | Credential files | `.env`, `credentials.json` |
+
+**Quality Checks (Warn on Violation)**
+
+| Check | What It Detects |
+|-------|-----------------|
+| Ruff Lint | Style and syntax issues in staged Python files |
+| Debugger Statements | `breakpoint()`, `pdb.set_trace()`, `import pdb` |
+| Merge Markers | Unresolved conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) |
+| Large Files | Files exceeding 5MB |
+
+**ZERG-Specific Checks (Warn on Violation)**
+
+| Check | What It Validates |
+|-------|-------------------|
+| Branch Naming | ZERG branches should follow `zerg/{feature}/worker-{N}` |
+| Print Statements | Warns on `print()` in `zerg/` directory (use logging) |
+| Hardcoded URLs | `localhost:PORT`, `127.0.0.1:PORT` outside tests |
+
+**Exempt Paths**: Tests (`tests/`, `*_test.py`, `test_*.py`), fixtures, and `conftest.py` are exempt from security checks.
+
+**Installation:**
+```bash
+# Hooks are installed automatically during init
+/zerg:init
+
+# Or manually copy to git hooks
+cp .zerg/hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+**Configuration** (in `.zerg/config.yaml`):
+```yaml
+hooks:
+  pre_commit:
+    enabled: true
+    security_checks:
+      secrets_detection: true
+      shell_injection: true
+      code_injection: true
+      block_on_violation: true  # Security issues block commits
+    quality_checks:
+      ruff_lint: true
+      warn_on_violation: true  # Quality issues warn but don't block
+    exempt_paths:
+      - "tests/"
+      - "fixtures/"
+```
+
 ---
 
 ## Architecture Explained
@@ -1757,7 +1812,7 @@ project/
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    YOU RUN: zerg rush                            │
+│                    YOU RUN: /zerg:rush                            │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -1811,7 +1866,7 @@ project/
 
 ### Workers Not Starting
 
-**Symptoms:** `zerg rush` hangs or workers fail to spawn
+**Symptoms:** `/zerg:rush` hangs or workers fail to spawn
 
 **Diagnosis:**
 ```bash
@@ -1828,7 +1883,7 @@ netstat -an | grep 49152
 **Solutions:**
 ```bash
 # Force subprocess mode (no Docker needed)
-zerg rush --mode subprocess
+/zerg:rush --mode subprocess
 
 # Check orchestrator logs
 cat .zerg/logs/orchestrator.log
@@ -1844,7 +1899,7 @@ cat .zerg/logs/orchestrator.log
 cat .gsd/specs/{feature}/task-graph.json | jq '.tasks[] | select(.id == "TASK-001") | .verification'
 
 # Check worker logs for details
-zerg logs 1 --level error
+/zerg:logs 1 --level error
 
 # Run verification manually in worktree
 cd .zerg/worktrees/{feature}-worker-1
@@ -1854,13 +1909,13 @@ python -c "from src.models import User"  # Or whatever the command is
 **Solutions:**
 ```bash
 # Troubleshoot the error
-zerg troubleshoot --error "ImportError: cannot import name 'User'"
+/zerg:troubleshoot --error "ImportError: cannot import name 'User'"
 
 # Retry with extended timeout
-zerg retry TASK-001 --timeout 120
+/zerg:retry TASK-001 --timeout 120
 
 # If systemic issue, fix and retry all
-zerg retry --all-failed --reset
+/zerg:retry --all-failed --reset
 ```
 
 ### Merge Conflicts
@@ -1878,13 +1933,13 @@ cat .gsd/specs/{feature}/task-graph.json | jq '.tasks[].files'
 **Solutions:**
 ```bash
 # Abort and investigate
-zerg merge --abort
+/zerg:merge --abort
 
 # Check conflict details
-zerg status --verbose
+/zerg:status --verbose
 
 # If task graph has file overlap, fix it and restart
-zerg design --validate-only
+/zerg:design --validate-only
 ```
 
 ### Context Limit Reached (Exit Code 2)
@@ -1896,7 +1951,7 @@ zerg design --validate-only
 **Solution:**
 ```bash
 # Simply resume
-zerg rush --resume
+/zerg:rush --resume
 
 # Workers will pick up from their checkpoints
 ```
@@ -1905,17 +1960,17 @@ zerg rush --resume
 
 ```bash
 # Resume interrupted execution
-zerg rush --resume
+/zerg:rush --resume
 
 # Check current state
-zerg status --json | jq '.levels'
+/zerg:status --json | jq '.levels'
 
 # Reset and retry a level
-zerg retry --level 2 --reset
+/zerg:retry --level 2 --reset
 
 # Nuclear option: clean and restart
-zerg cleanup --all
-zerg rush
+/zerg:cleanup --all
+/zerg:rush
 ```
 
 ---
@@ -1940,7 +1995,7 @@ This tutorial builds a Starcraft 2 themed ecommerce API and covers:
 ## Getting Help
 
 - **GitHub Issues**: [github.com/rocklambros/zerg/issues](https://github.com/rocklambros/zerg/issues)
-- **Command help**: `zerg <command> --help`
+- **Command help**: `/zerg:<command> --help`
 - **Verbose mode**: Add `--verbose` to any command for more detail
 
 ---

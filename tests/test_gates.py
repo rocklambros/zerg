@@ -223,7 +223,7 @@ class TestGateRunner:
         runner.clear_results()
         results = runner.get_results()
 
-        assert len(results) == 0
+        assert not results
 
     def test_get_summary(self, sample_config: ZergConfig, tmp_path: Path) -> None:
         """Test getting results summary."""

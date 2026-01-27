@@ -30,7 +30,7 @@ class TestGitOps:
         branch = ops.current_branch()
 
         assert isinstance(branch, str)
-        assert len(branch) > 0
+        assert branch
 
     def test_current_commit(self, tmp_repo: Path) -> None:
         """Test getting current commit."""

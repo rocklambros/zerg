@@ -53,7 +53,7 @@ class TestTaskGraph:
         """Test tasks is a list."""
         tasks = sample_task_graph.get("tasks", [])
         assert isinstance(tasks, list)
-        assert len(tasks) > 0
+        assert tasks
 
     def test_levels_dict(self, sample_task_graph: TaskGraph) -> None:
         """Test levels is a dict."""
