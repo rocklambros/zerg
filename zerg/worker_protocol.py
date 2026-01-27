@@ -553,6 +553,8 @@ class WorkerProtocol:
     def commit_task_changes(self, task: Task) -> bool:
         """Commit changes for a completed task.
 
+        BF-009: Added HEAD verification after commit.
+
         Args:
             task: Completed task
 
@@ -566,17 +568,36 @@ class WorkerProtocol:
             return True
 
         try:
+            # BF-009: Record HEAD before commit for verification
+            head_before = self.git.current_commit()
+
             # Build commit message
             title = task.get("title", task_id)
             commit_msg = f"ZERG [{self.worker_id}]: {title}\n\nTask-ID: {task_id}"
 
             self.git.commit(commit_msg, add_all=True)
-            logger.info(f"Committed changes for {task_id}")
 
+            # BF-009: Verify HEAD changed after commit
+            head_after = self.git.current_commit()
+            if head_before == head_after:
+                logger.error(f"Commit succeeded but HEAD unchanged for {task_id}")
+                self.state.append_event("commit_verification_failed", {
+                    "task_id": task_id,
+                    "worker_id": self.worker_id,
+                    "head_before": head_before,
+                    "head_after": head_after,
+                    "error": "HEAD unchanged after commit",
+                })
+                return False
+
+            logger.info(f"Committed changes for {task_id}: {head_after[:8]}")
+
+            # Include commit_sha in event (BF-009)
             self.state.append_event("task_committed", {
                 "task_id": task_id,
                 "worker_id": self.worker_id,
                 "branch": self.branch,
+                "commit_sha": head_after,
             })
 
             return True

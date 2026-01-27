@@ -269,10 +269,14 @@ class TestMergeFailure:
             1, LevelMergeStatus.CONFLICT, details={"error": "Merge conflict in src/auth.py"}
         )
 
-    def test_merge_failure_stops_orchestration(
+    def test_merge_failure_pauses_orchestration(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
     ) -> None:
-        """Test non-conflict merge failure stops orchestration."""
+        """Test non-conflict merge failure pauses orchestration (BF-007: recoverable error).
+
+        BF-007 changed behavior from stop() to _set_recoverable_error() which
+        pauses execution instead of stopping, allowing manual intervention.
+        """
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
@@ -288,8 +292,10 @@ class TestMergeFailure:
 
         orch._on_level_complete_handler(1)
 
-        assert orch._running is False
+        # BF-007: Now pauses instead of stopping
+        assert orch._paused is True
         mock_orchestrator_deps["state"].set_error.assert_called()
+        mock_orchestrator_deps["state"].set_paused.assert_called_with(True)
 
 
 class TestLevelAdvancement:

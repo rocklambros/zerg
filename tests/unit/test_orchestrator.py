@@ -627,10 +627,13 @@ class TestLevelCompleteHandler:
             1, LevelMergeStatus.CONFLICT, details={"error": "CONFLICT in src/file.py"}
         )
 
-    def test_level_complete_merge_other_failure_stops(
+    def test_level_complete_merge_other_failure_pauses(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
     ) -> None:
-        """Test level completion stops on non-conflict merge failure."""
+        """Test level completion pauses on non-conflict merge failure.
+
+        BF-007: Changed from stop to recoverable error state (pause).
+        """
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
@@ -646,10 +649,12 @@ class TestLevelCompleteHandler:
 
         orch._on_level_complete_handler(1)
 
-        assert orch._running is False
+        # BF-007: Now pauses instead of stopping
+        assert orch._paused is True
         mock_orchestrator_deps["state"].set_level_merge_status.assert_any_call(
             1, LevelMergeStatus.FAILED
         )
+        mock_orchestrator_deps["state"].set_paused.assert_called_with(True)
 
     def test_level_complete_invokes_callbacks(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch

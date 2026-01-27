@@ -691,8 +691,26 @@ class ContainerLauncher(WorkerLauncher):
                     error="Container failed to become ready",
                 )
 
-            # Execute worker entry script
-            self._exec_worker_entry(container_id)
+            # Execute worker entry script (BF-008: check return value)
+            if not self._exec_worker_entry(container_id):
+                logger.error(f"Failed to execute worker entry script for worker {worker_id}")
+                # Clean up container
+                self._cleanup_failed_container(container_id, worker_id)
+                return SpawnResult(
+                    success=False,
+                    worker_id=worker_id,
+                    error="Failed to execute worker entry script",
+                )
+
+            # BF-008: Verify worker process is running
+            if not self._verify_worker_process(container_id, timeout=5.0):
+                logger.error(f"Worker process failed to start for worker {worker_id}")
+                self._cleanup_failed_container(container_id, worker_id)
+                return SpawnResult(
+                    success=False,
+                    worker_id=worker_id,
+                    error="Worker process failed to start",
+                )
 
             handle.status = WorkerStatus.RUNNING
             logger.info(f"Spawned container {container_name} ({container_id[:12]})")
@@ -857,6 +875,61 @@ class ContainerLauncher(WorkerLauncher):
         except Exception as e:
             logger.error(f"Failed to exec worker entry: {e}")
             return False
+
+    def _verify_worker_process(self, container_id: str, timeout: float = 5.0) -> bool:
+        """Verify the worker process is running in container.
+
+        BF-008: Added process verification after exec.
+
+        Args:
+            container_id: Container ID
+            timeout: Maximum time to wait for process
+
+        Returns:
+            True if worker process is running
+        """
+        import time as _time
+
+        start = _time.time()
+        while _time.time() - start < timeout:
+            try:
+                result = subprocess.run(
+                    ["docker", "exec", container_id, "pgrep", "-f", "worker_main"],
+                    capture_output=True,
+                    timeout=2,
+                )
+                if result.returncode == 0:
+                    logger.debug(f"Worker process verified running in {container_id[:12]}")
+                    return True
+            except (subprocess.TimeoutExpired, Exception) as e:
+                logger.debug(f"Process check failed: {e}")
+            _time.sleep(0.5)
+
+        logger.warning(f"Worker process not found in container {container_id[:12]} after {timeout}s")
+        return False
+
+    def _cleanup_failed_container(self, container_id: str, worker_id: int) -> None:
+        """Clean up container after spawn failure.
+
+        Args:
+            container_id: Container to clean up
+            worker_id: Worker ID
+        """
+        try:
+            subprocess.run(
+                ["docker", "rm", "-f", container_id],
+                capture_output=True,
+                timeout=10,
+            )
+            logger.debug(f"Cleaned up failed container {container_id[:12]}")
+        except Exception as e:
+            logger.warning(f"Failed to clean up container: {e}")
+
+        # Remove from tracking
+        if worker_id in self._container_ids:
+            del self._container_ids[worker_id]
+        if worker_id in self._workers:
+            del self._workers[worker_id]
 
     def monitor(self, worker_id: int) -> WorkerStatus:
         """Check worker container status.

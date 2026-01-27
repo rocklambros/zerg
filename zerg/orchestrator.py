@@ -1,5 +1,6 @@
 """ZERG orchestrator - main coordination engine."""
 
+import concurrent.futures
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -379,10 +380,43 @@ class Orchestrator:
         # Update merge status to indicate we're starting merge
         self.state.set_level_merge_status(level, LevelMergeStatus.MERGING)
 
-        # Execute merge protocol
-        merge_result = self._merge_level(level)
+        # Execute merge protocol with timeout and retry (BF-007)
+        merge_timeout = getattr(self.config, 'merge_timeout_seconds', 600)  # 10 min default
+        max_retries = getattr(self.config, 'merge_max_retries', 3)
 
-        if merge_result.success:
+        merge_result = None
+        for attempt in range(max_retries):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self._merge_level, level)
+                try:
+                    merge_result = future.result(timeout=merge_timeout)
+                    if merge_result.success:
+                        break
+                except concurrent.futures.TimeoutError:
+                    merge_result = MergeFlowResult(
+                        success=False,
+                        level=level,
+                        source_branches=[],
+                        target_branch="main",
+                        error="Merge timed out",
+                    )
+                    logger.warning(f"Merge timed out for level {level} (attempt {attempt + 1})")
+
+            if not merge_result.success and attempt < max_retries - 1:
+                backoff = 2 ** attempt * 10  # 10s, 20s, 40s
+                logger.warning(
+                    f"Merge attempt {attempt + 1} failed for level {level}, "
+                    f"retrying in {backoff}s: {merge_result.error}"
+                )
+                self.state.append_event("merge_retry", {
+                    "level": level,
+                    "attempt": attempt + 1,
+                    "backoff_seconds": backoff,
+                    "error": merge_result.error,
+                })
+                time.sleep(backoff)
+
+        if merge_result and merge_result.success:
             self.state.set_level_status(level, "complete", merge_commit=merge_result.merge_commit)
             self.state.set_level_merge_status(level, LevelMergeStatus.COMPLETE)
             self.state.append_event("level_complete", {
@@ -416,19 +450,34 @@ class Orchestrator:
             for callback in self._on_level_complete:
                 callback(level)
         else:
-            logger.error(f"Level {level} merge failed: {merge_result.error}")
+            error_msg = merge_result.error if merge_result else "Unknown merge error"
+            logger.error(f"Level {level} merge failed after {max_retries} attempts: {error_msg}")
 
-            if "conflict" in str(merge_result.error).lower():
+            if "conflict" in str(error_msg).lower():
                 self.state.set_level_merge_status(
                     level,
                     LevelMergeStatus.CONFLICT,
-                    details={"error": merge_result.error},
+                    details={"error": error_msg},
                 )
                 self._pause_for_intervention(f"Merge conflict in level {level}")
             else:
+                # BF-007: Set recoverable error state (pause) instead of stop
                 self.state.set_level_merge_status(level, LevelMergeStatus.FAILED)
-                self.state.set_error(f"Level {level} merge failed: {merge_result.error}")
-                self.stop()
+                self._set_recoverable_error(
+                    f"Level {level} merge failed after {max_retries} attempts: {error_msg}"
+                )
+
+    def _set_recoverable_error(self, error: str) -> None:
+        """Set recoverable error state (pause instead of stop).
+
+        Args:
+            error: Error message
+        """
+        logger.warning(f"Setting recoverable error state: {error}")
+        self.state.set_error(error)
+        self._paused = True
+        self.state.set_paused(True)
+        self.state.append_event("recoverable_error", {"error": error})
 
     def _merge_level(self, level: int) -> MergeFlowResult:
         """Execute merge protocol for a level.
