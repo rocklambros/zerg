@@ -23,10 +23,9 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get install -y nodejs
 
-# Configure npm for global installs
-ENV NPM_CONFIG_PREFIX=/root/.npm-global
-ENV PATH=$NPM_CONFIG_PREFIX/bin:$PATH
-RUN mkdir -p $NPM_CONFIG_PREFIX
+# Configure npm for global installs in /usr/local (accessible to all users)
+ENV NPM_CONFIG_PREFIX=/usr/local
+ENV PATH=/usr/local/bin:$PATH
 
 # Install Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code
@@ -36,6 +35,9 @@ RUN npm install -g \
     @anthropic-ai/mcp-server-filesystem \
     @anthropic-ai/mcp-server-github \
     2>/dev/null || true
+
+# Create worker home directory with write access for non-root users
+RUN mkdir -p /home/worker/.claude && chmod -R 777 /home/worker
 
 # Install Python dependencies for ZERG
 RUN pip3 install --break-system-packages \

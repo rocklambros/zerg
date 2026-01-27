@@ -726,16 +726,24 @@ class ContainerLauncher(WorkerLauncher):
         # Mount ~/.claude for OAuth credentials if it exists
         claude_config_dir = Path.home() / ".claude"
 
+        # Get current user's UID/GID to run container as non-root
+        # This is required because --dangerously-skip-permissions doesn't work as root
+        uid = os.getuid()
+        gid = os.getgid()
+        home_dir = f"/home/worker"
+
         cmd = [
             "docker", "run", "-d",
             "--name", container_name,
+            "--user", f"{uid}:{gid}",
             "-v", f"{worktree_path.absolute()}:/workspace",
             "-v", f"{state_dir.absolute()}:/workspace/.zerg/state",  # Share state with orchestrator
         ]
 
         # Add Claude config mount for OAuth authentication (needs write for debug logs)
         if claude_config_dir.exists():
-            cmd.extend(["-v", f"{claude_config_dir.absolute()}:/root/.claude"])
+            cmd.extend(["-v", f"{claude_config_dir.absolute()}:{home_dir}/.claude"])
+            cmd.extend(["-e", f"HOME={home_dir}"])
 
         cmd.extend([
             "-w", "/workspace",
