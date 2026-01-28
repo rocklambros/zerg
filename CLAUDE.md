@@ -4,7 +4,9 @@ Parallel Claude Code execution system. Overwhelm features with coordinated worke
 
 ## Quick Start
 
-```
+These are Claude Code slash commands. Use them inside a Claude Code session:
+
+```claude
 /zerg:init               # Set up project infrastructure
 /zerg:plan user-auth     # Plan a feature
 /zerg:design             # Design architecture (after approval)

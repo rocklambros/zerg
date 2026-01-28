@@ -28,6 +28,7 @@ The result? Features that might take hours of sequential AI-assisted development
 
 - [How ZERG Thinks About Work](#how-zerg-thinks-about-work)
 - [Installation](#installation)
+- [Using ZERG](#using-zerg)
 - [Your First ZERG Project](#your-first-zerg-project)
 - [Understanding the Core Workflow](#understanding-the-core-workflow)
 - [Complete Command Reference](#complete-command-reference)
@@ -139,20 +140,29 @@ pip install -e ".[dev]"
 
 ### Verifying Your Installation
 
-Let's make sure everything is working:
+Let's make sure the prerequisites are working:
 
 ```bash
-# Check ZERG is installed and see its version
-/zerg:version
+# Verify Python is installed
+python --version
 
-# View all available commands
-/zerg:help
+# Verify Git is installed
+git --version
+
+# Verify Claude Code CLI is installed
+claude --version
 
 # Verify your API key is set (you should see your key, not empty output)
 echo $ANTHROPIC_API_KEY
 ```
 
-**Expected output from `/zerg:help`:**
+Once those all check out, you're ready to go. To verify ZERG itself, open a Claude Code session in your project directory and use `/zerg:help` to see all available commands:
+
+```claude
+/zerg:help
+```
+
+**Expected output:**
 ```
 Available ZERG commands:
   /zerg:analyze      Static analysis and quality metrics
@@ -175,7 +185,29 @@ Available ZERG commands:
   /zerg:troubleshoot Debug with root cause analysis
 ```
 
-If you see this output, you're ready to go.
+---
+
+## Using ZERG
+
+ZERG commands are **Claude Code slash commands**, not terminal/bash commands. They only work inside a Claude Code session. Here's how to get started:
+
+First, open your terminal and navigate to your project directory, then launch Claude Code:
+
+```bash
+cd your-project
+claude
+```
+
+Once you're inside the Claude Code session, you can use any `/zerg:*` command:
+
+```claude
+/zerg:init
+/zerg:plan my-feature --socratic
+/zerg:design
+/zerg:rush --workers 5
+```
+
+Throughout this README, code blocks marked with `claude` contain Claude Code slash commands. Code blocks marked with `bash` contain regular terminal commands. Keep an eye on which is which -- it matters!
 
 ---
 
@@ -190,13 +222,22 @@ ZERG has two initialization modes that activate automatically based on your dire
 **Inception Mode** (empty directory): Creates a new project from scratch with guided setup
 **Discovery Mode** (existing project): Analyzes your codebase and configures ZERG
 
-Let's start fresh:
+Let's start fresh. In your terminal:
 
 ```bash
 # Create and enter an empty directory
 mkdir my-api && cd my-api
+```
 
-# Initialize ZERG
+Then launch Claude Code and initialize ZERG:
+
+```bash
+claude
+```
+
+Inside Claude Code, run:
+
+```claude
 # Because the directory is empty, Inception Mode activates automatically
 /zerg:init --security standard
 ```
@@ -227,7 +268,7 @@ This tells ZERG to configure workers with standard security isolation:
 
 Now let's plan a feature. Planning is crucial because it creates the specification documents that workers will read.
 
-```bash
+```claude
 # Start planning with Socratic discovery mode
 /zerg:plan user-auth --socratic
 ```
@@ -256,7 +297,7 @@ After the session, ZERG creates `.gsd/specs/user-auth/requirements.md` containin
 
 With requirements captured, generate the technical design:
 
-```bash
+```claude
 /zerg:design --feature user-auth
 ```
 
@@ -306,7 +347,7 @@ If two workers both try to edit `models.py` at the same time, you'd get merge co
 
 Time to build. This is where the magic happens:
 
-```bash
+```claude
 # Preview what will happen (no actual execution)
 /zerg:rush --dry-run
 
@@ -345,7 +386,7 @@ Start with 3-5 workers for most features. You can adjust based on:
 
 While workers are running:
 
-```bash
+```claude
 # See current status (one-time snapshot)
 /zerg:status
 
@@ -367,7 +408,7 @@ While workers are running:
 
 If a task fails:
 
-```bash
+```claude
 # See what went wrong
 /zerg:logs 1 --level error  # Logs from worker 1, errors only
 
@@ -390,7 +431,7 @@ For context limit issues, workers automatically checkpoint their progress. Just 
 
 When everything's done:
 
-```bash
+```claude
 /zerg:cleanup --feature user-auth
 ```
 
@@ -649,7 +690,7 @@ Now let's cover every command with all its options. For each command, I'll expla
 
 **When to use:** Once per project, at the very beginning.
 
-```bash
+```claude
 /zerg:init [OPTIONS]
 ```
 
@@ -674,7 +715,7 @@ Now let's cover every command with all its options. For each command, I'll expla
 
 **Examples:**
 
-```bash
+```claude
 # Basic initialization for most projects
 /zerg:init
 
@@ -718,7 +759,7 @@ project/
 
 **When to use:** At the start of each new feature.
 
-```bash
+```claude
 /zerg:plan [FEATURE] [OPTIONS]
 ```
 
@@ -769,7 +810,7 @@ These questions plan the HOW:
 
 **Examples:**
 
-```bash
+```claude
 # Simple feature with minimal template
 /zerg:plan caching --template minimal
 
@@ -802,7 +843,7 @@ These questions plan the HOW:
 
 **When to use:** After requirements are approved and before rushing.
 
-```bash
+```claude
 /zerg:design [OPTIONS]
 ```
 
@@ -825,7 +866,7 @@ Task size affects parallelization:
 
 **Examples:**
 
-```bash
+```claude
 # Design current feature (auto-detected from .current-feature)
 /zerg:design
 
@@ -856,7 +897,7 @@ Task size affects parallelization:
 
 **When to use:** After design is complete and you're ready to build.
 
-```bash
+```claude
 /zerg:rush [OPTIONS]
 ```
 
@@ -892,7 +933,7 @@ Task size affects parallelization:
 
 **Examples:**
 
-```bash
+```claude
 # Preview execution plan first (always recommended)
 /zerg:rush --dry-run
 
@@ -934,7 +975,7 @@ Task size affects parallelization:
 
 **Purpose:** Display current execution status and progress. Your window into what workers are doing.
 
-```bash
+```claude
 /zerg:status [OPTIONS]
 ```
 
@@ -982,7 +1023,7 @@ Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
 
 **Examples:**
 
-```bash
+```claude
 # Quick status check
 /zerg:status
 
@@ -1002,7 +1043,7 @@ Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
 
 **Purpose:** View worker and orchestrator logs. Essential for understanding what's happening and debugging issues.
 
-```bash
+```claude
 /zerg:logs [WORKER_ID] [OPTIONS]
 ```
 
@@ -1033,7 +1074,7 @@ Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
 
 **Examples:**
 
-```bash
+```claude
 # View recent logs from all workers
 /zerg:logs
 
@@ -1053,7 +1094,7 @@ Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
 
 **Purpose:** Stop worker execution, either gracefully (with checkpoint) or forcefully.
 
-```bash
+```claude
 /zerg:stop [OPTIONS]
 ```
 
@@ -1077,7 +1118,7 @@ Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
 
 **Examples:**
 
-```bash
+```claude
 # Graceful stop all workers
 /zerg:stop
 
@@ -1098,7 +1139,7 @@ Recent: ✓ TASK-014 (W-2) │ ✓ TASK-013 (W-1) │ ✓ TASK-012 (W-0)
 
 **Purpose:** Retry failed or blocked tasks. ZERG tracks retry counts to prevent infinite loops.
 
-```bash
+```claude
 /zerg:retry [TASK_IDS...] [OPTIONS]
 ```
 
@@ -1132,7 +1173,7 @@ Use `--force` or `--reset` sparingly, preferably after understanding why the tas
 
 **Examples:**
 
-```bash
+```claude
 # Retry specific task
 /zerg:retry AUTH-L2-001
 
@@ -1155,7 +1196,7 @@ Use `--force` or `--reset` sparingly, preferably after understanding why the tas
 
 **Purpose:** Merge worker branches after level completion. Usually automatic, but you can trigger manually.
 
-```bash
+```claude
 /zerg:merge [OPTIONS]
 ```
 
@@ -1190,7 +1231,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Preview merge plan
 /zerg:merge --dry-run
 
@@ -1210,7 +1251,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Remove ZERG artifacts after feature completion. Preserves your code, removes infrastructure.
 
-```bash
+```claude
 /zerg:cleanup [OPTIONS]
 ```
 
@@ -1238,7 +1279,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Clean up completed feature
 /zerg:cleanup --feature user-auth
 
@@ -1262,7 +1303,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Run tests with coverage analysis. Auto-detects your test framework.
 
-```bash
+```claude
 /zerg:test [OPTIONS]
 ```
 
@@ -1290,7 +1331,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Run all tests
 /zerg:test
 
@@ -1313,7 +1354,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Build orchestration with intelligent error recovery and retry logic.
 
-```bash
+```claude
 /zerg:build [OPTIONS]
 ```
 
@@ -1331,7 +1372,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Development build
 /zerg:build
 
@@ -1351,7 +1392,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Static analysis, complexity metrics, and security scanning.
 
-```bash
+```claude
 /zerg:analyze [PATH] [OPTIONS]
 ```
 
@@ -1375,7 +1416,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Full analysis
 /zerg:analyze
 
@@ -1398,7 +1439,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Two-stage code review workflow for spec compliance and quality.
 
-```bash
+```claude
 /zerg:review [OPTIONS]
 ```
 
@@ -1422,7 +1463,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Full review
 /zerg:review
 
@@ -1446,7 +1487,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Automated code improvement and cleanup using various transforms.
 
-```bash
+```claude
 /zerg:refactor [PATH] [OPTIONS]
 ```
 
@@ -1471,7 +1512,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # All transforms, preview first
 /zerg:refactor --dry-run
 
@@ -1491,7 +1532,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Systematic debugging with root cause analysis using a four-phase diagnostic process.
 
-```bash
+```claude
 /zerg:troubleshoot [OPTIONS]
 ```
 
@@ -1514,7 +1555,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Analyze error message
 /zerg:troubleshoot --error "ImportError: No module named 'foo'"
 
@@ -1531,7 +1572,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Git operations with intelligent commit messages and workflow management.
 
-```bash
+```claude
 /zerg:git [OPTIONS]
 ```
 
@@ -1560,7 +1601,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # Commit with auto-generated message
 /zerg:git --action commit
 
@@ -1584,7 +1625,7 @@ Gates catch these before they hit main.
 
 **Purpose:** Manage secure coding rules from TikiTribe/claude-secure-coding-rules.
 
-```bash
+```claude
 /zerg:security COMMAND [OPTIONS]
 ```
 
@@ -1599,7 +1640,7 @@ Gates catch these before they hit main.
 
 **Examples:**
 
-```bash
+```claude
 # See detected stack
 /zerg:security detect
 
@@ -1740,11 +1781,16 @@ ZERG includes comprehensive pre-commit hooks that validate commits before creati
 **Exempt Paths**: Tests (`tests/`, `*_test.py`, `test_*.py`), fixtures, and `conftest.py` are exempt from security checks.
 
 **Installation:**
-```bash
-# Hooks are installed automatically during init
-/zerg:init
 
-# Or manually copy to git hooks
+Hooks are installed automatically when you run init inside Claude Code:
+
+```claude
+/zerg:init
+```
+
+Or you can manually copy them in your terminal:
+
+```bash
 cp .zerg/hooks/pre-commit .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
@@ -1885,11 +1931,16 @@ netstat -an | grep 49152
 ```
 
 **Solutions:**
-```bash
-# Force subprocess mode (no Docker needed)
-/zerg:rush --mode subprocess
 
-# Check orchestrator logs
+Inside Claude Code, force subprocess mode:
+
+```claude
+/zerg:rush --mode subprocess
+```
+
+Or check the orchestrator logs from your terminal:
+
+```bash
 cat .zerg/logs/orchestrator.log
 ```
 
@@ -1898,20 +1949,31 @@ cat .zerg/logs/orchestrator.log
 **Symptoms:** Tasks marked as failed, verification command errors
 
 **Diagnosis:**
+
+From your terminal, inspect the verification command:
+
 ```bash
-# See what the verification command is
 cat .gsd/specs/{feature}/task-graph.json | jq '.tasks[] | select(.id == "TASK-001") | .verification'
+```
 
-# Check worker logs for details
+Inside Claude Code, check worker logs:
+
+```claude
 /zerg:logs 1 --level error
+```
 
-# Run verification manually in worktree
+You can also run verification manually in the worktree from your terminal:
+
+```bash
 cd .zerg/worktrees/{feature}-worker-1
 python -c "from src.models import User"  # Or whatever the command is
 ```
 
 **Solutions:**
-```bash
+
+Inside Claude Code:
+
+```claude
 # Troubleshoot the error
 /zerg:troubleshoot --error "ImportError: cannot import name 'User'"
 
@@ -1935,7 +1997,10 @@ cat .gsd/specs/{feature}/task-graph.json | jq '.tasks[].files'
 ```
 
 **Solutions:**
-```bash
+
+Inside Claude Code:
+
+```claude
 # Abort and investigate
 /zerg:merge --abort
 
@@ -1953,21 +2018,24 @@ cat .gsd/specs/{feature}/task-graph.json | jq '.tasks[].files'
 **This is normal behavior**, not an error. Workers checkpoint when they're running low on context.
 
 **Solution:**
-```bash
-# Simply resume
-/zerg:rush --resume
 
-# Workers will pick up from their checkpoints
+Inside Claude Code:
+
+```claude
+# Simply resume -- workers will pick up from their checkpoints
+/zerg:rush --resume
 ```
 
 ### Quick Recovery Commands
 
-```bash
+Inside Claude Code:
+
+```claude
 # Resume interrupted execution
 /zerg:rush --resume
 
 # Check current state
-/zerg:status --json | jq '.levels'
+/zerg:status --json
 
 # Reset and retry a level
 /zerg:retry --level 2 --reset
@@ -1975,6 +2043,12 @@ cat .gsd/specs/{feature}/task-graph.json | jq '.tasks[].files'
 # Nuclear option: clean and restart
 /zerg:cleanup --all
 /zerg:rush
+```
+
+You can also inspect the state JSON from your terminal:
+
+```bash
+cat .zerg/state/{feature}.json | jq '.levels'
 ```
 
 ---
