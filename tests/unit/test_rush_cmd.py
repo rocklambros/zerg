@@ -548,7 +548,7 @@ class TestRushCommand:
         task_graph_file_setup: Path,
         monkeypatch: MonkeyPatch,
     ) -> None:
-        """Test rush --dry-run shows plan without executing."""
+        """Test rush --dry-run invokes DryRunSimulator."""
         monkeypatch.chdir(tmp_path)
 
         runner = CliRunner()
@@ -561,9 +561,9 @@ class TestRushCommand:
                 ["rush", "--task-graph", str(task_graph_file_setup), "--dry-run"],
             )
 
-        # Dry run should show execution plan
-        assert "Dry Run" in result.output or "Execution Plan" in result.output
-        assert "No workers will be started" in result.output
+        # Enhanced dry run renders validation + timeline panels
+        assert "Validation" in result.output
+        assert "ready to rush" in result.output.lower()
 
     def test_rush_verbose_flag(
         self,
@@ -1208,6 +1208,142 @@ class TestRushOrchestratorIntegration:
         # Check orchestrator.start was called with correct worker_count
         call_kwargs = mock_orchestrator.start.call_args
         assert call_kwargs[1].get("worker_count") == 7
+
+
+class TestRushDryRunEnhanced:
+    """Tests for the enhanced dry-run with DryRunSimulator."""
+
+    def test_rush_dry_run_enhanced(
+        self,
+        tmp_path: Path,
+        task_graph_file_setup: Path,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        """Invoke rush --dry-run and verify DryRunSimulator is called."""
+        monkeypatch.chdir(tmp_path)
+
+        mock_sim = MagicMock()
+        mock_report = MagicMock()
+        mock_report.has_errors = False
+        mock_sim.return_value.run.return_value = mock_report
+
+        runner = CliRunner()
+        with (
+            patch("zerg.commands.rush.ZergConfig") as mock_config_cls,
+            patch("zerg.dryrun.DryRunSimulator", mock_sim) as _,
+        ):
+            mock_config = MagicMock()
+            mock_config_cls.load.return_value = mock_config
+
+            result = runner.invoke(
+                cli,
+                ["rush", "--task-graph", str(task_graph_file_setup), "--dry-run"],
+            )
+
+        # DryRunSimulator should have been instantiated and run() called
+        mock_sim.assert_called_once()
+        mock_sim.return_value.run.assert_called_once()
+        assert result.exit_code == 0
+
+    def test_rush_check_gates_flag(
+        self,
+        tmp_path: Path,
+        task_graph_file_setup: Path,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        """--check-gates --dry-run passes run_gates=True to simulator."""
+        monkeypatch.chdir(tmp_path)
+
+        mock_sim = MagicMock()
+        mock_report = MagicMock()
+        mock_report.has_errors = False
+        mock_sim.return_value.run.return_value = mock_report
+
+        runner = CliRunner()
+        with (
+            patch("zerg.commands.rush.ZergConfig") as mock_config_cls,
+            patch("zerg.dryrun.DryRunSimulator", mock_sim) as _,
+        ):
+            mock_config = MagicMock()
+            mock_config_cls.load.return_value = mock_config
+
+            result = runner.invoke(
+                cli,
+                [
+                    "rush",
+                    "--task-graph",
+                    str(task_graph_file_setup),
+                    "--dry-run",
+                    "--check-gates",
+                ],
+            )
+
+        # Verify run_gates=True was passed
+        call_kwargs = mock_sim.call_args[1]
+        assert call_kwargs["run_gates"] is True
+        assert result.exit_code == 0
+
+    def test_rush_check_gates_without_dry_run(
+        self,
+        tmp_path: Path,
+        task_graph_file_setup: Path,
+        monkeypatch: MonkeyPatch,
+        mock_orchestrator: MagicMock,
+    ) -> None:
+        """--check-gates alone (no --dry-run) has no effect — gates only run in dry-run mode."""
+        monkeypatch.chdir(tmp_path)
+
+        runner = CliRunner()
+        with (
+            patch("zerg.commands.rush.ZergConfig") as mock_config_cls,
+            patch("zerg.commands.rush.Orchestrator") as mock_orch_cls,
+        ):
+            mock_config = MagicMock()
+            mock_config_cls.load.return_value = mock_config
+            mock_orch_cls.return_value = mock_orchestrator
+
+            result = runner.invoke(
+                cli,
+                [
+                    "rush",
+                    "--task-graph",
+                    str(task_graph_file_setup),
+                    "--resume",
+                    "--check-gates",
+                ],
+            )
+
+        # Should proceed to orchestrator (not dry-run path)
+        mock_orchestrator.start.assert_called_once()
+
+    def test_rush_dry_run_exits_1_on_errors(
+        self,
+        tmp_path: Path,
+        task_graph_file_setup: Path,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        """Dry-run exits with code 1 when report has errors."""
+        monkeypatch.chdir(tmp_path)
+
+        mock_sim = MagicMock()
+        mock_report = MagicMock()
+        mock_report.has_errors = True
+        mock_sim.return_value.run.return_value = mock_report
+
+        runner = CliRunner()
+        with (
+            patch("zerg.commands.rush.ZergConfig") as mock_config_cls,
+            patch("zerg.dryrun.DryRunSimulator", mock_sim) as _,
+        ):
+            mock_config = MagicMock()
+            mock_config_cls.load.return_value = mock_config
+
+            result = runner.invoke(
+                cli,
+                ["rush", "--task-graph", str(task_graph_file_setup), "--dry-run"],
+            )
+
+        assert result.exit_code == 1
 
 
 class TestRushTaskGraphValidation:

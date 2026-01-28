@@ -30,6 +30,7 @@ logger = get_logger("rush")
     default="auto",
     help="Worker execution mode (default: auto-detect)",
 )
+@click.option("--check-gates", is_flag=True, help="Pre-run quality gates during dry-run")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.pass_context
 def rush(
@@ -42,6 +43,7 @@ def rush(
     timeout: int,
     task_graph: str | None,
     mode: str,
+    check_gates: bool,
     verbose: bool,
 ) -> None:
     """Launch parallel worker execution.
@@ -98,8 +100,18 @@ def rush(
         show_summary(task_data, workers, mode)
 
         if dry_run:
-            show_dry_run(task_data, workers, feature)
-            return
+            from zerg.dryrun import DryRunSimulator
+
+            simulator = DryRunSimulator(
+                task_data=task_data,
+                workers=workers,
+                feature=feature,
+                config=config,
+                mode=mode,
+                run_gates=check_gates,
+            )
+            report = simulator.run()
+            raise SystemExit(1 if report.has_errors else 0)
 
         # Confirm before starting
         if not resume:
