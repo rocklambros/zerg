@@ -2,13 +2,16 @@
 
 import json
 import time
+from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
-from rich.console import Console
+from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from zerg.constants import TaskStatus, WorkerStatus
 from zerg.logging import get_logger
@@ -16,21 +19,47 @@ from zerg.metrics import MetricsCollector
 from zerg.state import StateManager
 from zerg.types import FeatureMetrics, LevelMetrics, WorkerMetrics
 
+if TYPE_CHECKING:
+    from zerg.state import StateManager
+
 console = Console()
 logger = get_logger("status")
+
+# Dashboard status symbols
+LEVEL_SYMBOLS = {
+    "complete": "[green]✓[/green]",
+    "running": "[yellow]●[/yellow]",
+    "pending": "[dim]○[/dim]",
+    "merging": "[cyan]⟳[/cyan]",
+    "conflict": "[red]✗[/red]",
+}
+
+WORKER_COLORS = {
+    WorkerStatus.RUNNING: "green",
+    WorkerStatus.IDLE: "dim",
+    WorkerStatus.CRASHED: "red",
+    WorkerStatus.CHECKPOINTING: "yellow",
+    WorkerStatus.INITIALIZING: "cyan",
+    WorkerStatus.READY: "blue",
+    WorkerStatus.STOPPING: "yellow",
+    WorkerStatus.STOPPED: "dim",
+    WorkerStatus.BLOCKED: "red",
+}
 
 
 @click.command()
 @click.option("--feature", "-f", help="Feature to show status for")
 @click.option("--watch", "-w", is_flag=True, help="Continuous update mode")
+@click.option("--dashboard", "-d", is_flag=True, help="Real-time dashboard view")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.option("--level", "-l", type=int, help="Filter to specific level")
-@click.option("--interval", default=5, type=int, help="Watch interval (seconds)")
+@click.option("--interval", default=1, type=int, help="Refresh interval in seconds (default: 1)")
 @click.pass_context
 def status(
     ctx: click.Context,
     feature: str | None,
     watch: bool,
+    dashboard: bool,
     json_output: bool,
     level: int | None,
     interval: int,
@@ -42,6 +71,10 @@ def status(
     Examples:
 
         zerg status
+
+        zerg status --dashboard
+
+        zerg status -d --interval 2
 
         zerg status --watch
 
@@ -67,6 +100,8 @@ def status(
 
         if json_output:
             show_json_status(state, level)
+        elif dashboard:
+            show_dashboard(state, feature, interval)
         elif watch:
             show_watch_status(state, feature, level, interval)
         else:
@@ -97,6 +132,287 @@ def detect_feature() -> str | None:
     # Sort by modification time
     state_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return state_files[0].stem
+
+
+def format_elapsed(start: datetime) -> str:
+    """Format elapsed time as '5m 32s' or '1h 23m'.
+
+    Args:
+        start: Start datetime
+
+    Returns:
+        Formatted elapsed string
+    """
+    delta = datetime.now() - start
+    total_seconds = int(delta.total_seconds())
+
+    if total_seconds < 60:
+        return f"{total_seconds}s"
+
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+
+    if minutes < 60:
+        return f"{minutes}m {seconds}s"
+
+    hours = minutes // 60
+    remaining_minutes = minutes % 60
+    return f"{hours}h {remaining_minutes}m"
+
+
+def compact_progress_bar(percent: float, width: int = 20) -> str:
+    """Create a compact Unicode block progress bar.
+
+    Args:
+        percent: Percentage complete (0-100)
+        width: Bar width in characters
+
+    Returns:
+        Progress bar string without Rich markup
+    """
+    filled = int(width * percent / 100)
+    empty = width - filled
+    return "█" * filled + "░" * empty
+
+
+class DashboardRenderer:
+    """Compact real-time dashboard renderer."""
+
+    def __init__(self, state: StateManager, feature: str):
+        """Initialize the dashboard renderer.
+
+        Args:
+            state: State manager instance
+            feature: Feature name
+        """
+        self.state = state
+        self.feature = feature
+        self.start_time = datetime.now()
+
+    def render(self) -> RenderableType:
+        """Build full dashboard.
+
+        Returns:
+            Renderable dashboard content
+        """
+        return Group(
+            self._render_header(),
+            self._render_progress(),
+            self._render_levels(),
+            self._render_workers(),
+            self._render_events(),
+        )
+
+    def _render_header(self) -> Panel:
+        """Render header with feature name and elapsed time."""
+        elapsed = format_elapsed(self.start_time)
+        header_text = Text()
+        header_text.append("ZERG Dashboard: ", style="bold cyan")
+        header_text.append(self.feature, style="bold white")
+        header_text.append(" " * 20)
+        header_text.append(f"Elapsed: {elapsed}", style="dim")
+        return Panel(header_text, box=None, padding=(0, 1))
+
+    def _render_progress(self) -> Text:
+        """Render overall progress bar."""
+        tasks = self.state._state.get("tasks", {})
+        total = len(tasks)
+        complete = sum(1 for t in tasks.values() if t.get("status") == TaskStatus.COMPLETE.value)
+        percent = (complete / total * 100) if total > 0 else 0
+
+        bar = compact_progress_bar(percent)
+        progress_text = Text()
+        progress_text.append("Progress: ")
+        progress_text.append(bar[:int(20 * percent / 100)], style="green")
+        progress_text.append(bar[int(20 * percent / 100):], style="dim")
+        progress_text.append(f" {percent:.0f}% ({complete}/{total} tasks)")
+        progress_text.append("\n")
+        return progress_text
+
+    def _render_levels(self) -> Panel:
+        """Render level status section."""
+        tasks = self.state._state.get("tasks", {})
+        levels_data = self.state._state.get("levels", {})
+
+        # Group tasks by level
+        level_tasks: dict[int, list] = {}
+        for task in tasks.values():
+            level_num = task.get("level", 1)
+            if level_num not in level_tasks:
+                level_tasks[level_num] = []
+            level_tasks[level_num].append(task)
+
+        lines = []
+        for level_num in sorted(level_tasks.keys()):
+            level_task_list = level_tasks[level_num]
+            total = len(level_task_list)
+            complete = sum(
+                1 for t in level_task_list if t.get("status") == TaskStatus.COMPLETE.value
+            )
+            running = sum(
+                1 for t in level_task_list
+                if t.get("status") in (TaskStatus.CLAIMED.value, TaskStatus.IN_PROGRESS.value)
+            )
+
+            # Determine level status
+            if complete == total:
+                status = "complete"
+                status_text = "COMPLETE"
+            elif running > 0 or complete > 0:
+                status = "running"
+                status_text = "RUNNING"
+            else:
+                status = "pending"
+                status_text = "PENDING"
+
+            # Check for merge status
+            level_info = levels_data.get(str(level_num), {})
+            merge_status = level_info.get("merge_status")
+            if merge_status in ("merging", "rebasing", "validating"):
+                status = "merging"
+                status_text = "MERGING"
+            elif merge_status == "conflict":
+                status = "conflict"
+                status_text = "CONFLICT"
+
+            percent = (complete / total * 100) if total > 0 else 0
+            bar = compact_progress_bar(percent)
+            symbol = LEVEL_SYMBOLS.get(status, "○")
+
+            line = Text()
+            line.append(f"L{level_num} [")
+            line.append(bar[:int(20 * percent / 100)], style="green")
+            line.append(bar[int(20 * percent / 100):], style="dim")
+            line.append(f"] {percent:3.0f}% {complete:2}/{total:2} {symbol} {status_text}")
+            lines.append(line)
+
+        content = Text("\n").join(lines) if lines else Text("[dim]No levels[/dim]")
+        return Panel(content, title="[bold]LEVELS[/bold]", title_align="left", padding=(0, 1))
+
+    def _render_workers(self) -> Panel:
+        """Render worker status section."""
+        workers = self.state.get_all_workers()
+
+        lines = []
+        for worker_id, worker in sorted(workers.items()):
+            color = WORKER_COLORS.get(worker.status, "white")
+            status_str = worker.status.value.upper()
+
+            # Context usage bar
+            ctx = worker.context_usage
+            ctx_bar = compact_progress_bar(ctx * 100, width=20)
+            ctx_percent = int(ctx * 100)
+
+            line = Text()
+            line.append(f"W{worker_id} ", style="bold")
+            line.append(f"{status_str:12}", style=color)
+            line.append(f"{worker.current_task or '-':16}")
+            line.append(" [")
+
+            # Color context bar based on usage
+            bar_filled = int(20 * ctx)
+            if ctx > 0.85:
+                line.append(ctx_bar[:bar_filled], style="red")
+            elif ctx > 0.70:
+                line.append(ctx_bar[:bar_filled], style="yellow")
+            else:
+                line.append(ctx_bar[:bar_filled], style="green")
+            line.append(ctx_bar[bar_filled:], style="dim")
+            line.append("] ")
+
+            ctx_str = f"ctx:{ctx_percent:2}%"
+            if ctx > 0.85:
+                line.append(ctx_str, style="red")
+                line.append(" ⚠", style="yellow")
+            else:
+                line.append(ctx_str)
+
+            lines.append(line)
+
+        content = Text("[dim]No workers active[/dim]") if not lines else Text("\n").join(lines)
+        return Panel(content, title="[bold]WORKERS[/bold]", title_align="left", padding=(0, 1))
+
+    def _render_events(self, limit: int = 4) -> Panel:
+        """Render recent events section.
+
+        Args:
+            limit: Maximum number of events to display
+        """
+        events = self.state.get_events(limit=limit)
+
+        lines = []
+        for event in events[-limit:]:
+            ts = event.get("timestamp", "")
+            # Extract time portion (HH:MM:SS)
+            ts_display = (ts[11:19] if len(ts) > 11 else ts[:8]) if len(ts) >= 8 else ts
+
+            event_type = event.get("event", "unknown")
+            data = event.get("data", {})
+
+            line = Text()
+            line.append(f"{ts_display} ", style="dim")
+
+            if event_type == "task_complete":
+                duration = data.get("duration", "")
+                duration_str = f", {duration}" if duration else ""
+                task_id = data.get("task_id", "?")
+                worker_id = data.get("worker_id", "?")
+                line.append("✓ ", style="green")
+                line.append(f"{task_id} complete (worker-{worker_id}{duration_str})")
+            elif event_type == "task_claimed":
+                task_id = data.get("task_id", "?")
+                worker_id = data.get("worker_id", "?")
+                line.append("→ ", style="cyan")
+                line.append(f"{task_id} claimed by worker-{worker_id}")
+            elif event_type == "task_failed":
+                task_id = data.get("task_id", "?")
+                error_msg = data.get("error", "unknown")[:30]
+                line.append("✗ ", style="red")
+                line.append(f"{task_id} failed: {error_msg}")
+            elif event_type == "level_started":
+                lvl = data.get("level", "?")
+                task_count = data.get("tasks", "?")
+                line.append("▶ ", style="cyan")
+                line.append(f"Level {lvl} started with {task_count} tasks")
+            elif event_type == "level_complete":
+                line.append("✓ ", style="green")
+                line.append(f"Level {data.get('level', '?')} complete")
+            elif event_type == "worker_started":
+                line.append("+ ", style="cyan")
+                line.append(f"Worker {data.get('worker_id', '?')} started")
+            elif event_type == "merge_started":
+                line.append("⟳ ", style="cyan")
+                line.append(f"Level {data.get('level', '?')} merge started")
+            elif event_type == "merge_complete":
+                line.append("✓ ", style="green")
+                line.append(f"Level {data.get('level', '?')} merge complete")
+            else:
+                line.append(f"  {event_type}")
+
+            lines.append(line)
+
+        content = Text("[dim]No events yet[/dim]") if not lines else Text("\n").join(lines)
+        return Panel(content, title="[bold]EVENTS[/bold]", title_align="left", padding=(0, 1))
+
+
+def show_dashboard(state: StateManager, feature: str, interval: int = 1) -> None:
+    """Real-time dashboard view.
+
+    Args:
+        state: State manager
+        feature: Feature name
+        interval: Refresh interval in seconds
+    """
+    renderer = DashboardRenderer(state, feature)
+
+    with Live(console=console, refresh_per_second=1, screen=True) as live:
+        try:
+            while True:
+                state.load()
+                live.update(renderer.render())
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            pass
 
 
 def show_status(state: StateManager, feature: str, level_filter: int | None) -> None:

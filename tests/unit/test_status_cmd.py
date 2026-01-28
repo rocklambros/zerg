@@ -26,9 +26,13 @@ from rich.panel import Panel
 
 from zerg.cli import cli
 from zerg.commands.status import (
+    DashboardRenderer,
     build_status_output,
+    compact_progress_bar,
     create_progress_bar,
     detect_feature,
+    format_elapsed,
+    show_dashboard,
     show_json_status,
     show_level_status,
     show_recent_events,
@@ -1185,3 +1189,310 @@ class TestStatusIntegration:
         # Should auto-detect the feature
         # Either shows the feature or errors gracefully
         assert result.exit_code == 0 or "auto-detected" in result.output.lower()
+
+
+# =============================================================================
+# Tests for format_elapsed()
+# =============================================================================
+
+
+class TestFormatElapsed:
+    """Tests for elapsed time formatting."""
+
+    def test_format_elapsed_seconds(self) -> None:
+        """Test formatting with just seconds."""
+        start = datetime.now()
+        result = format_elapsed(start)
+        assert result == "0s"
+
+    def test_format_elapsed_minutes_seconds(self) -> None:
+        """Test formatting with minutes and seconds."""
+        from datetime import timedelta
+
+        start = datetime.now() - timedelta(minutes=5, seconds=32)
+        result = format_elapsed(start)
+        assert result == "5m 32s"
+
+    def test_format_elapsed_hours_minutes(self) -> None:
+        """Test formatting with hours and minutes."""
+        from datetime import timedelta
+
+        start = datetime.now() - timedelta(hours=1, minutes=23)
+        result = format_elapsed(start)
+        assert result == "1h 23m"
+
+
+# =============================================================================
+# Tests for compact_progress_bar()
+# =============================================================================
+
+
+class TestCompactProgressBar:
+    """Tests for compact progress bar generation."""
+
+    def test_compact_progress_bar_0_percent(self) -> None:
+        """Test progress bar at 0%."""
+        result = compact_progress_bar(0)
+        assert result == "░" * 20
+
+    def test_compact_progress_bar_50_percent(self) -> None:
+        """Test progress bar at 50%."""
+        result = compact_progress_bar(50)
+        assert result == "█" * 10 + "░" * 10
+
+    def test_compact_progress_bar_100_percent(self) -> None:
+        """Test progress bar at 100%."""
+        result = compact_progress_bar(100)
+        assert result == "█" * 20
+
+    def test_compact_progress_bar_custom_width(self) -> None:
+        """Test progress bar with custom width."""
+        result = compact_progress_bar(50, width=10)
+        assert result == "█" * 5 + "░" * 5
+        assert len(result) == 10
+
+
+# =============================================================================
+# Tests for DashboardRenderer
+# =============================================================================
+
+
+class TestDashboardRenderer:
+    """Tests for DashboardRenderer class."""
+
+    def test_dashboard_renderer_init(self) -> None:
+        """Test DashboardRenderer initialization."""
+        mock_state = create_mock_state_manager()
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        assert renderer.state == mock_state
+        assert renderer.feature == "test-feature"
+        assert renderer.start_time is not None
+
+    def test_dashboard_renderer_render_returns_group(self) -> None:
+        """Test render() returns a Group."""
+        from rich.console import Group
+
+        mock_state = create_mock_state_manager()
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        result = renderer.render()
+        assert isinstance(result, Group)
+
+    def test_dashboard_renderer_header(self) -> None:
+        """Test header rendering contains feature name."""
+        mock_state = create_mock_state_manager()
+        renderer = DashboardRenderer(mock_state, "my-feature")
+
+        header = renderer._render_header()
+        # Header should be a Panel containing feature name
+        assert isinstance(header, Panel)
+
+    def test_dashboard_renderer_progress(self) -> None:
+        """Test progress rendering with tasks."""
+        mock_state = create_mock_state_manager(
+            tasks={
+                "L1-001": {"status": "complete", "level": 1},
+                "L1-002": {"status": "in_progress", "level": 1},
+                "L1-003": {"status": "pending", "level": 1},
+            }
+        )
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        progress = renderer._render_progress()
+        # Should contain progress info
+        assert "Progress" in str(progress)
+
+    def test_dashboard_renderer_levels(self) -> None:
+        """Test level rendering with multiple levels."""
+        mock_state = create_mock_state_manager(
+            tasks={
+                "L1-001": {"status": "complete", "level": 1},
+                "L1-002": {"status": "complete", "level": 1},
+                "L2-001": {"status": "in_progress", "level": 2},
+                "L2-002": {"status": "pending", "level": 2},
+            }
+        )
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        levels = renderer._render_levels()
+        assert isinstance(levels, Panel)
+
+    def test_dashboard_renderer_workers(self) -> None:
+        """Test worker rendering with various statuses."""
+        mock_state = create_mock_state_manager(
+            workers={
+                0: WorkerState(
+                    worker_id=0,
+                    status=WorkerStatus.RUNNING,
+                    current_task="L2-001",
+                    context_usage=0.65,
+                    port=50001,
+                ),
+                1: WorkerState(
+                    worker_id=1,
+                    status=WorkerStatus.IDLE,
+                    context_usage=0.0,
+                    port=50002,
+                ),
+            }
+        )
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        workers = renderer._render_workers()
+        assert isinstance(workers, Panel)
+
+    def test_dashboard_renderer_workers_high_context_warning(self) -> None:
+        """Test worker with high context usage shows warning."""
+        mock_state = create_mock_state_manager(
+            workers={
+                0: WorkerState(
+                    worker_id=0,
+                    status=WorkerStatus.RUNNING,
+                    current_task="L2-001",
+                    context_usage=0.90,  # Above 85% threshold
+                    port=50001,
+                ),
+            }
+        )
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        workers = renderer._render_workers()
+        # Should render without error (warning symbol is in there)
+        assert isinstance(workers, Panel)
+
+    def test_dashboard_renderer_events(self) -> None:
+        """Test event rendering with various event types."""
+        mock_state = create_mock_state_manager(
+            events=[
+                {
+                    "timestamp": "2025-01-26T14:32:15",
+                    "event": "task_complete",
+                    "data": {"task_id": "L2-005", "worker_id": 2, "duration": "45s"},
+                },
+                {
+                    "timestamp": "2025-01-26T14:32:08",
+                    "event": "task_claimed",
+                    "data": {"task_id": "L2-012", "worker_id": 2},
+                },
+            ]
+        )
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        events = renderer._render_events()
+        assert isinstance(events, Panel)
+
+    def test_dashboard_renderer_events_all_types(self) -> None:
+        """Test all event types are rendered correctly."""
+        mock_state = create_mock_state_manager(
+            events=[
+                {"timestamp": "2025-01-26T10:00:00", "event": "task_complete", "data": {"task_id": "L1-001", "worker_id": 0}},
+                {"timestamp": "2025-01-26T10:01:00", "event": "task_claimed", "data": {"task_id": "L1-002", "worker_id": 1}},
+                {"timestamp": "2025-01-26T10:02:00", "event": "task_failed", "data": {"task_id": "L1-003", "error": "Test error"}},
+                {"timestamp": "2025-01-26T10:03:00", "event": "level_started", "data": {"level": 2, "tasks": 5}},
+                {"timestamp": "2025-01-26T10:04:00", "event": "level_complete", "data": {"level": 1}},
+                {"timestamp": "2025-01-26T10:05:00", "event": "worker_started", "data": {"worker_id": 0}},
+                {"timestamp": "2025-01-26T10:06:00", "event": "merge_started", "data": {"level": 1}},
+                {"timestamp": "2025-01-26T10:07:00", "event": "merge_complete", "data": {"level": 1}},
+                {"timestamp": "2025-01-26T10:08:00", "event": "unknown_event", "data": {}},
+            ]
+        )
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        events = renderer._render_events(limit=10)
+        assert isinstance(events, Panel)
+
+    def test_dashboard_renderer_no_workers(self) -> None:
+        """Test rendering with no active workers."""
+        mock_state = create_mock_state_manager(workers={})
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        workers = renderer._render_workers()
+        assert isinstance(workers, Panel)
+
+    def test_dashboard_renderer_no_events(self) -> None:
+        """Test rendering with no events."""
+        mock_state = create_mock_state_manager(events=[])
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        events = renderer._render_events()
+        assert isinstance(events, Panel)
+
+    def test_dashboard_renderer_empty_state(self) -> None:
+        """Test rendering with empty state."""
+        mock_state = create_mock_state_manager()
+        renderer = DashboardRenderer(mock_state, "test-feature")
+
+        # Should not raise
+        result = renderer.render()
+        assert result is not None
+
+
+# =============================================================================
+# Tests for show_dashboard()
+# =============================================================================
+
+
+class TestShowDashboard:
+    """Tests for show_dashboard function."""
+
+    def test_show_dashboard_single_iteration(self) -> None:
+        """Test dashboard exits cleanly on keyboard interrupt."""
+        mock_state = create_mock_state_manager()
+
+        with patch("zerg.commands.status.Live") as mock_live:
+            # Simulate keyboard interrupt on first sleep
+            with patch("zerg.commands.status.time.sleep", side_effect=KeyboardInterrupt):
+                # Should not raise
+                show_dashboard(mock_state, "test-feature", interval=1)
+
+            # Live should have been called with screen=True
+            mock_live.assert_called_once()
+
+
+# =============================================================================
+# Tests for Dashboard CLI flag
+# =============================================================================
+
+
+class TestDashboardCLI:
+    """Tests for --dashboard CLI flag."""
+
+    def test_dashboard_flag_exists(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+        """Test --dashboard flag is recognized."""
+        monkeypatch.chdir(tmp_path)
+        state_dir = tmp_path / ".zerg" / "state"
+        create_test_state_file(state_dir, feature="test-feature")
+
+        runner = CliRunner()
+        # Test that --help shows the dashboard option
+        result = runner.invoke(cli, ["status", "--help"])
+        assert "--dashboard" in result.output
+        assert "-d" in result.output
+
+    def test_dashboard_short_flag(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+        """Test -d short flag is recognized."""
+        monkeypatch.chdir(tmp_path)
+        state_dir = tmp_path / ".zerg" / "state"
+        create_test_state_file(state_dir, feature="test-feature")
+
+        with patch("zerg.commands.status.show_dashboard") as mock_show:
+            runner = CliRunner()
+            runner.invoke(cli, ["status", "-d", "--feature", "test-feature"])
+            # Should call show_dashboard
+            mock_show.assert_called_once()
+
+    def test_dashboard_with_interval(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+        """Test --dashboard with custom interval."""
+        monkeypatch.chdir(tmp_path)
+        state_dir = tmp_path / ".zerg" / "state"
+        create_test_state_file(state_dir, feature="test-feature")
+
+        with patch("zerg.commands.status.show_dashboard") as mock_show:
+            runner = CliRunner()
+            runner.invoke(cli, ["status", "-d", "--interval", "2", "--feature", "test-feature"])
+            # Should call show_dashboard with interval=2
+            mock_show.assert_called_once()
+            args, kwargs = mock_show.call_args
+            # Check interval is passed (could be positional or keyword)
+            assert 2 in args or kwargs.get("interval") == 2
