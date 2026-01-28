@@ -33,6 +33,12 @@ def security_rules_group() -> None:
 @click.option("--json-output", "-j", is_flag=True, help="Output as JSON")
 def detect_command(path: Path, json_output: bool) -> None:
     """Detect project technology stack."""
+    import logging
+
+    # Suppress log output when JSON output is requested for clean machine-readable output
+    if json_output:
+        logging.getLogger("zerg").setLevel(logging.CRITICAL + 1)
+
     stack = detect_project_stack(path)
 
     if json_output:

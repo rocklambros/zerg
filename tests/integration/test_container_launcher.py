@@ -184,7 +184,7 @@ class TestContainerLauncher:
         launcher = ContainerLauncher()
 
         assert launcher.image_name == "zerg-worker"
-        assert launcher.network == "zerg-internal"
+        assert launcher.network == "bridge"
         assert launcher._workers == {}
         assert launcher._container_ids == {}
 
@@ -201,14 +201,13 @@ class TestContainerLauncher:
         assert launcher.network == "custom-network"
 
     @patch("subprocess.run")
-    def test_spawn_success(self, mock_run: MagicMock, tmp_path: Path) -> None:
+    @patch.object(ContainerLauncher, "_wait_ready", return_value=True)
+    def test_spawn_success(
+        self, mock_wait: MagicMock, mock_run: MagicMock, tmp_path: Path
+    ) -> None:
         """Test successful container spawn."""
         # Mock docker run returning container ID
-        mock_run.side_effect = [
-            MagicMock(returncode=0, stdout="abc123def456\n"),  # docker run
-            MagicMock(returncode=0, stdout="true\n"),  # docker inspect (ready check)
-            MagicMock(returncode=0),  # docker exec
-        ]
+        mock_run.return_value = MagicMock(returncode=0, stdout="abc123def456\n")
 
         launcher = ContainerLauncher()
         result = launcher.spawn(

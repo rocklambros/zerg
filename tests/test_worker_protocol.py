@@ -557,6 +557,8 @@ class TestVerificationFlow:
 
         git = MagicMock()
         git.has_changes.return_value = True
+        # Simulate HEAD change after commit (BF-009 verification)
+        git.current_commit.side_effect = ["abc1234", "def5678"]
 
         verifier = MagicMock()
 

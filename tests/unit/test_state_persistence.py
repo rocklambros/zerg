@@ -188,8 +188,13 @@ class TestSaveWritePermissionError:
             state_dir.chmod(original_mode)
 
     @pytest.mark.skipif(os.name == "nt", reason="Permission tests unreliable on Windows")
-    def test_save_raises_on_readonly_file(self, tmp_path: Path) -> None:
-        """Test that save() raises an error when state file is read-only."""
+    def test_save_succeeds_even_with_readonly_file(self, tmp_path: Path) -> None:
+        """Test that atomic save succeeds even when state file is read-only.
+
+        With atomic save, we write to a temp file then rename to the target.
+        Renaming overwrites even read-only files on most systems, so this
+        should succeed where a direct write would fail.
+        """
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
         manager.save()  # Create the file first
@@ -203,8 +208,13 @@ class TestSaveWritePermissionError:
 
             manager._state["current_level"] = 10
 
-            with pytest.raises(PermissionError):
-                manager.save()
+            # Atomic save (temp + rename) should succeed despite read-only target
+            manager.save()
+
+            # Verify the save worked
+            state_file.chmod(original_mode)  # Restore to read
+            content = json.loads(state_file.read_text())
+            assert content["current_level"] == 10
         finally:
             # Restore permissions for cleanup
             state_file.chmod(original_mode)
@@ -230,7 +240,6 @@ class TestSaveCreatesBackup:
     were implemented. They are marked as xfail until the feature is added.
     """
 
-    @pytest.mark.xfail(reason="Backup feature not yet implemented in StateManager")
     def test_save_creates_backup_before_overwrite(self, tmp_path: Path) -> None:
         """Test that save() creates a backup file before overwriting."""
         manager = StateManager("test-feature", state_dir=tmp_path)
@@ -250,7 +259,6 @@ class TestSaveCreatesBackup:
         backup_content = json.loads(backup_file.read_text())
         assert backup_content["current_level"] == 1
 
-    @pytest.mark.xfail(reason="Backup feature not yet implemented in StateManager")
     def test_save_backup_contains_previous_state(self, tmp_path: Path) -> None:
         """Test that backup contains the exact previous state."""
         manager = StateManager("test-feature", state_dir=tmp_path)
@@ -270,25 +278,20 @@ class TestSaveCreatesBackup:
         assert backup_content["tasks"] == {"TASK-001": {"status": "complete"}}
         assert backup_content["current_level"] == 0
 
-    def test_no_backup_file_exists_with_current_implementation(self, tmp_path: Path) -> None:
-        """Test that verifies current behavior: no backup file is created.
-
-        This test documents that the current implementation does NOT create
-        backup files. When backup functionality is added, this test should
-        be removed or updated.
-        """
+    def test_backup_file_created_on_second_save(self, tmp_path: Path) -> None:
+        """Test that backup file is created on second save."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
         manager._state["current_level"] = 1
         manager.save()
 
-        # Save again to trigger what would be a backup scenario
+        # Save again to trigger backup scenario
         manager._state["current_level"] = 2
         manager.save()
 
-        # Current behavior: no backup file is created
+        # Backup file should now be created
         backup_file = tmp_path / "test-feature.json.bak"
-        assert not backup_file.exists(), "Current implementation does not create backups"
+        assert backup_file.exists(), "Backup file should be created on second save"
 
 
 class TestAtomicSave:
@@ -302,28 +305,29 @@ class TestAtomicSave:
     This prevents partial writes from corrupting state on crash/interrupt.
     """
 
-    @pytest.mark.xfail(reason="Atomic save feature not yet implemented in StateManager")
     def test_atomic_save_uses_temp_file(self, tmp_path: Path) -> None:
-        """Test that save() writes to a temp file first."""
+        """Test that save() writes to a temp file first via tempfile.mkstemp."""
+        import tempfile
+
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
 
         temp_files_created = []
-        original_open = open
+        original_mkstemp = tempfile.mkstemp
 
-        def tracking_open(file, *args, **kwargs):
-            file_str = str(file)
-            if ".tmp" in file_str or ".partial" in file_str:
-                temp_files_created.append(file_str)
-            return original_open(file, *args, **kwargs)
+        def tracking_mkstemp(*args, **kwargs):
+            result = original_mkstemp(*args, **kwargs)
+            temp_files_created.append(result[1])  # result is (fd, path)
+            return result
 
-        with patch("builtins.open", side_effect=tracking_open):
+        with patch("tempfile.mkstemp", side_effect=tracking_mkstemp):
             manager.save()
 
         # Should have written to a temp file during save
         assert len(temp_files_created) > 0, "Atomic save should use temp file"
+        # Verify the temp file had .tmp suffix
+        assert any(".tmp" in f for f in temp_files_created)
 
-    @pytest.mark.xfail(reason="Atomic save feature not yet implemented in StateManager")
     def test_atomic_save_preserves_original_on_write_failure(self, tmp_path: Path) -> None:
         """Test that original file is preserved if write to temp fails.
 
@@ -352,12 +356,10 @@ class TestAtomicSave:
         current_content = state_file.read_text()
         assert current_content == original_content, "Original file should be preserved on failure"
 
-    def test_current_save_modifies_file_directly(self, tmp_path: Path) -> None:
-        """Test that verifies current behavior: save writes directly to file.
+    def test_save_uses_temp_file_for_atomic_write(self, tmp_path: Path) -> None:
+        """Test that save uses temp file for atomic write.
 
-        This test documents that the current implementation writes directly
-        to the target file without atomic save. When atomic save is added,
-        this test should be removed or updated.
+        The implementation now uses atomic save: write to temp file, then rename.
         """
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -366,26 +368,15 @@ class TestAtomicSave:
 
         state_file = tmp_path / "test-feature.json"
 
-        # Track what files are opened for writing
-        files_written = []
-        original_open = open
+        # Verify the final file exists and has correct content
+        assert state_file.exists()
+        content = json.loads(state_file.read_text())
+        assert content["current_level"] == 1
 
-        def tracking_open(file, mode="r", *args, **kwargs):
-            if "w" in mode:
-                files_written.append(str(file))
-            return original_open(file, mode, *args, **kwargs)
+        # Verify no leftover temp files
+        temp_files = list(tmp_path.glob("*.tmp"))
+        assert len(temp_files) == 0, "No temp files should remain after successful save"
 
-        with patch("builtins.open", side_effect=tracking_open):
-            manager._state["current_level"] = 2
-            manager.save()
-
-        # Current behavior: writes directly to the state file (no temp file)
-        assert str(state_file) in files_written
-        # No temp files should be in the list
-        temp_files = [f for f in files_written if ".tmp" in f or ".partial" in f]
-        assert len(temp_files) == 0, "Current implementation does not use temp files"
-
-    @pytest.mark.xfail(reason="Atomic save feature not yet implemented in StateManager")
     def test_atomic_save_no_partial_content_on_interrupt(self, tmp_path: Path) -> None:
         """Test that state file has no partial content if interrupted mid-write."""
         manager = StateManager("test-feature", state_dir=tmp_path)

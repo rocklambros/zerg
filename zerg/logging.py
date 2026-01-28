@@ -3,7 +3,7 @@
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
@@ -25,7 +25,7 @@ class JsonFormatter(logging.Formatter):
             JSON-formatted log string
         """
         log_data = {
-            "ts": datetime.utcnow().isoformat() + "Z",
+            "ts": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "level": record.levelname.lower(),
             "logger": record.name,
             "message": record.getMessage(),

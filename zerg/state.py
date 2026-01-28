@@ -60,10 +60,39 @@ class StateManager:
             return self._state.copy()
 
     def save(self) -> None:
-        """Save state to file."""
+        """Save state to file with backup and atomic write.
+
+        Creates a backup of the existing file before overwriting, then uses
+        atomic write (temp file + rename) to prevent partial writes on crash.
+        """
+        import tempfile
+
         with self._lock:
-            with open(self._state_file, "w") as f:
-                json.dump(self._state, f, indent=2, default=str)
+            # Create backup if file already exists
+            if self._state_file.exists():
+                backup_path = self._state_file.with_suffix(".json.bak")
+                # Read existing content and write to backup
+                existing_content = self._state_file.read_text()
+                backup_path.write_text(existing_content)
+
+            # Atomic write: write to temp file, then rename
+            temp_fd, temp_path = tempfile.mkstemp(
+                suffix=".tmp",
+                prefix=f"{self.feature}_",
+                dir=self.state_dir
+            )
+            temp_file = Path(temp_path)
+            try:
+                with open(temp_fd, "w") as f:
+                    json.dump(self._state, f, indent=2, default=str)
+                # Atomic rename (on POSIX systems)
+                temp_file.replace(self._state_file)
+            except Exception:
+                # Clean up temp file on failure
+                if temp_file.exists():
+                    temp_file.unlink()
+                raise
+
             logger.debug(f"Saved state for feature {self.feature}")
 
     def _create_initial_state(self) -> dict[str, Any]:

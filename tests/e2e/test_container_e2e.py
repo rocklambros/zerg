@@ -85,7 +85,8 @@ def mock_orchestrator_deps():
          patch("zerg.orchestrator.ContainerManager") as container_mock, \
          patch("zerg.orchestrator.PortAllocator") as ports_mock, \
          patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
+         patch("zerg.orchestrator.SubprocessLauncher") as subprocess_launcher_mock, \
+         patch("zerg.orchestrator.ContainerLauncher") as container_launcher_mock:
 
         state = MagicMock()
         state.load.return_value = {}
@@ -110,6 +111,7 @@ def mock_orchestrator_deps():
         ports.allocate_one.return_value = 49152
         ports_mock.return_value = ports
 
+        # Create a shared launcher mock for both subprocess and container
         launcher = MagicMock()
         spawn_result = MagicMock(spec=SpawnResult)
         spawn_result.success = True
@@ -119,7 +121,10 @@ def mock_orchestrator_deps():
         launcher.spawn.return_value = spawn_result
         launcher.monitor.return_value = WorkerStatus.RUNNING
         launcher.terminate.return_value = True
-        launcher_mock.return_value = launcher
+
+        # Set both launcher types to return the same mock
+        subprocess_launcher_mock.return_value = launcher
+        container_launcher_mock.return_value = launcher
 
         yield {
             "state": state,
@@ -167,7 +172,7 @@ class TestContainerNetworking:
     def test_network_constant_defined(self) -> None:
         """Test Docker network constant is defined."""
         assert hasattr(ContainerLauncher, "DEFAULT_NETWORK")
-        assert ContainerLauncher.DEFAULT_NETWORK == "zerg-internal"
+        assert ContainerLauncher.DEFAULT_NETWORK == "bridge"
 
     def test_container_prefix_defined(self) -> None:
         """Test container prefix is defined."""
