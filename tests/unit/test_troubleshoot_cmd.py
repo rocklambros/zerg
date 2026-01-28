@@ -12,16 +12,15 @@ Tests cover:
 - TroubleshootCommand orchestration
 - _load_stacktrace_file helper function
 - CLI command with all options
+- Deep diagnostics integration (--feature, --deep, --auto-fix, --worker)
 """
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.commands.troubleshoot import (
@@ -37,7 +36,10 @@ from zerg.commands.troubleshoot import (
     _load_stacktrace_file,
     troubleshoot,
 )
-
+from zerg.diagnostics.log_analyzer import LogPattern
+from zerg.diagnostics.recovery import RecoveryPlan, RecoveryStep
+from zerg.diagnostics.state_introspector import ZergHealthReport
+from zerg.diagnostics.system_diagnostics import SystemHealthReport
 
 # =============================================================================
 # TroubleshootPhase Enum Tests
@@ -1369,4 +1371,608 @@ class TestTroubleshootCLI:
         runner = CliRunner()
         result = runner.invoke(troubleshoot, ["--error", "Something random"])
 
+        assert result.exit_code == 0
+
+
+# =============================================================================
+# Extended DiagnosticResult Tests (new fields)
+# =============================================================================
+
+
+class TestDiagnosticResultExtended:
+    """Tests for DiagnosticResult with deep diagnostics fields."""
+
+    def test_new_fields_default_none(self) -> None:
+        """Test new optional fields default to None/empty."""
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+        )
+        assert result.zerg_health is None
+        assert result.system_health is None
+        assert result.recovery_plan is None
+        assert result.evidence == []
+        assert result.log_patterns == []
+
+    def test_to_dict_includes_zerg_health(self) -> None:
+        """Test to_dict includes zerg_health when set."""
+        health = ZergHealthReport(
+            feature="test", state_exists=True, total_tasks=5
+        )
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            zerg_health=health,
+        )
+        d = result.to_dict()
+        assert "zerg_health" in d
+        assert d["zerg_health"]["feature"] == "test"
+
+    def test_to_dict_includes_system_health(self) -> None:
+        """Test to_dict includes system_health when set."""
+        sys_h = SystemHealthReport(git_clean=False, git_branch="main")
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            system_health=sys_h,
+        )
+        d = result.to_dict()
+        assert "system_health" in d
+        assert d["system_health"]["git_clean"] is False
+
+    def test_to_dict_includes_recovery_plan(self) -> None:
+        """Test to_dict includes recovery_plan when set."""
+        plan = RecoveryPlan(
+            problem="P",
+            root_cause="C",
+            steps=[RecoveryStep(description="S", command="cmd")],
+        )
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            recovery_plan=plan,
+        )
+        d = result.to_dict()
+        assert "recovery_plan" in d
+        assert len(d["recovery_plan"]["steps"]) == 1
+
+    def test_to_dict_includes_evidence(self) -> None:
+        """Test to_dict includes evidence when non-empty."""
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            evidence=["finding 1", "finding 2"],
+        )
+        d = result.to_dict()
+        assert d["evidence"] == ["finding 1", "finding 2"]
+
+    def test_to_dict_includes_log_patterns(self) -> None:
+        """Test to_dict includes log_patterns when non-empty."""
+        pat = LogPattern(
+            pattern="RuntimeError",
+            count=3,
+            first_seen="1",
+            last_seen="10",
+            worker_ids=[1, 2],
+        )
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            log_patterns=[pat],
+        )
+        d = result.to_dict()
+        assert len(d["log_patterns"]) == 1
+        assert d["log_patterns"][0]["count"] == 3
+
+    def test_to_dict_omits_none_fields(self) -> None:
+        """Test to_dict omits None deep diagnostic fields."""
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+        )
+        d = result.to_dict()
+        assert "zerg_health" not in d
+        assert "system_health" not in d
+        assert "recovery_plan" not in d
+        assert "evidence" not in d
+        assert "log_patterns" not in d
+
+
+# =============================================================================
+# TroubleshootCommand Deep Diagnostics Tests
+# =============================================================================
+
+
+class TestTroubleshootCommandDeep:
+    """Tests for TroubleshootCommand with deep diagnostics."""
+
+    def test_run_with_feature(self) -> None:
+        """Test run with feature param triggers ZERG diagnostics."""
+        troubleshooter = TroubleshootCommand()
+        with patch.object(troubleshooter, "_run_zerg_diagnostics") as mock_zerg:
+            mock_zerg.side_effect = lambda r, f, w: r
+            with patch.object(troubleshooter, "_plan_recovery") as mock_plan:
+                mock_plan.side_effect = lambda r: r
+                troubleshooter.run(
+                    error="test error", feature="my-feat"
+                )
+        mock_zerg.assert_called_once()
+        mock_plan.assert_called_once()
+
+    def test_run_with_deep(self) -> None:
+        """Test run with deep=True triggers system diagnostics."""
+        troubleshooter = TroubleshootCommand()
+        with patch.object(troubleshooter, "_run_system_diagnostics") as mock_sys:
+            mock_sys.side_effect = lambda r: r
+            with patch.object(troubleshooter, "_plan_recovery") as mock_plan:
+                mock_plan.side_effect = lambda r: r
+                troubleshooter.run(
+                    error="test error", deep=True, auto_fix=True
+                )
+        mock_sys.assert_called_once()
+
+    def test_run_without_feature_or_deep(self) -> None:
+        """Test run without feature/deep doesn't trigger deep diagnostics."""
+        troubleshooter = TroubleshootCommand()
+        result = troubleshooter.run(error="ValueError: test")
+        assert result.zerg_health is None
+        assert result.system_health is None
+        assert result.recovery_plan is None
+
+    def test_run_zerg_diagnostics(self, tmp_path: Path) -> None:
+        """Test _run_zerg_diagnostics integration."""
+        state_dir = tmp_path / "state"
+        state_dir.mkdir()
+        import json
+
+        state = {
+            "tasks": {"T1": {"status": "failed", "error": "err"}},
+            "workers": {},
+        }
+        (state_dir / "feat.json").write_text(json.dumps(state))
+
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="unknown",
+            recommendation="fix",
+        )
+        with patch(
+            "zerg.diagnostics.state_introspector.ZergStateIntrospector"
+        ) as mock_intr_cls:
+            mock_intr = mock_intr_cls.return_value
+            mock_intr.get_health_report.return_value = ZergHealthReport(
+                feature="feat",
+                state_exists=True,
+                total_tasks=1,
+                failed_tasks=[{"task_id": "T1", "error": "err"}],
+            )
+            with patch(
+                "zerg.diagnostics.log_analyzer.LogAnalyzer"
+            ) as mock_log_cls:
+                mock_log_cls.return_value.scan_worker_logs.return_value = []
+                result = troubleshooter._run_zerg_diagnostics(
+                    result, "feat", None
+                )
+
+        assert result.zerg_health is not None
+        assert "1 failed task" in result.evidence[0]
+
+    def test_run_system_diagnostics(self) -> None:
+        """Test _run_system_diagnostics integration."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="unknown",
+            recommendation="fix",
+        )
+        with patch("zerg.diagnostics.system_diagnostics.SystemDiagnostics") as mock_sys_cls:
+            mock_sys_cls.return_value.run_all.return_value = SystemHealthReport(
+                git_clean=False,
+                git_uncommitted_files=5,
+                port_conflicts=[9500],
+                disk_free_gb=0.5,
+            )
+            result = troubleshooter._run_system_diagnostics(result)
+
+        assert result.system_health is not None
+        assert any("uncommitted" in e for e in result.evidence)
+        assert any("Port" in e for e in result.evidence)
+        assert any("disk" in e.lower() for e in result.evidence)
+
+    def test_plan_recovery(self) -> None:
+        """Test _plan_recovery integration."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="unknown",
+            recommendation="fix",
+        )
+        with patch("zerg.diagnostics.recovery.RecoveryPlanner") as mock_plan_cls:
+            mock_plan_cls.return_value.plan.return_value = RecoveryPlan(
+                problem="test",
+                root_cause="cause",
+                steps=[RecoveryStep(description="step", command="cmd")],
+            )
+            result = troubleshooter._plan_recovery(result)
+
+        assert result.recovery_plan is not None
+        assert len(result.recovery_plan.steps) == 1
+
+    def test_format_result_text_with_zerg_health(self) -> None:
+        """Test format_result text includes ZERG health section."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            zerg_health=ZergHealthReport(
+                feature="auth",
+                state_exists=True,
+                total_tasks=10,
+                task_summary={"complete": 7, "failed": 3},
+            ),
+        )
+        output = troubleshooter.format_result(result)
+        assert "ZERG Health:" in output
+        assert "auth" in output
+        assert "10" in output
+
+    def test_format_result_text_with_system_health(self) -> None:
+        """Test format_result text includes system health section."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            system_health=SystemHealthReport(
+                git_clean=False,
+                git_branch="main",
+                disk_free_gb=50.0,
+            ),
+        )
+        output = troubleshooter.format_result(result)
+        assert "System Health:" in output
+        assert "dirty" in output
+        assert "main" in output
+
+    def test_format_result_text_with_log_patterns(self) -> None:
+        """Test format_result text includes log patterns section."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            log_patterns=[
+                LogPattern(
+                    pattern="RuntimeError: crash",
+                    count=5,
+                    first_seen="1",
+                    last_seen="10",
+                    worker_ids=[1, 2],
+                )
+            ],
+        )
+        output = troubleshooter.format_result(result)
+        assert "Log Patterns:" in output
+        assert "5x" in output
+
+    def test_format_result_text_with_evidence(self) -> None:
+        """Test format_result text includes evidence section."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            evidence=["3 failed tasks", "Low disk space"],
+        )
+        output = troubleshooter.format_result(result)
+        assert "Evidence:" in output
+        assert "3 failed tasks" in output
+
+    def test_format_result_text_with_recovery_plan(self) -> None:
+        """Test format_result text includes recovery plan section."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            recovery_plan=RecoveryPlan(
+                problem="issue",
+                root_cause="root",
+                steps=[
+                    RecoveryStep(
+                        description="Restart workers",
+                        command="zerg rush",
+                        risk="safe",
+                    ),
+                    RecoveryStep(
+                        description="Clean worktrees",
+                        command="git worktree prune",
+                        risk="moderate",
+                    ),
+                ],
+                verification_command="zerg status",
+                prevention="Monitor workers",
+            ),
+        )
+        output = troubleshooter.format_result(result)
+        assert "Recovery Plan:" in output
+        assert "Restart workers" in output
+        assert "zerg rush" in output
+        assert "Verify:" in output
+        assert "Prevent:" in output
+
+    def test_format_result_json_with_deep_fields(self) -> None:
+        """Test format_result JSON includes deep diagnostic fields."""
+        troubleshooter = TroubleshootCommand()
+        result = DiagnosticResult(
+            symptom="Error",
+            hypotheses=[],
+            root_cause="Cause",
+            recommendation="Fix",
+            zerg_health=ZergHealthReport(
+                feature="test", state_exists=True, total_tasks=1
+            ),
+            evidence=["ev1"],
+        )
+        output = troubleshooter.format_result(result, fmt="json")
+        parsed = json.loads(output)
+        assert "zerg_health" in parsed
+        assert "evidence" in parsed
+
+
+# =============================================================================
+# CLI Extended Options Tests
+# =============================================================================
+
+
+class TestTroubleshootCLIExtended:
+    """Tests for new CLI options."""
+
+    def test_help_shows_new_options(self) -> None:
+        """Test --help shows new options."""
+        runner = CliRunner()
+        result = runner.invoke(troubleshoot, ["--help"])
+        assert result.exit_code == 0
+        assert "--feature" in result.output
+        assert "--worker" in result.output
+        assert "--deep" in result.output
+        assert "--auto-fix" in result.output
+
+    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
+    @patch("zerg.commands.troubleshoot.console")
+    def test_feature_only_no_error(
+        self, mock_console: MagicMock, mock_command_class: MagicMock
+    ) -> None:
+        """Test --feature without --error sets default symptom."""
+        mock_command = MagicMock()
+        mock_command.run.return_value = DiagnosticResult(
+            symptom="Investigating feature: test",
+            hypotheses=[],
+            root_cause="Unknown",
+            recommendation="Check state",
+            confidence=0.5,
+            parsed_error=None,
+        )
+        mock_command.config = TroubleshootConfig()
+        mock_command_class.return_value = mock_command
+
+        runner = CliRunner()
+        result = runner.invoke(troubleshoot, ["--feature", "test"])
+
+        assert result.exit_code == 0
+        mock_command.run.assert_called_once()
+        call_kwargs = mock_command.run.call_args
+        assert call_kwargs.kwargs.get("feature") == "test"
+
+    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
+    @patch("zerg.commands.troubleshoot.console")
+    def test_feature_with_worker(
+        self, mock_console: MagicMock, mock_command_class: MagicMock
+    ) -> None:
+        """Test --feature with --worker passes worker_id."""
+        mock_command = MagicMock()
+        mock_command.run.return_value = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="cause",
+            recommendation="fix",
+            confidence=0.5,
+            parsed_error=None,
+        )
+        mock_command.config = TroubleshootConfig()
+        mock_command_class.return_value = mock_command
+
+        runner = CliRunner()
+        result = runner.invoke(
+            troubleshoot, ["--feature", "test", "--worker", "3"]
+        )
+
+        assert result.exit_code == 0
+        call_kwargs = mock_command.run.call_args
+        assert call_kwargs.kwargs.get("worker_id") == 3
+
+    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
+    @patch("zerg.commands.troubleshoot.console")
+    def test_deep_flag(
+        self, mock_console: MagicMock, mock_command_class: MagicMock
+    ) -> None:
+        """Test --deep triggers system diagnostics."""
+        mock_command = MagicMock()
+        mock_command.run.return_value = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="cause",
+            recommendation="fix",
+            confidence=0.5,
+            parsed_error=None,
+        )
+        mock_command.config = TroubleshootConfig()
+        mock_command_class.return_value = mock_command
+
+        runner = CliRunner()
+        with patch(
+            "zerg.diagnostics.state_introspector.ZergStateIntrospector"
+        ) as mock_intr_cls:
+            mock_intr_cls.return_value.find_latest_feature.return_value = None
+            result = runner.invoke(
+                troubleshoot, ["--error", "test", "--deep"]
+            )
+
+        assert result.exit_code == 0
+        call_kwargs = mock_command.run.call_args
+        assert call_kwargs.kwargs.get("deep") is True
+
+    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
+    @patch("zerg.commands.troubleshoot.console")
+    def test_auto_fix_flag(
+        self, mock_console: MagicMock, mock_command_class: MagicMock
+    ) -> None:
+        """Test --auto-fix triggers recovery."""
+        mock_command = MagicMock()
+        mock_command.run.return_value = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="cause",
+            recommendation="fix",
+            confidence=0.5,
+            parsed_error=None,
+        )
+        mock_command.config = TroubleshootConfig()
+        mock_command_class.return_value = mock_command
+
+        runner = CliRunner()
+        with patch(
+            "zerg.diagnostics.state_introspector.ZergStateIntrospector"
+        ) as mock_intr_cls:
+            mock_intr_cls.return_value.find_latest_feature.return_value = "auto-feat"
+            result = runner.invoke(
+                troubleshoot, ["--error", "test", "--auto-fix"]
+            )
+
+        assert result.exit_code == 0
+        call_kwargs = mock_command.run.call_args
+        assert call_kwargs.kwargs.get("auto_fix") is True
+
+    @patch("zerg.commands.troubleshoot.console")
+    def test_no_input_shows_feature_hint(self, mock_console: MagicMock) -> None:
+        """Test no input shows --feature hint."""
+        runner = CliRunner()
+        result = runner.invoke(troubleshoot, [])
+        assert result.exit_code == 0
+
+    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
+    @patch("zerg.commands.troubleshoot.console")
+    def test_cli_displays_zerg_health(
+        self, mock_console: MagicMock, mock_command_class: MagicMock
+    ) -> None:
+        """Test CLI displays ZERG health section."""
+        mock_command = MagicMock()
+        mock_command.run.return_value = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="cause",
+            recommendation="fix",
+            confidence=0.5,
+            parsed_error=None,
+            zerg_health=ZergHealthReport(
+                feature="auth",
+                state_exists=True,
+                total_tasks=10,
+                task_summary={"complete": 8, "failed": 2},
+                failed_tasks=[{"task_id": "T1"}],
+            ),
+        )
+        mock_command.config = TroubleshootConfig()
+        mock_command_class.return_value = mock_command
+
+        runner = CliRunner()
+        result = runner.invoke(troubleshoot, ["--feature", "auth"])
+        assert result.exit_code == 0
+
+    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
+    @patch("zerg.commands.troubleshoot.console")
+    def test_cli_displays_system_health(
+        self, mock_console: MagicMock, mock_command_class: MagicMock
+    ) -> None:
+        """Test CLI displays system health section."""
+        mock_command = MagicMock()
+        mock_command.run.return_value = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="cause",
+            recommendation="fix",
+            confidence=0.5,
+            parsed_error=None,
+            system_health=SystemHealthReport(
+                git_clean=False,
+                git_branch="main",
+                git_uncommitted_files=3,
+                disk_free_gb=50.0,
+            ),
+        )
+        mock_command.config = TroubleshootConfig()
+        mock_command_class.return_value = mock_command
+
+        runner = CliRunner()
+        result = runner.invoke(
+            troubleshoot, ["--error", "test", "--deep"]
+        )
+        assert result.exit_code == 0
+
+    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
+    @patch("zerg.commands.troubleshoot.console")
+    def test_cli_displays_recovery_plan(
+        self, mock_console: MagicMock, mock_command_class: MagicMock
+    ) -> None:
+        """Test CLI displays recovery plan section."""
+        mock_command = MagicMock()
+        mock_command.run.return_value = DiagnosticResult(
+            symptom="test",
+            hypotheses=[],
+            root_cause="cause",
+            recommendation="fix",
+            confidence=0.5,
+            parsed_error=None,
+            recovery_plan=RecoveryPlan(
+                problem="issue",
+                root_cause="root",
+                steps=[
+                    RecoveryStep(
+                        description="Fix it",
+                        command="do fix",
+                        risk="safe",
+                    )
+                ],
+                prevention="Be careful",
+            ),
+        )
+        mock_command.config = TroubleshootConfig()
+        mock_command_class.return_value = mock_command
+
+        runner = CliRunner()
+        result = runner.invoke(troubleshoot, ["--feature", "test"])
         assert result.exit_code == 0

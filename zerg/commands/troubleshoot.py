@@ -1,10 +1,13 @@
 """ZERG troubleshoot command - systematic debugging with root cause analysis."""
 
+from __future__ import annotations
+
 import json
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 from rich.console import Console
@@ -12,6 +15,12 @@ from rich.panel import Panel
 from rich.table import Table
 
 from zerg.logging import get_logger
+
+if TYPE_CHECKING:
+    from zerg.diagnostics.log_analyzer import LogPattern
+    from zerg.diagnostics.recovery import RecoveryPlan
+    from zerg.diagnostics.state_introspector import ZergHealthReport
+    from zerg.diagnostics.system_diagnostics import SystemHealthReport
 
 console = Console()
 logger = get_logger("troubleshoot")
@@ -88,6 +97,12 @@ class DiagnosticResult:
     phase: TroubleshootPhase = TroubleshootPhase.ROOT_CAUSE
     confidence: float = 0.8
     parsed_error: ParsedError | None = None
+    # Deep diagnostics fields (optional, backward compatible)
+    zerg_health: ZergHealthReport | None = None
+    system_health: SystemHealthReport | None = None
+    recovery_plan: RecoveryPlan | None = None
+    evidence: list[str] = field(default_factory=list)
+    log_patterns: list[LogPattern] = field(default_factory=list)
 
     @property
     def has_root_cause(self) -> bool:
@@ -96,15 +111,28 @@ class DiagnosticResult:
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
-        return {
+        result = {
             "symptom": self.symptom,
             "root_cause": self.root_cause,
             "recommendation": self.recommendation,
             "confidence": self.confidence,
             "phase": self.phase.value,
             "hypotheses": [h.to_dict() for h in self.hypotheses],
-            "parsed_error": self.parsed_error.to_dict() if self.parsed_error else None,
+            "parsed_error": (
+                self.parsed_error.to_dict() if self.parsed_error else None
+            ),
         }
+        if self.zerg_health is not None:
+            result["zerg_health"] = self.zerg_health.to_dict()
+        if self.system_health is not None:
+            result["system_health"] = self.system_health.to_dict()
+        if self.recovery_plan is not None:
+            result["recovery_plan"] = self.recovery_plan.to_dict()
+        if self.evidence:
+            result["evidence"] = self.evidence
+        if self.log_patterns:
+            result["log_patterns"] = [p.to_dict() for p in self.log_patterns]
+        return result
 
 
 class ErrorParser:
@@ -340,8 +368,21 @@ class TroubleshootCommand:
         self,
         error: str = "",
         stack_trace: str = "",
+        feature: str | None = None,
+        worker_id: int | None = None,
+        deep: bool = False,
+        auto_fix: bool = False,
     ) -> DiagnosticResult:
-        """Run troubleshooting."""
+        """Run troubleshooting.
+
+        Args:
+            error: Error message to analyze
+            stack_trace: Stack trace content
+            feature: ZERG feature to investigate
+            worker_id: Specific worker ID to investigate
+            deep: Run system-level diagnostics
+            auto_fix: Generate and execute recovery plan
+        """
         full_error = f"{error}\n{stack_trace}".strip()
 
         # Phase 1: Parse symptom
@@ -360,7 +401,7 @@ class TroubleshootCommand:
             parsed, hypotheses
         )
 
-        return DiagnosticResult(
+        result = DiagnosticResult(
             symptom=symptom,
             hypotheses=hypotheses,
             root_cause=root_cause,
@@ -368,6 +409,113 @@ class TroubleshootCommand:
             confidence=confidence,
             parsed_error=parsed,
         )
+
+        # Deep diagnostics: ZERG state introspection
+        if feature:
+            result = self._run_zerg_diagnostics(
+                result, feature, worker_id
+            )
+
+        # Deep diagnostics: system-level checks
+        if deep:
+            result = self._run_system_diagnostics(result)
+
+        # Recovery planning
+        if auto_fix or feature:
+            result = self._plan_recovery(result)
+
+        return result
+
+    def _run_zerg_diagnostics(
+        self,
+        result: DiagnosticResult,
+        feature: str,
+        worker_id: int | None = None,
+    ) -> DiagnosticResult:
+        """Run ZERG state introspection and log analysis."""
+        from zerg.diagnostics.log_analyzer import LogAnalyzer
+        from zerg.diagnostics.state_introspector import ZergStateIntrospector
+
+        try:
+            introspector = ZergStateIntrospector()
+            result.zerg_health = introspector.get_health_report(feature)
+
+            # Add evidence from health report
+            health = result.zerg_health
+            if health.failed_tasks:
+                result.evidence.append(
+                    f"{len(health.failed_tasks)} failed task(s)"
+                )
+            if health.stale_tasks:
+                result.evidence.append(
+                    f"{len(health.stale_tasks)} stale task(s)"
+                )
+            if health.global_error:
+                result.evidence.append(
+                    f"Global error: {health.global_error}"
+                )
+
+            # Log analysis
+            analyzer = LogAnalyzer()
+            result.log_patterns = analyzer.scan_worker_logs(worker_id)
+
+            if result.log_patterns:
+                result.evidence.append(
+                    f"{len(result.log_patterns)} error pattern(s) in logs"
+                )
+        except Exception as e:
+            logger.warning(f"ZERG diagnostics failed: {e}")
+            result.evidence.append(f"ZERG diagnostics error: {e}")
+
+        return result
+
+    def _run_system_diagnostics(
+        self, result: DiagnosticResult
+    ) -> DiagnosticResult:
+        """Run system-level diagnostic checks."""
+        from zerg.diagnostics.system_diagnostics import SystemDiagnostics
+
+        try:
+            sys_diag = SystemDiagnostics()
+            result.system_health = sys_diag.run_all()
+
+            health = result.system_health
+            if not health.git_clean:
+                result.evidence.append(
+                    f"{health.git_uncommitted_files} uncommitted file(s)"
+                )
+            if health.port_conflicts:
+                result.evidence.append(
+                    f"Port conflicts: {health.port_conflicts}"
+                )
+            if health.orphaned_worktrees:
+                result.evidence.append(
+                    f"{len(health.orphaned_worktrees)} orphaned worktree(s)"
+                )
+            if health.disk_free_gb < 1.0:
+                result.evidence.append(
+                    f"Low disk space: {health.disk_free_gb:.1f} GB free"
+                )
+        except Exception as e:
+            logger.warning(f"System diagnostics failed: {e}")
+            result.evidence.append(f"System diagnostics error: {e}")
+
+        return result
+
+    def _plan_recovery(self, result: DiagnosticResult) -> DiagnosticResult:
+        """Generate a recovery plan from diagnostic results."""
+        from zerg.diagnostics.recovery import RecoveryPlanner
+
+        try:
+            planner = RecoveryPlanner()
+            result.recovery_plan = planner.plan(
+                result, health=result.zerg_health
+            )
+        except Exception as e:
+            logger.warning(f"Recovery planning failed: {e}")
+            result.evidence.append(f"Recovery planning error: {e}")
+
+        return result
 
     def _determine_root_cause(
         self, parsed: ParsedError, hypotheses: list[Hypothesis]
@@ -439,6 +587,56 @@ class TroubleshootCommand:
                     lines.append(f"     Test: {h.test_command}")
             lines.append("")
 
+        # ZERG health section
+        if result.zerg_health is not None:
+            health = result.zerg_health
+            lines.append("ZERG Health:")
+            lines.append(f"  Feature: {health.feature}")
+            lines.append(f"  Total Tasks: {health.total_tasks}")
+            if health.task_summary:
+                summary = ", ".join(
+                    f"{k}: {v}" for k, v in health.task_summary.items()
+                )
+                lines.append(f"  Status: {summary}")
+            if health.failed_tasks:
+                lines.append(f"  Failed: {len(health.failed_tasks)} task(s)")
+            if health.global_error:
+                lines.append(f"  Error: {health.global_error}")
+            lines.append("")
+
+        # Log patterns section
+        if result.log_patterns:
+            lines.append("Log Patterns:")
+            for pat in result.log_patterns[:5]:
+                workers = ", ".join(str(w) for w in pat.worker_ids)
+                lines.append(
+                    f"  [{pat.count}x] {pat.pattern[:80]} "
+                    f"(workers: {workers})"
+                )
+            lines.append("")
+
+        # System health section
+        if result.system_health is not None:
+            sys_h = result.system_health
+            lines.append("System Health:")
+            lines.append(f"  Git: {'clean' if sys_h.git_clean else 'dirty'}")
+            lines.append(f"  Branch: {sys_h.git_branch}")
+            lines.append(f"  Disk Free: {sys_h.disk_free_gb:.1f} GB")
+            if sys_h.port_conflicts:
+                lines.append(f"  Port Conflicts: {sys_h.port_conflicts}")
+            if sys_h.orphaned_worktrees:
+                lines.append(
+                    f"  Orphaned Worktrees: {len(sys_h.orphaned_worktrees)}"
+                )
+            lines.append("")
+
+        # Evidence section
+        if result.evidence:
+            lines.append("Evidence:")
+            for ev in result.evidence:
+                lines.append(f"  - {ev}")
+            lines.append("")
+
         lines.extend(
             [
                 f"Root Cause: {result.root_cause}",
@@ -447,6 +645,22 @@ class TroubleshootCommand:
                 f"Recommendation: {result.recommendation}",
             ]
         )
+
+        # Recovery plan section
+        if result.recovery_plan is not None:
+            plan = result.recovery_plan
+            lines.append("")
+            lines.append("Recovery Plan:")
+            for i, step in enumerate(plan.steps, 1):
+                risk_icon = {"safe": "G", "moderate": "Y", "destructive": "R"}.get(
+                    step.risk, "?"
+                )
+                lines.append(f"  {i}. [{risk_icon}] {step.description}")
+                lines.append(f"     $ {step.command}")
+            if plan.verification_command:
+                lines.append(f"  Verify: {plan.verification_command}")
+            if plan.prevention:
+                lines.append(f"  Prevent: {plan.prevention}")
 
         return "\n".join(lines)
 
@@ -468,6 +682,10 @@ def _load_stacktrace_file(filepath: str) -> str:
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--output", "-o", help="Output file for diagnostic report")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+@click.option("--feature", "-f", help="ZERG feature to investigate")
+@click.option("--worker", "-w", type=int, help="Specific worker ID to investigate")
+@click.option("--deep", is_flag=True, help="Run system-level diagnostics")
+@click.option("--auto-fix", is_flag=True, help="Generate and execute recovery plan")
 @click.pass_context
 def troubleshoot(
     ctx: click.Context,
@@ -476,6 +694,10 @@ def troubleshoot(
     verbose: bool,
     output: str | None,
     json_output: bool,
+    feature: str | None,
+    worker: int | None,
+    deep: bool,
+    auto_fix: bool,
 ) -> None:
     """Systematic debugging with root cause analysis.
 
@@ -485,13 +707,20 @@ def troubleshoot(
     3. Test: Verify hypotheses with diagnostics
     4. Root Cause: Determine actual cause with confidence score
 
+    Deep diagnostics (with --feature or --deep):
+    5. ZERG state introspection and log analysis
+    6. System health checks (git, disk, docker, ports)
+    7. Recovery planning with executable steps
+
     Examples:
 
         zerg troubleshoot --error "ValueError: invalid literal"
 
         zerg troubleshoot --stacktrace trace.txt
 
-        zerg troubleshoot --error "Error" --verbose
+        zerg troubleshoot --feature my-feature --deep
+
+        zerg troubleshoot --feature my-feature --auto-fix
 
         zerg troubleshoot --error "ImportError" --json
     """
@@ -505,13 +734,34 @@ def troubleshoot(
             if not stack_trace_content:
                 console.print(f"[yellow]Warning: Could not load {stacktrace}[/yellow]")
 
-        # Need at least error or stack trace
+        # Need at least error, stack trace, or feature
         error_message = error or ""
-        if not error_message and not stack_trace_content:
+        if not error_message and not stack_trace_content and not feature:
             console.print("[yellow]No error provided[/yellow]")
             console.print("Use --error to specify an error message")
             console.print("Use --stacktrace to provide a stack trace file")
+            console.print("Use --feature to investigate a ZERG feature")
             raise SystemExit(0)
+
+        # Auto-detect feature if not provided but deep/auto-fix requested
+        if not feature and (deep or auto_fix):
+            try:
+                from zerg.diagnostics.state_introspector import (
+                    ZergStateIntrospector,
+                )
+
+                introspector = ZergStateIntrospector()
+                feature = introspector.find_latest_feature()
+                if feature:
+                    console.print(
+                        f"[dim]Auto-detected feature: {feature}[/dim]"
+                    )
+            except Exception:
+                pass
+
+        # If only feature given (no error), set a default symptom
+        if not error_message and not stack_trace_content and feature:
+            error_message = f"Investigating feature: {feature}"
 
         # Create config
         config = TroubleshootConfig(
@@ -524,6 +774,10 @@ def troubleshoot(
         result = troubleshooter.run(
             error=error_message,
             stack_trace=stack_trace_content,
+            feature=feature,
+            worker_id=worker,
+            deep=deep,
+            auto_fix=auto_fix,
         )
 
         # Output
@@ -576,6 +830,66 @@ def troubleshoot(
                             console.print(f"  {i}. {h.test_command}")
                 console.print()
 
+            # ZERG health
+            if result.zerg_health is not None:
+                health = result.zerg_health
+                console.print(
+                    Panel("[bold]ZERG State[/bold]", style="cyan")
+                )
+                console.print(f"  Feature: {health.feature}")
+                console.print(f"  Tasks: {health.total_tasks}")
+                if health.task_summary:
+                    summary = ", ".join(
+                        f"{k}: {v}"
+                        for k, v in health.task_summary.items()
+                    )
+                    console.print(f"  Status: {summary}")
+                if health.failed_tasks:
+                    console.print(
+                        f"  [red]Failed: {len(health.failed_tasks)}[/red]"
+                    )
+                if health.global_error:
+                    console.print(
+                        f"  [red]Error: {health.global_error}[/red]"
+                    )
+                console.print()
+
+            # System health
+            if result.system_health is not None:
+                sys_h = result.system_health
+                console.print(
+                    Panel("[bold]System Health[/bold]", style="cyan")
+                )
+                git_status = (
+                    "[green]clean[/green]"
+                    if sys_h.git_clean
+                    else f"[yellow]dirty ({sys_h.git_uncommitted_files} files)[/yellow]"
+                )
+                console.print(f"  Git: {git_status}")
+                console.print(f"  Branch: {sys_h.git_branch}")
+                disk_color = (
+                    "green" if sys_h.disk_free_gb >= 5.0
+                    else "yellow" if sys_h.disk_free_gb >= 1.0
+                    else "red"
+                )
+                console.print(
+                    f"  Disk: [{disk_color}]{sys_h.disk_free_gb:.1f} GB free[/{disk_color}]"
+                )
+                if sys_h.port_conflicts:
+                    console.print(
+                        f"  [yellow]Port conflicts: {sys_h.port_conflicts}[/yellow]"
+                    )
+                console.print()
+
+            # Evidence
+            if result.evidence:
+                console.print(
+                    Panel("[bold]Evidence[/bold]", style="cyan")
+                )
+                for ev in result.evidence:
+                    console.print(f"  - {ev}")
+                console.print()
+
             # Root cause
             console.print(Panel("[bold]Phase 4: Root Cause[/bold]", style="cyan"))
             confidence_color = (
@@ -591,8 +905,34 @@ def troubleshoot(
             )
             console.print()
             console.print(
-                Panel(f"[bold]Recommendation:[/bold] {result.recommendation}", style="green")
+                Panel(
+                    f"[bold]Recommendation:[/bold] {result.recommendation}",
+                    style="green",
+                )
             )
+
+            # Recovery plan
+            if result.recovery_plan is not None:
+                plan = result.recovery_plan
+                console.print()
+                console.print(
+                    Panel("[bold]Recovery Plan[/bold]", style="cyan")
+                )
+                for i, step in enumerate(plan.steps, 1):
+                    risk_color = {
+                        "safe": "green",
+                        "moderate": "yellow",
+                        "destructive": "red",
+                    }.get(step.risk, "white")
+                    console.print(
+                        f"  {i}. [{risk_color}][{step.risk}][/{risk_color}]"
+                        f" {step.description}"
+                    )
+                    console.print(f"     [dim]$ {step.command}[/dim]")
+                if plan.prevention:
+                    console.print(
+                        f"\n  [dim]Prevention: {plan.prevention}[/dim]"
+                    )
 
             output_content = troubleshooter.format_result(result, "text")
 
