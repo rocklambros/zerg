@@ -56,6 +56,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Ensure 'python' symlink exists (some containers only have python3)
+if ! command -v python &>/dev/null && command -v python3 &>/dev/null; then
+    ln -sf "$(command -v python3)" /usr/local/bin/python
+fi
+
 # Install ZERG dependencies if not already installed
 if ! python3 -c "import pydantic" 2>/dev/null; then
     echo "Installing ZERG dependencies..."
