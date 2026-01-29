@@ -1,6 +1,9 @@
 """State persistence and management for ZERG."""
 
+import contextlib
+import fcntl
 import json
+import tempfile
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +21,11 @@ logger = get_logger("state")
 
 
 class StateManager:
-    """Manage ZERG execution state with file-based persistence."""
+    """Manage ZERG execution state with file-based persistence.
+
+    Uses fcntl.flock for cross-process file locking to prevent race conditions
+    when multiple container workers share the same state file via bind mounts.
+    """
 
     def __init__(self, feature: str, state_dir: str | Path | None = None) -> None:
         """Initialize state manager.
@@ -30,7 +37,8 @@ class StateManager:
         self.feature = feature
         self.state_dir = Path(state_dir or STATE_DIR)
         self._state_file = self.state_dir / f"{feature}.json"
-        self._lock = threading.RLock()  # Reentrant lock for nested calls
+        self._lock = threading.RLock()  # In-process thread safety
+        self._file_lock_depth = 0  # Reentrant counter for cross-process file lock
         self._state: dict[str, Any] = {}
         self._ensure_dir()
 
@@ -38,38 +46,62 @@ class StateManager:
         """Ensure state directory exists."""
         self.state_dir.mkdir(parents=True, exist_ok=True)
 
-    def load(self) -> dict[str, Any]:
-        """Load state from file.
+    @contextlib.contextmanager
+    def _atomic_update(self):
+        """Cross-process atomic read-modify-write.
 
-        Returns:
-            State dictionary
+        Acquires an exclusive file lock, reloads state from disk,
+        yields for caller to mutate self._state, then saves to disk
+        and releases the lock.
+
+        Supports reentrant calls (nested _atomic_update contexts skip
+        reload/save -- the outermost context handles both).
         """
-        with self._lock:
-            if not self._state_file.exists():
-                self._state = self._create_initial_state()
-            else:
-                try:
-                    with open(self._state_file) as f:
-                        self._state = json.load(f)
-                except json.JSONDecodeError as e:
-                    raise StateError(f"Failed to parse state file: {e}") from e
+        if self._file_lock_depth > 0:
+            # Already holding file lock (nested/reentrant call)
+            self._file_lock_depth += 1
+            try:
+                yield
+            finally:
+                self._file_lock_depth -= 1
+            return
 
-            logger.debug(f"Loaded state for feature {self.feature}")
-            return self._state.copy()
+        lock_path = self._state_file.with_suffix(".lock")
+        lock_fd = open(lock_path, "w")
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            self._file_lock_depth = 1
 
-    def save(self) -> None:
-        """Save state to file with backup and atomic write.
+            # Reload latest state from disk under lock
+            with self._lock:
+                if self._state_file.exists():
+                    try:
+                        with open(self._state_file) as f:
+                            self._state = json.load(f)
+                    except json.JSONDecodeError:
+                        if not self._state:
+                            self._state = self._create_initial_state()
+                elif not self._state:
+                    self._state = self._create_initial_state()
 
-        Creates a backup of the existing file before overwriting, then uses
-        atomic write (temp file + rename) to prevent partial writes on crash.
-        """
-        import tempfile
+            yield
 
+            # Save to disk under lock
+            self._raw_save()
+        finally:
+            self._file_lock_depth = 0
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            except Exception:
+                pass
+            lock_fd.close()
+
+    def _raw_save(self) -> None:
+        """Write state to disk. Called under _atomic_update file lock."""
         with self._lock:
             # Create backup if file already exists
             if self._state_file.exists():
                 backup_path = self._state_file.with_suffix(".json.bak")
-                # Read existing content and write to backup
                 existing_content = self._state_file.read_text()
                 backup_path.write_text(existing_content)
 
@@ -77,7 +109,7 @@ class StateManager:
             temp_fd, temp_path = tempfile.mkstemp(
                 suffix=".tmp",
                 prefix=f"{self.feature}_",
-                dir=self.state_dir
+                dir=self.state_dir,
             )
             temp_file = Path(temp_path)
             try:
@@ -92,6 +124,53 @@ class StateManager:
                 raise
 
             logger.debug(f"Saved state for feature {self.feature}")
+
+    def load(self) -> dict[str, Any]:
+        """Load state from file.
+
+        Returns:
+            State dictionary
+        """
+        # Use shared file lock to prevent reading during a write
+        lock_path = self._state_file.with_suffix(".lock")
+        lock_fd = open(lock_path, "w")
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_SH)
+            with self._lock:
+                if not self._state_file.exists():
+                    self._state = self._create_initial_state()
+                else:
+                    try:
+                        with open(self._state_file) as f:
+                            self._state = json.load(f)
+                    except json.JSONDecodeError as e:
+                        raise StateError(f"Failed to parse state file: {e}") from e
+
+                logger.debug(f"Loaded state for feature {self.feature}")
+                return self._state.copy()
+        finally:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            except Exception:
+                pass
+            lock_fd.close()
+
+    def save(self) -> None:
+        """Save state to file with cross-process locking.
+
+        Public save method -- acquires file lock, writes, and releases.
+        """
+        lock_path = self._state_file.with_suffix(".lock")
+        lock_fd = open(lock_path, "w")
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            self._raw_save()
+        finally:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            except Exception:
+                pass
+            lock_fd.close()
 
     def _create_initial_state(self) -> dict[str, Any]:
         """Create initial state structure.
@@ -142,7 +221,7 @@ class StateManager:
         """
         status_str = status.value if isinstance(status, TaskStatus) else status
 
-        with self._lock:
+        with self._atomic_update():
             if "tasks" not in self._state:
                 self._state["tasks"] = {}
 
@@ -162,7 +241,6 @@ class StateManager:
             if status_str == TaskStatus.IN_PROGRESS.value:
                 task_state["started_at"] = datetime.now().isoformat()
 
-        self.save()
         logger.debug(f"Task {task_id} status: {status_str}")
 
     def get_worker_state(self, worker_id: int) -> WorkerState | None:
@@ -186,13 +264,12 @@ class StateManager:
         Args:
             worker_state: Worker state to save
         """
-        with self._lock:
+        with self._atomic_update():
             if "workers" not in self._state:
                 self._state["workers"] = {}
 
             self._state["workers"][str(worker_state.worker_id)] = worker_state.to_dict()
 
-        self.save()
         logger.debug(f"Worker {worker_state.worker_id} state: {worker_state.status.value}")
 
     def get_all_workers(self) -> dict[int, WorkerState]:
@@ -210,7 +287,7 @@ class StateManager:
     def claim_task(self, task_id: str, worker_id: int) -> bool:
         """Attempt to claim a task for a worker.
 
-        Uses file-based locking to prevent race conditions.
+        Uses cross-process file locking to prevent race conditions.
 
         Args:
             task_id: Task to claim
@@ -219,10 +296,7 @@ class StateManager:
         Returns:
             True if claim succeeded
         """
-        with self._lock:
-            # Reload state to get latest
-            self.load()
-
+        with self._atomic_update():
             task_state = self._state.get("tasks", {}).get(task_id, {})
             current_status = task_state.get("status", TaskStatus.PENDING.value)
 
@@ -235,7 +309,7 @@ class StateManager:
             if existing_worker is not None and existing_worker != worker_id:
                 return False
 
-            # Claim it - now also records claimed_at
+            # Claim it (inline mutation -- _atomic_update is reentrant)
             self.set_task_status(task_id, TaskStatus.CLAIMED, worker_id=worker_id)
             self.record_task_claimed(task_id, worker_id)
             logger.info(f"Worker {worker_id} claimed task {task_id}")
@@ -248,7 +322,7 @@ class StateManager:
             task_id: Task to release
             worker_id: Worker releasing the task
         """
-        with self._lock:
+        with self._atomic_update():
             task_state = self._state.get("tasks", {}).get(task_id, {})
 
             # Only release if we own it
@@ -258,7 +332,6 @@ class StateManager:
             task_state["status"] = TaskStatus.PENDING.value
             task_state["worker_id"] = None
 
-        self.save()
         logger.info(f"Worker {worker_id} released task {task_id}")
 
     def append_event(self, event_type: str, data: dict[str, Any] | None = None) -> None:
@@ -274,12 +347,11 @@ class StateManager:
             "data": data or {},
         }
 
-        with self._lock:
+        with self._atomic_update():
             if "execution_log" not in self._state:
                 self._state["execution_log"] = []
             self._state["execution_log"].append(event)
 
-        self.save()
         logger.debug(f"Event: {event_type}")
 
     def get_events(self, limit: int | None = None) -> list[ExecutionEvent]:
@@ -303,9 +375,8 @@ class StateManager:
         Args:
             level: Level number
         """
-        with self._lock:
+        with self._atomic_update():
             self._state["current_level"] = level
-        self.save()
 
     def get_current_level(self) -> int:
         """Get the current execution level.
@@ -329,7 +400,7 @@ class StateManager:
             status: Level status
             merge_commit: Merge commit SHA (if merged)
         """
-        with self._lock:
+        with self._atomic_update():
             if "levels" not in self._state:
                 self._state["levels"] = {}
 
@@ -346,8 +417,6 @@ class StateManager:
                 level_state["started_at"] = datetime.now().isoformat()
             if status == "complete":
                 level_state["completed_at"] = datetime.now().isoformat()
-
-        self.save()
 
     def get_level_status(self, level: int) -> dict[str, Any] | None:
         """Get status of a level.
@@ -385,9 +454,8 @@ class StateManager:
         Args:
             paused: Whether execution is paused
         """
-        with self._lock:
+        with self._atomic_update():
             self._state["paused"] = paused
-        self.save()
 
     def is_paused(self) -> bool:
         """Check if execution is paused.
@@ -404,9 +472,8 @@ class StateManager:
         Args:
             error: Error message or None to clear
         """
-        with self._lock:
+        with self._atomic_update():
             self._state["error"] = error
-        self.save()
 
     def get_error(self) -> str | None:
         """Get current error.
@@ -462,7 +529,7 @@ class StateManager:
             merge_status: New merge status
             details: Additional details (conflicting files, etc.)
         """
-        with self._lock:
+        with self._atomic_update():
             if "levels" not in self._state:
                 self._state["levels"] = {}
 
@@ -479,7 +546,6 @@ class StateManager:
             if merge_status == LevelMergeStatus.COMPLETE:
                 level_state["merge_completed_at"] = datetime.now().isoformat()
 
-        self.save()
         logger.debug(f"Level {level} merge status: {merge_status.value}")
 
     # === Retry Tracking ===
@@ -507,7 +573,7 @@ class StateManager:
         Returns:
             New retry count
         """
-        with self._lock:
+        with self._atomic_update():
             if "tasks" not in self._state:
                 self._state["tasks"] = {}
 
@@ -522,7 +588,6 @@ class StateManager:
             if next_retry_at:
                 task_state["next_retry_at"] = next_retry_at
 
-        self.save()
         logger.debug(f"Task {task_id} retry count: {retry_count}")
         return retry_count
 
@@ -533,7 +598,7 @@ class StateManager:
             task_id: Task identifier
             next_retry_at: ISO timestamp for when retry becomes eligible
         """
-        with self._lock:
+        with self._atomic_update():
             if "tasks" not in self._state:
                 self._state["tasks"] = {}
 
@@ -542,7 +607,6 @@ class StateManager:
 
             self._state["tasks"][task_id]["next_retry_at"] = next_retry_at
 
-        self.save()
         logger.debug(f"Task {task_id} next retry at: {next_retry_at}")
 
     def get_task_retry_schedule(self, task_id: str) -> str | None:
@@ -582,12 +646,11 @@ class StateManager:
         Args:
             task_id: Task identifier
         """
-        with self._lock:
+        with self._atomic_update():
             if task_id in self._state.get("tasks", {}):
                 self._state["tasks"][task_id]["retry_count"] = 0
                 self._state["tasks"][task_id].pop("last_retry_at", None)
 
-        self.save()
         logger.debug(f"Task {task_id} retry count reset")
 
     def get_failed_tasks(self) -> list[dict[str, Any]]:
@@ -616,13 +679,12 @@ class StateManager:
         Args:
             worker_id: Worker identifier
         """
-        with self._lock:
+        with self._atomic_update():
             worker_data = self._state.get("workers", {}).get(str(worker_id), {})
             if worker_data:
                 worker_data["status"] = WorkerStatus.READY.value
                 worker_data["ready_at"] = datetime.now().isoformat()
 
-        self.save()
         logger.debug(f"Worker {worker_id} marked ready")
 
     # === Metrics Methods ===
@@ -636,7 +698,7 @@ class StateManager:
             task_id: Task identifier
             worker_id: Worker that claimed the task
         """
-        with self._lock:
+        with self._atomic_update():
             if "tasks" not in self._state:
                 self._state["tasks"] = {}
 
@@ -646,7 +708,6 @@ class StateManager:
             self._state["tasks"][task_id]["claimed_at"] = datetime.now().isoformat()
             self._state["tasks"][task_id]["worker_id"] = worker_id
 
-        self.save()
         logger.debug(f"Task {task_id} claimed by worker {worker_id}")
 
     def record_task_duration(self, task_id: str, duration_ms: int) -> None:
@@ -656,11 +717,10 @@ class StateManager:
             task_id: Task identifier
             duration_ms: Execution duration in milliseconds
         """
-        with self._lock:
+        with self._atomic_update():
             if task_id in self._state.get("tasks", {}):
                 self._state["tasks"][task_id]["duration_ms"] = duration_ms
 
-        self.save()
         logger.debug(f"Task {task_id} duration: {duration_ms}ms")
 
     def store_metrics(self, metrics: "FeatureMetrics") -> None:
@@ -669,10 +729,9 @@ class StateManager:
         Args:
             metrics: FeatureMetrics to persist
         """
-        with self._lock:
+        with self._atomic_update():
             self._state["metrics"] = metrics.to_dict()
 
-        self.save()
         logger.debug("Stored feature metrics")
 
     def get_metrics(self) -> "FeatureMetrics | None":

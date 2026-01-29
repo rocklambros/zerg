@@ -64,9 +64,14 @@ if ! python3 -c "import pydantic" 2>/dev/null; then
 fi
 
 # Run the ZERG worker main
-exec python3 -m zerg.worker_main \
+# Note: Do NOT use 'exec' here -- the container CMD has a fallback sleep
+# after this script to keep the container alive for debugging if worker exits.
+python3 -m zerg.worker_main \
      --worker-id "$WORKER_ID" \
      --feature "$FEATURE" \
      --worktree "$WORKTREE" \
      --branch "$BRANCH" \
      --verbose
+EXIT_CODE=$?
+echo "Worker $WORKER_ID exited with code $EXIT_CODE"
+exit $EXIT_CODE

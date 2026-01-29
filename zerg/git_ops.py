@@ -49,6 +49,7 @@ class GitOps:
         *args: str,
         check: bool = True,
         capture: bool = True,
+        timeout: int = 60,
     ) -> subprocess.CompletedProcess[str]:
         """Run a git command.
 
@@ -56,6 +57,7 @@ class GitOps:
             *args: Git command arguments
             check: Whether to raise on non-zero exit
             capture: Whether to capture output
+            timeout: Timeout in seconds (prevents zombie processes in containers)
 
         Returns:
             Completed process result
@@ -69,8 +71,15 @@ class GitOps:
                 capture_output=capture,
                 text=True,
                 check=check,
+                timeout=timeout,
             )
             return result
+        except subprocess.TimeoutExpired as e:
+            raise GitError(
+                f"Git command timed out after {timeout}s: {' '.join(args)}",
+                command=" ".join(cmd),
+                exit_code=-1,
+            ) from e
         except subprocess.CalledProcessError as e:
             raise GitError(
                 f"Git command failed: {e.stderr.strip() if e.stderr else str(e)}",

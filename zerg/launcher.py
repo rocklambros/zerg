@@ -681,8 +681,17 @@ class ContainerLauncher(WorkerLauncher):
                 "ZERG_SPEC_DIR": f"/workspace/.gsd/specs/{feature}",
             }
 
-            # Add API key from environment
+            # Add API key from environment or .env file
             api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                env_file = Path(".env")
+                if env_file.exists():
+                    for line in env_file.read_text().splitlines():
+                        line = line.strip()
+                        if line.startswith("ANTHROPIC_API_KEY"):
+                            _, _, val = line.partition("=")
+                            api_key = val.strip().strip("'\"")
+                            break
             if api_key:
                 container_env["ANTHROPIC_API_KEY"] = api_key
 
@@ -727,19 +736,9 @@ class ContainerLauncher(WorkerLauncher):
                     error="Container failed to become ready",
                 )
 
-            # Execute worker entry script (BF-008: check return value)
-            if not self._exec_worker_entry(container_id):
-                logger.error(f"Failed to execute worker entry script for worker {worker_id}")
-                # Clean up container
-                self._cleanup_failed_container(container_id, worker_id)
-                return SpawnResult(
-                    success=False,
-                    worker_id=worker_id,
-                    error="Failed to execute worker entry script",
-                )
-
-            # BF-008: Verify worker process is running
-            if not self._verify_worker_process(container_id, timeout=5.0):
+            # Entry script runs as container CMD (no separate docker exec needed).
+            # Wait longer for worker to start since it includes dependency install.
+            if not self._verify_worker_process(container_id, timeout=120.0):
                 logger.error(f"Worker process failed to start for worker {worker_id}")
                 self._cleanup_failed_container(container_id, worker_id)
                 return SpawnResult(
@@ -818,6 +817,11 @@ class ContainerLauncher(WorkerLauncher):
             cmd.extend(["-v", f"{claude_config_dir.absolute()}:{home_dir}/.claude"])
             cmd.extend(["-e", f"HOME={home_dir}"])
 
+        # Mount ~/.claude.json for OAuth token (separate file from ~/.claude/ directory)
+        claude_config_file = Path.home() / ".claude.json"
+        if claude_config_file.exists():
+            cmd.extend(["-v", f"{claude_config_file.absolute()}:{home_dir}/.claude.json"])
+
         # Resource limits
         cmd.extend(["--memory", self.memory_limit])
         cmd.extend(["--cpus", str(self.cpu_limit)])
@@ -831,10 +835,14 @@ class ContainerLauncher(WorkerLauncher):
         for key, value in env.items():
             cmd.extend(["-e", f"{key}={value}"])
 
-        # Add image and keep-alive command
+        # Run entry script directly as container CMD.
+        # The entry script uses 'exec' to become worker_main (PID 1).
+        # If it fails, the fallback keeps the container alive for debugging.
         cmd.extend([
             self.image_name,
-            "tail", "-f", "/dev/null",  # Keep container running
+            "bash", "-c",
+            f"bash /workspace/{self.WORKER_ENTRY_SCRIPT} 2>&1; "
+            f"echo 'Worker entry exited with code '$?; sleep infinity",
         ])
 
         try:
