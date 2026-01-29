@@ -224,9 +224,13 @@ class CommandExecutor:
         if not cmd_str:
             return False, "Empty command", None
 
-        # Check for dangerous patterns
+        # Check for dangerous patterns.
+        # Strip quoted strings first so patterns inside quotes (e.g., python -c
+        # "import foo; print('OK')") don't trigger false positives.
+        cmd_unquoted = re.sub(r'"[^"]*"', '""', cmd_str)
+        cmd_unquoted = re.sub(r"'[^']*'", "''", cmd_unquoted)
         for pattern in _DANGEROUS_REGEX:
-            if pattern.search(cmd_str):
+            if pattern.search(cmd_unquoted):
                 return False, f"Dangerous pattern detected: {pattern.pattern}", None
 
         # Check against allowlist
