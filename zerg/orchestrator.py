@@ -1,6 +1,7 @@
 """ZERG orchestrator - main coordination engine."""
 
 import concurrent.futures
+import contextlib
 import subprocess as sp
 import time
 from collections.abc import Callable
@@ -15,6 +16,7 @@ from zerg.constants import (
     LOGS_WORKERS_DIR,
     LevelMergeStatus,
     LogEvent,
+    PluginHookEvent,
     TaskStatus,
     WorkerStatus,
 )
@@ -33,6 +35,7 @@ from zerg.logging import get_logger, setup_structured_logging
 from zerg.merge import MergeCoordinator, MergeFlowResult
 from zerg.metrics import MetricsCollector, duration_ms
 from zerg.parser import TaskParser
+from zerg.plugins import LifecycleEvent, PluginRegistry
 from zerg.ports import PortAllocator
 from zerg.state import StateManager
 from zerg.task_sync import TaskSyncBridge
@@ -82,6 +85,17 @@ class Orchestrator:
         self.assigner: WorkerAssignment | None = None
         self.merger = MergeCoordinator(feature, self.config, repo_path)
         self.task_sync = TaskSyncBridge(feature, self.state)
+
+        # Initialize plugin registry
+        self._plugin_registry = PluginRegistry()
+        if hasattr(self.config, 'plugins') and self.config.plugins.enabled:
+            try:
+                self._plugin_registry.load_yaml_hooks(
+                    [h.model_dump() for h in self.config.plugins.hooks]
+                )
+                self._plugin_registry.load_entry_points()
+            except Exception as e:
+                logger.warning(f"Failed to load plugins: {e}")
 
         # Initialize launcher based on config and mode
         self.launcher: WorkerLauncher = self._create_launcher(mode=launcher_mode)
@@ -415,6 +429,13 @@ class Orchestrator:
                 self.stop(force=True)
                 raise
 
+        # Emit rush finished event
+        with contextlib.suppress(Exception):
+            self._plugin_registry.emit_event(LifecycleEvent(
+                event_type=PluginHookEvent.RUSH_FINISHED.value,
+                data={"feature": self.feature},
+            ))
+
         logger.info("Main loop ended")
 
     def _start_level(self, level: int) -> None:
@@ -435,6 +456,13 @@ class Orchestrator:
                 "info", f"Level {level} started with {len(task_ids)} tasks",
                 event=LogEvent.LEVEL_STARTED, data={"level": level, "tasks": len(task_ids)},
             )
+
+        # Emit plugin lifecycle event
+        with contextlib.suppress(Exception):
+            self._plugin_registry.emit_event(LifecycleEvent(
+                event_type=PluginHookEvent.LEVEL_COMPLETE.value,
+                data={"level": level, "tasks": len(task_ids)},
+            ))
 
         # Create Claude Tasks for this level
         level_tasks = [self.parser.get_task(tid) for tid in task_ids]
@@ -528,6 +556,19 @@ class Orchestrator:
                 )
             except Exception as e:
                 logger.warning(f"Failed to compute metrics: {e}")
+
+            # Emit plugin lifecycle events
+            try:
+                self._plugin_registry.emit_event(LifecycleEvent(
+                    event_type=PluginHookEvent.LEVEL_COMPLETE.value,
+                    data={"level": level, "merge_commit": merge_result.merge_commit},
+                ))
+                self._plugin_registry.emit_event(LifecycleEvent(
+                    event_type=PluginHookEvent.MERGE_COMPLETE.value,
+                    data={"level": level, "merge_commit": merge_result.merge_commit},
+                ))
+            except Exception:
+                pass
 
             # Rebase worker branches onto merged base
             self._rebase_all_workers(level)
@@ -700,6 +741,13 @@ class Orchestrator:
             "container_id": container_id,
             "mode": "container" if container_id else "subprocess",
         })
+
+        # Emit plugin lifecycle event
+        with contextlib.suppress(Exception):
+            self._plugin_registry.emit_event(LifecycleEvent(
+                event_type=PluginHookEvent.WORKER_SPAWNED.value,
+                data={"worker_id": worker_id, "feature": self.feature},
+            ))
 
         return worker_state
 
@@ -929,6 +977,13 @@ class Orchestrator:
         worker = self._workers.get(worker_id)
         if not worker:
             return
+
+        # Emit plugin lifecycle event
+        with contextlib.suppress(Exception):
+            self._plugin_registry.emit_event(LifecycleEvent(
+                event_type=PluginHookEvent.WORKER_EXITED.value,
+                data={"worker_id": worker_id, "feature": self.feature},
+            ))
 
         # Check exit code (would need to get from container)
         # For now, assume clean exit means task complete

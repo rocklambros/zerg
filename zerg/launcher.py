@@ -99,6 +99,28 @@ def validate_env_vars(env: dict[str, str]) -> dict[str, str]:
     return validated
 
 
+def get_plugin_launcher(name: str, registry: "Any") -> "WorkerLauncher | None":
+    """Look up a launcher from the plugin registry.
+
+    Args:
+        name: Launcher name to look up
+        registry: Plugin registry instance (PluginRegistry or None)
+
+    Returns:
+        WorkerLauncher instance from plugin, or None if not found/available
+    """
+    if registry is None:
+        return None
+    plugin = registry.get_launcher(name)
+    if plugin is None:
+        return None
+    try:
+        return plugin.create_launcher(None)
+    except Exception:
+        logger.warning(f"Plugin launcher '{name}' failed to create launcher instance")
+        return None
+
+
 class LauncherType(Enum):
     """Worker launcher backend types."""
 

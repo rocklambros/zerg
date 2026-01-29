@@ -1,5 +1,6 @@
 """Worker protocol handler for ZERG workers."""
 
+import contextlib
 import os
 import subprocess
 import sys
@@ -15,6 +16,7 @@ from zerg.constants import (
     ExitCode,
     LogEvent,
     LogPhase,
+    PluginHookEvent,
     TaskStatus,
     WorkerStatus,
 )
@@ -23,6 +25,7 @@ from zerg.git_ops import GitOps
 from zerg.log_writer import StructuredLogWriter, TaskArtifactCapture
 from zerg.logging import get_logger, set_worker_context, setup_structured_logging
 from zerg.parser import TaskParser
+from zerg.plugins import LifecycleEvent, PluginRegistry
 from zerg.spec_loader import SpecLoader
 from zerg.state import StateManager
 from zerg.types import Task, WorkerState
@@ -90,6 +93,7 @@ class WorkerProtocol:
         feature: str | None = None,
         config: ZergConfig | None = None,
         task_graph_path: Path | str | None = None,
+        plugin_registry: PluginRegistry | None = None,
     ) -> None:
         """Initialize worker protocol.
 
@@ -173,6 +177,20 @@ class WorkerProtocol:
             )
         except Exception as e:
             logger.warning(f"Failed to set up structured logging: {e}")
+
+        # Plugin registry (optional, for lifecycle hooks)
+        self._plugin_registry = plugin_registry
+        has_plugins = hasattr(self.config, 'plugins') and self.config.plugins.enabled
+        if self._plugin_registry is None and has_plugins:
+            try:
+                self._plugin_registry = PluginRegistry()
+                self._plugin_registry.load_yaml_hooks(
+                    [h.model_dump() for h in self.config.plugins.hooks]
+                )
+                self._plugin_registry.load_entry_points()
+            except Exception as e:
+                logger.warning(f"Failed to initialize plugin registry: {e}")
+                self._plugin_registry = None
 
     def _update_worker_state(
         self,
@@ -375,6 +393,14 @@ class WorkerProtocol:
                 task_id=task_id, phase=LogPhase.EXECUTE, event=LogEvent.TASK_STARTED,
             )
 
+        # Emit plugin lifecycle event
+        if self._plugin_registry:
+            with contextlib.suppress(Exception):
+                self._plugin_registry.emit_event(LifecycleEvent(
+                    event_type=PluginHookEvent.TASK_STARTED.value,
+                    data={"task_id": task_id, "worker_id": self.worker_id, "feature": self.feature},
+                ))
+
         success = False
         try:
             # Step 1: Invoke Claude Code to implement the task
@@ -435,6 +461,17 @@ class WorkerProtocol:
                     duration_ms=duration,
                 )
 
+            # Emit plugin lifecycle event
+            if self._plugin_registry:
+                with contextlib.suppress(Exception):
+                    self._plugin_registry.emit_event(LifecycleEvent(
+                        event_type=PluginHookEvent.TASK_COMPLETED.value,
+                        data={
+                            "task_id": task_id, "worker_id": self.worker_id,
+                            "success": True, "duration_ms": duration,
+                        },
+                    ))
+
             return True
 
         except Exception as e:
@@ -449,6 +486,15 @@ class WorkerProtocol:
                     "error", f"Task {task_id} exception: {e}",
                     task_id=task_id, phase=LogPhase.EXECUTE, event=LogEvent.TASK_FAILED,
                 )
+            if self._plugin_registry:
+                with contextlib.suppress(Exception):
+                    self._plugin_registry.emit_event(LifecycleEvent(
+                        event_type=PluginHookEvent.TASK_COMPLETED.value,
+                        data={
+                            "task_id": task_id, "worker_id": self.worker_id,
+                            "success": False, "error": str(e),
+                        },
+                    ))
             return False
         finally:
             # Clean up artifacts based on retention policy

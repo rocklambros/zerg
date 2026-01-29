@@ -78,3 +78,7 @@ filterwarnings = [
     "ignore:cannot collect 'test_cmd' because it is not a function:pytest.PytestCollectionWarning",
     "ignore:.*found in sys.modules after import of package.*:RuntimeWarning",
 ]
+markers = [
+    "real_e2e: Tests requiring real Claude API access",
+    "slow: Slow-running tests",
+]

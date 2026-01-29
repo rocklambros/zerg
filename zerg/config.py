@@ -16,6 +16,7 @@ from zerg.constants import (
     DEFAULT_WORKERS,
 )
 from zerg.launcher import LauncherType
+from zerg.plugin_config import PluginsConfig
 
 
 class ProjectConfig(BaseModel):
@@ -97,6 +98,7 @@ class ZergConfig(BaseModel):
     resources: ResourcesConfig = Field(default_factory=ResourcesConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    plugins: PluginsConfig = Field(default_factory=PluginsConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "ZergConfig":

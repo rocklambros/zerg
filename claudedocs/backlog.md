@@ -1,6 +1,6 @@
 # ZERG Development Backlog
 
-**Updated**: 2026-01-28
+**Updated**: 2026-01-29
 
 ## Completed
 
@@ -10,13 +10,13 @@
 | 2 | Container execution: Docker image, ContainerLauncher, resource limits, health checks, security hardening | 2026-01-28 | ce7d58e |
 | 4 | Debug cleanup: Gate verbose diagnostic details behind `--verbose` in troubleshoot.py | 2026-01-28 | 763ef8c |
 | 3 | Test coverage: 96.53% coverage across 64 modules (4468 tests), P0 files all at 100% | 2026-01-28 | 06abc7c + 1dc4f8e |
+| 6 | Log aggregation: Structured JSONL logging per worker, per-task artifact capture, read-side aggregation, CLI query/filter | 2026-01-29 | a0b6e66 |
 
 ## Backlog
 
 | # | Area | Description | Effort | Status |
 |---|------|-------------|--------|--------|
 | 5 | Production dogfooding | Never tested against a real feature build end-to-end | Large | Open |
-| 6 | Log aggregation | Consolidate worker logs into single view with filtering | Medium | Open |
 | 7 | Task retry logic | Auto-retry failed tasks with backoff, max attempts | Medium | Open |
 | 8 | Dry-run improvements | Better simulation of rush without actual execution | Medium | Open |
 | 9 | Troubleshoot enhancement | Improve `/zerg:troubleshoot` to be a world-class debugger — deep root-cause analysis, automated log correlation, hypothesis testing, fix suggestions, environment diagnostics, and structured resolution workflows | Large | Open |

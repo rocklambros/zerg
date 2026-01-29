@@ -109,6 +109,41 @@ Zerglings commit independently. No filesystem conflicts.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### Plugin System
+
+ZERG's plugin architecture provides three extension points via abstract base classes:
+
+```
+PluginRegistry
+├── hooks: dict[str, list[Callable]]     # LifecycleHookPlugin callbacks
+├── gates: dict[str, QualityGatePlugin]  # Named quality gate plugins
+└── launchers: dict[str, LauncherPlugin] # Named launcher plugins
+
+QualityGatePlugin (ABC)
+├── name: str
+└── run(ctx: GateContext) → GateRunResult
+
+LifecycleHookPlugin (ABC)
+├── name: str
+└── on_event(event: LifecycleEvent) → None
+
+LauncherPlugin (ABC)
+├── name: str
+└── create_launcher(config) → WorkerLauncher
+```
+
+**PluginHookEvent** lifecycle (8 events): `TASK_STARTED`, `TASK_COMPLETED`, `LEVEL_COMPLETE`, `MERGE_COMPLETE`, `RUSH_FINISHED`, `QUALITY_GATE_RUN`, `WORKER_SPAWNED`, `WORKER_EXITED`
+
+**Integration points**:
+- `orchestrator.py` — emits lifecycle events, runs plugin gates after merge
+- `worker_protocol.py` — emits `TASK_STARTED`/`TASK_COMPLETED` events
+- `gates.py` — delegates to plugin gates registered in the registry
+- `launcher.py` — resolves launcher plugins by name via `get_plugin_launcher()`
+
+**Discovery**: Plugins are loaded via `importlib.metadata` entry points (group: `zerg.plugins`) or YAML-configured shell command hooks in `.zerg/config.yaml`.
+
+Configuration models: `PluginsConfig` → `HookConfig`, `PluginGateConfig`, `LauncherPluginConfig` (see `zerg/plugin_config.py`).
+
 ---
 
 ## Execution Flow
@@ -228,6 +263,68 @@ Each zergling:
 | `constants.py` | ~114 | Enumerations (TaskStatus, WorkerStatus, GateResult) |
 | `types.py` | ~388 | TypedDict and dataclass definitions |
 
+### Plugin System
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `plugins.py` | ~241 | Plugin ABCs (QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin), PluginRegistry |
+| `plugin_config.py` | ~37 | Pydantic models for plugin YAML configuration |
+
+### Container Management
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `containers.py` | ~60 | ContainerManager, ContainerInfo for Docker lifecycle |
+
+### Logging
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `log_writer.py` | ~241 | StructuredLogWriter (per-worker JSONL), TaskArtifactCapture |
+| `log_aggregator.py` | ~220 | Read-side aggregation, time-sorted queries across workers |
+| `logging.py` | ~322 | Logging setup, Python logging bridge, LogPhase/LogEvent enums |
+
+### Metrics
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `metrics.py` | ~80 | Duration, percentile calculations, metric type definitions |
+| `worker_metrics.py` | ~40 | Per-task execution metrics (timing, context usage, retries) |
+
+### Task Coordination
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `task_sync.py` | ~60 | ClaudeTask model, TaskSyncBridge (JSON state → Claude Tasks) |
+
+### Supporting Modules
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `ports.py` | ~60 | Port allocation for worker processes (range 49152-65535) |
+| `exceptions.py` | ~223 | Exception hierarchy (ZergError → Task/Worker/Git/Gate errors) |
+| `spec_loader.py` | ~40 | Load and truncate GSD specs (requirements.md, design.md) |
+| `context_tracker.py` | ~60 | Heuristic token counting, checkpoint decisions |
+| `dryrun.py` | ~60 | Dry-run simulation for `/zerg:rush --dry-run` |
+| `worker_main.py` | ~60 | Worker process entry point |
+
+### Project Initialization
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `backlog.py` | - | Backlog management |
+| `charter.py` | - | Project charter generation |
+| `inception.py` | - | Inception mode (empty directory → project scaffold) |
+| `tech_selector.py` | - | Technology stack recommendation |
+| `devcontainer_features.py` | - | Devcontainer feature configuration |
+| `security_rules.py` | - | Security rules fetching from TikiTribe |
+
+### CLI
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| `cli.py` | - | CLI entry point (`zerg` command), install/uninstall subcommands |
+
 ### CLI Commands (`zerg/commands/`)
 
 | Command | Module | Purpose |
@@ -294,6 +391,22 @@ Auto-detection: Uses `ContainerLauncher` if devcontainer.json exists and Docker 
 - Zergling exits gracefully (code 2)
 - Orchestrator restarts zergling from checkpoint
 
+### Execution Modes
+
+| Mode | Launcher Class | How Workers Run |
+|------|---------------|-----------------|
+| `subprocess` | `SubprocessLauncher` | Local `subprocess.Popen` running `zerg.worker_main` |
+| `container` | `ContainerLauncher` | Docker containers with mounted worktrees |
+| `task` | Plugin-provided | Claude Code Task sub-agents (slash command context) |
+
+**Auto-detection logic**:
+1. If `--mode` is explicitly set → use that mode
+2. If `.devcontainer/devcontainer.json` exists AND Docker is available → `container`
+3. If running inside a Claude Code slash command context → `task`
+4. Otherwise → `subprocess`
+
+Plugin launchers are resolved via `get_plugin_launcher(name, registry)` which delegates to a `LauncherPlugin.create_launcher()` call.
+
 ---
 
 ## State Management
@@ -346,6 +459,27 @@ pending → claimed → in_progress → verifying → complete
 - **RLock**: Guards all state mutations
 - **Atomic writes**: Full file replacement
 - **Timestamps**: Enable recovery and debugging
+
+### Logging Architecture
+
+ZERG uses structured JSONL logging with two complementary outputs:
+
+**Per-worker logs** (`.zerg/logs/workers/worker-{id}.jsonl`):
+- Thread-safe writes via `StructuredLogWriter`
+- Auto-rotation at 50 MB (renames to `.jsonl.1`)
+- Each entry: `ts`, `level`, `worker_id`, `feature`, `message`, `task_id`, `phase`, `event`, `data`, `duration_ms`
+
+**Per-task artifacts** (`.zerg/logs/tasks/{task-id}/`):
+- `execution.jsonl` — structured execution events
+- `claude_output.txt` — Claude CLI stdout/stderr
+- `verification_output.txt` — verification command output
+- `git_diff.patch` — diff of task changes
+
+**Enums**:
+- `LogPhase`: CLAIM, EXECUTE, VERIFY, COMMIT, CLEANUP
+- `LogEvent`: TASK_STARTED, TASK_COMPLETED, TASK_FAILED, VERIFICATION_PASSED, VERIFICATION_FAILED, ARTIFACT_CAPTURED, LEVEL_STARTED, LEVEL_COMPLETE, MERGE_STARTED, MERGE_COMPLETE
+
+**Aggregation**: `LogAggregator` provides read-side merging of JSONL files by timestamp at query time. No pre-built aggregate file exists on disk. Supports filtering by worker, task, level, phase, event, time range, and text search.
 
 ---
 
@@ -550,6 +684,10 @@ project/
 │   ├── state/               # Runtime state
 │   │   └── {feature}.json
 │   └── logs/                # Zergling logs
+│       ├── workers/         # Structured JSONL per-worker
+│       │   └── worker-{id}.jsonl
+│       └── tasks/           # Per-task artifacts
+│           └── {task-id}/
 │
 ├── .zerg-worktrees/         # Git worktrees (gitignored)
 │   └── {feature}-worker-N/
@@ -566,7 +704,19 @@ project/
 │   ├── devcontainer.json
 │   └── Dockerfile
 │
-└── zerg/                    # Source code (35+ modules)
+├── tests/
+│   ├── unit/                # ~101 test files
+│   ├── integration/         # ~41 test files
+│   └── e2e/                 # ~13 test files
+│       ├── harness.py       # E2E test harness
+│       └── mock_worker.py   # Simulated worker
+│
+└── zerg/                    # Source code (42+ modules)
+    ├── plugins.py           # Plugin ABCs + registry
+    ├── plugin_config.py     # Plugin config models
+    ├── log_writer.py        # Structured JSONL logging
+    ├── log_aggregator.py    # Read-side log queries
+    └── ...                  # See Module Reference
 ```
 
 ---
@@ -580,6 +730,29 @@ project/
 | Merge conflict | Pause for human intervention |
 | All zerglings blocked | Pause ZERG, alert human |
 | Context limit (70%) | Commit WIP, exit for restart |
+
+### Test Infrastructure
+
+ZERG uses a three-tier testing strategy:
+
+| Category | Files | Scope |
+|----------|-------|-------|
+| Unit | ~101 | Individual modules, pure logic, mocked dependencies |
+| Integration | ~41 | Module interactions, real git operations, state management |
+| E2E | ~13 | Full pipeline: orchestrator → workers → merge → gates |
+
+**E2E Harness** (`tests/e2e/harness.py`):
+- `E2EHarness` creates real git repos with complete `.zerg/` directory structure
+- Supports two modes: `mock` (simulated workers via `MockWorker`) and `real` (actual Claude CLI)
+- Returns `E2EResult` with tasks_completed, tasks_failed, levels_completed, merge_commits, duration
+
+**Mock Worker** (`tests/e2e/mock_worker.py`):
+- Patches `WorkerProtocol.invoke_claude_code` for deterministic execution
+- Generates syntactically valid Python for `.py` files
+- Supports configurable failure via `fail_tasks` set
+
+**Plugin Lifecycle Tests** (`tests/integration/test_plugin_lifecycle.py`, `tests/unit/test_plugins.py`):
+- Verify plugin registration, event dispatch, gate execution, and YAML hook loading
 
 ---
 

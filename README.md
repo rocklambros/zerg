@@ -179,6 +179,7 @@ Available ZERG commands:
   /zerg:logs         Stream zergling logs
   /zerg:merge        Merge level branches
   /zerg:plan         Capture feature requirements
+  /zerg:plugins      Inspect and validate plugins
   /zerg:refactor     Automated code improvement
   /zerg:retry        Retry failed tasks
   /zerg:review       Two-stage code review
@@ -610,7 +611,8 @@ The rush is where zerglings implement your feature in parallel.
 |------|-----------------|-------------|
 | `subprocess` | Local Python processes | Development, debugging, no Docker |
 | `container` | Isolated Docker containers | Production, security, reproducibility |
-| `auto` | Prefers container, falls back to subprocess | Default, recommended |
+| `task` | Claude Code Task sub-agents | Slash command execution (`/zerg:rush`) |
+| `auto` | Prefers container, then subprocess, task if slash cmd | Default, recommended |
 
 **What Each Zergling Does:**
 
@@ -965,7 +967,15 @@ Task size affects parallelization:
 ├── state/{feature}.json           # Execution state
 ├── logs/
 │   ├── orchestrator.log           # Main process logs
-│   └── worker-{0-9}.log           # Individual zergling logs
+│   ├── worker-{0-9}.log           # Individual zergling logs
+│   ├── workers/
+│   │   └── worker-{id}.jsonl      # Structured JSONL per-worker logs
+│   └── tasks/
+│       └── {task-id}/             # Per-task artifacts
+│           ├── execution.jsonl    # Task execution events
+│           ├── claude_output.txt  # Claude CLI output
+│           ├── verification_output.txt
+│           └── git_diff.patch     # Changes diff
 └── worktrees/
     └── {feature}-worker-{0-9}/    # Git worktrees
 ```
@@ -1781,6 +1791,24 @@ resources:
 | `ZERG_LOG_LEVEL` | No | Logging verbosity: debug, info, warn, error |
 | `ZERG_DEBUG` | No | Enable debug mode (very verbose) |
 
+### Structured Logging
+
+ZERG uses structured JSONL logging for machine-readable diagnostics alongside traditional text logs.
+
+**Per-worker logs** are written to `.zerg/logs/workers/worker-{id}.jsonl`. Each line is a JSON object with fields: `ts`, `level`, `worker_id`, `feature`, `message`, `task_id`, `phase`, `event`, `data`, `duration_ms`. Log files auto-rotate at 50 MB.
+
+**Per-task artifacts** are captured in `.zerg/logs/tasks/{task-id}/`:
+- `execution.jsonl` — structured execution events
+- `claude_output.txt` — Claude CLI stdout/stderr
+- `verification_output.txt` — verification command output
+- `git_diff.patch` — diff of changes made by the task
+
+**Log phases**: `CLAIM`, `EXECUTE`, `VERIFY`, `COMMIT`, `CLEANUP`
+
+**Log events**: `TASK_STARTED`, `TASK_COMPLETED`, `TASK_FAILED`, `VERIFICATION_PASSED`, `VERIFICATION_FAILED`, `ARTIFACT_CAPTURED`, `LEVEL_STARTED`, `LEVEL_COMPLETE`, `MERGE_STARTED`, `MERGE_COMPLETE`
+
+**Querying**: The log aggregator (`zerg/log_aggregator.py`) provides read-side aggregation — no pre-built aggregate file. It merges JSONL files by timestamp at query time, with support for filtering by worker, task, level, phase, time range, and text search.
+
 ### Pre-commit Hooks
 
 ZERG includes comprehensive pre-commit hooks that validate commits before creation. The hooks are located at `.zerg/hooks/pre-commit` and can be installed via `/zerg:init`.
@@ -1851,6 +1879,60 @@ hooks:
       - "fixtures/"
 ```
 
+### Plugin System
+
+ZERG supports three types of plugins for extending orchestration behavior:
+
+| Plugin Type | Purpose | Example |
+|-------------|---------|---------|
+| **QualityGatePlugin** | Custom quality gates run after merge | Custom linter, license checker |
+| **LifecycleHookPlugin** | React to execution events (observational) | Slack notifications, metrics export |
+| **LauncherPlugin** | Custom worker launch strategies | Kubernetes, SSH, cloud VMs |
+
+**Plugin Registry**: The `PluginRegistry` manages hooks, gates, and launchers. It dispatches lifecycle events, runs plugin gates, and resolves launcher plugins by name.
+
+**Lifecycle Events** (8 hook points):
+
+| Event | When Fired |
+|-------|------------|
+| `task_started` | Worker begins a task |
+| `task_completed` | Task finishes (success or failure) |
+| `level_complete` | All tasks in a level done |
+| `merge_complete` | Branch merge finishes |
+| `rush_finished` | Entire rush completes |
+| `quality_gate_run` | A quality gate executes |
+| `worker_spawned` | Worker process starts |
+| `worker_exited` | Worker process ends |
+
+**Configuration** in `.zerg/config.yaml`:
+
+```yaml
+plugins:
+  enabled: true
+  hooks:
+    - event: task_completed
+      command: "notify-slack --channel builds"
+      timeout: 60
+  quality_gates:
+    - name: license-check
+      command: "license-checker --verify"
+      required: true
+      timeout: 300
+  launchers:
+    - name: k8s
+      entry_point: "mypackage.launchers:K8sLauncher"
+```
+
+**Entry Point Discovery**: Plugins can be auto-discovered via Python entry points under the `zerg.plugins` group:
+
+```toml
+# In your plugin's pyproject.toml
+[project.entry-points."zerg.plugins"]
+my-gate = "mypackage.gates:MyGate"
+```
+
+Use `/zerg:plugins` to list, inspect, and validate installed plugins.
+
 ---
 
 ## Architecture Explained
@@ -1867,7 +1949,11 @@ project/
 │   │   └── {feature}.json          # Execution state
 │   ├── logs/
 │   │   ├── orchestrator.log        # Main process logs
-│   │   └── worker-{id}.log         # Per-zergling logs
+│   │   ├── worker-{id}.log         # Per-zergling logs
+│   │   ├── workers/                # Structured JSONL per-worker
+│   │   │   └── worker-{id}.jsonl
+│   │   └── tasks/                  # Per-task artifacts
+│   │       └── {task-id}/
 │   ├── worktrees/
 │   │   └── {feature}-worker-N/     # Isolated zergling git worktrees
 │   └── worker_entry.sh             # Zergling startup script

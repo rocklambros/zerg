@@ -1,0 +1,520 @@
+{
+  "feature": "production-dogfooding",
+  "version": "2.0",
+  "generated": "2026-01-29T10:00:00Z",
+  "total_tasks": 20,
+  "estimated_duration_minutes": 120,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "DF-L1-001",
+      "title": "Create MockWorker for E2E testing",
+      "description": "Create tests/e2e/mock_worker.py. MockWorker class patches WorkerProtocol.invoke_claude_code with deterministic file operations using pathlib. For each file in task['files']['create'], create the file with generated content. For each file in task['files']['modify'], append modification marker. Returns ClaudeInvocationResult(success=True, stdout='mock', stderr='', exit_code=0, duration_ms=50, task_id=task['id']). Import ClaudeInvocationResult from zerg.worker_protocol.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/e2e/mock_worker.py"],
+        "modify": [],
+        "read": ["zerg/worker_protocol.py"]
+      },
+      "acceptance_criteria": [
+        "MockWorker class exists with invoke_claude_code method",
+        "Returns ClaudeInvocationResult with success=True",
+        "Creates files listed in task spec",
+        "Modifies files listed in task spec",
+        "Importable: from tests.e2e.mock_worker import MockWorker"
+      ],
+      "verification": {
+        "command": "python -c \"from tests.e2e.mock_worker import MockWorker; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "DF-L1-002",
+      "title": "Create E2EHarness test infrastructure",
+      "description": "Create tests/e2e/harness.py. E2EHarness class that sets up a real git repo with .zerg/ and .gsd/ directories, writes task-graph.json, creates ZergConfig, and runs Orchestrator.start(). Supports mode='mock' (patches invoke_claude_code with MockWorker) and mode='real' (uses actual Claude CLI). Returns E2EResult dataclass with success, tasks_completed, tasks_failed, levels_completed, merge_commits, duration_s fields. setup_repo() initializes git with initial commit. setup_task_graph(tasks) writes JSON. setup_config(overrides) writes config.yaml. run(workers=5) orchestrates execution.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/e2e/harness.py"],
+        "modify": [],
+        "read": ["zerg/orchestrator.py", "zerg/config.py", "zerg/state.py"]
+      },
+      "acceptance_criteria": [
+        "E2EHarness class with setup_repo, setup_task_graph, setup_config, run methods",
+        "E2EResult dataclass with all required fields",
+        "Mock mode patches invoke_claude_code",
+        "Real mode uses actual Claude CLI",
+        "Importable: from tests.e2e.harness import E2EHarness, E2EResult"
+      ],
+      "verification": {
+        "command": "python -c \"from tests.e2e.harness import E2EHarness, E2EResult; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15
+    },
+    {
+      "id": "DF-L1-003",
+      "title": "Create plugin ABCs and PluginRegistry",
+      "description": "Create zerg/plugins.py. Define ABCs: QualityGatePlugin(name property, run(ctx: GateContext) -> GateRunResult), LifecycleHookPlugin(name property, on_event(event: LifecycleEvent) -> None), LauncherPlugin(name property, create_launcher(config) -> WorkerLauncher). Define dataclasses: LifecycleEvent(event_type: str, data: dict, timestamp: datetime), GateContext(feature: str, level: int, cwd: Path, config: ZergConfig). Create PluginRegistry class with: _hooks dict, _gates dict, _launchers dict. Methods: register_hook(event_type, callback), register_gate(plugin), register_launcher(plugin), emit_event(event: LifecycleEvent) with per-hook exception catching, run_plugin_gate(name, ctx) -> GateRunResult, get_launcher(name) -> LauncherPlugin|None, load_yaml_hooks(hooks_config: list) to register shell command hooks, load_entry_points(group='zerg.plugins') to discover via importlib.metadata.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/plugins.py"],
+        "modify": [],
+        "read": ["zerg/constants.py", "zerg/gates.py", "zerg/launcher.py"]
+      },
+      "acceptance_criteria": [
+        "Three ABC classes: QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin",
+        "LifecycleEvent and GateContext dataclasses",
+        "PluginRegistry with register, emit, run_gate, get_launcher methods",
+        "load_yaml_hooks and load_entry_points methods",
+        "emit_event catches per-hook exceptions without crashing"
+      ],
+      "verification": {
+        "command": "python -c \"from zerg.plugins import PluginRegistry, QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin, LifecycleEvent, GateContext; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15
+    },
+    {
+      "id": "DF-L1-004",
+      "title": "Create plugin config pydantic models",
+      "description": "Create zerg/plugin_config.py. Pydantic models: HookConfig(event: str, command: str, timeout: int = 60), PluginGateConfig(name: str, command: str, required: bool = False, timeout: int = 300), LauncherPluginConfig(name: str, entry_point: str), PluginsConfig(enabled: bool = True, hooks: list[HookConfig] = [], quality_gates: list[PluginGateConfig] = [], launchers: list[LauncherPluginConfig] = []). All models use pydantic BaseModel with Field validators where appropriate.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/plugin_config.py"],
+        "modify": [],
+        "read": ["zerg/config.py"]
+      },
+      "acceptance_criteria": [
+        "HookConfig, PluginGateConfig, LauncherPluginConfig, PluginsConfig models defined",
+        "All models instantiate with defaults",
+        "Validation works (e.g. timeout >= 1)",
+        "Importable: from zerg.plugin_config import PluginsConfig"
+      ],
+      "verification": {
+        "command": "python -c \"from zerg.plugin_config import PluginsConfig, HookConfig, PluginGateConfig; print(PluginsConfig())\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 8
+    },
+    {
+      "id": "DF-L1-005",
+      "title": "Add PluginHookEvent enum to constants",
+      "description": "Modify zerg/constants.py. Add PluginHookEvent enum with values: TASK_STARTED='task_started', TASK_COMPLETED='task_completed', LEVEL_COMPLETE='level_complete', MERGE_COMPLETE='merge_complete', RUSH_FINISHED='rush_finished', QUALITY_GATE_RUN='quality_gate_run', WORKER_SPAWNED='worker_spawned', WORKER_EXITED='worker_exited'. Place it after existing LogEvent enum. Import Enum from enum module (already imported).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/constants.py"],
+        "read": ["zerg/constants.py"]
+      },
+      "acceptance_criteria": [
+        "PluginHookEvent enum exists with all 8 values",
+        "Existing enums unmodified",
+        "Importable: from zerg.constants import PluginHookEvent"
+      ],
+      "verification": {
+        "command": "python -c \"from zerg.constants import PluginHookEvent; assert len(list(PluginHookEvent)) == 8; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5
+    },
+    {
+      "id": "DF-L2-001",
+      "title": "Create E2E test conftest with fixtures",
+      "description": "Create tests/e2e/conftest.py. Fixtures: e2e_harness(tmp_path) -> E2EHarness (mock mode), mock_worker() -> MockWorker instance, sample_e2e_task_graph() -> dict with 4 tasks across 2 levels (L1: create src/hello.py + src/utils.py, L2: create tests/test_hello.py + README.md), e2e_repo(tmp_path) -> Path (git init with .zerg/ and .gsd/ dirs). Import from tests.e2e.mock_worker and tests.e2e.harness.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["DF-L1-001", "DF-L1-002"],
+      "files": {
+        "create": ["tests/e2e/conftest.py"],
+        "modify": [],
+        "read": ["tests/e2e/mock_worker.py", "tests/e2e/harness.py", "tests/conftest.py"]
+      },
+      "acceptance_criteria": [
+        "All 4 fixtures defined and importable",
+        "sample_e2e_task_graph returns valid v2.0 task graph",
+        "e2e_repo creates working git repository"
+      ],
+      "verification": {
+        "command": "python -c \"import tests.e2e.conftest; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "DF-L2-002",
+      "title": "Create test_full_pipeline.py E2E test",
+      "description": "Create tests/e2e/test_full_pipeline.py. TestFullPipeline class with tests: test_mock_pipeline_completes (use E2EHarness with sample_e2e_task_graph, 5 workers, assert E2EResult.success), test_mock_pipeline_creates_files (verify files from task graph exist after run), test_mock_pipeline_merges_levels (verify git log contains merge commits), test_mock_pipeline_state_consistent (verify .zerg/state JSON shows all tasks complete), test_mock_pipeline_handles_task_failure (configure MockWorker to fail one task, verify partial completion). Use fixtures from conftest.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["DF-L2-001"],
+      "files": {
+        "create": ["tests/e2e/test_full_pipeline.py"],
+        "modify": [],
+        "read": ["tests/e2e/conftest.py", "tests/e2e/harness.py"]
+      },
+      "acceptance_criteria": [
+        "5 test methods in TestFullPipeline class",
+        "All tests use E2EHarness in mock mode",
+        "Tests cover success, file creation, merge, state, and failure paths"
+      ],
+      "verification": {
+        "command": "pytest tests/e2e/test_full_pipeline.py -v --co",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15
+    },
+    {
+      "id": "DF-L2-003",
+      "title": "Create unit tests for plugin ABCs and registry",
+      "description": "Create tests/unit/test_plugins.py. Tests: test_registry_empty_by_default, test_register_and_emit_hook (register callback, emit event, verify called), test_emit_event_catches_exceptions (hook raises, no crash), test_register_and_run_gate (mock QualityGatePlugin, run_plugin_gate returns result), test_get_launcher_returns_none_for_unknown, test_get_launcher_returns_registered, test_load_yaml_hooks_registers_shell_commands (provide HookConfig list, emit, verify subprocess called), test_abc_not_instantiable (verify ABCs raise TypeError), test_lifecycle_event_dataclass, test_gate_context_dataclass.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["DF-L1-003", "DF-L1-005"],
+      "files": {
+        "create": ["tests/unit/test_plugins.py"],
+        "modify": [],
+        "read": ["zerg/plugins.py"]
+      },
+      "acceptance_criteria": [
+        "10+ test methods covering all registry operations",
+        "ABC enforcement tested",
+        "Exception safety tested",
+        "YAML hook loading tested"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_plugins.py -v",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12
+    },
+    {
+      "id": "DF-L2-004",
+      "title": "Create unit tests for plugin config models",
+      "description": "Create tests/unit/test_plugin_config.py. Tests: test_plugins_config_defaults, test_hook_config_creation, test_gate_config_creation, test_launcher_config_creation, test_plugins_config_with_hooks, test_plugins_config_with_gates, test_plugins_config_serialization (to_dict/from_dict roundtrip), test_hook_config_timeout_validation.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["DF-L1-004"],
+      "files": {
+        "create": ["tests/unit/test_plugin_config.py"],
+        "modify": [],
+        "read": ["zerg/plugin_config.py"]
+      },
+      "acceptance_criteria": [
+        "8+ test methods covering all config models",
+        "Serialization roundtrip tested",
+        "Validation tested"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_plugin_config.py -v",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8
+    },
+    {
+      "id": "DF-L2-005",
+      "title": "Integrate PluginsConfig into ZergConfig",
+      "description": "Modify zerg/config.py. Add 'from zerg.plugin_config import PluginsConfig' import. Add 'plugins: PluginsConfig = Field(default_factory=PluginsConfig)' field to ZergConfig class. Ensure ZergConfig.load() and save() handle the plugins section. Ensure ZergConfig.from_dict() parses plugins from YAML.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["DF-L1-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/config.py"],
+        "read": ["zerg/plugin_config.py", "zerg/config.py"]
+      },
+      "acceptance_criteria": [
+        "ZergConfig has plugins attribute",
+        "Default PluginsConfig() when not specified",
+        "YAML roundtrip preserves plugins section",
+        "Existing config tests still pass"
+      ],
+      "verification": {
+        "command": "python -c \"from zerg.config import ZergConfig; c = ZergConfig(); assert hasattr(c, 'plugins'); print(c.plugins)\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 8
+    },
+    {
+      "id": "DF-L3-001",
+      "title": "Integrate plugin hooks into orchestrator",
+      "description": "Modify zerg/orchestrator.py. Import PluginRegistry, PluginHookEvent, LifecycleEvent from zerg.plugins and zerg.constants. In __init__: create self._plugin_registry = PluginRegistry(), load from self.config.plugins if config has plugins. In _start_level(): emit PluginHookEvent.LEVEL_COMPLETE event (note: this fires at start but the event name is reused for lifecycle). In _on_level_complete_handler(): emit LEVEL_COMPLETE and MERGE_COMPLETE events with level and merge_commit data. In _main_loop() exit path: emit RUSH_FINISHED. In _spawn_worker(): emit WORKER_SPAWNED with worker_id. In _handle_worker_exit(): emit WORKER_EXITED with worker_id and status. Pass plugin_registry to GateRunner if used. All emit calls wrapped in try/except to never crash orchestrator.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["DF-L1-003", "DF-L1-005", "DF-L2-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": ["zerg/plugins.py", "zerg/constants.py", "zerg/config.py"]
+      },
+      "acceptance_criteria": [
+        "PluginRegistry created in __init__",
+        "Events emitted at 5 lifecycle points",
+        "All emit calls wrapped in try/except",
+        "Existing orchestrator tests still pass"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_orchestrator.py -v -x -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15
+    },
+    {
+      "id": "DF-L3-002",
+      "title": "Integrate plugin hooks into worker_protocol",
+      "description": "Modify zerg/worker_protocol.py. Import PluginRegistry, PluginHookEvent, LifecycleEvent. In __init__: accept optional plugin_registry parameter, or create from config. In execute_task(): emit TASK_STARTED event before execution with task_id and worker_id in data dict. After success/failure: emit TASK_COMPLETED or TASK_FAILED (reuse existing TASK_COMPLETED for both, with success field in data). All emit calls wrapped in try/except. Plugin registry is optional - if None, skip all hook emissions.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["DF-L1-003", "DF-L1-005", "DF-L2-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/worker_protocol.py"],
+        "read": ["zerg/plugins.py", "zerg/constants.py"]
+      },
+      "acceptance_criteria": [
+        "Plugin registry accepted in __init__",
+        "TASK_STARTED emitted before execution",
+        "TASK_COMPLETED emitted after success/failure",
+        "All emit calls are safe (try/except)",
+        "Existing worker_protocol tests still pass"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_worker_protocol.py -v -x -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 12
+    },
+    {
+      "id": "DF-L3-003",
+      "title": "Integrate plugin gates into GateRunner",
+      "description": "Modify zerg/gates.py. Import PluginRegistry, GateContext. In __init__: accept optional plugin_registry: PluginRegistry parameter. Add run_plugin_gates(ctx: GateContext) -> list[GateRunResult] method that iterates registered plugin gates and runs each. In run_all_gates(): after running config-defined gates, also run plugin gates if registry present. Plugin gate results appended to the results list. Plugin gate failures respect the 'required' flag same as config gates.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["DF-L1-003", "DF-L2-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/gates.py"],
+        "read": ["zerg/plugins.py", "zerg/gates.py"]
+      },
+      "acceptance_criteria": [
+        "GateRunner accepts optional plugin_registry",
+        "run_plugin_gates method exists",
+        "Plugin gates run after config gates in run_all_gates",
+        "Existing gate tests still pass"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_gates.py -v -x -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "DF-L3-004",
+      "title": "Add custom launcher plugin support",
+      "description": "Modify zerg/launcher.py. Import PluginRegistry. Add class method or factory function get_launcher(name: str, registry: PluginRegistry | None) -> WorkerLauncher | None that checks if a registered LauncherPlugin matches the name. In orchestrator's _create_launcher() integration point (done in DF-L3-001), check plugin registry first before falling back to SubprocessLauncher/ContainerLauncher. If launcher_type in config matches a registered plugin launcher name, use the plugin's create_launcher() method.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["DF-L1-003", "DF-L2-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": ["zerg/plugins.py", "zerg/launcher.py"]
+      },
+      "acceptance_criteria": [
+        "get_launcher factory checks plugin registry",
+        "Falls back to builtin launchers for 'subprocess' and 'container'",
+        "Unknown launcher names checked against plugins",
+        "Existing launcher tests still pass"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_launcher.py -v -x -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "DF-L3-005",
+      "title": "Create test_real_execution.py with real_e2e marker",
+      "description": "Create tests/e2e/test_real_execution.py. All tests decorated with @pytest.mark.real_e2e. TestRealExecution class: test_real_pipeline_with_simple_task (1 worker, 1-task graph that creates a single file, uses real Claude CLI). Auto-detect auth: try shutil.which('claude') for Pro OAuth, else check ANTHROPIC_API_KEY env var. Skip test if neither available. The test creates a minimal task graph with a trivial task (create a file with 'hello world').",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["DF-L2-001"],
+      "files": {
+        "create": ["tests/e2e/test_real_execution.py"],
+        "modify": [],
+        "read": ["tests/e2e/harness.py", "tests/e2e/conftest.py"]
+      },
+      "acceptance_criteria": [
+        "@pytest.mark.real_e2e on all tests",
+        "Auto-detection of Claude CLI vs API key",
+        "Graceful skip if no auth available",
+        "Test collects but skips in CI"
+      ],
+      "verification": {
+        "command": "pytest tests/e2e/test_real_execution.py -v --co",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "DF-L4-001",
+      "title": "Create integration tests for plugin lifecycle",
+      "description": "Create tests/integration/test_plugin_lifecycle.py. Tests: test_full_lifecycle_events_emitted (create PluginRegistry, register mock hooks for all event types, simulate orchestrator lifecycle, verify all hooks called with correct LifecycleEvent data), test_plugin_gate_runs_after_merge (register QualityGatePlugin, run through GateRunner, verify called), test_yaml_hook_executes_command (register 'echo test' hook, emit event, verify subprocess ran), test_exception_in_hook_doesnt_crash (register hook that raises, emit event, verify no crash), test_plugin_timeout_enforced (register slow hook with short timeout, verify timeout handling).",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["DF-L3-001", "DF-L3-002", "DF-L3-003"],
+      "files": {
+        "create": ["tests/integration/test_plugin_lifecycle.py"],
+        "modify": [],
+        "read": ["zerg/plugins.py", "zerg/orchestrator.py", "zerg/gates.py"]
+      },
+      "acceptance_criteria": [
+        "5 integration tests covering full lifecycle",
+        "Tests exercise real PluginRegistry with mock plugins",
+        "Exception safety verified",
+        "Timeout enforcement verified"
+      ],
+      "verification": {
+        "command": "pytest tests/integration/test_plugin_lifecycle.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15
+    },
+    {
+      "id": "DF-L4-002",
+      "title": "Create dogfood plugin E2E test",
+      "description": "Create tests/e2e/test_dogfood_plugin.py. TestDogfoodPlugin class: test_plugin_system_builds_via_zerg (construct the 12-task plugin system task graph from the design, use E2EHarness in mock mode with 5 workers, run full pipeline, verify all 12 tasks complete, all 4 levels merge, all plugin files would be created). This test validates that ZERG can orchestrate the plugin system build end-to-end.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["DF-L3-001", "DF-L3-002", "DF-L3-003", "DF-L3-004"],
+      "files": {
+        "create": ["tests/e2e/test_dogfood_plugin.py"],
+        "modify": [],
+        "read": ["tests/e2e/harness.py", "tests/e2e/conftest.py"]
+      },
+      "acceptance_criteria": [
+        "Uses E2EHarness with 12-task plugin task graph",
+        "5 workers, 4 levels",
+        "Verifies all tasks complete and levels merge"
+      ],
+      "verification": {
+        "command": "pytest tests/e2e/test_dogfood_plugin.py -v --co",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 12
+    },
+    {
+      "id": "DF-L4-003",
+      "title": "Add pytest markers to pyproject.toml",
+      "description": "Modify pyproject.toml. In [tool.pytest.ini_options] section, add: markers = ['real_e2e: Tests requiring real Claude API calls', 'slow: Slow-running tests']. This eliminates pytest warnings about unknown markers.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["DF-L3-005"],
+      "files": {
+        "create": [],
+        "modify": ["pyproject.toml"],
+        "read": ["pyproject.toml"]
+      },
+      "acceptance_criteria": [
+        "markers list added to pytest config",
+        "real_e2e and slow markers defined",
+        "No pytest unknown marker warnings"
+      ],
+      "verification": {
+        "command": "python -m pytest --markers 2>&1 | grep real_e2e",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 3
+    },
+    {
+      "id": "DF-L4-004",
+      "title": "Create plugin system documentation",
+      "description": "Create zerg/data/commands/zerg:plugins.md. Document: overview of plugin system, three plugin types (QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin), YAML configuration format for hooks and gates, Python entry_points setup for complex plugins, security model (additive-only, read-only views, timeout enforcement), examples of each plugin type, lifecycle event reference table. Include TaskCreate/TaskUpdate tracking section per ZERG conventions.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["DF-L3-001", "DF-L3-003", "DF-L3-004"],
+      "files": {
+        "create": ["zerg/data/commands/zerg:plugins.md"],
+        "modify": [],
+        "read": ["zerg/plugins.py", "zerg/plugin_config.py"]
+      },
+      "acceptance_criteria": [
+        "Documentation covers all 3 plugin types",
+        "YAML and entry_points config documented",
+        "Security model explained",
+        "Examples provided",
+        "Task tracking section included"
+      ],
+      "verification": {
+        "command": "test -f zerg/data/commands/zerg:plugins.md && echo OK",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "DF-L4-005",
+      "title": "Create dogfood bug tracking template",
+      "description": "Create claudedocs/dogfood-bugs.md. Markdown template for tracking bugs discovered during dogfooding. Table with columns: #, Category, Description, Severity, File(s), Status. Categories: orchestrator, worker, merge, state-ipc, launcher, plugin. Severity levels: P0 (blocker), P1 (major), P2 (minor). Include section headers for each category. Initially empty bug list (populated during actual dogfood run).",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": [],
+      "files": {
+        "create": ["claudedocs/dogfood-bugs.md"],
+        "modify": [],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Template file exists with proper structure",
+        "All categories listed",
+        "Severity levels defined"
+      ],
+      "verification": {
+        "command": "test -f claudedocs/dogfood-bugs.md && echo OK",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["DF-L1-001", "DF-L1-002", "DF-L1-003", "DF-L1-004", "DF-L1-005"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["DF-L2-001", "DF-L2-002", "DF-L2-003", "DF-L2-004", "DF-L2-005"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["DF-L3-001", "DF-L3-002", "DF-L3-003", "DF-L3-004", "DF-L3-005"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["DF-L4-001", "DF-L4-002", "DF-L4-003", "DF-L4-004", "DF-L4-005"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [3]
+    }
+  }
+}

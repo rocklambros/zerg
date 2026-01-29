@@ -8,6 +8,7 @@ from zerg.config import QualityGate, ZergConfig
 from zerg.constants import GateResult
 from zerg.exceptions import GateFailureError, GateTimeoutError
 from zerg.logging import get_logger
+from zerg.plugins import GateContext, PluginRegistry
 from zerg.types import GateRunResult
 
 logger = get_logger("gates")
@@ -16,14 +17,20 @@ logger = get_logger("gates")
 class GateRunner:
     """Execute quality gates and capture results."""
 
-    def __init__(self, config: ZergConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: ZergConfig | None = None,
+        plugin_registry: PluginRegistry | None = None,
+    ) -> None:
         """Initialize gate runner.
 
         Args:
             config: ZERG configuration (loads default if not provided)
+            plugin_registry: Optional plugin registry for plugin gates
         """
         self.config = config or ZergConfig.load()
         self._results: list[GateRunResult] = []
+        self._plugin_registry = plugin_registry
 
     def _get_executor(self, cwd: Path | None = None, timeout: int = 60) -> CommandExecutor:
         """Get command executor for gate execution."""
@@ -160,7 +167,42 @@ class GateRunner:
                 else:
                     logger.warning(f"Optional gate {gate.name} failed (continuing)")
 
+        # Run plugin gates if registry is available
+        if self._plugin_registry:
+            plugin_results = self.run_plugin_gates(GateContext(
+                feature="",
+                level=0,
+                cwd=Path(cwd) if cwd else Path.cwd(),
+                config=self.config,
+            ))
+            for result in plugin_results:
+                results.append(result)
+                if result.result not in (GateResult.PASS, GateResult.SKIP):
+                    all_passed = False
+                    if stop_on_failure:
+                        logger.error(f"Stopping: plugin gate {result.gate_name} failed")
+                        break
+
         return all_passed, results
+
+    def run_plugin_gates(self, ctx: GateContext) -> list[GateRunResult]:
+        """Run all registered plugin gates.
+
+        Args:
+            ctx: Gate context with feature, level, cwd, config
+
+        Returns:
+            List of GateRunResult from plugin gates
+        """
+        if not self._plugin_registry:
+            return []
+
+        results = []
+        for name in list(self._plugin_registry._gates.keys()):
+            result = self._plugin_registry.run_plugin_gate(name, ctx)
+            results.append(result)
+            self._results.append(result)
+        return results
 
     def run_gate_by_name(
         self,

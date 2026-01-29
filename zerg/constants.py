@@ -138,3 +138,16 @@ class LogEvent(Enum):
     LEVEL_COMPLETE = "level_complete"
     MERGE_STARTED = "merge_started"
     MERGE_COMPLETE = "merge_complete"
+
+
+class PluginHookEvent(Enum):
+    """Plugin lifecycle hook event types."""
+
+    TASK_STARTED = "task_started"
+    TASK_COMPLETED = "task_completed"
+    LEVEL_COMPLETE = "level_complete"
+    MERGE_COMPLETE = "merge_complete"
+    RUSH_FINISHED = "rush_finished"
+    QUALITY_GATE_RUN = "quality_gate_run"
+    WORKER_SPAWNED = "worker_spawned"
+    WORKER_EXITED = "worker_exited"
