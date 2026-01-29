@@ -28,7 +28,7 @@ logger = get_logger("rush")
 @click.option("--task-graph", "-g", help="Path to task-graph.json")
 @click.option(
     "--mode", "-m",
-    type=click.Choice(["subprocess", "container", "auto"]),
+    type=click.Choice(["subprocess", "container", "task", "auto"]),
     default="auto",
     help="Worker execution mode (default: auto-detect)",
 )
@@ -200,7 +200,7 @@ def show_summary(task_data: dict, workers: int, mode: str = "auto") -> None:
     Args:
         task_data: Task graph data
         workers: Worker count
-        mode: Execution mode (subprocess, container, auto)
+        mode: Execution mode (subprocess, container, task, auto)
     """
     tasks = task_data.get("tasks", [])
     levels = task_data.get("levels", {})
