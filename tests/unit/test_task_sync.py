@@ -1,10 +1,12 @@
 """Unit tests for TaskSyncBridge."""
 
+import json
+
 import pytest
 from datetime import datetime
 from pathlib import Path
 
-from zerg.task_sync import TaskSyncBridge, ClaudeTask
+from zerg.task_sync import TaskSyncBridge, ClaudeTask, load_design_manifest
 from zerg.constants import TaskStatus
 from zerg.state import StateManager
 
@@ -65,6 +67,38 @@ class TestClaudeTask:
         assert d["level"] == 0
         assert d["feature"] == "feat"
         assert d["created_at"] == now.isoformat()
+
+
+class TestDesignManifestLoading:
+    """Tests for load_design_manifest function."""
+
+    def test_load_design_manifest_exists(self, tmp_path: Path) -> None:
+        """Test loading a manifest file that exists."""
+        manifest = {
+            "tasks": [
+                {"id": "L0-001", "title": "Create types", "description": "Define types"},
+                {"id": "L0-002", "title": "Create utils", "description": "Add utilities"},
+            ]
+        }
+        manifest_path = tmp_path / "design-tasks-manifest.json"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = load_design_manifest(tmp_path)
+
+        assert result is not None
+        assert len(result) == 2
+        assert result[0]["id"] == "L0-001"
+        assert result[0]["title"] == "Create types"
+        assert result[1]["id"] == "L0-002"
+        assert result[1]["title"] == "Create utils"
+
+    def test_load_design_manifest_missing(self, tmp_path: Path) -> None:
+        """Test loading manifest from a directory without the file."""
+        nonexistent = tmp_path / "no-such-dir"
+
+        result = load_design_manifest(nonexistent)
+
+        assert result is None
 
 
 class TestTaskSyncBridge:
