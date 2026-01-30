@@ -190,42 +190,13 @@ def estimate_sessions(
     }
 
 
-def generate_backlog_markdown(
-    task_data: dict[str, Any],
+def _render_header(
+    lines: list[str],
     feature: str,
-    output_dir: str | Path = "tasks",
-) -> Path:
-    """Generate a markdown backlog file from task graph data.
-
-    Creates a comprehensive backlog document with execution summary,
-    per-level task tables, critical path diagram, and progress tracking.
-
-    Args:
-        task_data: A task-graph.json dict conforming to the ZERG task graph schema.
-        feature: Feature name used for the filename and header.
-        output_dir: Directory to write the backlog file into.
-
-    Returns:
-        Path to the created markdown file.
-    """
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    filename = f"{feature.upper().replace(' ', '-')}-BACKLOG.md"
-    file_path = output_path / filename
-
-    tasks = task_data.get("tasks", [])
-    levels_spec = task_data.get("levels")
-    levels = _group_tasks_by_level(tasks)
-    total_tasks = len(tasks)
-    max_parallel = task_data.get("max_parallelization", 5)
-
-    critical_path_ids = compute_critical_path(tasks)
-    session_info = estimate_sessions(tasks, max_workers=max_parallel)
-
-    lines: list[str] = []
-
-    # Header
+    total_tasks: int,
+    task_data: dict[str, Any],
+) -> None:
+    """Render the backlog header section."""
     lines.append(f"# ZERG {feature} Task Backlog")
     lines.append("")
     lines.append(f"**Created**: {date.today().isoformat()}")
@@ -240,7 +211,16 @@ def generate_backlog_markdown(
     lines.append("---")
     lines.append("")
 
-    # Execution Summary
+
+def _render_execution_summary(
+    lines: list[str],
+    levels: dict[int, list[dict[str, Any]]],
+    levels_spec: dict[str, Any] | None,
+    max_parallel: int,
+    total_tasks: int,
+    session_info: dict[str, int | float],
+) -> None:
+    """Render the execution summary table."""
     lines.append("## Execution Summary")
     lines.append("")
     lines.append("| Level | Tasks | Parallel Workers | Est. Focus |")
@@ -262,7 +242,13 @@ def generate_backlog_markdown(
     lines.append("---")
     lines.append("")
 
-    # Task Backlog by Level
+
+def _render_task_backlog_by_level(
+    lines: list[str],
+    levels: dict[int, list[dict[str, Any]]],
+    levels_spec: dict[str, Any] | None,
+) -> None:
+    """Render the per-level task backlog tables."""
     lines.append("## Task Backlog by Level")
     lines.append("")
 
@@ -296,13 +282,19 @@ def generate_backlog_markdown(
     lines.append("---")
     lines.append("")
 
-    # Critical Path
+
+def _render_critical_path(
+    lines: list[str],
+    critical_path_ids: list[str],
+    tasks: list[dict[str, Any]],
+    levels: dict[int, list[dict[str, Any]]],
+) -> None:
+    """Render the critical path ASCII diagram section."""
     lines.append("## Critical Path")
     lines.append("")
     lines.append("```")
 
     if critical_path_ids:
-        # Build ASCII diagram showing dependency flow
         path_by_level: dict[int, list[str]] = defaultdict(list)
         task_map = {t["id"]: t for t in tasks}
         for tid in critical_path_ids:
@@ -310,7 +302,6 @@ def generate_backlog_markdown(
             level = task.get("level", 1)
             path_by_level[level].append(tid)
 
-        # Show each level's critical path tasks with arrows between levels
         sorted_levels = sorted(path_by_level.keys())
         for i, level_num in enumerate(sorted_levels):
             level_task_ids = path_by_level[level_num]
@@ -355,7 +346,13 @@ def generate_backlog_markdown(
     lines.append("---")
     lines.append("")
 
-    # Progress Tracking
+
+def _render_progress_tracking(
+    lines: list[str],
+    levels: dict[int, list[dict[str, Any]]],
+    total_tasks: int,
+) -> None:
+    """Render the progress tracking table."""
     lines.append("## Progress Tracking")
     lines.append("")
     lines.append("| Level | Status | Completed | Total | % |")
@@ -390,7 +387,12 @@ def generate_backlog_markdown(
     lines.append("---")
     lines.append("")
 
-    # Estimated Sessions
+
+def _render_estimated_sessions(
+    lines: list[str],
+    session_info: dict[str, int | float],
+) -> None:
+    """Render the estimated sessions section."""
     lines.append("## Estimated Sessions")
     lines.append("")
     lines.append(
@@ -405,7 +407,12 @@ def generate_backlog_markdown(
     lines.append("---")
     lines.append("")
 
-    # Blockers
+
+def _render_blockers(
+    lines: list[str],
+    tasks: list[dict[str, Any]],
+) -> None:
+    """Render the blockers and notes section."""
     lines.append("## Blockers & Notes")
     lines.append("")
     blocked_tasks = [
@@ -422,7 +429,12 @@ def generate_backlog_markdown(
     lines.append("---")
     lines.append("")
 
-    # Verification Commands
+
+def _render_verification_commands(
+    lines: list[str],
+    tasks: list[dict[str, Any]],
+) -> None:
+    """Render the verification commands section."""
     lines.append("## Verification Commands")
     lines.append("")
     lines.append("```bash")
@@ -442,6 +454,53 @@ def generate_backlog_markdown(
     lines.append("")
     lines.append(f"*Last Updated: {date.today().isoformat()}*")
     lines.append("")
+
+
+def generate_backlog_markdown(
+    task_data: dict[str, Any],
+    feature: str,
+    output_dir: str | Path = "tasks",
+) -> Path:
+    """Generate a markdown backlog file from task graph data.
+
+    Creates a comprehensive backlog document with execution summary,
+    per-level task tables, critical path diagram, and progress tracking.
+
+    Args:
+        task_data: A task-graph.json dict conforming to the ZERG task graph schema.
+        feature: Feature name used for the filename and header.
+        output_dir: Directory to write the backlog file into.
+
+    Returns:
+        Path to the created markdown file.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{feature.upper().replace(' ', '-')}-BACKLOG.md"
+    file_path = output_path / filename
+
+    tasks = task_data.get("tasks", [])
+    levels_spec = task_data.get("levels")
+    levels = _group_tasks_by_level(tasks)
+    total_tasks = len(tasks)
+    max_parallel = task_data.get("max_parallelization", 5)
+
+    critical_path_ids = compute_critical_path(tasks)
+    session_info = estimate_sessions(tasks, max_workers=max_parallel)
+
+    lines: list[str] = []
+
+    _render_header(lines, feature, total_tasks, task_data)
+    _render_execution_summary(
+        lines, levels, levels_spec, max_parallel, total_tasks, session_info
+    )
+    _render_task_backlog_by_level(lines, levels, levels_spec)
+    _render_critical_path(lines, critical_path_ids, tasks, levels)
+    _render_progress_tracking(lines, levels, total_tasks)
+    _render_estimated_sessions(lines, session_info)
+    _render_blockers(lines, tasks)
+    _render_verification_commands(lines, tasks)
 
     file_path.write_text("\n".join(lines), encoding="utf-8")
     return file_path
