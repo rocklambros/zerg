@@ -292,8 +292,8 @@ class TestEntryPointDiscovery:
         TestHook._calls.clear()
         registry.load_entry_points()
 
-        # Emit event to verify hook was registered
-        event = LifecycleEvent(event_type="test-hook", data={})
+        # Emit event to verify hook was registered (must use a PluginHookEvent type)
+        event = LifecycleEvent(event_type="task_started", data={})
         registry.emit_event(event)
 
         assert len(TestHook._calls) == 1
