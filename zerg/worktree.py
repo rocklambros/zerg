@@ -245,8 +245,17 @@ class WorktreeManager:
                 # If force removal failed, try pruning
                 self._run_git("worktree", "prune")
                 if path.exists():
+                    import platform
                     import shutil
+                    import subprocess as _sp
 
+                    # On macOS, Docker Desktop can set deny-delete ACLs
+                    # that prevent rmtree. Strip ACLs first.
+                    if platform.system() == "Darwin":
+                        _sp.run(
+                            ["chmod", "-RN", str(path)],
+                            capture_output=True,
+                        )
                     shutil.rmtree(path)
                 logger.info(f"Force removed worktree at {path}")
             else:
