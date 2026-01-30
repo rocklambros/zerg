@@ -8,6 +8,7 @@ Delegates to extracted components:
 - LevelCoordinator: level start, complete, merge workflows
 """
 
+import asyncio
 import contextlib
 import time
 from collections.abc import Callable
@@ -593,6 +594,271 @@ class Orchestrator:
                 self.state.set_worker_state(worker)
                 self._handle_worker_exit(worker_id)
             worker.health_check_at = _now()
+
+    # ------------------------------------------------------------------
+    # Async lifecycle methods
+    # ------------------------------------------------------------------
+
+    async def start_async(
+        self,
+        task_graph_path: str | Path,
+        worker_count: int = 5,
+        start_level: int | None = None,
+        dry_run: bool = False,
+    ) -> None:
+        """Async entry point for orchestration.
+
+        Same behavior as start() but uses asyncio.sleep in the main loop
+        and async state loading in poll_workers.
+
+        Args:
+            task_graph_path: Path to task-graph.json
+            worker_count: Number of workers to spawn
+            start_level: Starting level (default: 1)
+            dry_run: If True, don't actually spawn workers
+        """
+        logger.info(f"Starting async orchestration for {self.feature}")
+
+        # Load and parse task graph
+        self.parser.parse(task_graph_path)
+        tasks = self.parser.get_all_tasks()
+
+        # Initialize level controller
+        self.levels.initialize(tasks)
+
+        # Create assignments
+        self.assigner = WorkerAssignment(worker_count)
+        assignments = self.assigner.assign(tasks, self.feature)
+
+        # Save assignments
+        assignments_path = Path(f".gsd/specs/{self.feature}/worker-assignments.json")
+        self.assigner.save_to_file(str(assignments_path), self.feature)
+
+        # Update components that depend on assigner
+        self._worker_manager.assigner = self.assigner
+        self._level_coord.assigner = self.assigner
+
+        # Initialize state (async)
+        await self.state.load_async()
+        self.state.append_event("rush_started", {
+            "workers": worker_count,
+            "total_tasks": len(tasks),
+        })
+
+        if dry_run:
+            logger.info("Dry run - not spawning workers")
+            self._print_plan(assignments)
+            return
+
+        # Start execution
+        self._running = True
+        self._worker_manager.running = True
+        spawned = self._spawn_workers(worker_count)
+        if spawned == 0:
+            self.state.append_event("rush_failed", {
+                "reason": "No workers spawned",
+                "requested": worker_count,
+                "mode": self._launcher_mode,
+            })
+            await self.state.save_async()
+            raise RuntimeError(
+                f"All {worker_count} workers failed to spawn"
+                f" (mode={self._launcher_mode}). Cannot proceed."
+            )
+        if spawned < worker_count:
+            logger.warning(
+                f"Only {spawned}/{worker_count} workers spawned."
+                " Continuing with reduced capacity."
+            )
+
+        # Wait for workers to initialize before starting level
+        self._wait_for_initialization(timeout=600)
+
+        effective_start = start_level or 1
+        # When resuming from a later level, mark all prior levels as complete
+        if effective_start > 1:
+            for prev in range(1, effective_start):
+                if prev in self.levels._levels:
+                    lvl = self.levels._levels[prev]
+                    lvl.completed_tasks = lvl.total_tasks
+                    lvl.failed_tasks = 0
+                    lvl.status = "complete"
+                    for _tid, task in self.levels._tasks.items():
+                        if task.get("level") == prev:
+                            task["status"] = TaskStatus.COMPLETE.value
+                    logger.info(
+                        f"Pre-marked level {prev} as complete "
+                        f"(resuming from {effective_start})"
+                    )
+
+        self._start_level(effective_start)
+        await self._main_loop_async()
+
+    def start_sync(
+        self,
+        task_graph_path: str | Path,
+        worker_count: int = 5,
+        start_level: int | None = None,
+        dry_run: bool = False,
+    ) -> None:
+        """Synchronous entry point - wraps async start_async() in asyncio.run().
+
+        Args:
+            task_graph_path: Path to task-graph.json
+            worker_count: Number of workers to spawn
+            start_level: Starting level (default: 1)
+            dry_run: If True, don't actually spawn workers
+        """
+        asyncio.run(self.start_async(
+            task_graph_path,
+            worker_count=worker_count,
+            start_level=start_level,
+            dry_run=dry_run,
+        ))
+
+    async def stop_async(self, force: bool = False) -> None:
+        """Async stop orchestration.
+
+        Args:
+            force: Force stop without graceful shutdown
+        """
+        logger.info(f"Stopping orchestration async (force={force})")
+        self._running = False
+        self._worker_manager.running = False
+
+        # Stop all workers
+        for worker_id in list(self._workers.keys()):
+            self._terminate_worker(worker_id, force=force)
+
+        # Release ports
+        self.ports.release_all()
+
+        # Save final state (async)
+        self.state.append_event("rush_stopped", {"force": force})
+        await self.state.save_async()
+
+        # Generate STATE.md for human-readable status
+        try:
+            self.state.generate_state_md()
+        except Exception as e:
+            logger.warning(f"Failed to generate STATE.md: {e}")
+
+        logger.info("Orchestration stopped (async)")
+
+    async def _main_loop_async(self) -> None:
+        """Async main orchestration loop.
+
+        Uses asyncio.sleep() instead of time.sleep() for non-blocking waits.
+        """
+        logger.info("Starting async main loop")
+        _handled_levels: set[int] = set()
+
+        while self._running:
+            try:
+                await self._poll_workers_async()
+                self._check_retry_ready_tasks()
+
+                # Check level completion (guard: only handle each level once)
+                current = self.levels.current_level
+                if (
+                    current > 0
+                    and current not in _handled_levels
+                    and self.levels.is_level_complete(current)
+                ):
+                    _handled_levels.add(current)
+                    merge_ok = self._on_level_complete_handler(current)
+
+                    if not merge_ok:
+                        logger.warning(f"Level {current} merge failed, pausing execution")
+                        continue
+
+                    if self.levels.can_advance():
+                        next_level = self.levels.advance_level()
+                        if next_level:
+                            self._start_level(next_level)
+                            self._respawn_workers_for_level(next_level)
+                    else:
+                        status = self.levels.get_status()
+                        if status["is_complete"]:
+                            logger.info("All tasks complete!")
+                            self._running = False
+                            break
+
+                # Check if all workers are gone but tasks remain
+                active_workers = [
+                    w for w in self._workers.values()
+                    if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
+                ]
+                if not active_workers and self._running:
+                    remaining = self._get_remaining_tasks_for_level(current)
+                    if remaining:
+                        logger.warning(
+                            f"All workers exited but {len(remaining)} tasks remain "
+                            f"at level {current}. Respawning workers."
+                        )
+                        self._respawn_workers_for_level(current)
+
+                await asyncio.sleep(self._poll_interval)
+
+            except KeyboardInterrupt:
+                logger.info("Interrupted by user")
+                await self.stop_async()
+                break
+            except Exception as e:
+                logger.error(f"Error in async main loop: {e}")
+                self.state.set_error(str(e))
+                await self.stop_async(force=True)
+                raise
+
+        # Emit rush finished event
+        with contextlib.suppress(Exception):
+            self._plugin_registry.emit_event(LifecycleEvent(
+                event_type=PluginHookEvent.RUSH_FINISHED.value,
+                data={"feature": self.feature},
+            ))
+
+        logger.info("Async main loop ended")
+
+    async def _poll_workers_async(self) -> None:
+        """Async poll worker status and handle completions.
+
+        Uses async state loading for non-blocking I/O.
+        """
+        await self.state.load_async()
+        self._sync_levels_from_state()
+        self._reassign_stranded_tasks()
+        self._check_container_health()
+        self.task_sync.sync_state()
+        self.launcher.sync_state()
+
+        for worker_id, worker in list(self._workers.items()):
+            if worker.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
+                continue
+            status = self.launcher.monitor(worker_id)
+            if status == WorkerStatus.CRASHED:
+                logger.error(f"Worker {worker_id} crashed")
+                worker.status = WorkerStatus.CRASHED
+                self.state.set_worker_state(worker)
+                if worker.current_task:
+                    self._handle_task_failure(worker.current_task, worker_id, "Worker crashed")
+                self._handle_worker_exit(worker_id)
+            elif status == WorkerStatus.CHECKPOINTING:
+                logger.info(f"Worker {worker_id} checkpointing")
+                worker.status = WorkerStatus.CHECKPOINTING
+                self.state.set_worker_state(worker)
+                self._handle_worker_exit(worker_id)
+            elif status == WorkerStatus.STOPPED:
+                worker.status = WorkerStatus.STOPPED
+                self.state.set_worker_state(worker)
+                self._handle_worker_exit(worker_id)
+            worker.health_check_at = _now()
+
+    # Alias for backward compatibility
+    _poll_workers_sync = _poll_workers
+
+    # ------------------------------------------------------------------
+    # Helper methods
+    # ------------------------------------------------------------------
 
     def _get_remaining_tasks_for_level(self, level: int) -> list[str]:
         """Get remaining tasks for a level."""
