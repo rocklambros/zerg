@@ -1,21 +1,24 @@
-"""ZERG orchestrator - main coordination engine."""
+"""ZERG orchestrator - thin coordination engine.
 
-import concurrent.futures
+Delegates to extracted components:
+- LauncherConfigurator: launcher creation and container lifecycle
+- TaskRetryManager: retry logic, backoff, verification retries
+- StateSyncService: disk-to-memory state synchronization
+- WorkerManager: worker spawning, initialization, termination
+- LevelCoordinator: level start, complete, merge workflows
+"""
+
 import contextlib
-import subprocess as sp
 import time
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
-from zerg.assign import WorkerAssignment
 from zerg.config import ZergConfig
 from zerg.constants import (
     LOGS_TASKS_DIR,
     LOGS_WORKERS_DIR,
-    LevelMergeStatus,
-    LogEvent,
     PluginHookEvent,
     TaskStatus,
     WorkerStatus,
@@ -28,28 +31,41 @@ from zerg.launcher import (
     LauncherType,
     SubprocessLauncher,
     WorkerLauncher,
+    get_plugin_launcher,
 )
+from zerg.launcher_configurator import LauncherConfigurator
+from zerg.level_coordinator import LevelCoordinator
 from zerg.levels import LevelController
 from zerg.log_writer import StructuredLogWriter
 from zerg.logging import get_logger, setup_structured_logging
-from zerg.merge import MergeCoordinator, MergeFlowResult
-from zerg.metrics import MetricsCollector, duration_ms
+from zerg.merge import MergeCoordinator
+from zerg.metrics import MetricsCollector
 from zerg.parser import TaskParser
 from zerg.plugins import LifecycleEvent, PluginRegistry
 from zerg.ports import PortAllocator
-from zerg.retry_backoff import RetryBackoffCalculator
 from zerg.state import StateManager
+from zerg.state_sync_service import StateSyncService
+from zerg.task_retry_manager import TaskRetryManager
 from zerg.task_sync import TaskSyncBridge
 from zerg.types import WorkerState
+from zerg.worker_manager import WorkerManager
 from zerg.worktree import WorktreeManager
+from zerg.assign import WorkerAssignment
 
 logger = get_logger("orchestrator")
+
+
+def _now() -> datetime:
+    """Return current datetime (extracted for testability)."""
+    return datetime.now()
 
 
 class Orchestrator:
     """Main ZERG orchestration engine.
 
-    Coordinates workers, manages levels, and handles state transitions.
+    Thin coordinator that wires and delegates to extracted components:
+    LauncherConfigurator, TaskRetryManager, StateSyncService,
+    WorkerManager, and LevelCoordinator.
     """
 
     def __init__(
@@ -83,7 +99,7 @@ class Orchestrator:
             except Exception as e:
                 logger.warning(f"Failed to load plugins: {e}")
 
-        # Initialize components
+        # Initialize core components
         self.state = StateManager(feature)
         self.levels = LevelController()
         self.parser = TaskParser()
@@ -98,13 +114,17 @@ class Orchestrator:
         self.merger = MergeCoordinator(feature, self.config, repo_path)
         self.task_sync = TaskSyncBridge(feature, self.state)
 
-        # Initialize launcher based on config and mode
+        # Create extracted components
+        self._launcher_config = LauncherConfigurator(
+            self.config, self.repo_path, self._plugin_registry
+        )
+        # Launcher creation stays inline so test patches on zerg.orchestrator work
         self.launcher: WorkerLauncher = self._create_launcher(mode=launcher_mode)
 
         # Clean up orphan containers from previous runs (container mode only)
         try:
             if isinstance(self.launcher, ContainerLauncher):
-                self._cleanup_orphan_containers()
+                self._launcher_config._cleanup_orphan_containers()
         except TypeError:
             pass  # Mocked launcher in tests
 
@@ -133,40 +153,73 @@ class Orchestrator:
         self._poll_interval = 5  # seconds
         self._max_retry_attempts = self.config.workers.retry_attempts
 
+        # Wire extracted components
+        self._retry_manager = TaskRetryManager(
+            config=self.config,
+            state=self.state,
+            levels=self.levels,
+            repo_path=self.repo_path,
+            structured_writer=self._structured_writer,
+        )
+        self._state_sync = StateSyncService(state=self.state, levels=self.levels)
+        self._worker_manager = WorkerManager(
+            feature=self.feature,
+            config=self.config,
+            state=self.state,
+            levels=self.levels,
+            parser=self.parser,
+            launcher=self.launcher,
+            worktrees=self.worktrees,
+            ports=self.ports,
+            assigner=self.assigner,
+            plugin_registry=self._plugin_registry,
+            workers=self._workers,
+            on_task_complete=self._on_task_complete,
+            on_task_failure=self._retry_manager.handle_task_failure,
+            structured_writer=self._structured_writer,
+        )
+        self._level_coord = LevelCoordinator(
+            feature=self.feature,
+            config=self.config,
+            state=self.state,
+            levels=self.levels,
+            parser=self.parser,
+            merger=self.merger,
+            task_sync=self.task_sync,
+            plugin_registry=self._plugin_registry,
+            workers=self._workers,
+            on_level_complete_callbacks=self._on_level_complete,
+            assigner=self.assigner,
+            structured_writer=self._structured_writer,
+        )
+
+    # ------------------------------------------------------------------
+    # Backward-compatible thin wrappers (delegate to components)
+    # ------------------------------------------------------------------
+
     def _create_launcher(self, mode: str | None = None) -> WorkerLauncher:
         """Create worker launcher based on config and mode.
 
-        Args:
-            mode: Launcher mode override (subprocess, container, auto)
-                  If None, uses config setting
-
-        Returns:
-            Configured WorkerLauncher instance
+        Kept inline (not delegated) so test patches on zerg.orchestrator
+        module-level ContainerLauncher/SubprocessLauncher work correctly.
         """
-        # Check plugin registry first for custom launcher
         if mode and mode not in ("subprocess", "container", "auto"):
-            from zerg.launcher import get_plugin_launcher
             plugin_launcher = get_plugin_launcher(mode, self._plugin_registry)
             if plugin_launcher is not None:
                 logger.info(f"Using plugin launcher: {mode}")
                 return plugin_launcher
 
-        # Determine launcher type
         if mode == "subprocess":
             launcher_type = LauncherType.SUBPROCESS
         elif mode == "container":
             launcher_type = LauncherType.CONTAINER
         elif mode == "auto" or mode is None:
-            # Auto-detect based on environment
             launcher_type = self._auto_detect_launcher_type()
         else:
-            # Try plugin launcher for unrecognized mode
-            from zerg.launcher import get_plugin_launcher
             plugin_launcher = get_plugin_launcher(mode, self._plugin_registry)
             if plugin_launcher is not None:
                 logger.info(f"Using plugin launcher: {mode}")
                 return plugin_launcher
-            # Fall back to config setting if plugin not found
             launcher_type = self.config.get_launcher_type()
 
         config = LauncherConfig(
@@ -176,14 +229,12 @@ class Orchestrator:
         )
 
         if launcher_type == LauncherType.CONTAINER:
-            # Use ContainerLauncher with resource limits from config
             launcher = ContainerLauncher(
                 config=config,
                 image_name=self._get_worker_image_name(),
                 memory_limit=self.config.resources.container_memory_limit,
                 cpu_limit=self.config.resources.container_cpu_limit,
             )
-            # Ensure network exists
             network_ok = launcher.ensure_network()
             if not network_ok:
                 if mode == "container":
@@ -191,10 +242,7 @@ class Orchestrator:
                         "Container mode explicitly requested but Docker network "
                         "creation failed. Check that Docker is running and accessible."
                     )
-                # Auto-detected container mode: fall back gracefully
-                logger.warning(
-                    "Docker network setup failed, falling back to subprocess"
-                )
+                logger.warning("Docker network setup failed, falling back to subprocess")
                 return SubprocessLauncher(config)
             logger.info("Using ContainerLauncher")
             return launcher
@@ -203,96 +251,84 @@ class Orchestrator:
             return SubprocessLauncher(config)
 
     def _cleanup_orphan_containers(self) -> None:
-        """Remove leftover zerg-worker containers from previous runs."""
-        try:
-            result = sp.run(
-                ["docker", "ps", "-a", "--filter", "name=zerg-worker",
-                 "--format", "{{.ID}}"],
-                capture_output=True, text=True, timeout=10,
-            )
-            if result.returncode != 0:
-                return
-            for cid in result.stdout.strip().split("\n"):
-                if cid:
-                    sp.run(
-                        ["docker", "rm", "-f", cid],
-                        capture_output=True, timeout=10,
-                    )
-                    logger.info(f"Removed orphan container {cid[:12]}")
-        except (sp.TimeoutExpired, FileNotFoundError):
-            pass  # Docker not available, skip
+        self._launcher_config._cleanup_orphan_containers()
 
     def _check_container_health(self) -> None:
-        """Mark containers stuck beyond timeout as CRASHED."""
-        try:
-            is_container = isinstance(self.launcher, ContainerLauncher)
-        except TypeError:
-            return
-        if not is_container:
-            return
-        timeout_seconds = self.config.workers.timeout_minutes * 60
-        for worker_id, worker in list(self._workers.items()):
-            if worker.status == WorkerStatus.RUNNING and worker.started_at:
-                elapsed = (datetime.now() - worker.started_at).total_seconds()
-                if elapsed > timeout_seconds:
-                    logger.warning(
-                        f"Worker {worker_id} exceeded timeout "
-                        f"({elapsed:.0f}s > {timeout_seconds}s), terminating"
-                    )
-                    self.launcher.terminate(worker_id)
-                    worker.status = WorkerStatus.CRASHED
-                    self.state.set_worker_state(worker)
+        self._launcher_config._check_container_health(self._workers, self.launcher)
 
     def _auto_detect_launcher_type(self) -> LauncherType:
-        """Auto-detect whether to use container or subprocess launcher.
-
-        Detection logic:
-        1. Check if devcontainer.json exists
-        2. Check if worker image is built
-        3. Fall back to subprocess if containers not available
-
-        Returns:
-            Detected LauncherType
-        """
-        devcontainer_path = self.repo_path / ".devcontainer" / "devcontainer.json"
-
-        # No devcontainer config = use subprocess
-        if not devcontainer_path.exists():
-            logger.debug("No devcontainer.json found, using subprocess mode")
-            return LauncherType.SUBPROCESS
-
-        # Check if image exists
-        image_name = self._get_worker_image_name()
-
-        try:
-            import subprocess as sp
-            result = sp.run(
-                ["docker", "image", "inspect", image_name],
-                capture_output=True,
-                timeout=10,
-            )
-            if result.returncode == 0:
-                logger.debug(f"Found worker image {image_name}, using container mode")
-                return LauncherType.CONTAINER
-            else:
-                logger.debug(f"Worker image {image_name} not found, using subprocess mode")
-                return LauncherType.SUBPROCESS
-        except Exception as e:
-            logger.debug(f"Docker check failed ({e}), using subprocess mode")
-            return LauncherType.SUBPROCESS
+        return self._launcher_config._auto_detect_launcher_type()
 
     def _get_worker_image_name(self) -> str:
-        """Get the worker image name.
+        return self._launcher_config._get_worker_image_name()
 
-        Returns:
-            Docker image name for workers
-        """
-        # Check config first
-        if hasattr(self.config, "container_image"):
-            return str(self.config.container_image)
+    def _handle_task_failure(self, task_id: str, worker_id: int, error: str) -> bool:
+        return self._retry_manager.handle_task_failure(task_id, worker_id, error)
 
-        # Default to standard worker image
-        return "zerg-worker"
+    def _check_retry_ready_tasks(self) -> None:
+        self._retry_manager.check_retry_ready_tasks()
+
+    def _sync_levels_from_state(self) -> None:
+        self._state_sync.sync_from_disk()
+
+    def _reassign_stranded_tasks(self) -> None:
+        # Compute active worker IDs from both disk state and in-memory workers
+        active_ids: set[int] = set()
+        workers_state = self.state._state.get("workers", {})
+        for wid_str, wdata in workers_state.items():
+            if wdata.get("status") not in ("stopped", "crashed"):
+                active_ids.add(int(wid_str))
+        for wid, w in self._workers.items():
+            if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
+                active_ids.add(wid)
+        self._state_sync.reassign_stranded_tasks(active_ids)
+
+    def _spawn_worker(self, worker_id: int) -> WorkerState:
+        return self._worker_manager.spawn_worker(worker_id)
+
+    def _spawn_workers(self, count: int) -> int:
+        return self._worker_manager.spawn_workers(count)
+
+    def _wait_for_initialization(self, timeout: int = 600) -> bool:
+        return self._worker_manager.wait_for_initialization(timeout)
+
+    def _terminate_worker(self, worker_id: int, force: bool = False) -> None:
+        self._worker_manager.terminate_worker(worker_id, force=force)
+
+    def _handle_worker_exit(self, worker_id: int) -> None:
+        self._worker_manager.handle_worker_exit(worker_id)
+
+    def _respawn_workers_for_level(self, level: int) -> int:
+        return self._worker_manager.respawn_workers_for_level(level)
+
+    def _start_level(self, level: int) -> None:
+        self._level_coord.assigner = self.assigner
+        self._level_coord.start_level(level)
+
+    def _on_level_complete_handler(self, level: int) -> bool:
+        result = self._level_coord.handle_level_complete(level)
+        # Sync paused state back from LevelCoordinator
+        if self._level_coord.paused:
+            self._paused = True
+        return result
+
+    def _merge_level(self, level: int):  # noqa: ANN202
+        return self._level_coord.merge_level(level)
+
+    def _rebase_all_workers(self, level: int) -> None:
+        self._level_coord.rebase_all_workers(level)
+
+    def _pause_for_intervention(self, reason: str) -> None:
+        self._level_coord.pause_for_intervention(reason)
+        self._paused = True
+
+    def _set_recoverable_error(self, error: str) -> None:
+        self._level_coord.set_recoverable_error(error)
+        self._paused = True
+
+    # ------------------------------------------------------------------
+    # Lifecycle methods (retained directly)
+    # ------------------------------------------------------------------
 
     def start(
         self,
@@ -326,6 +362,10 @@ class Orchestrator:
         assignments_path = Path(f".gsd/specs/{self.feature}/worker-assignments.json")
         self.assigner.save_to_file(str(assignments_path), self.feature)
 
+        # Update components that depend on assigner
+        self._worker_manager.assigner = self.assigner
+        self._level_coord.assigner = self.assigner
+
         # Initialize state
         self.state.load()
         self.state.append_event("rush_started", {
@@ -340,6 +380,7 @@ class Orchestrator:
 
         # Start execution
         self._running = True
+        self._worker_manager.running = True
         spawned = self._spawn_workers(worker_count)
         if spawned == 0:
             self.state.append_event("rush_failed", {
@@ -363,7 +404,6 @@ class Orchestrator:
 
         effective_start = start_level or 1
         # When resuming from a later level, mark all prior levels as complete
-        # so the dependency check in LevelController.start_level() passes.
         if effective_start > 1:
             for prev in range(1, effective_start):
                 if prev in self.levels._levels:
@@ -371,8 +411,6 @@ class Orchestrator:
                     lvl.completed_tasks = lvl.total_tasks
                     lvl.failed_tasks = 0
                     lvl.status = "complete"
-                    # Also mark individual tasks so _sync_levels_from_state
-                    # won't double-count them when it sees them complete on disk.
                     for _tid, task in self.levels._tasks.items():
                         if task.get("level") == prev:
                             task["status"] = TaskStatus.COMPLETE.value
@@ -392,6 +430,7 @@ class Orchestrator:
         """
         logger.info(f"Stopping orchestration (force={force})")
         self._running = False
+        self._worker_manager.running = False
 
         # Stop all workers
         for worker_id in list(self._workers.keys()):
@@ -453,27 +492,14 @@ class Orchestrator:
             "metrics": metrics_dict,
         }
 
-    def _check_retry_ready_tasks(self) -> None:
-        """Check for tasks whose backoff period has elapsed and requeue them."""
-        ready_tasks = self.state.get_tasks_ready_for_retry()
-        for task_id in ready_tasks:
-            logger.info(f"Task {task_id} backoff elapsed, requeueing for retry")
-            self.state.set_task_status(task_id, TaskStatus.PENDING)
-            # Clear the schedule so it's not picked up again
-            self.state.set_task_retry_schedule(task_id, "")
-            self.state.append_event("task_retry_ready", {"task_id": task_id})
-
     def _main_loop(self) -> None:
         """Main orchestration loop."""
         logger.info("Starting main loop")
-        _handled_levels: set[int] = set()  # Guard against re-triggering
+        _handled_levels: set[int] = set()
 
         while self._running:
             try:
-                # Poll worker status
                 self._poll_workers()
-
-                # Check for tasks ready to retry after backoff
                 self._check_retry_ready_tasks()
 
                 # Check level completion (guard: only handle each level once)
@@ -487,19 +513,15 @@ class Orchestrator:
                     merge_ok = self._on_level_complete_handler(current)
 
                     if not merge_ok:
-                        # Merge failed — don't advance, wait for intervention
                         logger.warning(f"Level {current} merge failed, pausing execution")
                         continue
 
-                    # Advance to next level if possible
                     if self.levels.can_advance():
                         next_level = self.levels.advance_level()
                         if next_level:
                             self._start_level(next_level)
-                            # Respawn workers for the new level
                             self._respawn_workers_for_level(next_level)
                     else:
-                        # Check if all done
                         status = self.levels.get_status()
                         if status["is_complete"]:
                             logger.info("All tasks complete!")
@@ -520,7 +542,6 @@ class Orchestrator:
                         )
                         self._respawn_workers_for_level(current)
 
-                # Sleep before next poll
                 time.sleep(self._poll_interval)
 
             except KeyboardInterrupt:
@@ -542,806 +563,43 @@ class Orchestrator:
 
         logger.info("Main loop ended")
 
-    def _start_level(self, level: int) -> None:
-        """Start a level.
-
-        Args:
-            level: Level number to start
-        """
-        logger.info(f"Starting level {level}")
-
-        task_ids = self.levels.start_level(level)
-        self.state.set_current_level(level)
-        self.state.set_level_status(level, "running")
-        self.state.append_event("level_started", {"level": level, "tasks": len(task_ids)})
-
-        if self._structured_writer:
-            self._structured_writer.emit(
-                "info", f"Level {level} started with {len(task_ids)} tasks",
-                event=LogEvent.LEVEL_STARTED, data={"level": level, "tasks": len(task_ids)},
-            )
-
-        # Emit plugin lifecycle event for level started
-        try:
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.LEVEL_COMPLETE.value,  # Reused for level start
-                data={"level": level, "tasks": len(task_ids)},
-            ))
-        except Exception as e:
-            logger.warning(f"Failed to emit LEVEL_COMPLETE event: {e}")
-
-        # Create Claude Tasks for this level
-        level_tasks = cast(
-            list[dict[str, Any]],
-            [t for tid in task_ids for t in [self.parser.get_task(tid)] if t is not None],
-        )
-        if level_tasks:
-            self.task_sync.create_level_tasks(level, level_tasks)
-            logger.info(f"Created {len(level_tasks)} Claude Tasks for level {level}")
-
-        # Assign tasks to workers
-        for task_id in task_ids:
-            if self.assigner:
-                worker_id = self.assigner.get_task_worker(task_id)
-                if worker_id is not None:
-                    self.state.set_task_status(task_id, TaskStatus.PENDING, worker_id=worker_id)
-
-    def _on_level_complete_handler(self, level: int) -> bool:
-        """Handle level completion.
-
-        Args:
-            level: Completed level
-
-        Returns:
-            True if merge succeeded and we can advance
-        """
-        logger.info(f"Level {level} complete")
-
-        # Update merge status to indicate we're starting merge
-        self.state.set_level_merge_status(level, LevelMergeStatus.MERGING)
-
-        # Execute merge protocol with timeout and retry (BF-007)
-        merge_timeout = getattr(self.config, 'merge_timeout_seconds', 600)  # 10 min default
-        max_retries = getattr(self.config, 'merge_max_retries', 3)
-
-        merge_result = None
-        for attempt in range(max_retries):
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(self._merge_level, level)
-                try:
-                    merge_result = future.result(timeout=merge_timeout)
-                    if merge_result.success:
-                        break
-                except concurrent.futures.TimeoutError:
-                    merge_result = MergeFlowResult(
-                        success=False,
-                        level=level,
-                        source_branches=[],
-                        target_branch="main",
-                        error="Merge timed out",
-                    )
-                    logger.warning(f"Merge timed out for level {level} (attempt {attempt + 1})")
-
-            if not merge_result.success and attempt < max_retries - 1:
-                backoff = 2 ** attempt * 10  # 10s, 20s, 40s
-                logger.warning(
-                    f"Merge attempt {attempt + 1} failed for level {level}, "
-                    f"retrying in {backoff}s: {merge_result.error}"
-                )
-                self.state.append_event("merge_retry", {
-                    "level": level,
-                    "attempt": attempt + 1,
-                    "backoff_seconds": backoff,
-                    "error": merge_result.error,
-                })
-                time.sleep(backoff)
-
-        if merge_result and merge_result.success:
-            self.state.set_level_status(level, "complete", merge_commit=merge_result.merge_commit)
-            self.state.set_level_merge_status(level, LevelMergeStatus.COMPLETE)
-            self.state.append_event("level_complete", {
-                "level": level,
-                "merge_commit": merge_result.merge_commit,
-            })
-
-            if self._structured_writer:
-                self._structured_writer.emit(
-                    "info", f"Level {level} merge complete",
-                    event=LogEvent.MERGE_COMPLETE,
-                    data={"level": level, "merge_commit": merge_result.merge_commit},
-                )
-                self._structured_writer.emit(
-                    "info", f"Level {level} complete",
-                    event=LogEvent.LEVEL_COMPLETE, data={"level": level},
-                )
-
-            # Compute and store metrics
-            try:
-                collector = MetricsCollector(self.state)
-                metrics = collector.compute_feature_metrics()
-                self.state.store_metrics(metrics)
-                logger.info(
-                    f"Level {level} metrics: "
-                    f"{metrics.tasks_completed}/{metrics.tasks_total} tasks, "
-                    f"{metrics.total_duration_ms}ms total"
-                )
-            except Exception as e:
-                logger.warning(f"Failed to compute metrics: {e}")
-
-            # Emit plugin lifecycle events
-            try:
-                self._plugin_registry.emit_event(LifecycleEvent(
-                    event_type=PluginHookEvent.LEVEL_COMPLETE.value,
-                    data={"level": level, "merge_commit": merge_result.merge_commit},
-                ))
-                self._plugin_registry.emit_event(LifecycleEvent(
-                    event_type=PluginHookEvent.MERGE_COMPLETE.value,
-                    data={"level": level, "merge_commit": merge_result.merge_commit},
-                ))
-            except Exception as e:
-                logger.debug(f"Status update failed: {e}")
-
-            # Rebase worker branches onto merged base
-            self._rebase_all_workers(level)
-
-            # Generate STATE.md after level completion
-            try:
-                self.state.generate_state_md()
-            except Exception as e:
-                logger.warning(f"Failed to generate STATE.md: {e}")
-
-            # Notify callbacks
-            for callback in self._on_level_complete:
-                callback(level)
-
-            return True
-        else:
-            error_msg = merge_result.error if merge_result else "Unknown merge error"
-            logger.error(f"Level {level} merge failed after {max_retries} attempts: {error_msg}")
-
-            if "conflict" in str(error_msg).lower():
-                self.state.set_level_merge_status(
-                    level,
-                    LevelMergeStatus.CONFLICT,
-                    details={"error": error_msg},
-                )
-                self._pause_for_intervention(f"Merge conflict in level {level}")
-            else:
-                # BF-007: Set recoverable error state (pause) instead of stop
-                self.state.set_level_merge_status(level, LevelMergeStatus.FAILED)
-                self._set_recoverable_error(
-                    f"Level {level} merge failed after {max_retries} attempts: {error_msg}"
-                )
-
-            return False
-
-    def _set_recoverable_error(self, error: str) -> None:
-        """Set recoverable error state (pause instead of stop).
-
-        Args:
-            error: Error message
-        """
-        logger.warning(f"Setting recoverable error state: {error}")
-        self.state.set_error(error)
-        self._paused = True
-        self.state.set_paused(True)
-        self.state.append_event("recoverable_error", {"error": error})
-
-    def _merge_level(self, level: int) -> MergeFlowResult:
-        """Execute merge protocol for a level.
-
-        Args:
-            level: Level to merge
-
-        Returns:
-            MergeFlowResult with outcome
-        """
-        logger.info(f"Starting merge for level {level}")
-        if self._structured_writer:
-            self._structured_writer.emit(
-                "info", f"Merge started for level {level}",
-                event=LogEvent.MERGE_STARTED, data={"level": level},
-            )
-
-        # Collect worker branches
-        worker_branches = []
-        for _worker_id, worker in self._workers.items():
-            if worker.branch:
-                worker_branches.append(worker.branch)
-
-        if not worker_branches:
-            logger.warning("No worker branches to merge")
-            return MergeFlowResult(
-                success=True,
-                level=level,
-                source_branches=[],
-                target_branch="main",
-            )
-
-        # Execute full merge flow
-        return self.merger.full_merge_flow(
-            level=level,
-            worker_branches=worker_branches,
-            target_branch="main",
-        )
-
-    def _rebase_all_workers(self, level: int) -> None:
-        """Rebase all worker branches onto merged base.
-
-        Args:
-            level: Level that was just merged
-        """
-        logger.info(f"Rebasing worker branches after level {level} merge")
-
-        self.state.set_level_merge_status(level, LevelMergeStatus.REBASING)
-
-        for worker_id, worker in self._workers.items():
-            if not worker.branch:
-                continue
-
-            try:
-                # Workers will need to pull the merged changes
-                # This is handled when they start their next task
-                logger.debug(f"Worker {worker_id} branch {worker.branch} marked for rebase")
-            except Exception as e:
-                logger.warning(f"Failed to track rebase for worker {worker_id}: {e}")
-
-    def _pause_for_intervention(self, reason: str) -> None:
-        """Pause execution for manual intervention.
-
-        Args:
-            reason: Why we're pausing
-        """
-        logger.warning(f"Pausing for intervention: {reason}")
-
-        self._paused = True
-        self.state.set_paused(True)
-        self.state.append_event("paused_for_intervention", {"reason": reason})
-
-        # Log helpful info
-        logger.info("Intervention required. Options:")
-        logger.info("  1. Resolve conflicts and run /zerg:merge")
-        logger.info("  2. Use /zerg:retry to re-run failed tasks")
-        logger.info("  3. Use /zerg:rush --resume to continue")
-
-    def _spawn_worker(self, worker_id: int) -> WorkerState:
-        """Spawn a single worker.
-
-        Args:
-            worker_id: Worker identifier
-
-        Returns:
-            WorkerState for the spawned worker
-        """
-        logger.info(f"Spawning worker {worker_id}")
-
-        # Allocate port
-        port = self.ports.allocate_one()
-
-        # Create worktree
-        wt_info = self.worktrees.create(self.feature, worker_id)
-
-        # Use the unified launcher interface (works for both subprocess and container)
-        result = self.launcher.spawn(
-            worker_id=worker_id,
-            feature=self.feature,
-            worktree_path=wt_info.path,
-            branch=wt_info.branch,
-        )
-
-        if not result.success:
-            raise RuntimeError(f"Failed to spawn worker: {result.error}")
-
-        # Get container ID if using ContainerLauncher
-        container_id = None
-        if result.handle and result.handle.container_id:
-            container_id = result.handle.container_id
-
-        # Create worker state
-        worker_state = WorkerState(
-            worker_id=worker_id,
-            status=WorkerStatus.RUNNING,
-            port=port,
-            container_id=container_id,
-            worktree_path=str(wt_info.path),
-            branch=wt_info.branch,
-            started_at=datetime.now(),
-        )
-
-        self._workers[worker_id] = worker_state
-        self.state.set_worker_state(worker_state)
-        self.state.append_event("worker_started", {
-            "worker_id": worker_id,
-            "port": port,
-            "container_id": container_id,
-            "mode": "container" if container_id else "subprocess",
-        })
-
-        # Emit plugin lifecycle event
-        with contextlib.suppress(Exception):
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.WORKER_SPAWNED.value,
-                data={"worker_id": worker_id, "feature": self.feature},
-            ))
-
-        return worker_state
-
-    def _spawn_workers(self, count: int) -> int:
-        """Spawn multiple workers.
-
-        Args:
-            count: Number of workers to spawn
-
-        Returns:
-            Number of workers successfully spawned.
-        """
-        logger.info(f"Spawning {count} workers")
-        spawned = 0
-
-        for worker_id in range(count):
-            try:
-                self._spawn_worker(worker_id)
-                spawned += 1
-            except Exception as e:
-                logger.error(f"Failed to spawn worker {worker_id}: {e}")
-                # Continue with other workers
-
-        return spawned
-
-    def _wait_for_initialization(self, timeout: int = 600) -> bool:
-        """Wait for all workers to initialize.
-
-        Args:
-            timeout: Maximum wait time in seconds (default 600 = 10 minutes)
-
-        Returns:
-            True if all workers initialized successfully
-        """
-        logger.info("Waiting for workers to initialize...")
-
-        start_time = time.time()
-        check_interval = 2  # seconds
-
-        while time.time() - start_time < timeout:
-            all_ready = True
-            failed_workers = []
-
-            for worker_id, worker in list(self._workers.items()):
-                status = self.launcher.monitor(worker_id)
-
-                if status in (WorkerStatus.RUNNING, WorkerStatus.READY, WorkerStatus.IDLE):
-                    # Worker is ready - record ready_at if not already recorded
-                    if worker.ready_at is None:
-                        worker.ready_at = datetime.now()
-                        self.state.set_worker_ready(worker_id)
-                        self.state.append_event("worker_ready", {
-                            "worker_id": worker_id,
-                            "worktree": worker.worktree_path,
-                            "branch": worker.branch,
-                        })
-                    worker.status = status
-                    continue
-                elif status in (WorkerStatus.CRASHED, WorkerStatus.STOPPED):
-                    # Worker failed during init
-                    failed_workers.append(worker_id)
-                    logger.warning(f"Worker {worker_id} failed during initialization")
-                else:
-                    # Still initializing
-                    all_ready = False
-
-            # Handle failed workers
-            for worker_id in failed_workers:
-                if worker_id in self._workers:
-                    del self._workers[worker_id]
-
-            if all_ready and self._workers:
-                elapsed = time.time() - start_time
-                logger.info(f"All {len(self._workers)} workers initialized in {elapsed:.1f}s")
-                return True
-
-            if not self._workers:
-                logger.error("All workers failed during initialization")
-                return False
-
-            time.sleep(check_interval)
-
-        logger.warning(f"Initialization timeout after {timeout}s")
-        return len(self._workers) > 0  # Continue if any workers are ready
-
-    def _terminate_worker(self, worker_id: int, force: bool = False) -> None:
-        """Terminate a worker.
-
-        Args:
-            worker_id: Worker identifier
-            force: Force termination
-        """
-        worker = self._workers.get(worker_id)
-        if not worker:
-            return
-
-        logger.info(f"Terminating worker {worker_id}")
-
-        # Stop via unified launcher interface
-        self.launcher.terminate(worker_id, force=force)
-
-        # Delete worktree
-        try:
-            wt_path = self.worktrees.get_worktree_path(self.feature, worker_id)
-            self.worktrees.delete(wt_path, force=True)
-        except Exception as e:
-            logger.warning(f"Failed to delete worktree for worker {worker_id}: {e}")
-
-        # Release port
-        if worker.port:
-            self.ports.release(worker.port)
-
-        # Update state
-        worker.status = WorkerStatus.STOPPED
-        self.state.set_worker_state(worker)
-        self.state.append_event("worker_stopped", {"worker_id": worker_id})
-
-        del self._workers[worker_id]
-
-    def _sync_levels_from_state(self) -> None:
-        """Sync LevelController with task completions from disk state.
-
-        Workers write task completions directly to the shared state JSON.
-        The orchestrator's in-memory LevelController must be updated to
-        reflect these completions so level advancement can trigger.
-        """
-        tasks_state = self.state._state.get("tasks", {})
-        for task_id, task_state in tasks_state.items():
-            disk_status = task_state.get("status", "")
-            level_status = self.levels.get_task_status(task_id)
-
-            # Task is complete on disk but not in LevelController
-            complete = TaskStatus.COMPLETE.value
-            if disk_status == complete and level_status != complete:
-                self.levels.mark_task_complete(task_id)
-                logger.info(f"Synced task {task_id} completion to LevelController")
-
-            # Task is failed on disk but not in LevelController
-            elif disk_status == TaskStatus.FAILED.value and level_status != TaskStatus.FAILED.value:
-                self.levels.mark_task_failed(task_id)
-                logger.info(f"Synced task {task_id} failure to LevelController")
-
-            # Task is in progress on disk but not in LevelController
-            elif disk_status in (TaskStatus.IN_PROGRESS.value, TaskStatus.CLAIMED.value):
-                if level_status not in (TaskStatus.IN_PROGRESS.value, TaskStatus.CLAIMED.value):
-                    worker_id = task_state.get("worker_id")
-                    self.levels.mark_task_in_progress(task_id, worker_id)
-
-    def _reassign_stranded_tasks(self) -> None:
-        """Reassign tasks stuck on stopped/crashed workers.
-
-        When a worker exits, tasks pre-assigned to it (via worker_id in state)
-        remain stuck because claim_task() blocks cross-worker claims.
-        This method clears the worker_id for pending tasks whose assigned
-        worker is no longer active, allowing any worker to claim them.
-        """
-        tasks_state = self.state._state.get("tasks", {})
-        workers_state = self.state._state.get("workers", {})
-
-        # Build set of active worker IDs
-        active_worker_ids = set()
-        for wid_str, wdata in workers_state.items():
-            status = wdata.get("status", "")
-            if status not in ("stopped", "crashed"):
-                active_worker_ids.add(int(wid_str))
-
-        # Also check in-memory workers
-        for wid, w in self._workers.items():
-            if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
-                active_worker_ids.add(wid)
-
-        for task_id, task_state in tasks_state.items():
-            status = task_state.get("status", "")
-            worker_id = task_state.get("worker_id")
-
-            # Only reassign pending/todo tasks with a dead worker assignment
-            if (
-                status in (TaskStatus.PENDING.value, TaskStatus.TODO.value, "pending", "todo")
-                and worker_id is not None
-                and worker_id not in active_worker_ids
-            ):
-                # Clear the worker assignment so any worker can claim it
-                task_state["worker_id"] = None
-                logger.info(
-                    f"Reassigned stranded task {task_id} "
-                    f"(was worker {worker_id}, now unassigned)"
-                )
-
-        # Persist changes
-        self.state.save()
-
     def _poll_workers(self) -> None:
         """Poll worker status and handle completions."""
-        # Reload state from disk to pick up worker-written changes
         self.state.load()
-
-        # Sync disk state to in-memory LevelController
         self._sync_levels_from_state()
-
-        # Reassign tasks stuck on dead workers
         self._reassign_stranded_tasks()
-
-        # Check container health (timeout detection)
         self._check_container_health()
-
-        # Sync Claude Tasks with current state
         self.task_sync.sync_state()
-
-        # Sync launcher state to clean up terminated workers
         self.launcher.sync_state()
 
         for worker_id, worker in list(self._workers.items()):
-            # Skip workers already marked as stopped/crashed (already handled)
             if worker.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
                 continue
-
-            # Check status via unified launcher interface
             status = self.launcher.monitor(worker_id)
-
             if status == WorkerStatus.CRASHED:
                 logger.error(f"Worker {worker_id} crashed")
                 worker.status = WorkerStatus.CRASHED
                 self.state.set_worker_state(worker)
-
-                # Mark current task as failed and handle retry
                 if worker.current_task:
-                    self._handle_task_failure(
-                        worker.current_task,
-                        worker_id,
-                        "Worker crashed",
-                    )
-
-                # Handle exit (will respawn if needed)
+                    self._handle_task_failure(worker.current_task, worker_id, "Worker crashed")
                 self._handle_worker_exit(worker_id)
-
             elif status == WorkerStatus.CHECKPOINTING:
                 logger.info(f"Worker {worker_id} checkpointing")
                 worker.status = WorkerStatus.CHECKPOINTING
                 self.state.set_worker_state(worker)
                 self._handle_worker_exit(worker_id)
-
             elif status == WorkerStatus.STOPPED:
-                # Worker exited - check for completion
                 worker.status = WorkerStatus.STOPPED
                 self.state.set_worker_state(worker)
                 self._handle_worker_exit(worker_id)
-
-            # Update health check
-            worker.health_check_at = datetime.now()
-
-    def _handle_task_failure(
-        self,
-        task_id: str,
-        worker_id: int,
-        error: str,
-    ) -> bool:
-        """Handle a task failure with retry logic and backoff.
-
-        Args:
-            task_id: Failed task ID
-            worker_id: Worker that failed
-            error: Error message
-
-        Returns:
-            True if task will be retried
-        """
-        retry_count = self.state.get_task_retry_count(task_id)
-
-        if retry_count < self._max_retry_attempts:
-            # Calculate backoff delay
-            delay = RetryBackoffCalculator.calculate_delay(
-                attempt=retry_count + 1,
-                strategy=self.config.workers.backoff_strategy,
-                base_seconds=self.config.workers.backoff_base_seconds,
-                max_seconds=self.config.workers.backoff_max_seconds,
-            )
-
-            # Schedule retry
-            next_retry_at = (
-                datetime.now() + timedelta(seconds=delay)
-            ).isoformat()
-
-            new_count = self.state.increment_task_retry(task_id, next_retry_at=next_retry_at)
-            self.state.set_task_retry_schedule(task_id, next_retry_at)
-
-            logger.warning(
-                f"Task {task_id} failed (attempt {new_count}/{self._max_retry_attempts}), "
-                f"will retry in {delay:.0f}s: {error}"
-            )
-
-            # Mark as waiting_retry instead of immediately pending
-            self.state.set_task_status(task_id, "waiting_retry")
-            self.state.append_event("task_retry_scheduled", {
-                "task_id": task_id,
-                "worker_id": worker_id,
-                "retry_count": new_count,
-                "backoff_seconds": round(delay),
-                "next_retry_at": next_retry_at,
-                "error": error,
-            })
-
-            if self._structured_writer:
-                self._structured_writer.emit(
-                    "warn",
-                    f"Task {task_id} retry {new_count} scheduled in {delay:.0f}s",
-                    event=LogEvent.TASK_FAILED,
-                    data={"task_id": task_id, "backoff_seconds": round(delay)},
-                )
-
-            return True
-        else:
-            # Exceeded retry limit
-            logger.error(
-                f"Task {task_id} failed after {retry_count} retries: {error}"
-            )
-            self.levels.mark_task_failed(task_id, error)
-            self.state.set_task_status(
-                task_id,
-                TaskStatus.FAILED,
-                worker_id=worker_id,
-                error=f"Failed after {retry_count} retries: {error}",
-            )
-            self.state.append_event("task_failed_permanent", {
-                "task_id": task_id,
-                "worker_id": worker_id,
-                "retry_count": retry_count,
-                "error": error,
-            })
-            return False
-
-    def _handle_worker_exit(self, worker_id: int) -> None:
-        """Handle worker exit.
-
-        Args:
-            worker_id: Worker that exited
-        """
-        worker = self._workers.get(worker_id)
-        if not worker:
-            return
-
-        # Emit plugin lifecycle event
-        with contextlib.suppress(Exception):
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.WORKER_EXITED.value,
-                data={"worker_id": worker_id, "feature": self.feature},
-            ))
-
-        # Check exit code (would need to get from container)
-        # For now, assume clean exit means task complete
-
-        if worker.current_task:
-            # Check if task verification passes
-            task = self.parser.get_task(worker.current_task)
-            if task:
-                verification = task.get("verification", {})
-                if verification.get("command"):
-                    # Compute and record task duration before marking complete
-                    # Guard: only record if worker didn't already record it
-                    task_id = worker.current_task
-                    task_state = self.state._state.get("tasks", {}).get(task_id, {})
-                    started_at = task_state.get("started_at")
-                    if started_at and task_state.get("duration_ms") is None:
-                        task_duration = duration_ms(started_at, datetime.now())
-                        if task_duration:
-                            self.state.record_task_duration(task_id, task_duration)
-
-                    # Task should have been verified by worker
-                    self.levels.mark_task_complete(worker.current_task)
-                    self.state.set_task_status(worker.current_task, TaskStatus.COMPLETE)
-
-                    for callback in self._on_task_complete:
-                        callback(worker.current_task)
-
-        # Remove worker from tracking FIRST to prevent respawn loops
-        old_worktree = worker.worktree_path
-        old_port = worker.port
-        del self._workers[worker_id]
-
-        # Release port
-        if old_port:
-            self.ports.release(old_port)
-
-        # Restart worker for more tasks (with new state)
-        remaining = self._get_remaining_tasks_for_level(self.levels.current_level)
-        if remaining and self._running:
-            try:
-                self._spawn_worker(worker_id)
-            except Exception as e:
-                logger.error(f"Failed to restart worker {worker_id}: {e}")
-                # Clean up worktree if spawn failed
-                if old_worktree:
-                    try:
-                        self.worktrees.delete(Path(old_worktree), force=True)
-                    except Exception as cleanup_err:
-                        logger.warning(f"Failed to clean up worktree: {cleanup_err}")
+            worker.health_check_at = _now()
 
     def _get_remaining_tasks_for_level(self, level: int) -> list[str]:
-        """Get remaining tasks for a level.
-
-        Args:
-            level: Level number
-
-        Returns:
-            List of incomplete task IDs
-        """
-        pending = self.levels.get_pending_tasks_for_level(level)
-        return pending
-
-    def _respawn_workers_for_level(self, level: int) -> int:
-        """Respawn workers for a new level.
-
-        After a level completes and the next level starts, workers may have
-        already exited. This method spawns fresh workers to execute the new
-        level's tasks.
-
-        Args:
-            level: Level number that needs workers
-
-        Returns:
-            Number of workers successfully spawned
-        """
-        # Determine how many workers we need
-        remaining = self._get_remaining_tasks_for_level(level)
-        if not remaining:
-            return 0
-
-        # Count still-active workers
-        active = [
-            wid for wid, w in self._workers.items()
-            if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
-        ]
-
-        # Determine target worker count from original assignments
-        target_count = self.assigner.worker_count if self.assigner else 2
-        need = min(target_count - len(active), len(remaining))
-
-        if need <= 0:
-            return 0
-
-        logger.info(
-            f"Respawning {need} workers for level {level} "
-            f"({len(remaining)} tasks remaining)"
-        )
-
-        spawned = 0
-        # Find available worker IDs (prefer reusing IDs from stopped workers)
-        used_ids = set(self._workers.keys())
-        available_ids = [i for i in range(target_count) if i not in used_ids]
-
-        # Also add IDs from stopped/crashed workers after cleaning them out
-        stopped_ids = [
-            wid for wid, w in list(self._workers.items())
-            if w.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
-        ]
-        for wid in stopped_ids:
-            del self._workers[wid]
-            available_ids.append(wid)
-
-        available_ids = sorted(set(available_ids))[:need]
-
-        for worker_id in available_ids:
-            try:
-                self._spawn_worker(worker_id)
-                spawned += 1
-            except Exception as e:
-                logger.error(f"Failed to respawn worker {worker_id}: {e}")
-
-        if spawned > 0:
-            # Wait for new workers to initialize
-            self._wait_for_initialization(timeout=300)
-
-        return spawned
+        """Get remaining tasks for a level."""
+        return self.levels.get_pending_tasks_for_level(level)
 
     def _print_plan(self, assignments: Any) -> None:
-        """Print execution plan (for dry run).
-
-        Args:
-            assignments: WorkerAssignments
-        """
+        """Print execution plan (for dry run)."""
         print("\n=== ZERG Execution Plan ===\n")
         print(f"Feature: {self.feature}")
         print(f"Total Tasks: {self.parser.total_tasks}")
@@ -1357,61 +615,29 @@ class Orchestrator:
                 print(f"  [{task['id']}] {task['title']} -> Worker {worker}")
             print()
 
-    def on_task_complete(self, callback: Callable[[str], None]) -> None:
-        """Register callback for task completion.
+    # ------------------------------------------------------------------
+    # Callback registration (retained directly)
+    # ------------------------------------------------------------------
 
-        Args:
-            callback: Function to call with task_id
-        """
+    def on_task_complete(self, callback: Callable[[str], None]) -> None:
+        """Register callback for task completion."""
         self._on_task_complete.append(callback)
 
     def on_level_complete(self, callback: Callable[[int], None]) -> None:
-        """Register callback for level completion.
-
-        Args:
-            callback: Function to call with level number
-        """
+        """Register callback for level completion."""
         self._on_level_complete.append(callback)
 
+    # ------------------------------------------------------------------
+    # Public retry/resume API (thin wrappers)
+    # ------------------------------------------------------------------
+
     def retry_task(self, task_id: str) -> bool:
-        """Manually retry a failed task.
-
-        Args:
-            task_id: Task to retry
-
-        Returns:
-            True if task was queued for retry
-        """
-        current_status = self.state.get_task_status(task_id)
-
-        if current_status not in (TaskStatus.FAILED.value, "failed"):
-            logger.warning(f"Task {task_id} is not in failed state: {current_status}")
-            return False
-
-        # Reset retry count and status
-        self.state.reset_task_retry(task_id)
-        self.state.set_task_status(task_id, TaskStatus.PENDING)
-        self.state.append_event("task_manual_retry", {"task_id": task_id})
-
-        logger.info(f"Task {task_id} queued for retry")
-        return True
+        """Manually retry a failed task."""
+        return self._retry_manager.retry_task(task_id)
 
     def retry_all_failed(self) -> list[str]:
-        """Retry all failed tasks.
-
-        Returns:
-            List of task IDs queued for retry
-        """
-        failed = self.state.get_failed_tasks()
-        retried = []
-
-        for task_info in failed:
-            task_id = task_info["task_id"]
-            if self.retry_task(task_id):
-                retried.append(task_id)
-
-        logger.info(f"Queued {len(retried)} tasks for retry")
-        return retried
+        """Retry all failed tasks."""
+        return self._retry_manager.retry_all_failed()
 
     def resume(self) -> None:
         """Resume paused execution."""
@@ -1431,38 +657,7 @@ class Orchestrator:
         timeout: int = 60,
         max_retries: int | None = None,
     ) -> bool:
-        """Verify a task with retry logic.
-
-        Args:
-            task_id: Task being verified
-            command: Verification command
-            timeout: Timeout in seconds
-            max_retries: Override max retry attempts
-
-        Returns:
-            True if verification passed
-        """
-        from zerg.verify import VerificationExecutor
-
-        verifier = VerificationExecutor()
-        max_attempts = max_retries if max_retries is not None else self._max_retry_attempts
-
-        for attempt in range(max_attempts + 1):
-            result = verifier.verify(
-                command,
-                task_id,
-                timeout=timeout,
-                cwd=self.repo_path,
-            )
-
-            if result.success:
-                return True
-
-            if attempt < max_attempts:
-                logger.warning(
-                    f"Verification failed for {task_id} "
-                    f"(attempt {attempt + 1}/{max_attempts + 1}), retrying..."
-                )
-                time.sleep(1)  # Brief pause before retry
-
-        return False
+        """Verify a task with retry logic."""
+        return self._retry_manager.verify_with_retry(
+            task_id, command, timeout, max_retries
+        )
