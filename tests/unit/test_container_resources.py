@@ -22,6 +22,8 @@ import pytest
 from zerg.config import ResourcesConfig, ZergConfig
 from zerg.constants import WorkerStatus
 from zerg.launcher import ContainerLauncher
+from zerg.launcher_configurator import LauncherConfigurator
+from zerg.plugins import PluginRegistry
 
 # ---------------------------------------------------------------------------
 # 1. Config tests: ResourcesConfig defaults and ZergConfig.load() defaults
@@ -195,6 +197,10 @@ class TestOrchestratorPassesLimits:
         orch = Orchestrator.__new__(Orchestrator)
         orch.config = config
         orch.repo_path = Path(".")
+        orch._plugin_registry = PluginRegistry()
+        orch._launcher_config = LauncherConfigurator(
+            config, orch.repo_path, orch._plugin_registry
+        )
 
         # Patch ContainerLauncher at the module level to capture constructor args
         with patch("zerg.orchestrator.ContainerLauncher") as mock_cl_cls:
@@ -241,9 +247,13 @@ class TestCleanupOrphanContainers:
         orch = Orchestrator.__new__(Orchestrator)
         orch.config = ZergConfig()
         orch.launcher = MagicMock(spec=ContainerLauncher)
+        orch._plugin_registry = PluginRegistry()
+        orch._launcher_config = LauncherConfigurator(
+            orch.config, Path("."), orch._plugin_registry
+        )
         return orch
 
-    @patch("zerg.orchestrator.sp.run")
+    @patch("zerg.launcher_configurator.sp.run")
     def test_cleanup_removes_found_containers(self, mock_run: MagicMock) -> None:
         """Should run docker rm -f for each container ID found."""
         # First call: docker ps returns two container IDs
@@ -262,7 +272,7 @@ class TestCleanupOrphanContainers:
             assert cmd[1] == "rm"
             assert cmd[2] == "-f"
 
-    @patch("zerg.orchestrator.sp.run")
+    @patch("zerg.launcher_configurator.sp.run")
     def test_cleanup_no_containers_found(self, mock_run: MagicMock) -> None:
         """Should handle empty ps output gracefully."""
         mock_run.return_value = MagicMock(returncode=0, stdout="")
@@ -273,7 +283,7 @@ class TestCleanupOrphanContainers:
         # Only the ps call, no rm calls
         assert mock_run.call_count == 1
 
-    @patch("zerg.orchestrator.sp.run")
+    @patch("zerg.launcher_configurator.sp.run")
     def test_cleanup_handles_file_not_found(self, mock_run: MagicMock) -> None:
         """Should handle FileNotFoundError (no Docker installed) gracefully."""
         mock_run.side_effect = FileNotFoundError("docker not found")
@@ -283,7 +293,7 @@ class TestCleanupOrphanContainers:
         # Should not raise
         orch._cleanup_orphan_containers()
 
-    @patch("zerg.orchestrator.sp.run")
+    @patch("zerg.launcher_configurator.sp.run")
     def test_cleanup_handles_timeout(self, mock_run: MagicMock) -> None:
         """Should handle TimeoutExpired gracefully."""
         mock_run.side_effect = subprocess.TimeoutExpired("docker", 10)
@@ -293,7 +303,7 @@ class TestCleanupOrphanContainers:
         # Should not raise
         orch._cleanup_orphan_containers()
 
-    @patch("zerg.orchestrator.sp.run")
+    @patch("zerg.launcher_configurator.sp.run")
     def test_cleanup_skips_on_nonzero_return(self, mock_run: MagicMock) -> None:
         """Should skip rm when docker ps returns non-zero."""
         mock_run.return_value = MagicMock(returncode=1, stdout="")
@@ -322,6 +332,10 @@ class TestCheckContainerHealth:
         orch.launcher = MagicMock(spec=ContainerLauncher)
         orch.state = MagicMock()
         orch._workers = {}
+        orch._plugin_registry = PluginRegistry()
+        orch._launcher_config = LauncherConfigurator(
+            orch.config, Path("."), orch._plugin_registry
+        )
         return orch
 
     def test_marks_timed_out_worker_as_crashed(self) -> None:

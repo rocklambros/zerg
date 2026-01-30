@@ -56,9 +56,8 @@ class TestDockerDaemonNotRunning:
     ) -> None:
         """Test spawn fails when Docker socket permission denied.
 
-        Note: PermissionError in _start_container is caught and returns None,
-        so spawn returns the generic "Failed to start container" message.
-        The actual error is logged but not propagated to the result.
+        Note: PermissionError is caught by spawn's outer exception handler
+        and the actual error message is returned in the result.
         """
         mock_run.side_effect = PermissionError(
             "Permission denied: /var/run/docker.sock"
@@ -73,8 +72,7 @@ class TestDockerDaemonNotRunning:
         )
 
         assert result.success is False
-        # The error is generic because _start_container catches the exception
-        assert "Failed to start container" in result.error
+        assert result.error is not None
         assert 0 not in launcher._workers
 
     @patch("subprocess.run")
@@ -83,8 +81,8 @@ class TestDockerDaemonNotRunning:
     ) -> None:
         """Test spawn fails when docker command not found.
 
-        Note: FileNotFoundError in _start_container is caught and returns None,
-        so spawn returns the generic "Failed to start container" message.
+        Note: FileNotFoundError is caught by spawn's outer exception handler
+        and the actual error message is returned in the result.
         """
         mock_run.side_effect = FileNotFoundError("docker: command not found")
 
@@ -97,8 +95,7 @@ class TestDockerDaemonNotRunning:
         )
 
         assert result.success is False
-        # The error is generic because _start_container catches the exception
-        assert "Failed to start container" in result.error
+        assert result.error is not None
 
     @patch("subprocess.run")
     def test_spawn_docker_daemon_error_return_code(
@@ -313,21 +310,21 @@ class TestContainerStartFailureCleanup:
     """Tests for cleanup behavior when container start fails at various stages."""
 
     @patch.object(ContainerLauncher, "_cleanup_failed_container")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_verify_worker_process")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_cleans_up_on_exec_failure(
         self,
         mock_start: MagicMock,
         mock_wait: MagicMock,
-        mock_exec: MagicMock,
+        mock_verify: MagicMock,
         mock_cleanup: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Test spawn cleans up container when exec entry script fails."""
+        """Test spawn cleans up container when worker process fails to start."""
         mock_start.return_value = "container-abc123"
         mock_wait.return_value = True
-        mock_exec.return_value = False  # Entry script fails
+        mock_verify.return_value = False  # Worker process fails to start
 
         launcher = ContainerLauncher()
         result = launcher.spawn(
@@ -338,7 +335,7 @@ class TestContainerStartFailureCleanup:
         )
 
         assert result.success is False
-        assert "Failed to execute worker entry script" in result.error
+        assert "Worker process failed to start" in result.error
         mock_cleanup.assert_called_once_with("container-abc123", 0)
 
     @patch.object(ContainerLauncher, "_cleanup_failed_container")

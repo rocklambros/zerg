@@ -273,7 +273,15 @@ class Orchestrator:
         self._launcher_config._cleanup_orphan_containers()
 
     def _check_container_health(self) -> None:
+        # Snapshot statuses before health check to detect newly crashed workers
+        pre_statuses = {
+            wid: w.status for wid, w in self._workers.items()
+        }
         self._launcher_config._check_container_health(self._workers, self.launcher)
+        # Persist state for workers that were marked CRASHED by health check
+        for wid, worker in self._workers.items():
+            if worker.status == WorkerStatus.CRASHED and pre_statuses.get(wid) != WorkerStatus.CRASHED:
+                self.state.set_worker_state(worker)
 
     def _auto_detect_launcher_type(self) -> LauncherType:
         return self._launcher_config._auto_detect_launcher_type()
