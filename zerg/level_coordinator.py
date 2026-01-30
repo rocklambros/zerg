@@ -9,6 +9,7 @@ from __future__ import annotations
 import concurrent.futures
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from zerg.assign import WorkerAssignment
@@ -27,7 +28,7 @@ from zerg.metrics import MetricsCollector
 from zerg.parser import TaskParser
 from zerg.plugins import LifecycleEvent, PluginRegistry
 from zerg.state import StateManager
-from zerg.task_sync import TaskSyncBridge
+from zerg.task_sync import TaskSyncBridge, load_design_manifest
 from zerg.types import WorkerState
 
 if TYPE_CHECKING:
@@ -143,6 +144,14 @@ class LevelCoordinator:
         if level_tasks:
             self.task_sync.create_level_tasks(level, level_tasks)
             logger.info(f"Created {len(level_tasks)} Claude Tasks for level {level}")
+
+        # Log design manifest status (informational only)
+        spec_dir = Path(".gsd/specs") / self.feature
+        manifest_tasks = load_design_manifest(spec_dir)
+        if manifest_tasks is not None:
+            logger.info("Design manifest found with %d tasks", len(manifest_tasks))
+        else:
+            logger.info("No design manifest found for feature %s", self.feature)
 
         # Assign tasks to workers
         for task_id in task_ids:
