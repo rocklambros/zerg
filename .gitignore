@@ -38,6 +38,12 @@ env/
 dist/
 build/
 
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+review.md
+
 # Node.js
 node_modules/
 npm-debug.log*
