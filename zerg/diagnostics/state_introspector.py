@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from zerg.logging import get_logger
 
@@ -20,14 +21,14 @@ class ZergHealthReport:
     total_tasks: int
     task_summary: dict[str, int] = field(default_factory=dict)
     worker_summary: dict[str, str] = field(default_factory=dict)
-    failed_tasks: list[dict] = field(default_factory=list)
-    stale_tasks: list[dict] = field(default_factory=list)
+    failed_tasks: list[dict[str, Any]] = field(default_factory=list)
+    stale_tasks: list[dict[str, Any]] = field(default_factory=list)
     recent_errors: list[str] = field(default_factory=list)
     current_level: int = 0
     is_paused: bool = False
     global_error: str | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "feature": self.feature,
@@ -95,7 +96,7 @@ class ZergStateIntrospector:
         # Extract task summary
         tasks = state.get("tasks", {})
         task_summary: dict[str, int] = {}
-        failed_tasks: list[dict] = []
+        failed_tasks: list[dict[str, Any]] = []
         total = 0
 
         for task_id, task_data in tasks.items():
@@ -121,7 +122,7 @@ class ZergStateIntrospector:
                 worker_summary[str(wid)] = str(wdata)
 
         # Find stale tasks (in_progress but no recent update)
-        stale_tasks: list[dict] = []
+        stale_tasks: list[dict[str, Any]] = []
         for task_id, task_data in tasks.items():
             if task_data.get("status") in ("in_progress", "claimed"):
                 stale_tasks.append({
@@ -158,7 +159,7 @@ class ZergStateIntrospector:
             global_error=global_error,
         )
 
-    def get_failed_task_details(self, feature: str) -> list[dict]:
+    def get_failed_task_details(self, feature: str) -> list[dict[str, Any]]:
         """Return detailed info for failed tasks."""
         report = self.get_health_report(feature)
         return report.failed_tasks

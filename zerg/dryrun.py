@@ -22,7 +22,7 @@ from zerg.assign import WorkerAssignment
 from zerg.config import ZergConfig
 from zerg.gates import GateRunner
 from zerg.preflight import PreflightChecker, PreflightReport
-from zerg.render_utils import render_gantt_chart, render_progress_bar
+from zerg.render_utils import render_gantt_chart
 from zerg.risk_scoring import RiskReport, RiskScorer
 from zerg.validation import (
     validate_dependencies,
@@ -83,8 +83,8 @@ class DryRunReport:
     missing_verifications: list[str] = field(default_factory=list)
     timeline: TimelineEstimate | None = None
     gate_results: list[GateCheckResult] = field(default_factory=list)
-    task_data: dict = field(default_factory=dict)
-    worker_loads: dict[int, dict] = field(default_factory=dict)
+    task_data: dict[str, Any] = field(default_factory=dict)
+    worker_loads: dict[int, dict[str, Any]] = field(default_factory=dict)
     preflight: PreflightReport | None = None
     risk: RiskReport | None = None
 
@@ -250,7 +250,7 @@ class DryRunSimulator:
         tasks = self.task_data.get("tasks", [])
 
         # Group tasks by level
-        level_tasks: dict[int, list[dict]] = defaultdict(list)
+        level_tasks: dict[int, list[dict[str, Any]]] = defaultdict(list)
         for task in tasks:
             level_tasks[task.get("level", 1)].append(task)
 
@@ -473,7 +473,7 @@ class DryRunSimulator:
         levels_info = report.task_data.get("levels", {})
 
         # Group tasks by level
-        level_tasks: dict[int, list[dict]] = defaultdict(list)
+        level_tasks: dict[int, list[dict[str, Any]]] = defaultdict(list)
         for task in tasks:
             level_tasks[task.get("level", 1)].append(task)
 

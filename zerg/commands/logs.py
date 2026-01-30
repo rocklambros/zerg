@@ -4,6 +4,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -335,7 +336,7 @@ def get_level_priority(level: str) -> int:
     return priorities.get(level.lower(), 1)
 
 
-def parse_log_line(line: str) -> dict | None:
+def parse_log_line(line: str) -> dict[str, Any] | None:
     """Parse a log line.
 
     Args:
@@ -350,7 +351,8 @@ def parse_log_line(line: str) -> dict | None:
 
     # Try JSON format first
     try:
-        return json.loads(line)
+        result: dict[str, Any] = json.loads(line)
+        return result
     except json.JSONDecodeError:
         pass
 
@@ -386,7 +388,7 @@ def extract_level(prefix: str) -> str:
     return "info"
 
 
-def format_log_entry(entry: dict) -> Text:
+def format_log_entry(entry: dict[str, Any]) -> Text:
     """Format a log entry for display.
 
     Args:

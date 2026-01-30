@@ -187,10 +187,16 @@ class GateRunner:
                     if is_required:
                         all_passed = False
                         if stop_on_failure:
-                            logger.error(f"Stopping: required plugin gate {result.gate_name} failed")
+                            logger.error(
+                                f"Stopping: required plugin gate "
+                                f"{result.gate_name} failed"
+                            )
                             break
                     else:
-                        logger.warning(f"Optional plugin gate {result.gate_name} failed (continuing)")
+                        logger.warning(
+                            f"Optional plugin gate "
+                            f"{result.gate_name} failed (continuing)"
+                        )
 
         return all_passed, results
 

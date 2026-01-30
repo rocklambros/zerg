@@ -116,21 +116,21 @@ class TestContainerLauncherCleanupOnFailure:
     """Tests for ContainerLauncher cleanup behavior on spawn failure."""
 
     @patch.object(ContainerLauncher, "_cleanup_failed_container")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_verify_worker_process")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_cleanup_called_on_exec_failure(
         self,
         mock_start: MagicMock,
         mock_wait: MagicMock,
-        mock_exec: MagicMock,
+        mock_verify: MagicMock,
         mock_cleanup: MagicMock,
         tmp_path: Path,
     ) -> None:
-        """Test cleanup is called when worker entry script fails."""
+        """Test cleanup is called when worker process fails to start."""
         mock_start.return_value = "container-abc123"
         mock_wait.return_value = True
-        mock_exec.return_value = False  # Entry script fails
+        mock_verify.return_value = False  # Process verification fails
 
         launcher = ContainerLauncher()
         result = launcher.spawn(
@@ -141,7 +141,7 @@ class TestContainerLauncherCleanupOnFailure:
         )
 
         assert result.success is False
-        assert "Failed to execute worker entry script" in result.error
+        assert "Worker process failed to start" in result.error
         mock_cleanup.assert_called_once_with("container-abc123", 0)
 
     @patch.object(ContainerLauncher, "_cleanup_failed_container")
@@ -476,14 +476,14 @@ class TestNetworkAndCleanupIntegration:
         assert "new-custom-network" in call_args
 
     @patch.object(ContainerLauncher, "_cleanup_failed_container")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_verify_worker_process")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_cleanup_preserves_other_workers(
         self,
         mock_start: MagicMock,
         mock_wait: MagicMock,
-        mock_exec: MagicMock,
+        mock_verify: MagicMock,
         mock_cleanup: MagicMock,
         tmp_path: Path,
     ) -> None:
@@ -491,7 +491,7 @@ class TestNetworkAndCleanupIntegration:
         # First spawn succeeds
         mock_start.return_value = "container-0"
         mock_wait.return_value = True
-        mock_exec.return_value = True
+        mock_verify.return_value = True
 
         launcher = ContainerLauncher()
 
@@ -499,9 +499,9 @@ class TestNetworkAndCleanupIntegration:
         launcher._workers[1] = WorkerHandle(worker_id=1, container_id="container-1")
         launcher._container_ids[1] = "container-1"
 
-        # Now simulate spawn of worker 2 that fails at exec
+        # Now simulate spawn of worker 2 that fails at process verification
         mock_start.return_value = "container-2"
-        mock_exec.return_value = False  # This one fails
+        mock_verify.return_value = False  # This one fails
 
         # Make cleanup actually remove from tracking (simulating real behavior)
         def real_cleanup(container_id: str, worker_id: int) -> None:

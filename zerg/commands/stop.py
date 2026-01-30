@@ -1,8 +1,8 @@
 """ZERG stop command - stop execution gracefully or forcefully."""
 
-import signal
 import time
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -124,7 +124,7 @@ def detect_feature() -> str | None:
     return state_files[0].stem
 
 
-def show_workers_to_stop(workers: dict, force: bool) -> None:
+def show_workers_to_stop(workers: dict[int, Any], force: bool) -> None:
     """Show workers that will be stopped.
 
     Args:
@@ -157,7 +157,7 @@ def show_workers_to_stop(workers: dict, force: bool) -> None:
 
 
 def stop_workers_graceful(
-    workers: dict,
+    workers: dict[int, Any],
     state: StateManager,
     config: ZergConfig,
     timeout: int,
@@ -182,15 +182,15 @@ def stop_workers_graceful(
             continue
 
         try:
-            # Signal the container to checkpoint
-            container_name = f"zerg-worker-{state.feature}-{worker_id}"
-
-            # Send SIGUSR1 for checkpoint (graceful)
-            container_mgr.signal_container(container_name, signal.SIGUSR1)
+            # Stop worker gracefully
+            container_mgr.stop_worker(worker_id, timeout=timeout)
             console.print(f"  worker-{worker_id}: [yellow]checkpoint signal sent[/yellow]")
 
             # Update state
-            state.update_worker(worker_id, status=WorkerStatus.STOPPING)
+            worker_state = state.get_worker_state(worker_id)
+            if worker_state:
+                worker_state.status = WorkerStatus.STOPPING
+                state.set_worker_state(worker_state)
 
         except Exception as e:
             logger.warning(f"Failed to signal worker {worker_id}: {e}")
@@ -231,7 +231,7 @@ def stop_workers_graceful(
 
 
 def stop_workers_force(
-    workers: dict,
+    workers: dict[int, Any],
     state: StateManager,
     config: ZergConfig,
 ) -> None:
@@ -248,14 +248,15 @@ def stop_workers_force(
 
     for worker_id, _worker in workers.items():
         try:
-            container_name = f"zerg-worker-{state.feature}-{worker_id}"
-
             # Kill the container
-            container_mgr.stop_container(container_name, timeout=5)
+            container_mgr.stop_worker(worker_id, timeout=5, force=True)
             console.print(f"  worker-{worker_id}: [red]killed[/red]")
 
             # Update state
-            state.update_worker(worker_id, status=WorkerStatus.STOPPED)
+            worker_state = state.get_worker_state(worker_id)
+            if worker_state:
+                worker_state.status = WorkerStatus.STOPPED
+                state.set_worker_state(worker_state)
 
             # Log event
             state.append_event("worker_killed", {

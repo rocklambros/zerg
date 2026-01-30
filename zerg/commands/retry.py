@@ -213,7 +213,7 @@ def retry_task(
             else:
                 # Assign to worker if specified
                 if worker_id is not None:
-                    state.assign_task(task_id, worker_id)
+                    state.claim_task(task_id, worker_id)
                 return True
 
         # Manual retry path
@@ -227,7 +227,7 @@ def retry_task(
 
         # Assign to specific worker if requested
         if worker_id is not None:
-            state.assign_task(task_id, worker_id)
+            state.claim_task(task_id, worker_id)
 
         # Log event
         state.append_event("task_retry", {

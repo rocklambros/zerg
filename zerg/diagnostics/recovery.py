@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from zerg.logging import get_logger
 
@@ -27,7 +27,7 @@ class RecoveryStep:
     risk: str = "safe"  # "safe" | "moderate" | "destructive"
     reversible: bool = True
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "description": self.description,
@@ -47,7 +47,7 @@ class RecoveryPlan:
     verification_command: str = ""
     prevention: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "problem": self.problem,
@@ -277,7 +277,7 @@ class RecoveryPlanner:
         self,
         step: RecoveryStep,
         confirm_fn: Callable[[RecoveryStep], bool] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Execute a recovery step with optional confirmation."""
         if confirm_fn and not confirm_fn(step):
             return {"success": False, "output": "Skipped by user", "skipped": True}

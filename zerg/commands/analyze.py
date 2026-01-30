@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -85,7 +86,8 @@ class LintChecker(BaseChecker):
             )
 
         try:
-            sanitized_files = self._executor.sanitize_paths(files)
+            paths: list[str | Path] = list(files)
+            sanitized_files = self._executor.sanitize_paths(paths)
             cmd_parts = shlex.split(self.command)
             cmd_parts.extend(sanitized_files)
 
@@ -173,7 +175,8 @@ class SecurityChecker(BaseChecker):
             )
 
         try:
-            sanitized_files = self._executor.sanitize_paths(files)
+            paths: list[str | Path] = list(files)
+            sanitized_files = self._executor.sanitize_paths(paths)
             cmd_parts = shlex.split(self.command)
             cmd_parts.extend(["-r"])
             cmd_parts.extend(sanitized_files)
@@ -276,20 +279,21 @@ class AnalyzeCommand:
 
     def _format_sarif(self, results: list[AnalysisResult]) -> str:
         """Format as SARIF for IDE integration."""
-        sarif = {
+        sarif_results: list[dict[str, Any]] = []
+        sarif: dict[str, Any] = {
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             "version": "2.1.0",
             "runs": [
                 {
                     "tool": {"driver": {"name": "zerg-analyze", "version": "2.0"}},
-                    "results": [],
+                    "results": sarif_results,
                 }
             ],
         }
 
         for result in results:
             for issue in result.issues:
-                sarif["runs"][0]["results"].append(
+                sarif_results.append(
                     {
                         "ruleId": result.check_type.value,
                         "level": "error" if not result.passed else "note",
@@ -324,7 +328,7 @@ def _collect_files(path: str | None) -> list[str]:
     if target.is_file():
         return [str(target)]
     elif target.is_dir():
-        files = []
+        files: list[str] = []
         for ext in ["*.py", "*.js", "*.ts", "*.go", "*.rs"]:
             files.extend(str(f) for f in target.rglob(ext))
         return files[:100]  # Limit to prevent overwhelming

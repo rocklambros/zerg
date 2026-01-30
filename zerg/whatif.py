@@ -128,7 +128,10 @@ class WhatIfEngine:
         table.add_column("Worker Load", justify="right", width=14)
 
         for s in report.scenarios:
-            is_best = s.label == report.recommendation.split(":")[0].strip() if ":" in report.recommendation else False
+            if ":" in report.recommendation:
+                is_best = s.label == report.recommendation.split(":")[0].strip()
+            else:
+                is_best = False
             style = "bold green" if is_best else ""
 
             load_str = f"{s.min_worker_load}-{s.max_worker_load}m"
@@ -153,7 +156,7 @@ class WhatIfEngine:
         assigner.assign(self.tasks, self.feature or "whatif")
 
         # Group tasks by level
-        level_tasks: dict[int, list[dict]] = defaultdict(list)
+        level_tasks: dict[int, list[dict[str, Any]]] = defaultdict(list)
         for task in self.tasks:
             level_tasks[task.get("level", 1)].append(task)
 

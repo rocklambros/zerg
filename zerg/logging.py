@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from collections.abc import MutableMapping
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -92,7 +93,7 @@ class ConsoleFormatter(logging.Formatter):
 
 
 def set_worker_context(
-    worker_id: int | None = None,
+    worker_id: int | str | None = None,
     feature: str | None = None,
     **kwargs: Any,
 ) -> None:
@@ -193,12 +194,12 @@ def setup_logging(
     root_logger.propagate = False
 
 
-class LoggerAdapter(logging.LoggerAdapter):
+class LoggerAdapter(logging.LoggerAdapter[logging.Logger]):
     """Logger adapter that adds task context to log messages."""
 
     def process(
-        self, msg: str, kwargs: dict[str, Any]
-    ) -> tuple[str, dict[str, Any]]:
+        self, msg: str, kwargs: MutableMapping[str, Any]
+    ) -> tuple[str, MutableMapping[str, Any]]:
         """Process log message with extra context.
 
         Args:
@@ -225,7 +226,7 @@ def get_task_logger(task_id: str, worker_id: int | None = None) -> LoggerAdapter
         LoggerAdapter with task context
     """
     logger = get_logger("task", worker_id)
-    extra = {"task_id": task_id}
+    extra: dict[str, Any] = {"task_id": task_id}
     if worker_id is not None:
         extra["worker_id"] = worker_id
     return LoggerAdapter(logger, extra)

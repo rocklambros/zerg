@@ -341,12 +341,13 @@ class TestDiscoverFeatures:
         mock_git = MagicMock()
         mock_git_cls.return_value = mock_git
 
-        # Return strings directly since the code calls branch.startswith()
-        # This tests the branch parsing logic in lines 121-125
+        # Return BranchInfo objects since the code uses branch.name
+        from zerg.git_ops import BranchInfo
+
         mock_git.list_branches.return_value = [
-            "zerg/feature-one/worker-0",
-            "zerg/feature-two/staging",
-            "main",
+            BranchInfo(name="zerg/feature-one/worker-0", commit="abc123"),
+            BranchInfo(name="zerg/feature-two/staging", commit="def456"),
+            BranchInfo(name="main", commit="789abc"),
         ]
 
         features = discover_features()
@@ -396,10 +397,12 @@ class TestDiscoverFeatures:
         mock_git = MagicMock()
         mock_git_cls.return_value = mock_git
 
-        # Return branch names with insufficient parts (only 'zerg/')
+        # Return BranchInfo with insufficient parts (only 'zerg/')
+        from zerg.git_ops import BranchInfo
+
         mock_git.list_branches.return_value = [
-            "zerg/",  # Only one part after split
-            "main",
+            BranchInfo(name="zerg/", commit="abc123"),
+            BranchInfo(name="main", commit="def456"),
         ]
 
         features = discover_features()
@@ -507,12 +510,13 @@ class TestCreateCleanupPlan:
         mock_git = MagicMock()
         mock_git_cls.return_value = mock_git
 
-        # Return strings directly since the code calls branch.startswith()
-        # This tests the branch filtering logic in lines 171-173
+        # Return BranchInfo objects since the code uses branch.name
+        from zerg.git_ops import BranchInfo
+
         mock_git.list_branches.return_value = [
-            "zerg/test-feature/worker-0",
-            "zerg/test-feature/staging",
-            "zerg/other-feature/worker-0",
+            BranchInfo(name="zerg/test-feature/worker-0", commit="abc123"),
+            BranchInfo(name="zerg/test-feature/staging", commit="def456"),
+            BranchInfo(name="zerg/other-feature/worker-0", commit="789abc"),
         ]
 
         plan = create_cleanup_plan(["test-feature"], False, False, mock_config)
@@ -705,7 +709,7 @@ class TestExecuteCleanup:
         execute_cleanup(plan, mock_config)
 
         # Should call remove for each worktree
-        assert mock_worktree.remove.call_count == 2
+        assert mock_worktree.delete.call_count == 2
 
     @patch("zerg.commands.cleanup.WorktreeManager")
     @patch("zerg.commands.cleanup.ContainerManager")
@@ -733,7 +737,7 @@ class TestExecuteCleanup:
         execute_cleanup(plan, mock_config)
 
         # remove should not be called for nonexistent path
-        mock_worktree.remove.assert_not_called()
+        mock_worktree.delete.assert_not_called()
 
     @patch("zerg.commands.cleanup.WorktreeManager")
     @patch("zerg.commands.cleanup.ContainerManager")
@@ -746,7 +750,7 @@ class TestExecuteCleanup:
     ) -> None:
         """Test execute handles worktree removal errors."""
         mock_worktree = MagicMock()
-        mock_worktree.remove.side_effect = Exception("Worktree error")
+        mock_worktree.delete.side_effect = Exception("Worktree error")
         mock_worktree_cls.return_value = mock_worktree
         mock_container_cls.return_value = MagicMock()
 
@@ -837,7 +841,18 @@ class TestExecuteCleanup:
     ) -> None:
         """Test execute stops matching containers."""
         mock_container = MagicMock()
-        mock_container.stop_matching.return_value = 3  # Stopped 3 containers
+        # Simulate 3 containers matching the pattern
+        container_info_1 = MagicMock(name="zerg-worker-test-0")
+        container_info_1.name = "zerg-worker-test-0"
+        container_info_2 = MagicMock(name="zerg-worker-test-1")
+        container_info_2.name = "zerg-worker-test-1"
+        container_info_3 = MagicMock(name="zerg-worker-test-2")
+        container_info_3.name = "zerg-worker-test-2"
+        mock_container.get_all_containers.return_value = {
+            0: container_info_1,
+            1: container_info_2,
+            2: container_info_3,
+        }
         mock_container_cls.return_value = mock_container
         mock_worktree_cls.return_value = MagicMock()
 
@@ -852,7 +867,7 @@ class TestExecuteCleanup:
 
         execute_cleanup(plan, mock_config)
 
-        mock_container.stop_matching.assert_called_once_with("zerg-worker-test-*")
+        assert mock_container.stop_worker.call_count == 3
 
     @patch("zerg.commands.cleanup.WorktreeManager")
     @patch("zerg.commands.cleanup.ContainerManager")
@@ -864,7 +879,7 @@ class TestExecuteCleanup:
     ) -> None:
         """Test execute handles no matching containers."""
         mock_container = MagicMock()
-        mock_container.stop_matching.return_value = 0  # No containers stopped
+        mock_container.get_all_containers.return_value = {}  # No containers
         mock_container_cls.return_value = mock_container
         mock_worktree_cls.return_value = MagicMock()
 
@@ -890,7 +905,7 @@ class TestExecuteCleanup:
     ) -> None:
         """Test execute handles container stop errors."""
         mock_container = MagicMock()
-        mock_container.stop_matching.side_effect = Exception("Container error")
+        mock_container.get_all_containers.side_effect = Exception("Container error")
         mock_container_cls.return_value = mock_container
         mock_worktree_cls.return_value = MagicMock()
 
@@ -1032,7 +1047,7 @@ class TestExecuteCleanup:
     ) -> None:
         """Test execute reports when multiple errors occur."""
         mock_worktree = MagicMock()
-        mock_worktree.remove.side_effect = Exception("Worktree error")
+        mock_worktree.delete.side_effect = Exception("Worktree error")
         mock_worktree_cls.return_value = mock_worktree
 
         mock_git = MagicMock()
@@ -1088,9 +1103,11 @@ class TestCleanupIntegration:
         mock_config = MagicMock()
         mock_config_cls.load.return_value = mock_config
 
-        # Set up mock git with branches (return strings since code calls .startswith())
+        # Set up mock git with branches (return BranchInfo objects)
+        from zerg.git_ops import BranchInfo
+
         mock_git = MagicMock()
-        mock_git.list_branches.return_value = ["zerg/test-feature/worker-0"]
+        mock_git.list_branches.return_value = [BranchInfo(name="zerg/test-feature/worker-0", commit="abc123")]
         mock_git_cls.return_value = mock_git
 
         # Set up mock worktree manager
@@ -1099,7 +1116,7 @@ class TestCleanupIntegration:
 
         # Set up mock container manager
         mock_container = MagicMock()
-        mock_container.stop_matching.return_value = 0
+        mock_container.get_all_containers.return_value = {}
         mock_container_cls.return_value = mock_container
 
         # Create test artifacts

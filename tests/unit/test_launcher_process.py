@@ -521,12 +521,12 @@ class TestSpawnFlowWithExecVerification:
     """Integration tests for spawn flow with exec and process verification."""
 
     def test_spawn_fails_when_exec_fails(self) -> None:
-        """Spawn should fail and cleanup when _exec_worker_entry fails."""
+        """Spawn should fail and cleanup when worker process fails to start."""
         launcher = ContainerLauncher()
 
         with patch.object(launcher, "_start_container", return_value="container-123"), \
              patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_exec_worker_entry", return_value=False), \
+             patch.object(launcher, "_verify_worker_process", return_value=False), \
              patch.object(launcher, "_cleanup_failed_container") as mock_cleanup:
 
             result = launcher.spawn(
@@ -537,7 +537,7 @@ class TestSpawnFlowWithExecVerification:
             )
 
             assert not result.success
-            assert "execute" in result.error.lower() or "entry" in result.error.lower()
+            assert "process" in result.error.lower() or "start" in result.error.lower()
             mock_cleanup.assert_called_once_with("container-123", 0)
 
     def test_spawn_fails_when_process_verification_fails(self) -> None:
@@ -600,7 +600,7 @@ class TestSpawnFlowWithExecVerification:
             mock_cleanup.assert_not_called()
 
     def test_cleanup_called_on_exec_failure(self) -> None:
-        """_cleanup_failed_container should be called when exec fails.
+        """_cleanup_failed_container should be called when process verification fails.
 
         The cleanup function removes the worker from tracking, so we verify
         that cleanup was called rather than checking the worker tracking directly.
@@ -609,7 +609,7 @@ class TestSpawnFlowWithExecVerification:
 
         with patch.object(launcher, "_start_container", return_value="container-123"), \
              patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_exec_worker_entry", return_value=False), \
+             patch.object(launcher, "_verify_worker_process", return_value=False), \
              patch.object(launcher, "_cleanup_failed_container") as mock_cleanup:
 
             result = launcher.spawn(
@@ -624,13 +624,13 @@ class TestSpawnFlowWithExecVerification:
             mock_cleanup.assert_called_once_with("container-123", 0)
 
     def test_spawn_worker_cleaned_up_on_exec_failure_real_cleanup(self) -> None:
-        """Worker should be cleaned up when exec fails (using real cleanup)."""
+        """Worker should be cleaned up when process verification fails (using real cleanup)."""
         launcher = ContainerLauncher()
 
         # Use a mock that simulates successful docker rm but doesn't block
         with patch.object(launcher, "_start_container", return_value="container-123"), \
              patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_exec_worker_entry", return_value=False), \
+             patch.object(launcher, "_verify_worker_process", return_value=False), \
              patch("subprocess.run") as mock_docker_run:
             # Mock the subprocess.run used by _cleanup_failed_container
             mock_docker_run.return_value = MagicMock(returncode=0)

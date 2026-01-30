@@ -55,7 +55,7 @@ class RiskScorer:
         self.task_data = task_data
         self.worker_count = worker_count
         self.tasks = task_data.get("tasks", [])
-        self._task_map: dict[str, dict] = {t["id"]: t for t in self.tasks if "id" in t}
+        self._task_map: dict[str, dict[str, Any]] = {t["id"]: t for t in self.tasks if "id" in t}
 
     def score(self) -> RiskReport:
         """Compute risk for the entire task graph."""
@@ -98,7 +98,7 @@ class RiskScorer:
 
         return report
 
-    def _score_task(self, task: dict) -> TaskRisk:
+    def _score_task(self, task: dict[str, Any]) -> TaskRisk:
         """Score risk for a single task."""
         task_id = task.get("id", "unknown")
         factors: list[str] = []

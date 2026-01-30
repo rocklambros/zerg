@@ -1,0 +1,434 @@
+{
+  "feature": "quality-fix-sweep",
+  "version": "2.0",
+  "generated": "2026-01-30T00:00:00Z",
+  "total_tasks": 18,
+  "estimated_duration_minutes": 90,
+  "max_parallelization": 7,
+
+  "tasks": [
+    {
+      "id": "QFS-L1-001",
+      "title": "Fix cleanup.py broken method calls",
+      "description": "Fix 7 attr-defined errors in commands/cleanup.py:\n1. Lines 134,135,184,185: BranchInfo objects used as strings — change `branch.startswith()` to `branch.name.startswith()` and `branch.split()` to `branch.name.split()`\n2. Line 185: Same fix for `branch.startswith(f'zerg/{feature}/')`\n3. Line 281: `worktree_mgr.remove(path)` should be `worktree_mgr.delete(path)`\n4. Line 306: `container_mgr.stop_matching(pattern)` doesn't exist — implement using `stop_all()` or iterate `get_all_containers()` and call `stop_worker()` per match\n5. Lines 207,265: Fix missing dict type params",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/cleanup.py"],
+        "read": ["zerg/git_ops.py", "zerg/worktree.py", "zerg/containers.py"]
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/commands/cleanup.py",
+        "ruff reports 0 errors for zerg/commands/cleanup.py",
+        "No behavioral changes to cleanup logic"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/cleanup.py --no-error-summary && python -m ruff check zerg/commands/cleanup.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "QFS-L1-002",
+      "title": "Fix stop.py broken method calls",
+      "description": "Fix 4 attr-defined errors in commands/stop.py:\n1. Line 189: `container_mgr.signal_container(name, signal.SIGUSR1)` — ContainerManager has no signal_container. Use subprocess docker kill -s SIGUSR1 or remove graceful signal path.\n2. Line 193: `state.update_worker(worker_id, status=WorkerStatus.STOPPING)` — use `ws = state.get_worker_state(worker_id); ws.status = WorkerStatus.STOPPING; state.set_worker_state(ws)`\n3. Line 254: `container_mgr.stop_container(name, timeout=5)` — use `container_mgr.stop_worker(worker_id, timeout=5)`\n4. Line 258: Same update_worker fix as line 193 but with STOPPED status\n5. Fix 3 missing dict type params",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/stop.py"],
+        "read": ["zerg/containers.py", "zerg/state.py"]
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/commands/stop.py",
+        "ruff reports 0 errors for zerg/commands/stop.py"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/stop.py --no-error-summary && python -m ruff check zerg/commands/stop.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "QFS-L1-003",
+      "title": "Fix retry.py broken method calls",
+      "description": "Fix 2 attr-defined errors in commands/retry.py:\n1. Line 216: `state.assign_task(task_id, worker_id)` — StateManager has no assign_task(). Use `state.claim_task(task_id, worker_id)` instead.\n2. Line 230: Same fix — `state.assign_task(task_id, worker_id)` → `state.claim_task(task_id, worker_id)`",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/retry.py"],
+        "read": ["zerg/state.py"]
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/commands/retry.py",
+        "ruff reports 0 errors for zerg/commands/retry.py"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/retry.py --no-error-summary && python -m ruff check zerg/commands/retry.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5
+    },
+    {
+      "id": "QFS-L1-004",
+      "title": "Fix merge_cmd.py broken method calls and type errors",
+      "description": "Fix 7 errors in commands/merge_cmd.py:\n1. Lines 129,131: `result.conflicts` — MergeFlowResult has no conflicts field. Add `conflicts: list[str] = field(default_factory=list)` to MergeFlowResult in types.py.\n2. Line 139: `merge_coordinator.merge_level(level)` — MergeCoordinator has no merge_level(). Replace with the correct sequence: prepare_merge() → run_pre_merge_gates() → execute_merge().\n3. Line 265: `gates.items()` on list[QualityGate] — config.quality_gates is a list, not dict. Fix iteration to `for gate in gates:`\n4. Line 276: `result == GateResult.PASS` — GateRunResult is not comparable to GateResult enum. Use `result.result == GateResult.PASS` (access the .result field).\n5. Lines 182,217: Fix missing dict type params.\n\nAlso modify zerg/types.py to add the `conflicts` field to MergeFlowResult dataclass.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/merge_cmd.py", "zerg/types.py"],
+        "read": ["zerg/merge.py", "zerg/gates.py", "zerg/config.py"]
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 attr-defined/comparison-overlap errors for merge_cmd.py",
+        "MergeFlowResult has conflicts field in types.py",
+        "ruff reports 0 errors for merge_cmd.py"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/merge_cmd.py --no-error-summary && python -m ruff check zerg/commands/merge_cmd.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15
+    },
+    {
+      "id": "QFS-L1-005",
+      "title": "Fix rush.py type errors and undefined name",
+      "description": "Fix 6 errors in commands/rush.py:\n1. Lines 139-140: DryRunReport assigned to variable typed as WhatIfReport. Fix: use correct variable type or separate variables.\n2. Line 226: Forward reference `'RiskReport'` is undefined. Fix: add `from __future__ import annotations` at top OR use TYPE_CHECKING block: `from typing import TYPE_CHECKING; if TYPE_CHECKING: from zerg.risk_scoring import RiskReport`. Move the runtime import at line 231 to stay.\n3. Line 231: After fixing line 226, the runtime import of RiskReport becomes the actual usage (not unused). Ruff F401 should resolve.\n4. Lines 290,318,332: Fix missing dict type params.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/rush.py"],
+        "read": ["zerg/dryrun.py", "zerg/whatif.py", "zerg/risk_scoring.py"]
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/commands/rush.py",
+        "ruff reports 0 errors for zerg/commands/rush.py",
+        "RiskReport is properly importable at type-check time"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/rush.py --no-error-summary && python -m ruff check zerg/commands/rush.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "QFS-L1-006",
+      "title": "Fix review.py type errors",
+      "description": "Fix 20 errors in commands/review.py:\n1. Lines 516,521,526: Loop variable `item` is typed as str but is actually ReviewItem. Fix: add explicit type annotation `item: ReviewItem` in the for-loop or list comprehension.\n2. Lines 517,522,527: After fixing type, `.file`, `.line`, `.message` attributes resolve.\n3. Lines 150,151,155,158,165,168: `object` is not indexable — fix by adding proper type annotation to the variable being indexed (likely a dict loaded from JSON — annotate as dict[str, Any]).\n4. Line 404: Missing annotation for `files` — add `files: list[str] = []`\n5. Line 1 (type-arg): Fix missing dict generic param.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/review.py"],
+        "read": ["zerg/types.py"]
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/commands/review.py",
+        "ruff reports 0 errors for zerg/commands/review.py"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/review.py --no-error-summary && python -m ruff check zerg/commands/review.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12
+    },
+    {
+      "id": "QFS-L1-007",
+      "title": "Fix plan.py type errors",
+      "description": "Fix 10 errors in commands/plan.py:\n1. Lines 421,434,448: `requirements['transcript'].append(...)` — the dict value is typed as Collection[str] but should be list. Fix: annotate `requirements` dict properly, e.g. `requirements: dict[str, Any] = {...]`\n2. Fix remaining 6 missing dict type params throughout the file.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/plan.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/commands/plan.py",
+        "ruff reports 0 errors for zerg/commands/plan.py"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/plan.py --no-error-summary && python -m ruff check zerg/commands/plan.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8
+    },
+    {
+      "id": "QFS-L2-001",
+      "title": "Fix state.py type errors",
+      "description": "Fix 9 errors in state.py:\n1. Line 50: Missing return type annotation on function — add `-> ReturnType`\n2. Lines 369,370: `Returning Any from function declared to return list[ExecutionEvent]` — add explicit cast or type the intermediate variable\n3. Line 388: `Returning Any → int` — same pattern\n4. Line 431: `Returning Any → dict[str, Any] | None` — same\n5. Line 467: `Returning Any → bool` — same\n6. Lines 564,592: `Returning Any → int` — same\n7. Line 623: `Returning Any → str | None` — same\n\nAll are no-any-return fixes: the functions return values from dict lookups on self._data which is typed as dict[str, Any]. Fix by adding explicit casts or intermediate typed variables.\n\nAlso fix SIM115 warnings for open() without context manager at lines 70, 136, 164 — these are file lock operations that intentionally don't use `with` because the lock must be held across operations. Add `# noqa: SIM115` comments explaining why.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/state.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/state.py",
+        "ruff reports 0 errors for zerg/state.py"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/state.py --no-error-summary && python -m ruff check zerg/state.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12
+    },
+    {
+      "id": "QFS-L2-002",
+      "title": "Fix logging.py, ports.py, retry_backoff.py, validation.py type errors",
+      "description": "Fix type errors in 4 small modules:\n\n**logging.py (3 errors)**:\n1. Line 200: `process()` arg2 incompatible with supertype LoggerAdapter — fix signature to match parent\n2. Line 230: int assigned to str — fix type or cast\n3. Line 315: `worker_id` int|str passed where int|None expected — add proper type handling\n\n**ports.py (1 error)**:\n1. Line 53: Missing type annotation for `allocated` — add `allocated: list[int] = []`\n\n**retry_backoff.py (1 error)**:\n1. Line 43: Returning Any → float — add explicit cast `float(...)`\n\n**validation.py (1 error)**:\n1. Line 360: Returning Any → dict[str, Any] — add explicit cast",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/logging.py", "zerg/ports.py", "zerg/retry_backoff.py", "zerg/validation.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for all 4 files",
+        "ruff reports 0 errors for all 4 files"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/logging.py zerg/ports.py zerg/retry_backoff.py zerg/validation.py --no-error-summary && python -m ruff check zerg/logging.py zerg/ports.py zerg/retry_backoff.py zerg/validation.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8
+    },
+    {
+      "id": "QFS-L2-003",
+      "title": "Fix launcher.py and command_executor.py type errors",
+      "description": "Fix type errors in 2 modules:\n\n**launcher.py (3 errors)**:\n1. Line 122: Returning Any → WorkerLauncher|None — add explicit cast\n2. Line 1177: CompletedProcess[str] assigned to CompletedProcess[bytes] — fix subprocess call to use text=True or fix variable type\n3. Line 1188: f-string with bytes object — decode bytes before formatting\n\n**command_executor.py (1 error)**:\n1. Line 381: bytes|str passed where str expected for stdout — decode if bytes: `stdout.decode() if isinstance(stdout, bytes) else stdout`",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py", "zerg/command_executor.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for both files",
+        "ruff reports 0 errors for both files"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/launcher.py zerg/command_executor.py --no-error-summary && python -m ruff check zerg/launcher.py zerg/command_executor.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8
+    },
+    {
+      "id": "QFS-L2-004",
+      "title": "Fix security.py, plugins.py, config.py type errors",
+      "description": "Fix type errors in 3 modules:\n\n**security.py (4 errors)**:\n1. Line 342: TextIOWrapper assigned to str variable — fix variable type annotation\n2. Line 343: .read() on str — actually a false positive if variable type is fixed\n3. Line 346: object.append() — fix dict value type annotation\n4. Line (type-arg): Fix missing generic param\n\n**plugins.py (6 errors)**:\n1. Line 189: Returning Any → bool — add explicit cast\n2. Line 230: Unused type: ignore comment — remove it (the select() path is taken on Python 3.12)\n3. Lines with type-arg: Fix 3 missing dict generic params\n\n**config.py (1 error)**:\n1. Fix the reported type error (investigate and fix)",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/security.py", "zerg/plugins.py", "zerg/config.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for all 3 files",
+        "ruff reports 0 errors for all 3 files"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/security.py zerg/plugins.py zerg/config.py --no-error-summary && python -m ruff check zerg/security.py zerg/plugins.py zerg/config.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "QFS-L2-005",
+      "title": "Fix parser.py, metrics.py, orchestrator.py type errors",
+      "description": "Fix type errors in 3 modules:\n\n**parser.py (3 errors)**:\n1. Line 107: Returns TaskGraph|None but declared TaskGraph — add None check or update return type\n2. Line 231: None passed as task_id to TaskDependencyError(str) — add guard or default\n3. Line 309: Returns VerificationSpec|None where dict expected — update return type annotation\n\n**metrics.py (2+1 errors)**:\n1. Lines 247,248: list[int] passed where list[int|float] expected — cast or widen the input type\n2. Fix 1 missing generic param\n\n**orchestrator.py (2 errors)**:\n1. Line 292: Returning Any → str — add cast\n2. Line 574: list[Task|None] passed where list[dict] expected — filter None values",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/parser.py", "zerg/metrics.py", "zerg/orchestrator.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for all 3 files",
+        "ruff reports 0 errors for all 3 files (except orchestrator ruff deferred to L3)"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/parser.py zerg/metrics.py zerg/orchestrator.py --no-error-summary",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "QFS-L2-006",
+      "title": "Fix dryrun.py and whatif.py type errors",
+      "description": "Fix type errors in 2 modules:\n\n**dryrun.py (4 errors)**:\n1. Line 25: Unused import `render_progress_bar` — remove it (ruff F401)\n2. Fix 3 missing dict generic params\n\n**whatif.py (1 error)**:\n1. Fix 1 missing dict generic param",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/dryrun.py", "zerg/whatif.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for both files",
+        "ruff reports 0 errors for both files (except whatif line-length deferred to L3)"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/dryrun.py zerg/whatif.py --no-error-summary && python -m ruff check zerg/dryrun.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5
+    },
+    {
+      "id": "QFS-L3-001",
+      "title": "Fix types.py generic type params",
+      "description": "Fix 18 missing generic type parameters in zerg/types.py. Every bare `dict` annotation needs to become `dict[str, Any]` or the appropriate specific types. Every bare `list` needs `list[specific_type]`. Every bare `Callable` needs proper signature.\n\nIMPORTANT: Task QFS-L1-004 may have already added a `conflicts` field to MergeFlowResult. Do NOT revert that change. Only add generic params to existing bare dict/list/Callable annotations.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["QFS-L1-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/types.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 type-arg errors for zerg/types.py",
+        "MergeFlowResult.conflicts field preserved from L1-004"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/types.py --no-error-summary && python -m ruff check zerg/types.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "QFS-L3-002",
+      "title": "Fix backlog.py generic type params",
+      "description": "Fix 11 missing generic type parameters in zerg/backlog.py. Add proper dict[str, Any], list[str], etc. to all bare generic annotations.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/backlog.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for zerg/backlog.py",
+        "ruff reports 0 errors for zerg/backlog.py"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/backlog.py --no-error-summary && python -m ruff check zerg/backlog.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8
+    },
+    {
+      "id": "QFS-L3-003",
+      "title": "Fix diagnostics/ generic type params",
+      "description": "Fix 15 missing generic type parameters across 4 diagnostics files:\n- diagnostics/system_diagnostics.py (6 errors)\n- diagnostics/state_introspector.py (6 errors)\n- diagnostics/log_analyzer.py (3 errors)\n- diagnostics/recovery.py (3 errors — these are type-arg only)\n\nAdd proper dict[str, Any] etc. to all bare generic annotations.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/diagnostics/system_diagnostics.py", "zerg/diagnostics/state_introspector.py", "zerg/diagnostics/log_analyzer.py", "zerg/diagnostics/recovery.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for all 4 diagnostics files",
+        "ruff reports 0 errors for all 4 diagnostics files"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/diagnostics/ --no-error-summary && python -m ruff check zerg/diagnostics/",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    },
+    {
+      "id": "QFS-L3-004",
+      "title": "Fix remaining command files generic type params",
+      "description": "Fix missing generic type params and ruff errors in command files NOT owned by L1 tasks:\n- commands/init.py (5 type-arg errors)\n- commands/design.py (4 errors: 3 type-arg + 1 var-annotated)\n- commands/build.py (1 type-arg)\n- commands/refactor.py (1 type-arg)\n- commands/logs.py (2 type-arg)\n- commands/status.py (2 type-arg + 1 arg-type for Panel box)\n- commands/troubleshoot.py (3 type-arg)\n- commands/analyze.py (4 type-arg)\n- commands/git_cmd.py (0 type-arg but check)\n\nAlso fix any ruff line-length issues in these files.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/init.py", "zerg/commands/design.py", "zerg/commands/build.py", "zerg/commands/refactor.py", "zerg/commands/logs.py", "zerg/commands/status.py", "zerg/commands/troubleshoot.py", "zerg/commands/analyze.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "mypy reports 0 errors for all listed command files",
+        "ruff reports 0 errors for all listed command files"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/commands/init.py zerg/commands/design.py zerg/commands/build.py zerg/commands/refactor.py zerg/commands/logs.py zerg/commands/status.py zerg/commands/troubleshoot.py zerg/commands/analyze.py --no-error-summary && python -m ruff check zerg/commands/init.py zerg/commands/design.py zerg/commands/build.py zerg/commands/refactor.py zerg/commands/logs.py zerg/commands/status.py zerg/commands/troubleshoot.py zerg/commands/analyze.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12
+    },
+    {
+      "id": "QFS-L3-005",
+      "title": "Fix remaining ruff lint issues",
+      "description": "Fix all remaining ruff violations not covered by other tasks:\n\n1. gates.py: 2x E501 line-too-long (lines 190,193) — break long f-strings\n2. plugin_config.py: 3x E501 (lines 27,35,36) — break long Field descriptions\n3. plugins.py: 1x E501 (line 101) — break long comment\n4. preflight.py: 1x E501 (line 207) — break long f-string\n5. whatif.py: 1x E501 (line 131) — refactor long ternary\n6. orchestrator.py: 4x ruff issues:\n   - Line 376: B007 unused loop var `tid` → rename to `_tid`\n   - Line 379: E501 line-too-long\n   - Line 993: E501 line-too-long\n   - Lines 1036-1037: SIM102 collapsible if\n   - Line 1296: E501 line-too-long\n7. risk_scoring.py: Fix 2 type-arg errors\n\nDo NOT modify any files owned by other tasks.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["QFS-L2-005", "QFS-L2-006"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/gates.py", "zerg/plugin_config.py", "zerg/preflight.py", "zerg/risk_scoring.py", "zerg/orchestrator.py", "zerg/whatif.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "ruff check zerg/ reports 0 violations",
+        "mypy reports 0 errors for all modified files"
+      ],
+      "verification": {
+        "command": "python -m mypy zerg/gates.py zerg/plugin_config.py zerg/preflight.py zerg/risk_scoring.py --no-error-summary && python -m ruff check zerg/gates.py zerg/plugin_config.py zerg/plugins.py zerg/preflight.py zerg/whatif.py zerg/orchestrator.py zerg/risk_scoring.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["QFS-L1-001", "QFS-L1-002", "QFS-L1-003", "QFS-L1-004", "QFS-L1-005", "QFS-L1-006", "QFS-L1-007"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["QFS-L2-001", "QFS-L2-002", "QFS-L2-003", "QFS-L2-004", "QFS-L2-005", "QFS-L2-006"],
+      "parallel": true,
+      "estimated_minutes": 12,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["QFS-L3-001", "QFS-L3-002", "QFS-L3-003", "QFS-L3-004", "QFS-L3-005"],
+      "parallel": true,
+      "estimated_minutes": 12,
+      "depends_on_levels": [2]
+    }
+  }
+}

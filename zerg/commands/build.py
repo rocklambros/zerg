@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -63,7 +64,7 @@ class BuildResult:
     warnings: list[str] = field(default_factory=list)
     retries: int = 0
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "success": self.success,

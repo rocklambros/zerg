@@ -242,8 +242,8 @@ class TestRetryTask:
         state.load()
         state.set_task_status("T1", TaskStatus.FAILED)
 
-        # Mock assign_task method since StateManager doesn't have it by default
-        with patch.object(state, "assign_task", create=True) as mock_assign:
+        # Mock claim_task method since StateManager doesn't have it by default
+        with patch.object(state, "claim_task", create=True) as mock_assign:
             result = retry_task(state, "T1", reset=False, worker_id=3)
 
             assert result is True
@@ -255,7 +255,7 @@ class TestRetryTask:
         state.load()
         state.set_task_status("T1", TaskStatus.FAILED)
 
-        # Test without worker_id to avoid assign_task call
+        # Test without worker_id to avoid claim_task call
         retry_task(state, "T1", reset=True, worker_id=None)
 
         events = state.get_events()
@@ -272,8 +272,8 @@ class TestRetryTask:
         state.load()
         state.set_task_status("T1", TaskStatus.FAILED)
 
-        # Mock assign_task to allow logging with worker_id
-        with patch.object(state, "assign_task", create=True):
+        # Mock claim_task to allow logging with worker_id
+        with patch.object(state, "claim_task", create=True):
             retry_task(state, "T1", reset=True, worker_id=5)
 
         events = state.get_events()
@@ -320,7 +320,7 @@ class TestRetryTask:
         mock_orchestrator = MagicMock()
         mock_orchestrator.retry_task.return_value = True
 
-        with patch.object(state, "assign_task", create=True) as mock_assign:
+        with patch.object(state, "claim_task", create=True) as mock_assign:
             result = retry_task(
                 state, "T1", reset=False, worker_id=2, orchestrator=mock_orchestrator
             )
@@ -833,7 +833,7 @@ class TestRetryEdgeCases:
         mock_orchestrator = MagicMock()
         mock_orchestrator.retry_task.return_value = True
 
-        with patch.object(state, "assign_task", create=True) as mock_assign:
+        with patch.object(state, "claim_task", create=True) as mock_assign:
             result = retry_task(
                 state, "T1", reset=False, worker_id=5, orchestrator=mock_orchestrator
             )
@@ -849,7 +849,7 @@ class TestRetryEdgeCases:
         state.set_task_status("T1", TaskStatus.FAILED)
         state.increment_task_retry("T1")
 
-        with patch.object(state, "assign_task", create=True) as mock_assign:
+        with patch.object(state, "claim_task", create=True) as mock_assign:
             result = retry_task(state, "T1", reset=True, worker_id=3)
 
             assert result is True
@@ -866,7 +866,7 @@ class TestRetryEdgeCases:
         mock_orchestrator = MagicMock()
         mock_orchestrator.retry_task.return_value = False  # Orchestrator fails
 
-        with patch.object(state, "assign_task", create=True) as mock_assign:
+        with patch.object(state, "claim_task", create=True) as mock_assign:
             result = retry_task(
                 state, "T1", reset=False, worker_id=4, orchestrator=mock_orchestrator
             )

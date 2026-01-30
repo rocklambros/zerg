@@ -24,7 +24,10 @@ class LauncherPluginConfig(BaseModel):
     """Configuration for a launcher plugin."""
 
     name: str = Field(..., description="Launcher name (e.g., 'k8s', 'ssh')")
-    entry_point: str = Field(..., description="Python entry point (e.g., 'my_pkg.launchers:K8sLauncher')")
+    entry_point: str = Field(
+        ...,
+        description="Python entry point (e.g., 'my_pkg.launchers:K8sLauncher')",
+    )
 
 
 class PluginsConfig(BaseModel):
@@ -32,5 +35,9 @@ class PluginsConfig(BaseModel):
 
     enabled: bool = Field(default=True, description="Whether plugin system is enabled")
     hooks: list[HookConfig] = Field(default_factory=list, description="Lifecycle hook plugins")
-    quality_gates: list[PluginGateConfig] = Field(default_factory=list, description="Quality gate plugins")
-    launchers: list[LauncherPluginConfig] = Field(default_factory=list, description="Launcher plugins")
+    quality_gates: list[PluginGateConfig] = Field(
+        default_factory=list, description="Quality gate plugins"
+    )
+    launchers: list[LauncherPluginConfig] = Field(
+        default_factory=list, description="Launcher plugins"
+    )

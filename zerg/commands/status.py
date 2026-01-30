@@ -4,7 +4,7 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import click
 from rich.console import Console, Group, RenderableType
@@ -214,7 +214,8 @@ class DashboardRenderer:
         header_text.append(self.feature, style="bold white")
         header_text.append(" " * 20)
         header_text.append(f"Elapsed: {elapsed}", style="dim")
-        return Panel(header_text, box=None, padding=(0, 1))
+        from rich import box as rich_box
+        return Panel(header_text, box=rich_box.SIMPLE, padding=(0, 1))
 
     def _render_progress(self) -> Text:
         """Render overall progress bar."""
@@ -238,7 +239,7 @@ class DashboardRenderer:
         levels_data = self.state._state.get("levels", {})
 
         # Group tasks by level
-        level_tasks: dict[int, list] = {}
+        level_tasks: dict[int, list[Any]] = {}
         for task in tasks.values():
             level_num = task.get("level", 1)
             if level_num not in level_tasks:
@@ -901,7 +902,7 @@ def show_level_metrics(state: StateManager) -> None:
     console.print()
 
 
-def get_metrics_dict(state: StateManager) -> dict | None:
+def get_metrics_dict(state: StateManager) -> dict[str, Any] | None:
     """Get metrics as a dictionary for JSON output.
 
     Args:

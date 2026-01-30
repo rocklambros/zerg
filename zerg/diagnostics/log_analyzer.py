@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from zerg.logging import get_logger
 
@@ -22,7 +23,7 @@ class LogPattern:
     sample_lines: list[str] = field(default_factory=list)
     worker_ids: list[int] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "pattern": self.pattern,
@@ -118,12 +119,12 @@ class LogAnalyzer:
 
         return sorted(pattern_map.values(), key=lambda p: p.count, reverse=True)
 
-    def get_error_timeline(self) -> list[dict]:
+    def get_error_timeline(self) -> list[dict[str, Any]]:
         """Build chronological list of errors across all workers."""
         if not self.logs_dir.exists():
             return []
 
-        timeline: list[dict] = []
+        timeline: list[dict[str, Any]] = []
         log_files = sorted(self.logs_dir.glob("worker-*.stderr.log"))
 
         for log_file in log_files:

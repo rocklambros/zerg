@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import click
 from rich.console import Console
@@ -54,7 +54,7 @@ class Hypothesis:
     tested: bool = False
     confirmed: bool = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "description": self.description,
@@ -75,7 +75,7 @@ class ParsedError:
     line: int = 0
     stack_trace: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "error_type": self.error_type,
@@ -109,7 +109,7 @@ class DiagnosticResult:
         """Check if root cause was found."""
         return bool(self.root_cause)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         result = {
             "symptom": self.symptom,

@@ -1,8 +1,10 @@
 """ZERG cleanup command - remove ZERG artifacts."""
 
+import fnmatch
 import shutil
 import time
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -131,8 +133,8 @@ def discover_features() -> list[str]:
         git = GitOps()
         branches = git.list_branches()
         for branch in branches:
-            if branch.startswith("zerg/"):
-                parts = branch.split("/")
+            if branch.name.startswith("zerg/"):
+                parts = branch.name.split("/")
                 if len(parts) >= 2:
                     features.add(parts[1])
     except Exception as e:
@@ -146,7 +148,7 @@ def create_cleanup_plan(
     keep_logs: bool,
     keep_branches: bool,
     config: ZergConfig,
-) -> dict:
+) -> dict[str, Any]:
     """Create cleanup plan.
 
     Args:
@@ -181,8 +183,8 @@ def create_cleanup_plan(
                 git = GitOps()
                 branches = git.list_branches()
                 for branch in branches:
-                    if branch.startswith(f"zerg/{feature}/"):
-                        plan["branches"].append(branch)
+                    if branch.name.startswith(f"zerg/{feature}/"):
+                        plan["branches"].append(branch.name)
             except Exception as e:
                 logger.debug(f"Container listing failed: {e}")
 
@@ -204,7 +206,7 @@ def create_cleanup_plan(
     return plan
 
 
-def show_cleanup_plan(plan: dict, dry_run: bool) -> None:
+def show_cleanup_plan(plan: dict[str, Any], dry_run: bool) -> None:
     """Show cleanup plan.
 
     Args:
@@ -262,7 +264,7 @@ def show_cleanup_plan(plan: dict, dry_run: bool) -> None:
     console.print(table)
 
 
-def execute_cleanup(plan: dict, config: ZergConfig) -> None:
+def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
     """Execute cleanup plan.
 
     Args:
@@ -273,12 +275,12 @@ def execute_cleanup(plan: dict, config: ZergConfig) -> None:
 
     # Remove worktrees
     console.print("\n[bold]Removing worktrees...[/bold]")
-    worktree_mgr = WorktreeManager(config)
+    worktree_mgr = WorktreeManager()
     for wt_path in plan["worktrees"]:
         try:
             wt_path_obj = Path(wt_path)
             if wt_path_obj.exists():
-                worktree_mgr.remove(wt_path_obj)
+                worktree_mgr.delete(wt_path_obj)
                 console.print(f"  [green]✓[/green] {wt_path}")
             else:
                 console.print(f"  [dim]-[/dim] {wt_path} (not found)")
@@ -303,7 +305,12 @@ def execute_cleanup(plan: dict, config: ZergConfig) -> None:
     container_mgr = ContainerManager(config)
     for pattern in plan["containers"]:
         try:
-            stopped = container_mgr.stop_matching(pattern)
+            all_containers = container_mgr.get_all_containers()
+            stopped = 0
+            for worker_id, info in all_containers.items():
+                if fnmatch.fnmatch(info.name, pattern):
+                    container_mgr.stop_worker(worker_id)
+                    stopped += 1
             if stopped:
                 console.print(
                     f"  [green]✓[/green] Stopped {stopped}"

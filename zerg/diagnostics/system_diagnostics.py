@@ -7,7 +7,7 @@ import socket
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from zerg.logging import get_logger
 
@@ -33,7 +33,7 @@ class SystemHealthReport:
     worktree_count: int = 0
     orphaned_worktrees: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "git_clean": self.git_clean,
@@ -68,9 +68,9 @@ class SystemDiagnostics:
             logger.warning(f"Command failed: {cmd!r}: {e}")
             return "", False
 
-    def check_git_state(self) -> dict:
+    def check_git_state(self) -> dict[str, Any]:
         """Check git working tree state."""
-        result: dict = {
+        result: dict[str, Any] = {
             "clean": True,
             "branch": "",
             "uncommitted_files": 0,
@@ -97,7 +97,7 @@ class SystemDiagnostics:
             logger.warning(f"Failed to check disk space: {e}")
             return 0.0
 
-    def check_docker(self) -> dict | None:
+    def check_docker(self) -> dict[str, Any] | None:
         """Check Docker status. Returns None if docker is not applicable."""
         stdout, ok = self._run_cmd(["docker", "info"])
         if not ok:
@@ -127,9 +127,9 @@ class SystemDiagnostics:
                 pass
         return conflicts
 
-    def check_worktrees(self) -> dict:
+    def check_worktrees(self) -> dict[str, Any]:
         """Check git worktrees for orphans."""
-        result: dict = {
+        result: dict[str, Any] = {
             "count": 0,
             "orphaned": [],
         }

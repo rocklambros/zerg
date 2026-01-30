@@ -7,9 +7,10 @@ import re
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 
-def _get_owned_files(task: dict) -> str:
+def _get_owned_files(task: dict[str, Any]) -> str:
     """Extract owned files (create + modify) from a task's file spec."""
     files_spec = task.get("files", {})
     owned = []
@@ -20,7 +21,7 @@ def _get_owned_files(task: dict) -> str:
     return ", ".join(f"`{f}`" for f in owned)
 
 
-def _get_verification(task: dict) -> str:
+def _get_verification(task: dict[str, Any]) -> str:
     """Extract verification command from a task."""
     verification = task.get("verification", {})
     command = verification.get("command", "-")
@@ -29,7 +30,7 @@ def _get_verification(task: dict) -> str:
     return "-"
 
 
-def _get_deps(task: dict) -> str:
+def _get_deps(task: dict[str, Any]) -> str:
     """Format task dependencies."""
     deps = task.get("dependencies", [])
     if not deps:
@@ -37,25 +38,26 @@ def _get_deps(task: dict) -> str:
     return ", ".join(deps)
 
 
-def _group_tasks_by_level(tasks: list[dict]) -> dict[int, list[dict]]:
+def _group_tasks_by_level(tasks: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
     """Group tasks by their level field."""
-    levels: dict[int, list[dict]] = defaultdict(list)
+    levels: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for task in tasks:
         level = task.get("level", 1)
         levels[level].append(task)
     return dict(sorted(levels.items()))
 
 
-def _get_level_name(level_num: int, levels_spec: dict | None) -> str:
+def _get_level_name(level_num: int, levels_spec: dict[str, Any] | None) -> str:
     """Get the name for a level from the levels spec, or generate a default."""
     if levels_spec:
         level_key = str(level_num)
         if level_key in levels_spec:
-            return levels_spec[level_key].get("name", f"Level {level_num}")
+            name: str = levels_spec[level_key].get("name", f"Level {level_num}")
+            return name
     return f"Level {level_num}"
 
 
-def compute_critical_path(tasks: list[dict]) -> list[str]:
+def compute_critical_path(tasks: list[dict[str, Any]]) -> list[str]:
     """Compute the DAG longest-path by estimate_minutes.
 
     Uses dynamic programming on the topologically sorted task graph to find
@@ -75,7 +77,7 @@ def compute_critical_path(tasks: list[dict]) -> list[str]:
         return [tasks[0]["id"]]
 
     # Build lookup structures
-    task_map: dict[str, dict] = {t["id"]: t for t in tasks}
+    task_map: dict[str, dict[str, Any]] = {t["id"]: t for t in tasks}
     estimates: dict[str, int] = {
         t["id"]: t.get("estimate_minutes", 15) for t in tasks
     }
@@ -130,10 +132,10 @@ def compute_critical_path(tasks: list[dict]) -> list[str]:
 
 
 def estimate_sessions(
-    tasks: list[dict],
+    tasks: list[dict[str, Any]],
     max_workers: int = 5,
     session_minutes: int = 90,
-) -> dict:
+) -> dict[str, int | float]:
     """Estimate execution sessions for single and parallel worker scenarios.
 
     Groups tasks by level, computes sequential vs parallel duration, and
@@ -189,7 +191,7 @@ def estimate_sessions(
 
 
 def generate_backlog_markdown(
-    task_data: dict,
+    task_data: dict[str, Any],
     feature: str,
     output_dir: str | Path = "tasks",
 ) -> Path:

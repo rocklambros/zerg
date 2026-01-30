@@ -5,6 +5,7 @@ import re
 import shutil
 import stat
 from pathlib import Path
+from typing import Any
 
 from zerg.logging import get_logger
 
@@ -297,7 +298,7 @@ def uninstall_hooks(repo_path: str | Path = ".") -> bool:
     return uninstalled > 0
 
 
-def run_security_scan(path: str | Path = ".") -> dict:
+def run_security_scan(path: str | Path = ".") -> dict[str, Any]:
     """Run a security scan on the specified path.
 
     Args:
@@ -307,7 +308,7 @@ def run_security_scan(path: str | Path = ".") -> dict:
         Dictionary with scan results
     """
     scan_path = Path(path).resolve()
-    results = {
+    results: dict[str, Any] = {
         "secrets_found": [],
         "sensitive_files": [],
         "non_ascii_files": [],
@@ -339,14 +340,13 @@ def run_security_scan(path: str | Path = ".") -> dict:
     for filepath in all_files:
         if Path(filepath).suffix in text_extensions:
             try:
-                with open(filepath, encoding="utf-8", errors="ignore") as f:
-                    content = f.read()
-                    secrets = check_for_secrets(content)
-                    if secrets:
-                        results["secrets_found"].append({
-                            "file": filepath,
-                            "findings": secrets,
-                        })
+                file_content = Path(filepath).read_text(encoding="utf-8", errors="ignore")
+                secrets = check_for_secrets(file_content)
+                if secrets:
+                    results["secrets_found"].append({
+                        "file": filepath,
+                        "findings": secrets,
+                    })
             except OSError:
                 pass
 

@@ -3,6 +3,7 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -567,7 +568,7 @@ def validate_task_graph(path: Path) -> None:
                 warnings.append(f"Task {task_id}: missing files.{file_type}")
 
     # Check file ownership conflicts
-    file_owners = {}
+    file_owners: dict[tuple[Any, ...], Any] = {}
     for task in tasks:
         task_id = task.get("id")
         level = task.get("level", 0)
@@ -580,7 +581,7 @@ def validate_task_graph(path: Path) -> None:
             file_owners[key] = task_id
 
         for file in task.get("files", {}).get("modify", []):
-            key = (file, "modify", level)
+            key = (file, "modify", level)  # type: ignore[assignment]
             if key in file_owners:
                 owner = file_owners[key]
                 msg = f"File conflict: {file} modified by {owner} and {task_id} at L{level}"
@@ -644,8 +645,9 @@ def show_design_summary(spec_dir: Path, feature: str) -> None:
     console.print(table)
 
 
-def _load_task_graph(path: Path) -> dict:
+def _load_task_graph(path: Path) -> dict[str, Any]:
     """Load task graph JSON data."""
     import json
     with open(path) as f:
-        return json.load(f)
+        result: dict[str, Any] = json.load(f)
+        return result

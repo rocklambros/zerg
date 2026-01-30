@@ -6,7 +6,7 @@ from typing import Any
 
 from zerg.exceptions import TaskDependencyError, ValidationError
 from zerg.logging import get_logger
-from zerg.types import Task, TaskGraph
+from zerg.types import Task, TaskGraph, VerificationSpec
 from zerg.validation import validate_dependencies, validate_file_ownership, validate_task_graph
 
 logger = get_logger("parser")
@@ -104,6 +104,7 @@ class TaskParser:
             f"Parsed task graph: {data.get('feature')} with {len(self._tasks)} tasks"
         )
 
+        assert self._graph is not None
         return self._graph
 
     def get_task(self, task_id: str) -> Task | None:
@@ -228,7 +229,7 @@ class TaskParser:
             remaining = set(self._tasks.keys()) - set(result)
             raise TaskDependencyError(
                 "Dependency cycle detected",
-                task_id=None,
+                task_id=task_id or "unknown",
                 missing_deps=list(remaining),
             )
 
@@ -296,7 +297,7 @@ class TaskParser:
             "read": files.get("read", []),
         }
 
-    def get_verification(self, task_id: str) -> dict[str, Any] | None:
+    def get_verification(self, task_id: str) -> VerificationSpec | None:
         """Get verification specification for a task.
 
         Args:

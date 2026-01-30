@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -286,7 +287,7 @@ def create_directory_structure() -> None:
         console.print(f"  [green]✓[/green] Created {dir_path}/")
 
 
-def create_config(workers: int, security: str, project_type: str | None) -> dict:
+def create_config(workers: int, security: str, project_type: str | None) -> dict[str, Any]:
     """Create configuration dictionary.
 
     Args:
@@ -336,7 +337,7 @@ def create_config(workers: int, security: str, project_type: str | None) -> dict
     }
 
 
-def get_quality_gates(project_type: str | None) -> dict:
+def get_quality_gates(project_type: str | None) -> dict[str, Any]:
     """Get quality gates for project type.
 
     Args:
@@ -380,7 +381,7 @@ def get_quality_gates(project_type: str | None) -> dict:
     return gates
 
 
-def get_default_mcp_servers() -> list[dict]:
+def get_default_mcp_servers() -> list[dict[str, Any]]:
     """Get default MCP server configuration.
 
     Returns:
@@ -396,7 +397,7 @@ def get_default_mcp_servers() -> list[dict]:
     ]
 
 
-def save_config(config: dict) -> None:
+def save_config(config: dict[str, Any]) -> None:
     """Save configuration to file.
 
     Args:
@@ -405,7 +406,7 @@ def save_config(config: dict) -> None:
     config_path = Path(".zerg/config.yaml")
 
     # Convert to YAML-like format
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 
     try:
         with open(config_path, "w") as f:
@@ -565,7 +566,7 @@ def show_summary(
     workers: int,
     security: str,
     stack: ProjectStack | None,
-    security_rules_result: dict | None = None,
+    security_rules_result: dict[str, Any] | None = None,
     container_built: bool = False,
 ) -> None:
     """Show initialization summary.

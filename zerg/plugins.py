@@ -96,14 +96,14 @@ class PluginRegistry:
     """Central registry for discovering, registering, and dispatching plugins."""
 
     def __init__(self) -> None:
-        self._hooks: dict[str, list[Callable]] = {}
+        self._hooks: dict[str, list[Callable[..., Any]]] = {}
         self._gates: dict[str, QualityGatePlugin] = {}
-        self._gate_metadata: dict[str, dict[str, Any]] = {}  # Store required flag and other metadata
+        self._gate_metadata: dict[str, dict[str, Any]] = {}  # required flag + metadata
         self._launchers: dict[str, LauncherPlugin] = {}
 
     # -- Registration --------------------------------------------------------
 
-    def register_hook(self, event_type: str, callback: Callable) -> None:
+    def register_hook(self, event_type: str, callback: Callable[..., Any]) -> None:
         """Register a callback for a specific event type."""
         self._hooks.setdefault(event_type, []).append(callback)
 
@@ -186,11 +186,11 @@ class PluginRegistry:
             True if gate is required (default if not found), False otherwise
         """
         metadata = self._gate_metadata.get(name, {})
-        return metadata.get("required", True)
+        return bool(metadata.get("required", True))
 
     # -- YAML hook loading ---------------------------------------------------
 
-    def load_yaml_hooks(self, hooks_config: list) -> None:
+    def load_yaml_hooks(self, hooks_config: list[dict[str, Any]]) -> None:
         """Load lifecycle hooks defined in YAML configuration.
 
         Each item in *hooks_config* must have ``event`` and ``command`` keys.
@@ -227,7 +227,7 @@ class PluginRegistry:
         discovered = (
             eps.select(group=group)
             if hasattr(eps, "select")
-            else eps.get(group, [])  # type: ignore[union-attr]
+            else eps.get(group, [])  # type: ignore[attr-defined]
         )
 
         for ep in discovered:

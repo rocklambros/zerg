@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from zerg.constants import GateResult, Level, MergeStatus, WorkerStatus
 
@@ -117,7 +117,7 @@ class WorkerState:
     tasks_completed: int = 0
     context_usage: float = 0.0
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "worker_id": self.worker_id,
@@ -140,7 +140,7 @@ class WorkerState:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "WorkerState":
+    def from_dict(cls, data: dict[str, Any]) -> "WorkerState":
         """Create from dictionary."""
         return cls(
             worker_id=data["worker_id"],
@@ -204,7 +204,7 @@ class LevelStatus:
             return 100.0
         return (self.completed_tasks / self.total_tasks) * 100
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "level": self.level.value,
@@ -220,7 +220,7 @@ class LevelStatus:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "LevelStatus":
+    def from_dict(cls, data: dict[str, Any]) -> "LevelStatus":
         """Create from dictionary."""
         return cls(
             level=Level(data["level"]),
@@ -268,7 +268,7 @@ class GateRunResult:
     duration_ms: int = 0
     timestamp: datetime = field(default_factory=datetime.now)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "gate_name": self.gate_name,
@@ -299,7 +299,7 @@ class MergeResult:
     error_message: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "source_branch": self.source_branch,
@@ -322,7 +322,7 @@ class ExecutionEvent(TypedDict, total=False):
 
     timestamp: str
     event: str
-    data: dict
+    data: dict[str, Any]
 
 
 @dataclass
@@ -338,7 +338,7 @@ class OrchestratorState:
     paused: bool = False
     error: str | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "feature": self.feature,
@@ -366,7 +366,7 @@ class WorkerAssignmentEntry:
     level: int
     estimated_minutes: int
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "task_id": self.task_id,
@@ -396,7 +396,7 @@ class WorkerAssignments:
                 return a.worker_id
         return None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "feature": self.feature,
@@ -423,7 +423,7 @@ class WorkerMetrics:
     total_task_duration_ms: int = 0
     avg_task_duration_ms: float = 0.0
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "worker_id": self.worker_id,
@@ -436,7 +436,7 @@ class WorkerMetrics:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "WorkerMetrics":
+    def from_dict(cls, data: dict[str, Any]) -> "WorkerMetrics":
         """Create from dictionary."""
         return cls(
             worker_id=data["worker_id"],
@@ -459,7 +459,7 @@ class TaskMetrics:
     verification_duration_ms: int | None = None
     total_duration_ms: int | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "task_id": self.task_id,
@@ -470,7 +470,7 @@ class TaskMetrics:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "TaskMetrics":
+    def from_dict(cls, data: dict[str, Any]) -> "TaskMetrics":
         """Create from dictionary."""
         return cls(
             task_id=data["task_id"],
@@ -494,7 +494,7 @@ class LevelMetrics:
     p50_duration_ms: int = 0
     p95_duration_ms: int = 0
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "level": self.level,
@@ -508,7 +508,7 @@ class LevelMetrics:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "LevelMetrics":
+    def from_dict(cls, data: dict[str, Any]) -> "LevelMetrics":
         """Create from dictionary."""
         return cls(
             level=data["level"],
@@ -536,7 +536,7 @@ class FeatureMetrics:
     worker_metrics: list[WorkerMetrics] = field(default_factory=list)
     level_metrics: list[LevelMetrics] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "computed_at": self.computed_at.isoformat(),
@@ -551,7 +551,7 @@ class FeatureMetrics:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "FeatureMetrics":
+    def from_dict(cls, data: dict[str, Any]) -> "FeatureMetrics":
         """Create from dictionary."""
         return cls(
             computed_at=datetime.fromisoformat(data["computed_at"]),

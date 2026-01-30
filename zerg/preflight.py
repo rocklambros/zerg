@@ -204,7 +204,10 @@ class PreflightChecker:
         return CheckResult(
             name="Port availability",
             passed=False,
-            message=f"Only {available}/{needed} ports available in range {self.port_range_start}-{self.port_range_end}",
+            message=(
+                f"Only {available}/{needed} ports available in range "
+                f"{self.port_range_start}-{self.port_range_end}"
+            ),
         )
 
     def check_worktree_feasibility(self) -> CheckResult:

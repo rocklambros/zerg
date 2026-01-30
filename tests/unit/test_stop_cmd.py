@@ -59,8 +59,7 @@ def mock_config() -> MagicMock:
 def mock_container_manager() -> MagicMock:
     """Create a mock ContainerManager."""
     mock = MagicMock()
-    mock.signal_container = MagicMock()
-    mock.stop_container = MagicMock()
+    mock.stop_worker = MagicMock()
     return mock
 
 
@@ -244,8 +243,8 @@ class TestStopWorkersGraceful:
             sample_workers, mock_state_manager, mock_config, timeout=30
         )
 
-        # Should signal running workers
-        assert mock_container.signal_container.call_count >= 1
+        # Should call stop_worker for running workers
+        assert mock_container.stop_worker.call_count >= 1
 
     @patch("zerg.commands.stop.ContainerManager")
     @patch("zerg.commands.stop.time")
@@ -276,7 +275,7 @@ class TestStopWorkersGraceful:
         stop_workers_graceful(workers, mock_state_manager, mock_config, timeout=30)
 
         # Should not signal stopped workers
-        mock_container.signal_container.assert_not_called()
+        mock_container.stop_worker.assert_not_called()
 
     @patch("zerg.commands.stop.ContainerManager")
     @patch("zerg.commands.stop.time")
@@ -296,14 +295,19 @@ class TestStopWorkersGraceful:
         mock_time.sleep = MagicMock()
         mock_state_manager.get_all_workers.return_value = {}
 
+        # Set up get_worker_state to return mock worker states
+        mock_ws = MagicMock()
+        mock_state_manager.get_worker_state.return_value = mock_ws
+
         stop_workers_graceful(
             sample_workers, mock_state_manager, mock_config, timeout=30
         )
 
-        # Should update status for running workers
-        calls = mock_state_manager.update_worker.call_args_list
-        stopping_calls = [c for c in calls if c[1].get("status") == WorkerStatus.STOPPING]
-        assert len(stopping_calls) >= 1
+        # Should get and set worker state for running workers
+        assert mock_state_manager.get_worker_state.call_count >= 1
+        assert mock_state_manager.set_worker_state.call_count >= 1
+        # Verify status was set to STOPPING on the worker state object
+        assert mock_ws.status == WorkerStatus.STOPPING
 
     @patch("zerg.commands.stop.ContainerManager")
     @patch("zerg.commands.stop.time")
@@ -398,7 +402,7 @@ class TestStopWorkersGraceful:
     ) -> None:
         """Test handles container signal failures gracefully."""
         mock_container = MagicMock()
-        mock_container.signal_container.side_effect = Exception("Signal failed")
+        mock_container.stop_worker.side_effect = Exception("Signal failed")
         mock_container_cls.return_value = mock_container
 
         mock_time.time.side_effect = [0, 100]
@@ -499,10 +503,14 @@ class TestStopWorkersForce:
         mock_container = MagicMock()
         mock_container_cls.return_value = mock_container
 
+        # Set up get_worker_state to return mock worker states
+        mock_ws = MagicMock()
+        mock_state_manager.get_worker_state.return_value = mock_ws
+
         stop_workers_force(sample_workers, mock_state_manager, mock_config)
 
-        # Should stop each worker container
-        assert mock_container.stop_container.call_count == len(sample_workers)
+        # Should call stop_worker for each worker
+        assert mock_container.stop_worker.call_count == len(sample_workers)
 
     @patch("zerg.commands.stop.ContainerManager")
     def test_force_updates_worker_status_to_stopped(
@@ -516,12 +524,17 @@ class TestStopWorkersForce:
         mock_container = MagicMock()
         mock_container_cls.return_value = mock_container
 
+        # Set up get_worker_state to return mock worker states
+        mock_ws = MagicMock()
+        mock_state_manager.get_worker_state.return_value = mock_ws
+
         stop_workers_force(sample_workers, mock_state_manager, mock_config)
 
-        # Should update status for each worker
-        calls = mock_state_manager.update_worker.call_args_list
-        stopped_calls = [c for c in calls if c[1].get("status") == WorkerStatus.STOPPED]
-        assert len(stopped_calls) == len(sample_workers)
+        # Should get and set worker state for each worker
+        assert mock_state_manager.get_worker_state.call_count == len(sample_workers)
+        assert mock_state_manager.set_worker_state.call_count == len(sample_workers)
+        # Last assignment should be STOPPED
+        assert mock_ws.status == WorkerStatus.STOPPED
 
     @patch("zerg.commands.stop.ContainerManager")
     def test_force_logs_worker_killed_events(
@@ -569,32 +582,36 @@ class TestStopWorkersForce:
     ) -> None:
         """Test handles container kill failures gracefully."""
         mock_container = MagicMock()
-        mock_container.stop_container.side_effect = Exception("Kill failed")
+        mock_container.stop_worker.side_effect = Exception("Kill failed")
         mock_container_cls.return_value = mock_container
 
         # Should not raise, just log error
         stop_workers_force(sample_workers, mock_state_manager, mock_config)
 
     @patch("zerg.commands.stop.ContainerManager")
-    def test_force_uses_correct_container_names(
+    def test_force_uses_correct_worker_ids(
         self,
         mock_container_cls,
         sample_workers: dict,
         mock_state_manager: MagicMock,
         mock_config: MagicMock,
     ) -> None:
-        """Test uses correct container naming convention."""
+        """Test calls stop_worker with correct worker IDs."""
         mock_container = MagicMock()
         mock_container_cls.return_value = mock_container
         mock_state_manager.feature = "test-feature"
 
+        # Set up get_worker_state to return mock worker states
+        mock_ws = MagicMock()
+        mock_state_manager.get_worker_state.return_value = mock_ws
+
         stop_workers_force(sample_workers, mock_state_manager, mock_config)
 
-        # Check container names
-        calls = mock_container.stop_container.call_args_list
-        for call_args in calls:
-            container_name = call_args[0][0]
-            assert "zerg-worker-test-feature-" in container_name
+        # Check worker IDs passed to stop_worker
+        calls = mock_container.stop_worker.call_args_list
+        called_worker_ids = [call_args[0][0] for call_args in calls]
+        for wid in sample_workers:
+            assert wid in called_worker_ids
 
 
 # =============================================================================
@@ -1012,8 +1029,9 @@ class TestStopIntegration:
         result = runner.invoke(cli, ["stop", "--feature", "test-feature", "--force"])
 
         assert result.exit_code == 0
-        assert mock_container.stop_container.called
-        assert mock_state.update_worker.called
+        assert mock_container.stop_worker.called
+        assert mock_state.get_worker_state.called
+        assert mock_state.set_worker_state.called
         assert mock_state.append_event.called
         assert mock_state.set_paused.called
 
@@ -1060,4 +1078,4 @@ class TestStopIntegration:
         )
 
         assert result.exit_code == 0
-        assert mock_container.signal_container.called
+        assert mock_container.stop_worker.called

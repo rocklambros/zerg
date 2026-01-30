@@ -119,7 +119,8 @@ def get_plugin_launcher(name: str, registry: "Any") -> "WorkerLauncher | None":
     if plugin is None:
         return None
     try:
-        return plugin.create_launcher(None)
+        launcher: WorkerLauncher | None = plugin.create_launcher(None)
+        return launcher
     except Exception as e:
         logger.warning(f"Plugin launcher '{name}' failed to create launcher instance: {e}")
         return None
@@ -1167,6 +1168,7 @@ class ContainerLauncher(WorkerLauncher):
             result = subprocess.run(
                 ["docker", "network", "inspect", self.network],
                 capture_output=True,
+                text=True,
                 timeout=10,
             )
 

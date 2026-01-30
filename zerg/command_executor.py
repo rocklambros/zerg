@@ -375,10 +375,15 @@ class CommandExecutor:
 
         except subprocess.TimeoutExpired as e:
             duration_ms = int((time.time() - start_time) * 1000)
+            raw_stdout = getattr(e, "stdout", None)
+            if isinstance(raw_stdout, bytes):
+                timeout_stdout = raw_stdout.decode("utf-8", errors="replace")
+            else:
+                timeout_stdout = raw_stdout or ""
             cmd_result = CommandResult(
                 command=cmd_args,
                 exit_code=-1,
-                stdout=e.stdout or "" if hasattr(e, "stdout") else "",
+                stdout=timeout_stdout,
                 stderr=f"Command timed out after {timeout or self.timeout}s",
                 duration_ms=duration_ms,
                 success=False,

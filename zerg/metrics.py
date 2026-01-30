@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from zerg.constants import TaskStatus
 from zerg.logging import get_logger
@@ -48,7 +49,7 @@ def duration_ms(
     return int(delta.total_seconds() * 1000)
 
 
-def calculate_percentile(values: list[int | float], percentile: float) -> int:
+def calculate_percentile(values: Sequence[int | float], percentile: float) -> int:
     """Calculate percentile value from a list.
 
     Args:
@@ -94,7 +95,7 @@ class MetricsCollector:
             state: StateManager instance to read state from
         """
         self.state = state
-        self._state_data: dict = {}
+        self._state_data: dict[str, Any] = {}
 
     def _refresh_state(self) -> None:
         """Refresh internal state data from StateManager."""

@@ -1,7 +1,10 @@
 """ZERG plan command - capture feature requirements."""
 
+from __future__ import annotations
+
 from datetime import UTC
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -67,6 +70,7 @@ def plan(
                 raise SystemExit(1)
 
         # Sanitize feature name
+        assert feature is not None  # guaranteed by above logic
         feature = sanitize_feature_name(feature)
         console.print(f"Feature: [cyan]{feature}[/cyan]\n")
 
@@ -389,7 +393,7 @@ def get_detailed_template(feature: str, timestamp: str) -> str:
     return base + additional
 
 
-def run_socratic_discovery(feature: str, rounds: int) -> dict:
+def run_socratic_discovery(feature: str, rounds: int) -> dict[str, Any]:
     """Run Socratic 3-round discovery process.
 
     Args:
@@ -399,7 +403,7 @@ def run_socratic_discovery(feature: str, rounds: int) -> dict:
     Returns:
         Requirements dictionary
     """
-    requirements = {
+    requirements: dict[str, Any] = {
         "feature": feature,
         "transcript": [],
         "problem_space": {},
@@ -450,7 +454,7 @@ def run_socratic_discovery(feature: str, rounds: int) -> dict:
     return requirements
 
 
-def run_interactive_discovery(feature: str, template: str) -> dict:
+def run_interactive_discovery(feature: str, template: str) -> dict[str, Any]:
     """Run standard interactive discovery.
 
     Args:
@@ -475,7 +479,7 @@ def run_interactive_discovery(feature: str, template: str) -> dict:
     return requirements
 
 
-def ask_questions(questions: list[str], category: str) -> dict:
+def ask_questions(questions: list[str], category: str) -> dict[str, str]:
     """Ask a series of questions and collect answers.
 
     Args:
@@ -493,7 +497,7 @@ def ask_questions(questions: list[str], category: str) -> dict:
     return answers
 
 
-def write_requirements(spec_dir: Path, feature: str, requirements: dict) -> None:
+def write_requirements(spec_dir: Path, feature: str, requirements: dict[str, Any]) -> None:
     """Write requirements to markdown file.
 
     Args:
@@ -514,7 +518,7 @@ def write_requirements(spec_dir: Path, feature: str, requirements: dict) -> None
     requirements_path.write_text(content)
 
 
-def format_socratic_requirements(feature: str, timestamp: str, req: dict) -> str:
+def format_socratic_requirements(feature: str, timestamp: str, req: dict[str, Any]) -> str:
     """Format socratic discovery results as requirements.md."""
     content = f"""# Feature Requirements: {feature}
 
@@ -590,7 +594,7 @@ def format_socratic_requirements(feature: str, timestamp: str, req: dict) -> str
     return content
 
 
-def format_standard_requirements(feature: str, timestamp: str, req: dict) -> str:
+def format_standard_requirements(feature: str, timestamp: str, req: dict[str, Any]) -> str:
     """Format standard discovery results as requirements.md."""
     return f"""# Feature Requirements: {feature}
 

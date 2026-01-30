@@ -7,7 +7,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from zerg.assign import WorkerAssignment
 from zerg.config import ZergConfig
@@ -289,7 +289,7 @@ class Orchestrator:
         """
         # Check config first
         if hasattr(self.config, "container_image"):
-            return self.config.container_image
+            return str(self.config.container_image)
 
         # Default to standard worker image
         return "zerg-worker"
@@ -373,10 +373,13 @@ class Orchestrator:
                     lvl.status = "complete"
                     # Also mark individual tasks so _sync_levels_from_state
                     # won't double-count them when it sees them complete on disk.
-                    for tid, task in self.levels._tasks.items():
+                    for _tid, task in self.levels._tasks.items():
                         if task.get("level") == prev:
                             task["status"] = TaskStatus.COMPLETE.value
-                    logger.info(f"Pre-marked level {prev} as complete (resuming from {effective_start})")
+                    logger.info(
+                        f"Pre-marked level {prev} as complete "
+                        f"(resuming from {effective_start})"
+                    )
 
         self._start_level(effective_start)
         self._main_loop()
@@ -568,8 +571,10 @@ class Orchestrator:
             logger.warning(f"Failed to emit LEVEL_COMPLETE event: {e}")
 
         # Create Claude Tasks for this level
-        level_tasks = [self.parser.get_task(tid) for tid in task_ids]
-        level_tasks = [t for t in level_tasks if t is not None]
+        level_tasks = cast(
+            list[dict[str, Any]],
+            [t for tid in task_ids for t in [self.parser.get_task(tid)] if t is not None],
+        )
         if level_tasks:
             self.task_sync.create_level_tasks(level, level_tasks)
             logger.info(f"Created {len(level_tasks)} Claude Tasks for level {level}")
@@ -990,7 +995,8 @@ class Orchestrator:
             level_status = self.levels.get_task_status(task_id)
 
             # Task is complete on disk but not in LevelController
-            if disk_status == TaskStatus.COMPLETE.value and level_status != TaskStatus.COMPLETE.value:
+            complete = TaskStatus.COMPLETE.value
+            if disk_status == complete and level_status != complete:
                 self.levels.mark_task_complete(task_id)
                 logger.info(f"Synced task {task_id} completion to LevelController")
 
@@ -1033,14 +1039,17 @@ class Orchestrator:
             worker_id = task_state.get("worker_id")
 
             # Only reassign pending/todo tasks with a dead worker assignment
-            if status in (TaskStatus.PENDING.value, TaskStatus.TODO.value, "pending", "todo"):
-                if worker_id is not None and worker_id not in active_worker_ids:
-                    # Clear the worker assignment so any worker can claim it
-                    task_state["worker_id"] = None
-                    logger.info(
-                        f"Reassigned stranded task {task_id} "
-                        f"(was worker {worker_id}, now unassigned)"
-                    )
+            if (
+                status in (TaskStatus.PENDING.value, TaskStatus.TODO.value, "pending", "todo")
+                and worker_id is not None
+                and worker_id not in active_worker_ids
+            ):
+                # Clear the worker assignment so any worker can claim it
+                task_state["worker_id"] = None
+                logger.info(
+                    f"Reassigned stranded task {task_id} "
+                    f"(was worker {worker_id}, now unassigned)"
+                )
 
         # Persist changes
         self.state.save()
@@ -1293,7 +1302,10 @@ class Orchestrator:
         if need <= 0:
             return 0
 
-        logger.info(f"Respawning {need} workers for level {level} ({len(remaining)} tasks remaining)")
+        logger.info(
+            f"Respawning {need} workers for level {level} "
+            f"({len(remaining)} tasks remaining)"
+        )
 
         spawned = 0
         # Find available worker IDs (prefer reusing IDs from stopped workers)

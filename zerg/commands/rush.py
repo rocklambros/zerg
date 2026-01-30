@@ -1,7 +1,13 @@
 """ZERG rush command - launch parallel execution."""
 
+from __future__ import annotations
+
 import contextlib
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from zerg.risk_scoring import RiskReport
 
 import click
 from rich.console import Console
@@ -136,8 +142,8 @@ def rush(
                 mode=mode,
                 run_gates=check_gates,
             )
-            report = simulator.run()
-            raise SystemExit(1 if report.has_errors else 0)
+            dry_report = simulator.run()
+            raise SystemExit(1 if dry_report.has_errors else 0)
 
         # If only what-if or risk was requested (without dry-run), exit
         if what_if or risk:
@@ -223,12 +229,10 @@ def _run_preflight(config: ZergConfig, mode: str, workers: int) -> bool:
     return True
 
 
-def _render_standalone_risk(risk_report: "RiskReport") -> None:
+def _render_standalone_risk(risk_report: RiskReport) -> None:
     """Render risk assessment as standalone output."""
     from rich.panel import Panel
     from rich.text import Text
-
-    from zerg.risk_scoring import RiskReport
 
     lines: list[Text] = []
     grade_colors = {"A": "green", "B": "yellow", "C": "red", "D": "bold red"}
@@ -287,7 +291,7 @@ def find_task_graph(feature: str | None) -> Path | None:
     return None
 
 
-def show_summary(task_data: dict, workers: int, mode: str = "auto") -> None:
+def show_summary(task_data: dict[str, Any], workers: int, mode: str = "auto") -> None:
     """Show execution summary.
 
     Args:
@@ -315,7 +319,7 @@ def show_summary(task_data: dict, workers: int, mode: str = "auto") -> None:
     console.print(table)
 
 
-def show_dry_run(task_data: dict, workers: int, feature: str) -> None:
+def show_dry_run(task_data: dict[str, Any], workers: int, feature: str) -> None:
     """Show dry run plan.
 
     Args:
@@ -329,7 +333,7 @@ def show_dry_run(task_data: dict, workers: int, feature: str) -> None:
     levels = task_data.get("levels", {})
 
     # Group tasks by level
-    level_tasks: dict[int, list[dict]] = {}
+    level_tasks: dict[int, list[dict[str, Any]]] = {}
     for task in tasks:
         lvl = task.get("level", 1)
         if lvl not in level_tasks:

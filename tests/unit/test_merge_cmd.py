@@ -26,7 +26,7 @@ from zerg.commands.merge_cmd import (
     run_quality_gates,
     show_merge_plan,
 )
-from zerg.config import ZergConfig
+from zerg.config import QualityGate, ZergConfig
 from zerg.constants import GateResult, LevelMergeStatus
 from zerg.merge import MergeFlowResult
 
@@ -103,11 +103,11 @@ def mock_state_manager() -> MagicMock:
 def mock_config() -> ZergConfig:
     """Create a mock ZergConfig with quality gates."""
     config = ZergConfig()
-    config.quality_gates = {
-        "lint": {"command": "ruff check .", "required": True},
-        "test": {"command": "pytest", "required": True},
-        "typecheck": {"command": "mypy .", "required": False},
-    }
+    config.quality_gates = [
+        QualityGate(name="lint", command="ruff check .", required=True),
+        QualityGate(name="test", command="pytest", required=True),
+        QualityGate(name="typecheck", command="mypy .", required=False),
+    ]
     return config
 
 
@@ -259,7 +259,9 @@ class TestRunQualityGates:
         """Test run_quality_gates when all gates pass."""
         with patch("zerg.commands.merge_cmd.GateRunner") as mock_runner_cls:
             mock_runner = MagicMock()
-            mock_runner.run_gate.return_value = GateResult.PASS
+            pass_result = MagicMock()
+            pass_result.result = GateResult.PASS
+            mock_runner.run_gate.return_value = pass_result
             mock_runner_cls.return_value = mock_runner
             result = run_quality_gates(mock_config, "test-feature", 1)
             assert result == GateResult.PASS
@@ -268,7 +270,11 @@ class TestRunQualityGates:
         """Test run_quality_gates when one gate fails."""
         with patch("zerg.commands.merge_cmd.GateRunner") as mock_runner_cls:
             mock_runner = MagicMock()
-            mock_runner.run_gate.side_effect = [GateResult.PASS, GateResult.FAIL]
+            pass_result = MagicMock()
+            pass_result.result = GateResult.PASS
+            fail_result = MagicMock()
+            fail_result.result = GateResult.FAIL
+            mock_runner.run_gate.side_effect = [pass_result, fail_result]
             mock_runner_cls.return_value = mock_runner
             result = run_quality_gates(mock_config, "test-feature", 1)
             assert result == GateResult.FAIL
@@ -276,7 +282,7 @@ class TestRunQualityGates:
     def test_run_quality_gates_skips_non_required(self) -> None:
         """Test run_quality_gates skips non-required gates."""
         config = ZergConfig()
-        config.quality_gates = {"opt": {"command": "echo", "required": False}}
+        config.quality_gates = [QualityGate(name="opt", command="echo", required=False)]
         with patch("zerg.commands.merge_cmd.GateRunner") as mock_runner_cls:
             mock_runner = MagicMock()
             mock_runner_cls.return_value = mock_runner
@@ -284,11 +290,10 @@ class TestRunQualityGates:
             assert result == GateResult.PASS
             mock_runner.run_gate.assert_not_called()
 
-
     def test_run_quality_gates_skips_empty_command(self) -> None:
         """Test run_quality_gates skips gates with empty command."""
         config = ZergConfig()
-        config.quality_gates = {"empty": {"command": "", "required": True}}
+        config.quality_gates = [QualityGate(name="empty", command="", required=True)]
         with patch("zerg.commands.merge_cmd.GateRunner") as mock_runner_cls:
             mock_runner = MagicMock()
             mock_runner_cls.return_value = mock_runner
@@ -299,7 +304,7 @@ class TestRunQualityGates:
     def test_run_quality_gates_empty_gates(self) -> None:
         """Test run_quality_gates with no gates configured."""
         config = ZergConfig()
-        config.quality_gates = {}
+        config.quality_gates = []
         with patch("zerg.commands.merge_cmd.GateRunner") as mock_runner_cls:
             mock_runner = MagicMock()
             mock_runner_cls.return_value = mock_runner
@@ -480,7 +485,7 @@ class TestMergeCmdFailure:
             mock_orch._merge_level.return_value = mock_result
             mock_orch_cls.return_value = mock_orch
             mock_coord = MagicMock()
-            mock_coord.merge_level.return_value = MergeFlowResult(
+            mock_coord.full_merge_flow.return_value = MergeFlowResult(
                 success=False,
                 level=1,
                 source_branches=[],
@@ -541,7 +546,7 @@ class TestMergeCmdFailure:
             mock_orch._merge_level.side_effect = RuntimeError("Orchestrator failed")
             mock_orch_cls.return_value = mock_orch
             mock_coord = MagicMock()
-            mock_coord.merge_level.return_value = MergeFlowResult(
+            mock_coord.full_merge_flow.return_value = MergeFlowResult(
                 success=True,
                 level=1,
                 source_branches=[],
@@ -572,7 +577,7 @@ class TestMergeCmdFailure:
             mock_orch._merge_level.side_effect = RuntimeError("Orchestrator failed")
             mock_orch_cls.return_value = mock_orch
             mock_coord = MagicMock()
-            mock_coord.merge_level.return_value = MergeFlowResult(
+            mock_coord.full_merge_flow.return_value = MergeFlowResult(
                 success=False,
                 level=1,
                 source_branches=[],
@@ -607,7 +612,7 @@ class TestMergeCmdFailure:
             mock_result = MagicMock()
             mock_result.success = False
             mock_result.conflicts = ["conflict.py"]
-            mock_coord.merge_level.return_value = mock_result
+            mock_coord.full_merge_flow.return_value = mock_result
             mock_coord_cls.return_value = mock_coord
             runner = CliRunner()
             result = runner.invoke(

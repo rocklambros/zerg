@@ -40,4 +40,4 @@ class RetryBackoffCalculator:
         jitter = delay * 0.1
         delay = delay + random.uniform(-jitter, jitter)
 
-        return max(0.0, delay)
+        return float(max(0.0, delay))

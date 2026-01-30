@@ -1,6 +1,7 @@
 """ZERG merge command - trigger merge gate execution."""
 
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -126,9 +127,10 @@ def merge_cmd(
                 console.print("\n[red]Merge failed[/red]")
                 if result.error:
                     console.print(f"  Error: {result.error}")
-                if result.conflicts:
+                conflicts = getattr(result, "conflicts", None)
+                if conflicts:
                     console.print("\nConflicts in:")
-                    for conflict in result.conflicts:
+                    for conflict in conflicts:
                         console.print(f"  - {conflict}")
                 console.print("\nResolve conflicts manually or use [cyan]zerg retry[/cyan]")
                 raise SystemExit(1)
@@ -136,7 +138,7 @@ def merge_cmd(
         except Exception as e:
             # Fall back to direct merge coordinator
             logger.warning(f"Orchestrator merge failed, using direct coordinator: {e}")
-            result = merge_coordinator.merge_level(level)
+            result = merge_coordinator.full_merge_flow(level)
 
             if result.success:
                 console.print(f"\n[green]✓ Level {level} merged successfully[/green]")
@@ -179,7 +181,7 @@ def create_merge_plan(
     level: int,
     target: str,
     skip_gates: bool,
-) -> dict:
+) -> dict[str, Any]:
     """Create merge plan.
 
     Args:
@@ -214,7 +216,7 @@ def create_merge_plan(
     }
 
 
-def show_merge_plan(plan: dict, dry_run: bool) -> None:
+def show_merge_plan(plan: dict[str, Any], dry_run: bool) -> None:
     """Show merge plan.
 
     Args:
@@ -262,21 +264,20 @@ def run_quality_gates(config: ZergConfig, feature: str, level: int) -> GateResul
     gates = config.quality_gates
 
     all_passed = True
-    for gate_name, gate_config in gates.items():
-        if not gate_config.get("required", False):
+    for gate in gates:
+        if not gate.required:
             continue
 
-        command = gate_config.get("command", "")
-        if not command:
+        if not gate.command:
             continue
 
-        console.print(f"  Running {gate_name}...")
-        result = gate_runner.run_gate(gate_name, command)
+        console.print(f"  Running {gate.name}...")
+        result = gate_runner.run_gate(gate)
 
-        if result == GateResult.PASS:
-            console.print(f"    [green]✓[/green] {gate_name}")
+        if result.result == GateResult.PASS:
+            console.print(f"    [green]✓[/green] {gate.name}")
         else:
-            console.print(f"    [red]✗[/red] {gate_name}")
+            console.print(f"    [red]✗[/red] {gate.name}")
             all_passed = False
 
     return GateResult.PASS if all_passed else GateResult.FAIL

@@ -5,9 +5,10 @@ import fcntl
 import json
 import tempfile
 import threading
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from zerg.constants import GSD_DIR, STATE_DIR, LevelMergeStatus, TaskStatus, WorkerStatus
 from zerg.exceptions import StateError
@@ -47,7 +48,7 @@ class StateManager:
         self.state_dir.mkdir(parents=True, exist_ok=True)
 
     @contextlib.contextmanager
-    def _atomic_update(self):
+    def _atomic_update(self) -> Iterator[None]:
         """Cross-process atomic read-modify-write.
 
         Acquires an exclusive file lock, reloads state from disk,
@@ -67,7 +68,7 @@ class StateManager:
             return
 
         lock_path = self._state_file.with_suffix(".lock")
-        lock_fd = open(lock_path, "w")
+        lock_fd = open(lock_path, "w")  # noqa: SIM115
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_EX)
             self._file_lock_depth = 1
@@ -133,7 +134,7 @@ class StateManager:
         """
         # Use shared file lock to prevent reading during a write
         lock_path = self._state_file.with_suffix(".lock")
-        lock_fd = open(lock_path, "w")
+        lock_fd = open(lock_path, "w")  # noqa: SIM115
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_SH)
             with self._lock:
@@ -161,7 +162,7 @@ class StateManager:
         Public save method -- acquires file lock, writes, and releases.
         """
         lock_path = self._state_file.with_suffix(".lock")
-        lock_fd = open(lock_path, "w")
+        lock_fd = open(lock_path, "w")  # noqa: SIM115
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_EX)
             self._raw_save()
@@ -364,7 +365,7 @@ class StateManager:
             List of events (most recent last)
         """
         with self._lock:
-            events = self._state.get("execution_log", [])
+            events = cast(list[ExecutionEvent], self._state.get("execution_log", []))
             if limit:
                 return events[-limit:]
             return events.copy()
@@ -385,7 +386,7 @@ class StateManager:
             Current level number
         """
         with self._lock:
-            return self._state.get("current_level", 0)
+            return int(self._state.get("current_level", 0))
 
     def set_level_status(
         self,
@@ -428,7 +429,7 @@ class StateManager:
             Level status dict or None
         """
         with self._lock:
-            return self._state.get("levels", {}).get(str(level))
+            return cast(dict[str, Any] | None, self._state.get("levels", {}).get(str(level)))
 
     def get_tasks_by_status(self, status: TaskStatus | str) -> list[str]:
         """Get task IDs with a specific status.
@@ -464,7 +465,7 @@ class StateManager:
             True if paused
         """
         with self._lock:
-            return self._state.get("paused", False)
+            return bool(self._state.get("paused", False))
 
     def set_error(self, error: str | None) -> None:
         """Set error state.
@@ -482,7 +483,7 @@ class StateManager:
             Error message or None
         """
         with self._lock:
-            return self._state.get("error")
+            return cast(str | None, self._state.get("error"))
 
     def delete(self) -> None:
         """Delete state file."""
@@ -561,7 +562,7 @@ class StateManager:
         """
         with self._lock:
             task_state = self._state.get("tasks", {}).get(task_id, {})
-            return task_state.get("retry_count", 0)
+            return int(task_state.get("retry_count", 0))
 
     def increment_task_retry(self, task_id: str, next_retry_at: str | None = None) -> int:
         """Increment and return the retry count for a task.
@@ -581,7 +582,7 @@ class StateManager:
                 self._state["tasks"][task_id] = {}
 
             task_state = self._state["tasks"][task_id]
-            retry_count = task_state.get("retry_count", 0) + 1
+            retry_count: int = int(task_state.get("retry_count", 0)) + 1
             task_state["retry_count"] = retry_count
             task_state["last_retry_at"] = datetime.now().isoformat()
 
@@ -620,7 +621,7 @@ class StateManager:
         """
         with self._lock:
             task_state = self._state.get("tasks", {}).get(task_id, {})
-            return task_state.get("next_retry_at")
+            return cast(str | None, task_state.get("next_retry_at"))
 
     def get_tasks_ready_for_retry(self) -> list[str]:
         """Get task IDs whose scheduled retry time has passed.

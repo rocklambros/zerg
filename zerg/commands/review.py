@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -46,7 +47,7 @@ class ReviewItem:
     message: str
     suggestion: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "category": self.category,
@@ -114,7 +115,7 @@ class SelfReviewChecklist:
 class CodeAnalyzer:
     """Analyze code for common issues."""
 
-    PATTERNS = {
+    PATTERNS: dict[str, dict[str, Any]] = {
         "debug_print": {
             "pattern": r"(print\(|console\.log|debugger;)",
             "message": "Debug statement found",
@@ -401,7 +402,7 @@ def _collect_files(path: str | None, mode: str) -> list[str]:
     if target.is_file():
         return [str(target)]
     elif target.is_dir():
-        files = []
+        files: list[str] = []
         for ext in ["*.py", "*.js", "*.ts", "*.go", "*.rs"]:
             files.extend(str(f) for f in target.rglob(ext) if "__pycache__" not in str(f))
         return files[:50]
@@ -507,24 +508,24 @@ def review(
                 console.print(f"\n[bold]Review Items ({result.total_items}):[/bold]")
 
                 # Group by severity
-                errors = [i for i in result.items if i.severity == "error"]
-                warnings = [i for i in result.items if i.severity == "warning"]
-                infos = [i for i in result.items if i.severity == "info"]
+                errors: list[ReviewItem] = [i for i in result.items if i.severity == "error"]
+                warnings: list[ReviewItem] = [i for i in result.items if i.severity == "warning"]
+                infos: list[ReviewItem] = [i for i in result.items if i.severity == "info"]
 
                 if errors:
                     console.print(f"\n[red]Errors ({len(errors)}):[/red]")
-                    for item in errors[:5]:
-                        console.print(f"  ❌ {item.file}:{item.line} - {item.message}")
+                    for ri in errors[:5]:
+                        console.print(f"  ❌ {ri.file}:{ri.line} - {ri.message}")
 
                 if warnings:
                     console.print(f"\n[yellow]Warnings ({len(warnings)}):[/yellow]")
-                    for item in warnings[:5]:
-                        console.print(f"  ⚠ {item.file}:{item.line} - {item.message}")
+                    for ri in warnings[:5]:
+                        console.print(f"  ⚠ {ri.file}:{ri.line} - {ri.message}")
 
                 if infos:
                     console.print(f"\n[blue]Info ({len(infos)}):[/blue]")
-                    for item in infos[:5]:
-                        console.print(f"  ℹ {item.file}:{item.line} - {item.message}")
+                    for ri in infos[:5]:
+                        console.print(f"  ℹ {ri.file}:{ri.line} - {ri.message}")
 
             # Overall status
             console.print(

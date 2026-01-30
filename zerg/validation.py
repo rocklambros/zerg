@@ -357,4 +357,4 @@ def load_and_validate_task_graph(path: str | Path) -> dict[str, Any]:
             details={"errors": dep_errors},
         )
 
-    return data
+    return dict(data)

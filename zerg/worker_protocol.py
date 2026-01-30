@@ -110,6 +110,7 @@ class WorkerProtocol:
         self.worktree_path = Path(os.environ.get("ZERG_WORKTREE", ".")).resolve()
 
         # Task graph path from arg or env
+        self.task_graph_path: Path | None
         if task_graph_path:
             self.task_graph_path = Path(task_graph_path)
         else:

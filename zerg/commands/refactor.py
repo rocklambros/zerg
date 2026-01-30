@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -50,7 +51,7 @@ class RefactorSuggestion:
     reason: str
     confidence: float = 0.9
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "transform": self.transform_type.value,

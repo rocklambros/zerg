@@ -50,7 +50,7 @@ class PortAllocator:
         Raises:
             RuntimeError: If not enough ports available
         """
-        allocated = []
+        allocated: list[int] = []
         max_attempts = count * 10  # Allow some retries
 
         # Generate candidates in random order to avoid collisions
