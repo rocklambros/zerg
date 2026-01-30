@@ -1,0 +1,220 @@
+{
+  "feature": "bug-fix-sweep",
+  "version": "2.0",
+  "generated": "2026-01-30T03:00:00Z",
+  "total_tasks": 8,
+  "estimated_duration_minutes": 30,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "BF-L1-001",
+      "title": "Convert base classes to ABC with abstractmethod",
+      "description": "In zerg/commands/analyze.py: Make BaseChecker inherit from abc.ABC and decorate check() with @abstractmethod. In zerg/commands/refactor.py: Make BaseTransform inherit from abc.ABC and decorate analyze() and apply() with @abstractmethod. Add 'from abc import ABC, abstractmethod' import to both files. The subclasses (LintChecker, ComplexityChecker, DeadCodeTransform, SimplifyTransform, TypesTransform) already override these methods so no changes needed there.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py", "zerg/commands/refactor.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "BaseChecker inherits from ABC",
+        "BaseChecker.check() is decorated with @abstractmethod",
+        "BaseTransform inherits from ABC",
+        "BaseTransform.analyze() and apply() are decorated with @abstractmethod",
+        "All existing subclass tests still pass"
+      ],
+      "verification": {
+        "command": "python3 -m pytest tests/unit/test_analyze_cmd.py tests/unit/test_refactor_cmd.py -q --timeout=30",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "BF-L1-002",
+      "title": "Fix .gitignore and remove tracked artifacts",
+      "description": "Add .coverage, htmlcov/, .pytest_cache/, and review.md to .gitignore. Then run 'git rm -r --cached htmlcov/ .coverage .pytest_cache/ review.md' to untrack them (they will remain on disk but no longer be in git). This prevents accidental commits of test artifacts.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gitignore"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        ".gitignore contains .coverage entry",
+        ".gitignore contains htmlcov/ entry",
+        ".gitignore contains .pytest_cache/ entry",
+        ".gitignore contains review.md entry",
+        "git status shows these files as untracked (not staged)"
+      ],
+      "verification": {
+        "command": "grep -q 'htmlcov' .gitignore && grep -q '.coverage' .gitignore && grep -q '.pytest_cache' .gitignore && echo PASS",
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "id": "BF-L1-003",
+      "title": "Clean stale STATE.md error message",
+      "description": "The .gsd/STATE.md file contains a stale error 'Cannot start level 4: level 1 not complete' from a bug that was already fixed (commit bbb063d). Also L4 tasks show as in_progress/pending when they are actually complete. Regenerate STATE.md from the actual state in .zerg/state/production-dogfooding.json to reflect the true completed state. Clear the Error field and update all L4 tasks to show 'complete' status.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/STATE.md"],
+        "read": [".zerg/state/production-dogfooding.json"]
+      },
+      "acceptance_criteria": [
+        "STATE.md has no Error line or Error is empty/None",
+        "All 20 tasks show status 'complete'",
+        "L4 tasks (DF-L4-001 through DF-L4-005) show 'complete' not 'in_progress' or 'pending'"
+      ],
+      "verification": {
+        "command": "! grep -q 'Cannot start level' .gsd/STATE.md && grep -c 'complete' .gsd/STATE.md | grep -q '[12][0-9]' && echo PASS",
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "id": "BF-L1-004",
+      "title": "Add logging to silent bare-except blocks",
+      "description": "Replace silent 'except Exception: pass' blocks with 'except Exception: logger.debug(...)' in the following files. The fix is to add a logger.debug call so errors are visible in debug logs but don't change control flow. Target locations:\n\n1. zerg/state.py:95 - lock release after _atomic_update\n2. zerg/state.py:154 - lock release after load()\n3. zerg/state.py:171 - lock release after save()\n4. zerg/worker_protocol.py:795 - artifact capture (already has comment '# Best-effort artifact capture')\n5. zerg/commands/cleanup.py:138 - branch listing failure\n6. zerg/commands/cleanup.py:186 - container listing\n7. zerg/commands/review.py:266, 315, 395 - file reading for review\n8. zerg/commands/troubleshoot.py:694, 779 - diagnostic checks\n9. zerg/commands/test_cmd.py:122 - config loading\n10. zerg/commands/install_commands.py:34 - install check\n11. zerg/commands/build.py:366 - image tag check\n12. zerg/commands/logs.py:280 - mode detection\n13. zerg/orchestrator.py:676 - status update\n14. zerg/plugins.py:135, 255 - already have logger.warning on next line, these are fine as-is\n\nFor each: change 'except Exception:' to 'except Exception as e:' and add 'logger.debug(f\"...: {e}\")' before pass/return. Keep the pass/return — don't change control flow.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/state.py",
+          "zerg/worker_protocol.py",
+          "zerg/commands/cleanup.py",
+          "zerg/commands/review.py",
+          "zerg/commands/troubleshoot.py",
+          "zerg/commands/test_cmd.py",
+          "zerg/commands/install_commands.py",
+          "zerg/commands/build.py",
+          "zerg/commands/logs.py",
+          "zerg/orchestrator.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "No 'except Exception:' followed by 'pass' without logging in modified files",
+        "All modified except blocks capture the exception as 'e' and log at debug level",
+        "Control flow unchanged — pass/return statements remain",
+        "All existing tests pass"
+      ],
+      "verification": {
+        "command": "python3 -m pytest tests/test_state.py tests/test_orchestrator.py -q --timeout=30",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "BF-L1-005",
+      "title": "Extract hardcoded container paths to constants and add lock logging",
+      "description": "In zerg/launcher.py:\n1. At module level (near other constants), add:\n   CONTAINER_HOME_DIR = '/home/worker'\n   CONTAINER_HEALTH_FILE = '/tmp/.zerg-alive'\n2. Replace the hardcoded string at line 800 (home_dir = '/home/worker') with CONTAINER_HOME_DIR\n3. Replace the hardcoded string at line ~1034 ('/tmp/.zerg-alive') with CONTAINER_HEALTH_FILE\n4. At line 1204, the bare 'except Exception:' that returns False — add 'as e' and logger.debug\n\nAlso fix the silent except at launcher.py:119 which already has a logger.warning but doesn't capture the exception variable — add 'as e' and include {e} in the warning message.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "CONTAINER_HOME_DIR and CONTAINER_HEALTH_FILE constants defined",
+        "No hardcoded '/home/worker' or '/tmp/.zerg-alive' strings remain",
+        "All launcher tests pass"
+      ],
+      "verification": {
+        "command": "python3 -m pytest tests/unit/test_launcher.py tests/unit/test_launcher_process.py -q --timeout=30",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "BF-L2-001",
+      "title": "Fix 5 hanging tests in test_worker_protocol.py",
+      "description": "The following 5 tests in tests/unit/test_worker_protocol.py hang because claim_next_task() calls time.sleep() in a polling loop with max_wait=120s, and the mocks don't prevent the sleep.\n\nTests to fix:\n- test_claim_next_task_no_pending (line 629)\n- test_claim_next_task_claim_fails (line 665)\n- test_start_no_tasks (line 2371)\n- test_start_executes_tasks (line 2413)\n- test_start_task_execution_failure (line 2467)\n\nFix approach: In each test, add @patch('zerg.worker_protocol.time.sleep') to the decorator stack AND/OR patch claim_next_task to use max_wait=0. The simplest reliable fix: add a @patch('zerg.worker_protocol.time') mock that makes time.time() advance immediately and time.sleep() be a no-op. Or: monkey-patch the protocol's claim_next_task to pass max_wait=0.\n\nRecommended: Add @patch('zerg.worker_protocol.time.sleep') as a no-op mock to each of the 5 tests. For the claim_next_task tests, also ensure the mock state returns empty on first call so the loop exits immediately on the max_wait check. Set max_wait=0 in the direct calls to claim_next_task().",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["BF-L1-004"],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_worker_protocol.py"],
+        "read": ["zerg/worker_protocol.py"]
+      },
+      "acceptance_criteria": [
+        "All 5 tests pass without hanging",
+        "Tests complete in under 5 seconds each",
+        "No tests use real time.sleep()",
+        "All other worker protocol tests still pass"
+      ],
+      "verification": {
+        "command": "python3 -m pytest tests/unit/test_worker_protocol.py -q --timeout=30 -k 'test_claim_next_task_no_pending or test_claim_next_task_claim_fails or test_start_no_tasks or test_start_executes_tasks or test_start_task_execution_failure'",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "BF-L2-002",
+      "title": "Fix flaky test_rebalance_multiple_failed_tasks",
+      "description": "The test test_rebalance_multiple_failed_tasks in tests/unit/test_assign.py has known isolation issues. Investigate and fix by ensuring proper test state isolation — likely needs explicit cleanup of shared state or mocks. Read the test, understand what state leaks between runs, and add proper fixtures or setup/teardown.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_assign.py"],
+        "read": ["zerg/assign.py"]
+      },
+      "acceptance_criteria": [
+        "Test passes reliably when run 10 times in a row",
+        "Test passes when run in isolation and as part of full suite"
+      ],
+      "verification": {
+        "command": "python3 -m pytest tests/unit/test_assign.py -q --timeout=30 --count=5 -k test_rebalance_multiple_failed_tasks 2>/dev/null || python3 -m pytest tests/unit/test_assign.py -q --timeout=30 -k test_rebalance_multiple_failed_tasks",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "BF-L2-003",
+      "title": "Fix E2E test timeouts",
+      "description": "Two E2E tests have timeout issues:\n1. tests/e2e/test_docker_real.py::test_launcher_spawn_creates_container — hits 30s timeout. Add @pytest.mark.timeout(120) since it needs Docker operations.\n2. tests/e2e/test_bugfix_e2e.py::test_recoverable_error_allows_resume — borderline 30s. Add @pytest.mark.timeout(60) for safety margin.\n\nAlso add @pytest.mark.e2e marker to both so they can be selectively skipped in CI with -m 'not e2e'. Check if pytest markers for 'e2e' are already registered in pyproject.toml; if not, add the marker registration.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/e2e/test_docker_real.py", "tests/e2e/test_bugfix_e2e.py"],
+        "read": ["pyproject.toml"]
+      },
+      "acceptance_criteria": [
+        "test_launcher_spawn_creates_container has timeout(120)",
+        "test_recoverable_error_allows_resume has timeout(60)",
+        "Both tests have @pytest.mark.e2e marker"
+      ],
+      "verification": {
+        "command": "grep -q 'timeout(120)' tests/e2e/test_docker_real.py && grep -q 'timeout(60)' tests/e2e/test_bugfix_e2e.py && echo PASS",
+        "timeout_seconds": 10
+      }
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["BF-L1-001", "BF-L1-002", "BF-L1-003", "BF-L1-004", "BF-L1-005"],
+      "parallel": true,
+      "estimated_minutes": 10,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "testing",
+      "tasks": ["BF-L2-001", "BF-L2-002", "BF-L2-003"],
+      "parallel": true,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1]
+    }
+  }
+}
