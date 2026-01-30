@@ -98,6 +98,7 @@ class PluginRegistry:
     def __init__(self) -> None:
         self._hooks: dict[str, list[Callable]] = {}
         self._gates: dict[str, QualityGatePlugin] = {}
+        self._gate_metadata: dict[str, dict[str, Any]] = {}  # Store required flag and other metadata
         self._launchers: dict[str, LauncherPlugin] = {}
 
     # -- Registration --------------------------------------------------------
@@ -106,9 +107,15 @@ class PluginRegistry:
         """Register a callback for a specific event type."""
         self._hooks.setdefault(event_type, []).append(callback)
 
-    def register_gate(self, plugin: QualityGatePlugin) -> None:
-        """Register a quality gate plugin by its name."""
+    def register_gate(self, plugin: QualityGatePlugin, required: bool = True) -> None:
+        """Register a quality gate plugin by its name.
+
+        Args:
+            plugin: The quality gate plugin instance
+            required: Whether gate failure blocks merge (default: True)
+        """
         self._gates[plugin.name] = plugin
+        self._gate_metadata[plugin.name] = {"required": required}
 
     def register_launcher(self, plugin: LauncherPlugin) -> None:
         """Register a launcher plugin by its name."""
@@ -168,6 +175,18 @@ class PluginRegistry:
     def get_launcher(self, name: str) -> LauncherPlugin | None:
         """Look up a launcher plugin by name, returning None if not found."""
         return self._launchers.get(name)
+
+    def is_gate_required(self, name: str) -> bool:
+        """Check if a plugin gate is required.
+
+        Args:
+            name: Plugin gate name
+
+        Returns:
+            True if gate is required (default if not found), False otherwise
+        """
+        metadata = self._gate_metadata.get(name, {})
+        return metadata.get("required", True)
 
     # -- YAML hook loading ---------------------------------------------------
 

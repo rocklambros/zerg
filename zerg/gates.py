@@ -182,10 +182,15 @@ class GateRunner:
             for result in plugin_results:
                 results.append(result)
                 if result.result not in (GateResult.PASS, GateResult.SKIP):
-                    all_passed = False
-                    if stop_on_failure:
-                        logger.error(f"Stopping: plugin gate {result.gate_name} failed")
-                        break
+                    # Check if this plugin gate is required
+                    is_required = self._plugin_registry.is_gate_required(result.gate_name)
+                    if is_required:
+                        all_passed = False
+                        if stop_on_failure:
+                            logger.error(f"Stopping: required plugin gate {result.gate_name} failed")
+                            break
+                    else:
+                        logger.warning(f"Optional plugin gate {result.gate_name} failed (continuing)")
 
         return all_passed, results
 
