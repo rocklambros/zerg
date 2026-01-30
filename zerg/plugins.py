@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from zerg.constants import GateResult
+from zerg.constants import GateResult, PluginHookEvent
 from zerg.types import GateRunResult
 
 logger = logging.getLogger(__name__)
@@ -220,7 +220,9 @@ class PluginRegistry:
                     self.register_gate(instance)
                     logger.info("Registered quality gate plugin: %s", instance.name)
                 elif isinstance(instance, LifecycleHookPlugin):
-                    self.register_hook(instance.name, instance.on_event)
+                    # Register for all lifecycle event types
+                    for event_type in PluginHookEvent:
+                        self.register_hook(event_type.value, instance.on_event)
                     logger.info("Registered lifecycle hook plugin: %s", instance.name)
                 elif isinstance(instance, LauncherPlugin):
                     self.register_launcher(instance)
