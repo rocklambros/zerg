@@ -72,22 +72,7 @@ class Orchestrator:
         self.repo_path = Path(repo_path).resolve()
         self._launcher_mode = launcher_mode
 
-        # Initialize components
-        self.state = StateManager(feature)
-        self.levels = LevelController()
-        self.parser = TaskParser()
-        self.gates = GateRunner(self.config)
-        self.worktrees = WorktreeManager(repo_path)
-        self.containers = ContainerManager(self.config)
-        self.ports = PortAllocator(
-            range_start=self.config.ports.range_start,
-            range_end=self.config.ports.range_end,
-        )
-        self.assigner: WorkerAssignment | None = None
-        self.merger = MergeCoordinator(feature, self.config, repo_path)
-        self.task_sync = TaskSyncBridge(feature, self.state)
-
-        # Initialize plugin registry
+        # Initialize plugin registry first (needed by other components)
         self._plugin_registry = PluginRegistry()
         if hasattr(self.config, 'plugins') and self.config.plugins.enabled:
             try:
@@ -97,6 +82,21 @@ class Orchestrator:
                 self._plugin_registry.load_entry_points()
             except Exception as e:
                 logger.warning(f"Failed to load plugins: {e}")
+
+        # Initialize components
+        self.state = StateManager(feature)
+        self.levels = LevelController()
+        self.parser = TaskParser()
+        self.gates = GateRunner(self.config, plugin_registry=self._plugin_registry)
+        self.worktrees = WorktreeManager(repo_path)
+        self.containers = ContainerManager(self.config)
+        self.ports = PortAllocator(
+            range_start=self.config.ports.range_start,
+            range_end=self.config.ports.range_end,
+        )
+        self.assigner: WorkerAssignment | None = None
+        self.merger = MergeCoordinator(feature, self.config, repo_path)
+        self.task_sync = TaskSyncBridge(feature, self.state)
 
         # Initialize launcher based on config and mode
         self.launcher: WorkerLauncher = self._create_launcher(mode=launcher_mode)
@@ -143,6 +143,14 @@ class Orchestrator:
         Returns:
             Configured WorkerLauncher instance
         """
+        # Check plugin registry first for custom launcher
+        if mode and mode not in ("subprocess", "container", "auto"):
+            from zerg.launcher import get_plugin_launcher
+            plugin_launcher = get_plugin_launcher(mode, self._plugin_registry)
+            if plugin_launcher is not None:
+                logger.info(f"Using plugin launcher: {mode}")
+                return plugin_launcher
+
         # Determine launcher type
         if mode == "subprocess":
             launcher_type = LauncherType.SUBPROCESS
@@ -152,6 +160,13 @@ class Orchestrator:
             # Auto-detect based on environment
             launcher_type = self._auto_detect_launcher_type()
         else:
+            # Try plugin launcher for unrecognized mode
+            from zerg.launcher import get_plugin_launcher
+            plugin_launcher = get_plugin_launcher(mode, self._plugin_registry)
+            if plugin_launcher is not None:
+                logger.info(f"Using plugin launcher: {mode}")
+                return plugin_launcher
+            # Fall back to config setting if plugin not found
             launcher_type = self.config.get_launcher_type()
 
         config = LauncherConfig(
@@ -526,12 +541,14 @@ class Orchestrator:
                 event=LogEvent.LEVEL_STARTED, data={"level": level, "tasks": len(task_ids)},
             )
 
-        # Emit plugin lifecycle event
-        with contextlib.suppress(Exception):
+        # Emit plugin lifecycle event for level started
+        try:
             self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.LEVEL_COMPLETE.value,
+                event_type=PluginHookEvent.LEVEL_COMPLETE.value,  # Reused for level start
                 data={"level": level, "tasks": len(task_ids)},
             ))
+        except Exception as e:
+            logger.warning(f"Failed to emit LEVEL_COMPLETE event: {e}")
 
         # Create Claude Tasks for this level
         level_tasks = [self.parser.get_task(tid) for tid in task_ids]
