@@ -109,11 +109,12 @@ class E2EHarness:
         self.repo_path = repo_path
         return repo_path
 
-    def setup_task_graph(self, tasks: list[dict]) -> Path:
+    def setup_task_graph(self, tasks: list[dict] | dict) -> Path:
         """Build and write a v2.0 task-graph.json from a list of task dicts.
 
         Args:
-            tasks: List of task dictionaries. Each should contain at minimum:
+            tasks: List of task dictionaries, or a dict with a "tasks" key
+                   containing the list. Each task should contain at minimum:
                    id, title, description, level, dependencies, files, verification.
 
         Returns:
@@ -124,6 +125,10 @@ class E2EHarness:
         """
         if self.repo_path is None:
             raise RuntimeError("setup_repo() must be called before setup_task_graph()")
+
+        # Accept both dict-with-tasks-key and plain list formats
+        if isinstance(tasks, dict) and "tasks" in tasks:
+            tasks = tasks["tasks"]
 
         # Compute levels from tasks
         levels_set: set[int] = set()
