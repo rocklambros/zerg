@@ -60,7 +60,7 @@ class VerificationExecutor:
             working_dir=cwd,
             allow_unlisted=True,  # Allow custom verification commands with warning
             timeout=self.default_timeout,
-            trust_commands=True,  # Verification commands come from task-graph.json
+            trust_commands=False,  # Always validate against dangerous patterns
         )
 
     def verify(
