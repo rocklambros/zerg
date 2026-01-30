@@ -900,3 +900,126 @@ class TestDesignBacklog:
 
         assert result.exit_code == 1
         assert "No task graph found" in result.output
+
+
+# =============================================================================
+# Design Manifest Tests
+# =============================================================================
+
+
+class TestDesignManifest:
+    """Tests for design-tasks-manifest.json creation across all execution paths."""
+
+    def _setup_approved_feature(
+        self, tmp_path: Path, monkeypatch, feature: str = "test"
+    ) -> Path:
+        """Set up an approved feature for design command testing.
+
+        Returns the spec directory path.
+        """
+        monkeypatch.chdir(tmp_path)
+        spec_dir = tmp_path / ".gsd" / "specs" / feature
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "requirements.md").write_text(
+            "# Requirements\n- **Status**: APPROVED"
+        )
+        (tmp_path / ".gsd" / ".current-feature").write_text(feature)
+        return spec_dir
+
+    def test_design_creates_manifest(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Test that full design generation writes design-tasks-manifest.json."""
+        spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["design", "--feature", "test"])
+
+        assert result.exit_code == 0, f"Design failed: {result.output}"
+        manifest_path = spec_dir / "design-tasks-manifest.json"
+        assert manifest_path.exists(), (
+            f"Expected manifest at {manifest_path}, "
+            f"but it was not created. Output: {result.output}"
+        )
+
+    def test_manifest_structure(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Test that manifest has feature, generated, and tasks[] with required fields."""
+        spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["design", "--feature", "test"])
+        assert result.exit_code == 0, f"Design failed: {result.output}"
+
+        manifest_path = spec_dir / "design-tasks-manifest.json"
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+
+        # Top-level required fields
+        assert "feature" in manifest, "Manifest missing 'feature' field"
+        assert manifest["feature"] == "test"
+        assert "generated" in manifest, "Manifest missing 'generated' field"
+        assert "tasks" in manifest, "Manifest missing 'tasks' field"
+        assert isinstance(manifest["tasks"], list)
+        assert len(manifest["tasks"]) > 0, "Manifest tasks list should not be empty"
+
+        # Each task must have subject, description, active_form, dependencies
+        for i, task in enumerate(manifest["tasks"]):
+            assert "subject" in task, f"Task {i} missing 'subject'"
+            assert "description" in task, f"Task {i} missing 'description'"
+            assert "active_form" in task, f"Task {i} missing 'active_form'"
+            assert "dependencies" in task, f"Task {i} missing 'dependencies'"
+            assert isinstance(task["dependencies"], list), (
+                f"Task {i} 'dependencies' should be a list"
+            )
+
+    def test_validate_only_creates_manifest(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Test that --validate-only path also writes design-tasks-manifest.json."""
+        spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
+
+        # Create a valid task graph first (prerequisite for --validate-only)
+        create_task_graph_template(spec_dir / "task-graph.json", "test")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["design", "--validate-only"])
+
+        assert result.exit_code == 0, f"Validate-only failed: {result.output}"
+        manifest_path = spec_dir / "design-tasks-manifest.json"
+        assert manifest_path.exists(), (
+            f"Expected manifest at {manifest_path} after --validate-only. "
+            f"Output: {result.output}"
+        )
+
+        # Verify it's valid JSON with expected structure
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+        assert manifest["feature"] == "test"
+        assert "tasks" in manifest
+
+    def test_update_backlog_creates_manifest(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Test that --update-backlog path also writes design-tasks-manifest.json."""
+        spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
+
+        # Run full design first to create task-graph.json (prerequisite)
+        runner = CliRunner()
+        result = runner.invoke(cli, ["design", "--feature", "test"])
+        assert result.exit_code == 0, f"Initial design failed: {result.output}"
+
+        # Remove the manifest to verify --update-backlog recreates it
+        manifest_path = spec_dir / "design-tasks-manifest.json"
+        manifest_path.unlink(missing_ok=True)
+        assert not manifest_path.exists(), "Manifest should be deleted before re-test"
+
+        # Run --update-backlog
+        result = runner.invoke(cli, ["design", "--update-backlog"])
+
+        assert result.exit_code == 0, f"Update-backlog failed: {result.output}"
+        assert manifest_path.exists(), (
+            f"Expected manifest at {manifest_path} after --update-backlog. "
+            f"Output: {result.output}"
+        )
