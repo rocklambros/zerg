@@ -20,7 +20,7 @@ logger = get_logger("task_sync")
 DESIGN_MANIFEST_FILENAME = "design-tasks-manifest.json"
 
 
-def load_design_manifest(spec_dir: Path) -> list[dict] | None:
+def load_design_manifest(spec_dir: Path) -> list[dict[str, Any]] | None:
     """Load the design tasks manifest written by design.py.
 
     The manifest bridges the CLI (which cannot call Claude Task tools) with
@@ -41,7 +41,7 @@ def load_design_manifest(spec_dir: Path) -> list[dict] | None:
         return None
 
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    tasks = data.get("tasks", [])
+    tasks: list[dict[str, Any]] = data.get("tasks", [])
     logger.info("Loaded design manifest with %d tasks from %s", len(tasks), manifest_path)
     return tasks
 
