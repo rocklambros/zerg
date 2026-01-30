@@ -1,10 +1,13 @@
 """ZERG WorkerManager - worker lifecycle management extracted from Orchestrator."""
 
+from __future__ import annotations
+
 import contextlib
 import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from zerg.assign import WorkerAssignment
 from zerg.config import ZergConfig
@@ -24,6 +27,9 @@ from zerg.ports import PortAllocator
 from zerg.state import StateManager
 from zerg.types import WorkerState
 from zerg.worktree import WorktreeManager
+
+if TYPE_CHECKING:
+    from zerg.circuit_breaker import CircuitBreaker
 
 logger = get_logger("worker_manager")
 
@@ -52,6 +58,7 @@ class WorkerManager:
         on_task_complete: list[Callable[[str], None]],
         on_task_failure: Callable[[str, int, str], bool] | None = None,
         structured_writer: StructuredLogWriter | None = None,
+        circuit_breaker: CircuitBreaker | None = None,
     ) -> None:
         """Initialize WorkerManager.
 
@@ -70,6 +77,7 @@ class WorkerManager:
             on_task_complete: Shared callbacks list for task completion
             on_task_failure: Callback for task failure/retry (from TaskRetryManager)
             structured_writer: Optional structured log writer
+            circuit_breaker: Optional circuit breaker for worker failure management
         """
         self.feature = feature
         self.config = config
@@ -85,6 +93,7 @@ class WorkerManager:
         self._on_task_complete = on_task_complete
         self._on_task_failure = on_task_failure
         self._structured_writer = structured_writer
+        self._circuit_breaker = circuit_breaker
         self._running = False
 
     def spawn_worker(self, worker_id: int) -> WorkerState:
@@ -100,8 +109,13 @@ class WorkerManager:
             WorkerState for the spawned worker
 
         Raises:
-            RuntimeError: If the worker fails to spawn
+            RuntimeError: If the worker fails to spawn or circuit is open
         """
+        # Check circuit breaker before spawning
+        if self._circuit_breaker is not None and not self._circuit_breaker.can_accept_task(worker_id):
+            logger.warning(f"Worker {worker_id} circuit is open, skipping spawn")
+            raise RuntimeError(f"Worker {worker_id} circuit breaker is open")
+
         logger.info(f"Spawning worker {worker_id}")
 
         # Allocate port
@@ -299,6 +313,12 @@ class WorkerManager:
                 data={"worker_id": worker_id, "feature": self.feature},
             ))
 
+        # Record crash in circuit breaker
+        if worker.status == WorkerStatus.CRASHED and self._circuit_breaker is not None:
+            self._circuit_breaker.record_failure(
+                worker_id, task_id=worker.current_task, error="Worker crashed"
+            )
+
         # Check exit code (would need to get from container)
         # For now, assume clean exit means task complete
 
@@ -322,6 +342,10 @@ class WorkerManager:
                     self.levels.mark_task_complete(worker.current_task)
                     self.state.set_task_status(worker.current_task, TaskStatus.COMPLETE)
 
+                    # Record success in circuit breaker
+                    if self._circuit_breaker is not None:
+                        self._circuit_breaker.record_success(worker_id)
+
                     for callback in self._on_task_complete:
                         callback(worker.current_task)
 
@@ -339,6 +363,9 @@ class WorkerManager:
         if remaining and self._running:
             try:
                 self.spawn_worker(worker_id)
+                # Reset circuit breaker on successful respawn
+                if self._circuit_breaker is not None:
+                    self._circuit_breaker.reset(worker_id)
             except Exception as e:
                 logger.error(f"Failed to restart worker {worker_id}: {e}")
                 # Clean up worktree if spawn failed
