@@ -1,4 +1,4 @@
-"""ZERG troubleshoot command - systematic debugging with root cause analysis."""
+"""ZERG debug command - systematic debugging with root cause analysis."""
 
 from __future__ import annotations
 
@@ -28,11 +28,11 @@ if TYPE_CHECKING:
     )
 
 console = Console()
-logger = get_logger("troubleshoot")
+logger = get_logger("debug")
 
 
-class TroubleshootPhase(Enum):
-    """Phases of troubleshooting process."""
+class DebugPhase(Enum):
+    """Phases of debugging process."""
 
     SYMPTOM = "symptom"
     HYPOTHESIS = "hypothesis"
@@ -41,8 +41,8 @@ class TroubleshootPhase(Enum):
 
 
 @dataclass
-class TroubleshootConfig:
-    """Configuration for troubleshooting."""
+class DebugConfig:
+    """Configuration for debug command."""
 
     verbose: bool = False
     max_hypotheses: int = 3
@@ -99,7 +99,7 @@ class DiagnosticResult:
     hypotheses: list[Hypothesis]
     root_cause: str
     recommendation: str
-    phase: TroubleshootPhase = TroubleshootPhase.ROOT_CAUSE
+    phase: DebugPhase = DebugPhase.ROOT_CAUSE
     confidence: float = 0.8
     parsed_error: ParsedError | None = None
     # Deep diagnostics fields (optional, backward compatible)
@@ -381,12 +381,12 @@ class HypothesisGenerator:
         return hypotheses
 
 
-class TroubleshootCommand:
-    """Main troubleshoot command orchestrator."""
+class DebugCommand:
+    """Main debug command orchestrator."""
 
-    def __init__(self, config: TroubleshootConfig | None = None) -> None:
-        """Initialize troubleshoot command."""
-        self.config = config or TroubleshootConfig()
+    def __init__(self, config: DebugConfig | None = None) -> None:
+        """Initialize debug command."""
+        self.config = config or DebugConfig()
         self.parser = ErrorParser()
         self.analyzer = StackTraceAnalyzer()
         self.hypothesis_generator = HypothesisGenerator()
@@ -401,7 +401,7 @@ class TroubleshootCommand:
         auto_fix: bool = False,
         env: bool = False,
     ) -> DiagnosticResult:
-        """Run troubleshooting.
+        """Run debug analysis.
 
         Args:
             error: Error message to analyze
@@ -869,7 +869,7 @@ def _load_stacktrace_file(filepath: str) -> str:
 
 def _write_markdown_report(
     result: DiagnosticResult,
-    troubleshooter: TroubleshootCommand,
+    debugger: DebugCommand,
     report_path: str,
 ) -> None:
     """Write a full markdown report to the given path."""
@@ -949,7 +949,7 @@ def _write_markdown_report(
     # Write text format at the end
     lines.append("## Full Text Report")
     lines.append("```")
-    lines.append(troubleshooter.format_result(result, "text"))
+    lines.append(debugger.format_result(result, "text"))
     lines.append("```")
 
     Path(report_path).write_text("\n".join(lines), encoding="utf-8")
@@ -966,10 +966,10 @@ def _write_markdown_report(
 @click.option("--deep", is_flag=True, help="Run system-level diagnostics")
 @click.option("--auto-fix", is_flag=True, help="Generate and execute recovery plan")
 @click.option("--env", is_flag=True, help="Run environment diagnostics")
-@click.option("--interactive", "-i", is_flag=True, help="Interactive troubleshooting mode")
+@click.option("--interactive", "-i", is_flag=True, help="Interactive debug mode")
 @click.option("--report", "report_path", help="Write full markdown report to file")
 @click.pass_context
-def troubleshoot(
+def debug(
     ctx: click.Context,
     error: str | None,
     stacktrace: str | None,
@@ -1005,22 +1005,22 @@ def troubleshoot(
 
     Examples:
 
-        zerg troubleshoot --error "ValueError: invalid literal"
+        zerg debug --error "ValueError: invalid literal"
 
-        zerg troubleshoot --stacktrace trace.txt
+        zerg debug --stacktrace trace.txt
 
-        zerg troubleshoot --feature my-feature --deep
+        zerg debug --feature my-feature --deep
 
-        zerg troubleshoot --feature my-feature --auto-fix
+        zerg debug --feature my-feature --auto-fix
 
-        zerg troubleshoot --error "ImportError" --json
+        zerg debug --error "ImportError" --json
 
-        zerg troubleshoot --error "TypeError" --env
+        zerg debug --error "TypeError" --env
 
-        zerg troubleshoot --error "KeyError" --report diag.md
+        zerg debug --error "KeyError" --report diag.md
     """
     try:
-        console.print("\n[bold cyan]ZERG Troubleshoot[/bold cyan]\n")
+        console.print("\n[bold cyan]ZERG Debug[/bold cyan]\n")
 
         # Handle interactive mode
         if interactive:
@@ -1065,14 +1065,14 @@ def troubleshoot(
             error_message = f"Investigating feature: {feature}"
 
         # Create config
-        config = TroubleshootConfig(
+        config = DebugConfig(
             verbose=verbose,
             max_hypotheses=5 if verbose else 3,
         )
 
         # Run diagnostics
-        troubleshooter = TroubleshootCommand(config)
-        result = troubleshooter.run(
+        debugger = DebugCommand(config)
+        result = debugger.run(
             error=error_message,
             stack_trace=stack_trace_content,
             feature=feature,
@@ -1084,7 +1084,7 @@ def troubleshoot(
 
         # Output
         if json_output:
-            output_content = troubleshooter.format_result(result, "json")
+            output_content = debugger.format_result(result, "json")
             console.print(output_content)
         else:
             # Display diagnostic panel
@@ -1351,7 +1351,7 @@ def troubleshoot(
                         " (use --verbose)[/dim]"
                     )
 
-            output_content = troubleshooter.format_result(result, "text")
+            output_content = debugger.format_result(result, "text")
 
         # Write to file if requested
         if output:
@@ -1360,7 +1360,7 @@ def troubleshoot(
 
         # Write markdown report if requested
         if report_path:
-            _write_markdown_report(result, troubleshooter, report_path)
+            _write_markdown_report(result, debugger, report_path)
             console.print(
                 f"\n[green]✓[/green] Markdown report written to {report_path}"
             )
@@ -1376,5 +1376,5 @@ def troubleshoot(
         console.print(f"\n[red]Error:[/red] {e}")
         if verbose:
             console.print_exception()
-        logger.exception("Troubleshoot command failed")
+        logger.exception("Debug command failed")
         raise SystemExit(1) from e

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from zerg.commands.troubleshoot import DiagnosticResult
+from zerg.commands.debug import DiagnosticResult
 from zerg.diagnostics.recovery import (
     RECOVERY_TEMPLATES,
     RecoveryPlan,

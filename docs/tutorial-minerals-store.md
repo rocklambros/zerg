@@ -1439,8 +1439,8 @@ Worker 2 status: FAILED
 # Check the error details
 /zerg:logs 2 --level error --tail 20
 
-# Or troubleshoot the specific error
-/zerg:troubleshoot --error "AssertionError: Expected 85.0, got 100.0"
+# Or debug the specific error
+/zerg:debug --error "AssertionError: Expected 85.0, got 100.0"
 ```
 
 **How to fix and retry:**

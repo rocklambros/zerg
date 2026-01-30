@@ -1,15 +1,15 @@
-"""Comprehensive unit tests for ZERG troubleshoot command - 100% coverage target.
+"""Comprehensive unit tests for ZERG debug command - 100% coverage target.
 
 Tests cover:
-- TroubleshootPhase enum
-- TroubleshootConfig dataclass
+- DebugPhase enum
+- DebugConfig dataclass
 - Hypothesis dataclass
 - ParsedError dataclass
 - DiagnosticResult dataclass with properties
 - ErrorParser for error message parsing
 - StackTraceAnalyzer for pattern detection
 - HypothesisGenerator for hypothesis generation
-- TroubleshootCommand orchestration
+- DebugCommand orchestration
 - _load_stacktrace_file helper function
 - CLI command with all options
 - Deep diagnostics integration (--feature, --deep, --auto-fix, --worker)
@@ -23,18 +23,18 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from zerg.commands.troubleshoot import (
+from zerg.commands.debug import (
+    DebugCommand,
+    DebugConfig,
+    DebugPhase,
     DiagnosticResult,
     ErrorParser,
     Hypothesis,
     HypothesisGenerator,
     ParsedError,
     StackTraceAnalyzer,
-    TroubleshootCommand,
-    TroubleshootConfig,
-    TroubleshootPhase,
     _load_stacktrace_file,
-    troubleshoot,
+    debug,
 )
 from zerg.diagnostics.log_analyzer import LogPattern
 from zerg.diagnostics.recovery import RecoveryPlan, RecoveryStep
@@ -42,47 +42,47 @@ from zerg.diagnostics.state_introspector import ZergHealthReport
 from zerg.diagnostics.system_diagnostics import SystemHealthReport
 
 # =============================================================================
-# TroubleshootPhase Enum Tests
+# DebugPhase Enum Tests
 # =============================================================================
 
 
-class TestTroubleshootPhaseEnum:
-    """Tests for TroubleshootPhase enum."""
+class TestDebugPhaseEnum:
+    """Tests for DebugPhase enum."""
 
     def test_symptom_value(self) -> None:
         """Test symptom enum value."""
-        assert TroubleshootPhase.SYMPTOM.value == "symptom"
+        assert DebugPhase.SYMPTOM.value == "symptom"
 
     def test_hypothesis_value(self) -> None:
         """Test hypothesis enum value."""
-        assert TroubleshootPhase.HYPOTHESIS.value == "hypothesis"
+        assert DebugPhase.HYPOTHESIS.value == "hypothesis"
 
     def test_test_value(self) -> None:
         """Test test enum value."""
-        assert TroubleshootPhase.TEST.value == "test"
+        assert DebugPhase.TEST.value == "test"
 
     def test_root_cause_value(self) -> None:
         """Test root_cause enum value."""
-        assert TroubleshootPhase.ROOT_CAUSE.value == "root_cause"
+        assert DebugPhase.ROOT_CAUSE.value == "root_cause"
 
     def test_all_phases_exist(self) -> None:
         """Test all expected phases are defined."""
         expected = {"symptom", "hypothesis", "test", "root_cause"}
-        actual = {p.value for p in TroubleshootPhase}
+        actual = {p.value for p in DebugPhase}
         assert actual == expected
 
 
 # =============================================================================
-# TroubleshootConfig Dataclass Tests
+# DebugConfig Dataclass Tests
 # =============================================================================
 
 
-class TestTroubleshootConfig:
-    """Tests for TroubleshootConfig dataclass."""
+class TestDebugConfig:
+    """Tests for DebugConfig dataclass."""
 
     def test_default_values(self) -> None:
         """Test default configuration values."""
-        config = TroubleshootConfig()
+        config = DebugConfig()
 
         assert config.verbose is False
         assert config.max_hypotheses == 3
@@ -90,7 +90,7 @@ class TestTroubleshootConfig:
 
     def test_custom_values(self) -> None:
         """Test custom configuration values."""
-        config = TroubleshootConfig(
+        config = DebugConfig(
             verbose=True,
             max_hypotheses=5,
             auto_test=True,
@@ -249,7 +249,7 @@ class TestDiagnosticResult:
             recommendation="Fix it",
         )
 
-        assert result.phase == TroubleshootPhase.ROOT_CAUSE
+        assert result.phase == DebugPhase.ROOT_CAUSE
         assert result.confidence == 0.8
         assert result.parsed_error is None
 
@@ -270,7 +270,7 @@ class TestDiagnosticResult:
             hypotheses=[hypothesis],
             root_cause="Invalid input data",
             recommendation="Validate input",
-            phase=TroubleshootPhase.ROOT_CAUSE,
+            phase=DebugPhase.ROOT_CAUSE,
             confidence=0.9,
             parsed_error=parsed,
         )
@@ -839,54 +839,54 @@ class TestHypothesisGenerator:
 
 
 # =============================================================================
-# TroubleshootCommand Tests
+# DebugCommand Tests
 # =============================================================================
 
 
-class TestTroubleshootCommand:
-    """Tests for TroubleshootCommand class."""
+class TestDebugCommand:
+    """Tests for DebugCommand class."""
 
     def test_init_default_config(self) -> None:
         """Test initialization with default config."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
 
-        assert troubleshooter.config.verbose is False
-        assert troubleshooter.config.max_hypotheses == 3
+        assert debugger.config.verbose is False
+        assert debugger.config.max_hypotheses == 3
 
     def test_init_custom_config(self) -> None:
         """Test initialization with custom config."""
-        config = TroubleshootConfig(verbose=True, max_hypotheses=5)
-        troubleshooter = TroubleshootCommand(config)
+        config = DebugConfig(verbose=True, max_hypotheses=5)
+        debugger = DebugCommand(config)
 
-        assert troubleshooter.config.verbose is True
-        assert troubleshooter.config.max_hypotheses == 5
+        assert debugger.config.verbose is True
+        assert debugger.config.max_hypotheses == 5
 
     def test_run_with_error(self) -> None:
         """Test run with error message."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
 
-        result = troubleshooter.run(error="ValueError: invalid literal")
+        result = debugger.run(error="ValueError: invalid literal")
 
         assert result.symptom == "ValueError: invalid literal"
         assert result.has_root_cause is True
 
     def test_run_with_stack_trace(self) -> None:
         """Test run with stack trace."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         stack_trace = """Traceback (most recent call last):
   File "test.py", line 10
     x = int('abc')
 ValueError: invalid literal"""
 
-        result = troubleshooter.run(error="", stack_trace=stack_trace)
+        result = debugger.run(error="", stack_trace=stack_trace)
 
         assert result.parsed_error is not None
 
     def test_run_combines_error_and_trace(self) -> None:
         """Test run combines error and stack trace."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
 
-        result = troubleshooter.run(
+        result = debugger.run(
             error="ValueError: bad value",
             stack_trace='File "test.py", line 5',
         )
@@ -896,22 +896,22 @@ ValueError: invalid literal"""
 
     def test_run_limits_hypotheses(self) -> None:
         """Test run limits hypotheses to max_hypotheses."""
-        config = TroubleshootConfig(max_hypotheses=2)
-        troubleshooter = TroubleshootCommand(config)
+        config = DebugConfig(max_hypotheses=2)
+        debugger = DebugCommand(config)
 
         # Generate error that would produce many hypotheses
         error = "TypeError: invalid value, KeyError: missing, IndexError: out of range"
-        result = troubleshooter.run(error=error)
+        result = debugger.run(error=error)
 
         assert len(result.hypotheses) <= 2
 
     def test_run_determines_root_cause_with_type_and_file(self) -> None:
         """Test run determines root cause with error type and file."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         error = """ValueError: invalid literal
 File "module.py", line 42"""
 
-        result = troubleshooter.run(error=error)
+        result = debugger.run(error=error)
 
         assert "ValueError" in result.root_cause
         assert "module.py" in result.root_cause
@@ -919,48 +919,48 @@ File "module.py", line 42"""
 
     def test_run_determines_root_cause_with_type_only(self) -> None:
         """Test run determines root cause with error type only."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         error = "KeyError: missing_key"
 
-        result = troubleshooter.run(error=error)
+        result = debugger.run(error=error)
 
         assert "KeyError" in result.root_cause
         assert result.confidence == 0.7
 
     def test_run_determines_root_cause_from_hypothesis(self) -> None:
         """Test run determines root cause from hypothesis."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         error = "connection refused"
 
-        result = troubleshooter.run(error=error)
+        result = debugger.run(error=error)
 
         assert len(result.hypotheses) > 0
         assert result.confidence >= 0.5
 
     def test_run_unknown_cause(self) -> None:
         """Test run with unknown cause."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
 
-        result = troubleshooter.run(error="Something happened")
+        result = debugger.run(error="Something happened")
 
         assert "Unknown" in result.root_cause
         assert result.confidence == 0.3
 
     def test_run_hypothesis_likelihood_confidence(self) -> None:
         """Test run sets confidence based on hypothesis likelihood."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
 
         # Memory errors have high likelihood
-        result = troubleshooter.run(error="heap out of memory")
+        result = debugger.run(error="heap out of memory")
 
         assert result.confidence >= 0.5
 
     def test_format_result_json(self) -> None:
         """Test format_result with JSON output."""
-        troubleshooter = TroubleshootCommand()
-        result = troubleshooter.run(error="ValueError: test")
+        debugger = DebugCommand()
+        result = debugger.run(error="ValueError: test")
 
-        output = troubleshooter.format_result(result, fmt="json")
+        output = debugger.format_result(result, fmt="json")
 
         parsed = json.loads(output)
         assert "symptom" in parsed
@@ -969,10 +969,10 @@ File "module.py", line 42"""
 
     def test_format_result_text(self) -> None:
         """Test format_result with text output."""
-        troubleshooter = TroubleshootCommand()
-        result = troubleshooter.run(error="KeyError: missing")
+        debugger = DebugCommand()
+        result = debugger.run(error="KeyError: missing")
 
-        output = troubleshooter.format_result(result, fmt="text")
+        output = debugger.format_result(result, fmt="text")
 
         assert "Diagnostic Report" in output
         assert "Symptom:" in output
@@ -981,12 +981,12 @@ File "module.py", line 42"""
 
     def test_format_result_text_with_parsed_error(self) -> None:
         """Test format_result text includes parsed error."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         error = """ValueError: bad input
 File "app.py", line 20"""
 
-        result = troubleshooter.run(error=error)
-        output = troubleshooter.format_result(result, fmt="text")
+        result = debugger.run(error=error)
+        output = debugger.format_result(result, fmt="text")
 
         assert "Parsed Error:" in output
         assert "Type:" in output
@@ -994,29 +994,29 @@ File "app.py", line 20"""
 
     def test_format_result_text_with_hypotheses(self) -> None:
         """Test format_result text includes hypotheses."""
-        troubleshooter = TroubleshootCommand()
-        result = troubleshooter.run(error="connection refused")
+        debugger = DebugCommand()
+        result = debugger.run(error="connection refused")
 
-        output = troubleshooter.format_result(result, fmt="text")
+        output = debugger.format_result(result, fmt="text")
 
         assert "Hypotheses:" in output
 
     def test_format_result_text_verbose(self) -> None:
         """Test format_result text with verbose config shows test commands."""
-        config = TroubleshootConfig(verbose=True)
-        troubleshooter = TroubleshootCommand(config)
-        result = troubleshooter.run(error="ImportError: no module")
+        config = DebugConfig(verbose=True)
+        debugger = DebugCommand(config)
+        result = debugger.run(error="ImportError: no module")
 
-        output = troubleshooter.format_result(result, fmt="text")
+        output = debugger.format_result(result, fmt="text")
 
         assert "Test:" in output
 
     def test_format_result_text_likelihood_icons(self) -> None:
         """Test format_result text shows likelihood icons."""
-        troubleshooter = TroubleshootCommand()
-        result = troubleshooter.run(error="MemoryError: heap")
+        debugger = DebugCommand()
+        result = debugger.run(error="MemoryError: heap")
 
-        output = troubleshooter.format_result(result, fmt="text")
+        output = debugger.format_result(result, fmt="text")
 
         # Should contain one of the likelihood icons
         assert any(icon in output for icon in ["high", "medium", "low"])
@@ -1062,13 +1062,13 @@ class TestLoadStacktraceFile:
 # =============================================================================
 
 
-class TestTroubleshootCLI:
-    """Tests for troubleshoot CLI command."""
+class TestDebugCLI:
+    """Tests for debug CLI command."""
 
-    def test_troubleshoot_help(self) -> None:
-        """Test troubleshoot --help."""
+    def test_debug_help(self) -> None:
+        """Test debug --help."""
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--help"])
+        result = runner.invoke(debug, ["--help"])
 
         assert result.exit_code == 0
         assert "error" in result.output
@@ -1077,20 +1077,20 @@ class TestTroubleshootCLI:
         assert "output" in result.output
         assert "json" in result.output
 
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_no_input(self, mock_console: MagicMock) -> None:
-        """Test troubleshoot with no error or stack trace."""
+    @patch("zerg.commands.debug.console")
+    def test_debug_no_input(self, mock_console: MagicMock) -> None:
+        """Test debug with no error or stack trace."""
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, [])
+        result = runner.invoke(debug, [])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_with_error(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_with_error(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
-        """Test troubleshoot with --error."""
+        """Test debug with --error."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
             symptom="ValueError: test",
@@ -1100,24 +1100,24 @@ class TestTroubleshootCLI:
             confidence=0.9,
             parsed_error=ParsedError(error_type="ValueError", message="test"),
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--error", "ValueError: test"])
+        result = runner.invoke(debug, ["--error", "ValueError: test"])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot._load_stacktrace_file")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_with_stacktrace_file(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug._load_stacktrace_file")
+    @patch("zerg.commands.debug.console")
+    def test_debug_with_stacktrace_file(
         self,
         mock_console: MagicMock,
         mock_load: MagicMock,
         mock_command_class: MagicMock,
     ) -> None:
-        """Test troubleshoot with --stacktrace file."""
+        """Test debug with --stacktrace file."""
         mock_load.return_value = "Error: test\n  at line 10"
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1128,34 +1128,34 @@ class TestTroubleshootCLI:
             confidence=0.8,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--stacktrace", "trace.txt"])
+        result = runner.invoke(debug, ["--stacktrace", "trace.txt"])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot._load_stacktrace_file")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_stacktrace_not_found(
+    @patch("zerg.commands.debug._load_stacktrace_file")
+    @patch("zerg.commands.debug.console")
+    def test_debug_stacktrace_not_found(
         self, mock_console: MagicMock, mock_load: MagicMock
     ) -> None:
-        """Test troubleshoot warns when stacktrace file not found."""
+        """Test debug warns when stacktrace file not found."""
         mock_load.return_value = ""
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--stacktrace", "nonexistent.txt"])
+        result = runner.invoke(debug, ["--stacktrace", "nonexistent.txt"])
 
         # Should exit 0 since we have no error either
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_json_output(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_json_output(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
-        """Test troubleshoot --json."""
+        """Test debug --json."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
             symptom="Error",
@@ -1166,20 +1166,20 @@ class TestTroubleshootCLI:
             parsed_error=None,
         )
         mock_command.format_result.return_value = '{"test": 1}'
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--error", "Error", "--json"])
+        result = runner.invoke(debug, ["--error", "Error", "--json"])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_verbose(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_verbose(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
-        """Test troubleshoot --verbose."""
+        """Test debug --verbose."""
         hypothesis = Hypothesis(
             description="Test hypothesis",
             likelihood="high",
@@ -1194,20 +1194,20 @@ class TestTroubleshootCLI:
             confidence=0.8,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig(verbose=True)
+        mock_command.config = DebugConfig(verbose=True)
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--error", "Error", "--verbose"])
+        result = runner.invoke(debug, ["--error", "Error", "--verbose"])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_with_hypotheses(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_with_hypotheses(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
-        """Test troubleshoot displays hypotheses."""
+        """Test debug displays hypotheses."""
         hypotheses = [
             Hypothesis(description="Hyp 1", likelihood="high"),
             Hypothesis(description="Hyp 2", likelihood="medium"),
@@ -1222,20 +1222,20 @@ class TestTroubleshootCLI:
             confidence=0.8,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--error", "Error"])
+        result = runner.invoke(debug, ["--error", "Error"])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_with_parsed_error_location(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_with_parsed_error_location(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
-        """Test troubleshoot displays parsed error with location."""
+        """Test debug displays parsed error with location."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
             symptom="ValueError: test",
@@ -1250,20 +1250,20 @@ class TestTroubleshootCLI:
                 line=42,
             ),
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--error", "ValueError: test"])
+        result = runner.invoke(debug, ["--error", "ValueError: test"])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_writes_output_file(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_writes_output_file(
         self, mock_console: MagicMock, mock_command_class: MagicMock, tmp_path: Path
     ) -> None:
-        """Test troubleshoot writes to output file."""
+        """Test debug writes to output file."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
             symptom="Error",
@@ -1274,50 +1274,50 @@ class TestTroubleshootCLI:
             parsed_error=None,
         )
         mock_command.format_result.return_value = "Diagnostic report"
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         output_file = tmp_path / "report.txt"
 
         runner = CliRunner()
         result = runner.invoke(
-            troubleshoot, ["--error", "Error", "--output", str(output_file)]
+            debug, ["--error", "Error", "--output", str(output_file)]
         )
 
         assert result.exit_code == 0
         assert output_file.exists()
         assert output_file.read_text() == "Diagnostic report"
 
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_keyboard_interrupt(self, mock_console: MagicMock) -> None:
-        """Test troubleshoot handles KeyboardInterrupt."""
+    @patch("zerg.commands.debug.console")
+    def test_debug_keyboard_interrupt(self, mock_console: MagicMock) -> None:
+        """Test debug handles KeyboardInterrupt."""
         with patch(
-            "zerg.commands.troubleshoot.TroubleshootCommand",
+            "zerg.commands.debug.DebugCommand",
             side_effect=KeyboardInterrupt,
         ):
             runner = CliRunner()
-            result = runner.invoke(troubleshoot, ["--error", "Error"])
+            result = runner.invoke(debug, ["--error", "Error"])
 
             assert result.exit_code == 130
 
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_generic_exception(self, mock_console: MagicMock) -> None:
-        """Test troubleshoot handles generic exception."""
+    @patch("zerg.commands.debug.console")
+    def test_debug_generic_exception(self, mock_console: MagicMock) -> None:
+        """Test debug handles generic exception."""
         with patch(
-            "zerg.commands.troubleshoot.TroubleshootCommand",
+            "zerg.commands.debug.DebugCommand",
             side_effect=RuntimeError("Unexpected error"),
         ):
             runner = CliRunner()
-            result = runner.invoke(troubleshoot, ["--error", "Error"])
+            result = runner.invoke(debug, ["--error", "Error"])
 
             assert result.exit_code == 1
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_confidence_colors(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_confidence_colors(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
-        """Test troubleshoot displays confidence with appropriate colors."""
+        """Test debug displays confidence with appropriate colors."""
         # High confidence (green)
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1328,11 +1328,11 @@ class TestTroubleshootCLI:
             confidence=0.8,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--error", "Error"])
+        result = runner.invoke(debug, ["--error", "Error"])
 
         assert result.exit_code == 0
 
@@ -1346,16 +1346,16 @@ class TestTroubleshootCLI:
             parsed_error=None,
         )
 
-        result = runner.invoke(troubleshoot, ["--error", "Something"])
+        result = runner.invoke(debug, ["--error", "Something"])
 
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
-    def test_troubleshoot_no_hypotheses(
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
+    def test_debug_no_hypotheses(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
-        """Test troubleshoot with no hypotheses generated."""
+        """Test debug with no hypotheses generated."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
             symptom="Unknown error",
@@ -1365,11 +1365,11 @@ class TestTroubleshootCLI:
             confidence=0.3,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--error", "Something random"])
+        result = runner.invoke(debug, ["--error", "Something random"])
 
         assert result.exit_code == 0
 
@@ -1493,21 +1493,21 @@ class TestDiagnosticResultExtended:
 
 
 # =============================================================================
-# TroubleshootCommand Deep Diagnostics Tests
+# DebugCommand Deep Diagnostics Tests
 # =============================================================================
 
 
-class TestTroubleshootCommandDeep:
-    """Tests for TroubleshootCommand with deep diagnostics."""
+class TestDebugCommandDeep:
+    """Tests for DebugCommand with deep diagnostics."""
 
     def test_run_with_feature(self) -> None:
         """Test run with feature param triggers ZERG diagnostics."""
-        troubleshooter = TroubleshootCommand()
-        with patch.object(troubleshooter, "_run_zerg_diagnostics") as mock_zerg:
+        debugger = DebugCommand()
+        with patch.object(debugger, "_run_zerg_diagnostics") as mock_zerg:
             mock_zerg.side_effect = lambda r, f, w: r
-            with patch.object(troubleshooter, "_plan_recovery") as mock_plan:
+            with patch.object(debugger, "_plan_recovery") as mock_plan:
                 mock_plan.side_effect = lambda r: r
-                troubleshooter.run(
+                debugger.run(
                     error="test error", feature="my-feat"
                 )
         mock_zerg.assert_called_once()
@@ -1515,20 +1515,20 @@ class TestTroubleshootCommandDeep:
 
     def test_run_with_deep(self) -> None:
         """Test run with deep=True triggers system diagnostics."""
-        troubleshooter = TroubleshootCommand()
-        with patch.object(troubleshooter, "_run_system_diagnostics") as mock_sys:
+        debugger = DebugCommand()
+        with patch.object(debugger, "_run_system_diagnostics") as mock_sys:
             mock_sys.side_effect = lambda r: r
-            with patch.object(troubleshooter, "_plan_recovery") as mock_plan:
+            with patch.object(debugger, "_plan_recovery") as mock_plan:
                 mock_plan.side_effect = lambda r: r
-                troubleshooter.run(
+                debugger.run(
                     error="test error", deep=True, auto_fix=True
                 )
         mock_sys.assert_called_once()
 
     def test_run_without_feature_or_deep(self) -> None:
         """Test run without feature/deep doesn't trigger deep diagnostics."""
-        troubleshooter = TroubleshootCommand()
-        result = troubleshooter.run(error="ValueError: test")
+        debugger = DebugCommand()
+        result = debugger.run(error="ValueError: test")
         assert result.zerg_health is None
         assert result.system_health is None
         assert result.recovery_plan is None
@@ -1545,7 +1545,7 @@ class TestTroubleshootCommandDeep:
         }
         (state_dir / "feat.json").write_text(json.dumps(state))
 
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         result = DiagnosticResult(
             symptom="test",
             hypotheses=[],
@@ -1566,7 +1566,7 @@ class TestTroubleshootCommandDeep:
                 "zerg.diagnostics.log_analyzer.LogAnalyzer"
             ) as mock_log_cls:
                 mock_log_cls.return_value.scan_worker_logs.return_value = []
-                result = troubleshooter._run_zerg_diagnostics(
+                result = debugger._run_zerg_diagnostics(
                     result, "feat", None
                 )
 
@@ -1575,7 +1575,7 @@ class TestTroubleshootCommandDeep:
 
     def test_run_system_diagnostics(self) -> None:
         """Test _run_system_diagnostics integration."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         result = DiagnosticResult(
             symptom="test",
             hypotheses=[],
@@ -1589,7 +1589,7 @@ class TestTroubleshootCommandDeep:
                 port_conflicts=[9500],
                 disk_free_gb=0.5,
             )
-            result = troubleshooter._run_system_diagnostics(result)
+            result = debugger._run_system_diagnostics(result)
 
         assert result.system_health is not None
         assert any("uncommitted" in e for e in result.evidence)
@@ -1598,7 +1598,7 @@ class TestTroubleshootCommandDeep:
 
     def test_plan_recovery(self) -> None:
         """Test _plan_recovery integration."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         result = DiagnosticResult(
             symptom="test",
             hypotheses=[],
@@ -1611,14 +1611,14 @@ class TestTroubleshootCommandDeep:
                 root_cause="cause",
                 steps=[RecoveryStep(description="step", command="cmd")],
             )
-            result = troubleshooter._plan_recovery(result)
+            result = debugger._plan_recovery(result)
 
         assert result.recovery_plan is not None
         assert len(result.recovery_plan.steps) == 1
 
     def test_format_result_text_with_zerg_health(self) -> None:
         """Test format_result text includes ZERG health section."""
-        troubleshooter = TroubleshootCommand(TroubleshootConfig(verbose=True))
+        debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],
@@ -1631,14 +1631,14 @@ class TestTroubleshootCommandDeep:
                 task_summary={"complete": 7, "failed": 3},
             ),
         )
-        output = troubleshooter.format_result(result)
+        output = debugger.format_result(result)
         assert "ZERG Health:" in output
         assert "auth" in output
         assert "10" in output
 
     def test_format_result_text_with_system_health(self) -> None:
         """Test format_result text includes system health section."""
-        troubleshooter = TroubleshootCommand(TroubleshootConfig(verbose=True))
+        debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],
@@ -1650,14 +1650,14 @@ class TestTroubleshootCommandDeep:
                 disk_free_gb=50.0,
             ),
         )
-        output = troubleshooter.format_result(result)
+        output = debugger.format_result(result)
         assert "System Health:" in output
         assert "dirty" in output
         assert "main" in output
 
     def test_format_result_text_with_log_patterns(self) -> None:
         """Test format_result text includes log patterns section."""
-        troubleshooter = TroubleshootCommand(TroubleshootConfig(verbose=True))
+        debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],
@@ -1673,13 +1673,13 @@ class TestTroubleshootCommandDeep:
                 )
             ],
         )
-        output = troubleshooter.format_result(result)
+        output = debugger.format_result(result)
         assert "Log Patterns:" in output
         assert "5x" in output
 
     def test_format_result_text_with_evidence(self) -> None:
         """Test format_result text includes evidence section."""
-        troubleshooter = TroubleshootCommand(TroubleshootConfig(verbose=True))
+        debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],
@@ -1687,13 +1687,13 @@ class TestTroubleshootCommandDeep:
             recommendation="Fix",
             evidence=["3 failed tasks", "Low disk space"],
         )
-        output = troubleshooter.format_result(result)
+        output = debugger.format_result(result)
         assert "Evidence:" in output
         assert "3 failed tasks" in output
 
     def test_format_result_text_with_recovery_plan(self) -> None:
         """Test format_result text includes recovery plan section."""
-        troubleshooter = TroubleshootCommand(TroubleshootConfig(verbose=True))
+        debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],
@@ -1718,7 +1718,7 @@ class TestTroubleshootCommandDeep:
                 prevention="Monitor workers",
             ),
         )
-        output = troubleshooter.format_result(result)
+        output = debugger.format_result(result)
         assert "Recovery Plan:" in output
         assert "Restart workers" in output
         assert "zerg rush" in output
@@ -1727,7 +1727,7 @@ class TestTroubleshootCommandDeep:
 
     def test_format_result_json_with_deep_fields(self) -> None:
         """Test format_result JSON includes deep diagnostic fields."""
-        troubleshooter = TroubleshootCommand()
+        debugger = DebugCommand()
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],
@@ -1738,7 +1738,7 @@ class TestTroubleshootCommandDeep:
             ),
             evidence=["ev1"],
         )
-        output = troubleshooter.format_result(result, fmt="json")
+        output = debugger.format_result(result, fmt="json")
         parsed = json.loads(output)
         assert "zerg_health" in parsed
         assert "evidence" in parsed
@@ -1749,21 +1749,21 @@ class TestTroubleshootCommandDeep:
 # =============================================================================
 
 
-class TestTroubleshootCLIExtended:
+class TestDebugCLIExtended:
     """Tests for new CLI options."""
 
     def test_help_shows_new_options(self) -> None:
         """Test --help shows new options."""
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--help"])
+        result = runner.invoke(debug, ["--help"])
         assert result.exit_code == 0
         assert "--feature" in result.output
         assert "--worker" in result.output
         assert "--deep" in result.output
         assert "--auto-fix" in result.output
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
     def test_feature_only_no_error(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
@@ -1777,19 +1777,19 @@ class TestTroubleshootCLIExtended:
             confidence=0.5,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--feature", "test"])
+        result = runner.invoke(debug, ["--feature", "test"])
 
         assert result.exit_code == 0
         mock_command.run.assert_called_once()
         call_kwargs = mock_command.run.call_args
         assert call_kwargs.kwargs.get("feature") == "test"
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
     def test_feature_with_worker(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
@@ -1803,20 +1803,20 @@ class TestTroubleshootCLIExtended:
             confidence=0.5,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
         result = runner.invoke(
-            troubleshoot, ["--feature", "test", "--worker", "3"]
+            debug, ["--feature", "test", "--worker", "3"]
         )
 
         assert result.exit_code == 0
         call_kwargs = mock_command.run.call_args
         assert call_kwargs.kwargs.get("worker_id") == 3
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
     def test_deep_flag(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
@@ -1830,7 +1830,7 @@ class TestTroubleshootCLIExtended:
             confidence=0.5,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
@@ -1839,15 +1839,15 @@ class TestTroubleshootCLIExtended:
         ) as mock_intr_cls:
             mock_intr_cls.return_value.find_latest_feature.return_value = None
             result = runner.invoke(
-                troubleshoot, ["--error", "test", "--deep"]
+                debug, ["--error", "test", "--deep"]
             )
 
         assert result.exit_code == 0
         call_kwargs = mock_command.run.call_args
         assert call_kwargs.kwargs.get("deep") is True
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
     def test_auto_fix_flag(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
@@ -1861,7 +1861,7 @@ class TestTroubleshootCLIExtended:
             confidence=0.5,
             parsed_error=None,
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
@@ -1870,22 +1870,22 @@ class TestTroubleshootCLIExtended:
         ) as mock_intr_cls:
             mock_intr_cls.return_value.find_latest_feature.return_value = "auto-feat"
             result = runner.invoke(
-                troubleshoot, ["--error", "test", "--auto-fix"]
+                debug, ["--error", "test", "--auto-fix"]
             )
 
         assert result.exit_code == 0
         call_kwargs = mock_command.run.call_args
         assert call_kwargs.kwargs.get("auto_fix") is True
 
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.console")
     def test_no_input_shows_feature_hint(self, mock_console: MagicMock) -> None:
         """Test no input shows --feature hint."""
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, [])
+        result = runner.invoke(debug, [])
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
     def test_cli_displays_zerg_health(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
@@ -1906,15 +1906,15 @@ class TestTroubleshootCLIExtended:
                 failed_tasks=[{"task_id": "T1"}],
             ),
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--feature", "auth"])
+        result = runner.invoke(debug, ["--feature", "auth"])
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
     def test_cli_displays_system_health(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
@@ -1934,17 +1934,17 @@ class TestTroubleshootCLIExtended:
                 disk_free_gb=50.0,
             ),
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
         result = runner.invoke(
-            troubleshoot, ["--error", "test", "--deep"]
+            debug, ["--error", "test", "--deep"]
         )
         assert result.exit_code == 0
 
-    @patch("zerg.commands.troubleshoot.TroubleshootCommand")
-    @patch("zerg.commands.troubleshoot.console")
+    @patch("zerg.commands.debug.DebugCommand")
+    @patch("zerg.commands.debug.console")
     def test_cli_displays_recovery_plan(
         self, mock_console: MagicMock, mock_command_class: MagicMock
     ) -> None:
@@ -1970,9 +1970,9 @@ class TestTroubleshootCLIExtended:
                 prevention="Be careful",
             ),
         )
-        mock_command.config = TroubleshootConfig()
+        mock_command.config = DebugConfig()
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(troubleshoot, ["--feature", "test"])
+        result = runner.invoke(debug, ["--feature", "test"])
         assert result.exit_code == 0

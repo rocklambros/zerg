@@ -1,4 +1,4 @@
-"""Recovery planning and execution for ZERG troubleshooting."""
+"""Recovery planning and execution for ZERG debugging."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from zerg.logging import get_logger
 
 if TYPE_CHECKING:
-    from zerg.commands.troubleshoot import DiagnosticResult
+    from zerg.commands.debug import DiagnosticResult
     from zerg.diagnostics.state_introspector import ZergHealthReport
 
 logger = get_logger("diagnostics.recovery")
@@ -69,7 +69,7 @@ RECOVERY_TEMPLATES: dict[str, list[RecoveryStep]] = {
         ),
         RecoveryStep(
             description="Reset failed task states to pending",
-            command="zerg troubleshoot --auto-fix",
+            command="zerg debug --auto-fix",
             risk="moderate",
             reversible=True,
         ),

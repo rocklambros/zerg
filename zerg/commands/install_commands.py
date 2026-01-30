@@ -15,6 +15,7 @@ console = Console()
 logger = get_logger("install-commands")
 
 COMMAND_GLOB = "zerg:*.md"
+SHORTCUT_PREFIX = "z:"
 
 
 def _get_source_dir() -> Path:
@@ -59,7 +60,7 @@ def _install(
     copy: bool = False,
     force: bool = False,
 ) -> int:
-    """Install command files. Returns count of installed commands."""
+    """Install command files and z: shortcuts. Returns count of installed commands."""
     sources = sorted(source_dir.glob(COMMAND_GLOB))
     if not sources:
         raise FileNotFoundError(f"No command files found in {source_dir}")
@@ -95,15 +96,43 @@ def _install(
 
         installed += 1
 
+    # Generate z: shortcut symlinks pointing to zerg: source files
+    shortcuts = 0
+    for src in sources:
+        shortcut_name = SHORTCUT_PREFIX + src.name.removeprefix("zerg:")
+        shortcut_dest = target_dir / shortcut_name
+
+        if not force and shortcut_dest.is_symlink():
+            try:
+                if shortcut_dest.resolve() == src.resolve():
+                    logger.debug("Shortcut already installed: %s", shortcut_name)
+                    continue
+            except OSError:
+                pass
+
+        if shortcut_dest.exists() or shortcut_dest.is_symlink():
+            if not force:
+                continue
+            shortcut_dest.unlink()
+
+        if use_copy:
+            shutil.copy2(src, shortcut_dest)
+        else:
+            shortcut_dest.symlink_to(src.resolve())
+
+        shortcuts += 1
+
+    installed += shortcuts
     return installed
 
 
 def _uninstall(target_dir: Path) -> int:
-    """Remove ZERG command files. Returns count removed."""
+    """Remove ZERG command files and z: shortcuts. Returns count removed."""
     removed = 0
-    for path in sorted(target_dir.glob(COMMAND_GLOB)):
-        path.unlink()
-        removed += 1
+    for pattern in [COMMAND_GLOB, f"{SHORTCUT_PREFIX}*.md"]:
+        for path in sorted(target_dir.glob(pattern)):
+            path.unlink()
+            removed += 1
     return removed
 
 
@@ -146,11 +175,13 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
         target_dir = _get_target_dir(target)
 
         count = _install(target_dir, source_dir, copy=copy, force=force)
-        total = len(list(source_dir.glob(COMMAND_GLOB)))
+        source_count = len(list(source_dir.glob(COMMAND_GLOB)))
+        total = source_count * 2  # zerg: + z: shortcuts
 
         if count == 0:
             console.print(
-                f"[green]All {total} ZERG commands already installed[/green] in {target_dir}"
+                f"[green]All {total} ZERG commands already installed[/green] "
+                f"({source_count} commands + {source_count} z: shortcuts) in {target_dir}"
             )
         else:
             method = "copied" if (copy or os.name == "nt") else "symlinked"
@@ -173,7 +204,7 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
 def uninstall_commands(target: str | None) -> None:
     """Remove ZERG slash commands from the global Claude Code directory.
 
-    Only removes files matching the zerg:*.md pattern.
+    Removes files matching the zerg:*.md and z:*.md patterns.
 
     Examples:
 

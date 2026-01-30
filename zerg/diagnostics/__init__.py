@@ -1,4 +1,4 @@
-"""ZERG diagnostics package - deep troubleshooting with state introspection."""
+"""ZERG diagnostics package - deep debugging with state introspection."""
 
 from zerg.diagnostics.code_fixer import (
     CodeAwareFixer,

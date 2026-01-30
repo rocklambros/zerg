@@ -28,7 +28,7 @@ Documented all 18 CLI commands with flags, defaults, and examples:
 - **Workflow**: `init`, `plan`, `design`, `rush`
 - **Monitoring**: `status`, `stop`, `logs`
 - **Task**: `retry`, `merge`, `cleanup`
-- **Quality**: `test`, `build`, `analyze`, `review`, `troubleshoot`, `refactor`
+- **Quality**: `test`, `build`, `analyze`, `review`, `debug`, `refactor`
 - **Infrastructure**: `git`, `security-rules`
 
 ### Level 3: Tutorial Content

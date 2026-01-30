@@ -1,4 +1,4 @@
-"""System-level diagnostics for ZERG troubleshooting."""
+"""System-level diagnostics for ZERG debugging."""
 
 from __future__ import annotations
 

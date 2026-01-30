@@ -1,4 +1,4 @@
-# ZERG Troubleshoot: $ARGUMENTS
+# ZERG Debug: $ARGUMENTS
 
 Deep diagnostic investigation for ZERG execution issues with error intelligence, log correlation, Bayesian hypothesis testing, code-aware recovery, and environment diagnostics.
 
@@ -33,7 +33,7 @@ if [ ! -d ".zerg" ]; then
 fi
 
 # If $ARGUMENTS is plain text (not a flag), treat as problem description
-# e.g., /zerg:troubleshoot workers keep crashing
+# e.g., /zerg:debug workers keep crashing
 ```
 
 Detect active feature from `.gsd/.current-feature` or `--feature` flag.
@@ -304,10 +304,10 @@ If `--fix` flag is set:
 
 ### Save Report
 
-Write diagnostic report to `claudedocs/troubleshoot-<timestamp>.md` (or to `--report <path>` if specified):
+Write diagnostic report to `claudedocs/debug-<timestamp>.md` (or to `--report <path>` if specified):
 
 ```markdown
-# Troubleshoot Report: <feature>
+# Debug Report: <feature>
 Date: <ISO timestamp>
 Feature: <feature>
 Category: <classification>
@@ -348,7 +348,7 @@ Category: <classification>
 Create a Claude Task summarizing the diagnosis:
 
 ```
-Subject: "Troubleshoot: <root cause summary>"
+Subject: "Debug: <root cause summary>"
 Description: "<category> - <root cause> - <recommendation>"
 ```
 
@@ -470,9 +470,9 @@ Config:
 On invocation, create a Claude Code Task to track this command:
 
 Call TaskCreate:
-  - subject: "[Troubleshoot] Diagnose {category}"
-  - description: "Troubleshooting {feature}. Problem: {arguments_or_description}."
-  - activeForm: "Troubleshooting {feature}"
+  - subject: "[Debug] Diagnose {category}"
+  - description: "Debuging {feature}. Problem: {arguments_or_description}."
+  - activeForm: "Debuging {feature}"
 
 Immediately call TaskUpdate:
   - taskId: (the Claude Task ID)

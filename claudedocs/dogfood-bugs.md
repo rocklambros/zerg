@@ -59,6 +59,6 @@ Tracking bugs discovered during production dogfooding runs.
 - **Feature**: production-dogfooding
 - **Repro**: Complete a rush with `--container` flag
 - **Expected**: Post-rush status or logs should confirm container mode was active (container IDs, Docker network, worktree paths)
-- **Actual**: No diagnostic output confirms or denies container mode usage. The user had to explicitly ask `/zerg:troubleshoot` to discover containers were never used.
+- **Actual**: No diagnostic output confirms or denies container mode usage. The user had to explicitly ask `/zerg:debug` to discover containers were never used.
 - **Root Cause**: The rush completion output does not include launcher mode verification. Neither `/zerg:status` nor the rush summary reports which launcher mode was active.
 - **Fix**: Add launcher mode to rush summary output and `/zerg:status` response. Include container IDs in worker status when container mode is active.

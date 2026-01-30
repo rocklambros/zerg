@@ -3,6 +3,7 @@
 from zerg.commands.analyze import analyze
 from zerg.commands.build import build
 from zerg.commands.cleanup import cleanup
+from zerg.commands.debug import debug
 from zerg.commands.design import design
 from zerg.commands.git_cmd import git_cmd
 from zerg.commands.init import init
@@ -18,7 +19,6 @@ from zerg.commands.security_rules_cmd import security_rules_group
 from zerg.commands.status import status
 from zerg.commands.stop import stop
 from zerg.commands.test_cmd import test_cmd
-from zerg.commands.troubleshoot import troubleshoot
 
 __all__ = [
     "analyze",
@@ -38,7 +38,7 @@ __all__ = [
     "status",
     "stop",
     "test_cmd",
-    "troubleshoot",
+    "debug",
     "install_commands",
     "uninstall_commands",
 ]

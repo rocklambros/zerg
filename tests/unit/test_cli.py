@@ -68,7 +68,7 @@ class TestCommandRegistration:
             "status",
             "stop",
             "test",
-            "troubleshoot",
+            "debug",
         ]
 
         for cmd in expected_commands:
@@ -78,7 +78,7 @@ class TestCommandRegistration:
         """Test each command has help available."""
         runner = CliRunner()
 
-        commands = ["analyze", "build", "git", "refactor", "review", "test", "troubleshoot"]
+        commands = ["analyze", "build", "git", "refactor", "review", "test", "debug"]
 
         for cmd in commands:
             result = runner.invoke(cli, [cmd, "--help"])

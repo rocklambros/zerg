@@ -1,4 +1,4 @@
-"""ZERG state introspection for deep troubleshooting."""
+"""ZERG state introspection for deep debugging."""
 
 from __future__ import annotations
 

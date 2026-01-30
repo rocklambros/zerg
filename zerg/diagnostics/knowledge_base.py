@@ -1,4 +1,4 @@
-"""Failure pattern knowledge base for hypothesis-driven troubleshooting."""
+"""Failure pattern knowledge base for hypothesis-driven debugging."""
 
 from __future__ import annotations
 

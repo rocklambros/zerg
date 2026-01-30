@@ -304,7 +304,7 @@ class FixSuggestionGenerator:
         if not steps:
             steps.append(RecoveryStep(
                 description=f"Investigate: {fingerprint.error_type}",
-                command="zerg troubleshoot --deep",
+                command="zerg debug --deep",
                 risk="safe",
                 reversible=True,
             ))

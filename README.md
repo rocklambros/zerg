@@ -188,7 +188,7 @@ Available ZERG commands:
   /zerg:status       Show execution status
   /zerg:stop         Stop zerglings
   /zerg:test         Run tests with coverage
-  /zerg:troubleshoot Debug with root cause analysis
+  /zerg:debug Debug with root cause analysis
 ```
 
 ---
@@ -1543,12 +1543,12 @@ Gates catch these before they hit main.
 
 ---
 
-#### /zerg:troubleshoot
+#### /zerg:debug
 
 **Purpose:** Systematic debugging with root cause analysis using a four-phase diagnostic process.
 
 ```claude
-/zerg:troubleshoot [OPTIONS]
+/zerg:debug [OPTIONS]
 ```
 
 **Options Explained:**
@@ -1572,13 +1572,13 @@ Gates catch these before they hit main.
 
 ```claude
 # Analyze error message
-/zerg:troubleshoot --error "ImportError: No module named 'foo'"
+/zerg:debug --error "ImportError: No module named 'foo'"
 
 # Analyze stack trace file
-/zerg:troubleshoot --stacktrace error.log
+/zerg:debug --stacktrace error.log
 
 # Save diagnostic report
-/zerg:troubleshoot --error "ConnectionError" --output diagnostic.md
+/zerg:debug --error "ConnectionError" --output diagnostic.md
 ```
 
 ---
@@ -2098,8 +2098,8 @@ python -c "from src.models import User"  # Or whatever the command is
 Inside Claude Code:
 
 ```claude
-# Troubleshoot the error
-/zerg:troubleshoot --error "ImportError: cannot import name 'User'"
+# Debug the error
+/zerg:debug --error "ImportError: cannot import name 'User'"
 
 # Retry with extended timeout
 /zerg:retry TASK-001 --timeout 120
