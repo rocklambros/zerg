@@ -436,36 +436,31 @@ class TestRebalance:
         assert len(reassignments) == 0
 
     def test_rebalance_multiple_failed_tasks(self) -> None:
-        """Test rebalancing multiple failed tasks updates capacity correctly."""
+        """Test rebalancing multiple failed tasks updates capacity correctly.
+
+        Set iteration order is non-deterministic (PYTHONHASHSEED), so this test
+        must be deterministic regardless of which failed task is processed first.
+
+        Trace (either ordering yields the same structural result):
+          Initial state: W0 has 3 tasks, W1 has 0 tasks.
+          Capacity: W0 = 60 - 15 (TASK-003 pending) = 45, W1 = 60.
+          First failed task processed -> reassigned from W0 to W1 (60 > 45).
+            capacity[W1] -= 15 -> 45, capacity[W0] += 15 -> 60.
+          Second failed task -> max capacity is W0 (60 > 45), but old_worker == W0.
+            No reassignment (same worker).
+          Result: exactly 1 reassignment to W1.
+        """
         assigner = WorkerAssignment(worker_count=2)
 
-        # Worker 0 has 3 tasks, Worker 1 has nothing
+        # Set up complete internal state for both workers to prevent
+        # reliance on defaultdict auto-creation across test boundaries.
         assigner._assignments["TASK-001"] = 0
         assigner._assignments["TASK-002"] = 0
         assigner._assignments["TASK-003"] = 0
         assigner._worker_tasks[0] = ["TASK-001", "TASK-002", "TASK-003"]
-
-        # Two tasks fail: TASK-001 and TASK-002
-        # First iteration: Worker 0 pending = 15 (TASK-003), capacity = 45
-        #                  Worker 1 pending = 0, capacity = 60
-        # TASK-001 moves to Worker 1, Worker 1 capacity -= 15 -> 45
-        # Second iteration: Worker 0 pending = 15, capacity = 45
-        #                   Worker 1 pending = 0 (TASK-001 is failed, not pending), capacity = 45
-        # Wait, TASK-001 is in failed_tasks, so it's excluded from pending
-        # After first reassignment: Worker 1 now has TASK-001
-        # But TASK-001 is still in failed_tasks, so Worker 1 pending = 0
-        # Worker 1 capacity after -= 15 = 60 - 15 = 45
-        # For TASK-002: Worker 0 capacity = 45, Worker 1 capacity = 45
-        # max() returns 0 (first), old_worker = 0, no reassignment
-
-        # Actually the capacity update happens AFTER the reassignment decision
-        # Let's trace through:
-        # Initial: W0 capacity = 60-15=45, W1 capacity = 60
-        # For TASK-001: new_worker = max = 1 (60 > 45), reassign to 1
-        #   capacity[1] -= 15 -> 45
-        #   capacity[0] += 15 -> 60
-        # For TASK-002: new_worker = max = 0 (60 > 45), reassign to 0... but old_worker = 0
-        #   No reassignment because same worker
+        assigner._worker_tasks[1] = []  # Explicitly initialize worker 1
+        assigner._worker_minutes[0] = 45  # 3 tasks * 15 min
+        assigner._worker_minutes[1] = 0
 
         reassignments = assigner.rebalance(
             completed_tasks=set(),
@@ -473,9 +468,12 @@ class TestRebalance:
             current_level=1,
         )
 
-        # Only one task should be reassigned (order is non-deterministic due to set iteration)
+        # Exactly one task gets reassigned regardless of set iteration order
         assert len(reassignments) == 1
-        assert reassignments[0][0] in {"TASK-001", "TASK-002"}
+        task_id, old_worker, new_worker = reassignments[0]
+        assert task_id in {"TASK-001", "TASK-002"}
+        assert old_worker == 0
+        assert new_worker == 1
 
 
 class TestGetTaskMinutes:
