@@ -449,7 +449,12 @@ class Orchestrator:
                     and self.levels.is_level_complete(current)
                 ):
                     _handled_levels.add(current)
-                    self._on_level_complete_handler(current)
+                    merge_ok = self._on_level_complete_handler(current)
+
+                    if not merge_ok:
+                        # Merge failed — don't advance, wait for intervention
+                        logger.warning(f"Level {current} merge failed, pausing execution")
+                        continue
 
                     # Advance to next level if possible
                     if self.levels.can_advance():
@@ -542,11 +547,14 @@ class Orchestrator:
                 if worker_id is not None:
                     self.state.set_task_status(task_id, TaskStatus.PENDING, worker_id=worker_id)
 
-    def _on_level_complete_handler(self, level: int) -> None:
+    def _on_level_complete_handler(self, level: int) -> bool:
         """Handle level completion.
 
         Args:
             level: Completed level
+
+        Returns:
+            True if merge succeeded and we can advance
         """
         logger.info(f"Level {level} complete")
 
@@ -646,6 +654,8 @@ class Orchestrator:
             # Notify callbacks
             for callback in self._on_level_complete:
                 callback(level)
+
+            return True
         else:
             error_msg = merge_result.error if merge_result else "Unknown merge error"
             logger.error(f"Level {level} merge failed after {max_retries} attempts: {error_msg}")
@@ -663,6 +673,8 @@ class Orchestrator:
                 self._set_recoverable_error(
                     f"Level {level} merge failed after {max_retries} attempts: {error_msg}"
                 )
+
+            return False
 
     def _set_recoverable_error(self, error: str) -> None:
         """Set recoverable error state (pause instead of stop).
@@ -1198,7 +1210,7 @@ class Orchestrator:
         ]
 
         # Determine target worker count from original assignments
-        target_count = len(self.assigner.assignments) if self.assigner else 2
+        target_count = self.assigner.worker_count if self.assigner else 2
         need = min(target_count - len(active), len(remaining))
 
         if need <= 0:
