@@ -1,6 +1,6 @@
 # ZERG Troubleshoot: $ARGUMENTS
 
-Deep diagnostic investigation for ZERG execution issues.
+Deep diagnostic investigation for ZERG execution issues with error intelligence, log correlation, Bayesian hypothesis testing, code-aware recovery, and environment diagnostics.
 
 ## Flags
 
@@ -10,6 +10,9 @@ Deep diagnostic investigation for ZERG execution issues.
 - `--fix`: Generate and execute recovery plan (with confirmation)
 - `--error <msg>` or `-e`: Specific error message to analyze
 - `--stacktrace <path>` or `-s`: Path to stack trace file
+- `--env`: Run comprehensive environment diagnostics (Python venv, packages, Docker, resources, config validation)
+- `--interactive` or `-i`: Interactive troubleshooting wizard mode (placeholder for guided step-by-step diagnosis)
+- `--report <path>`: Write full diagnostic markdown report to file at the specified path
 
 ## Pre-Flight
 
@@ -86,6 +89,23 @@ Git:
 
 ---
 
+## Phase 1.5: Error Intelligence
+
+After gathering context, run the error intelligence engine on all collected error text:
+
+**Multi-Language Error Parsing**: Automatically detect and parse errors from Python, JavaScript/TypeScript, Go, Rust, Java, and C++. Each language has dedicated regex patterns for extracting file locations, line numbers, error types, and messages.
+
+**Error Fingerprinting**: Each parsed error is hashed into an `ErrorFingerprint` containing:
+- Error type and message
+- File path and line number
+- A stable hash for deduplication across workers and runs
+
+**Error Chain Analysis**: Traverse "caused by" chains in stack traces to identify root errors vs. downstream effects. This is critical for multi-layer errors where the surface exception hides the real cause.
+
+**Semantic Classification**: Every error is classified into an `ErrorCategory` (e.g., `IMPORT_ERROR`, `SYNTAX_ERROR`, `RUNTIME_ERROR`, `TIMEOUT`, `INFRASTRUCTURE`) and assigned an `ErrorSeverity` (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`) to prioritize investigation.
+
+---
+
 ## Phase 2: Symptom Classification
 
 Classify the problem into exactly ONE primary category:
@@ -108,6 +128,20 @@ CLASSIFICATION: <CATEGORY>
 Confidence: <high|medium|low>
 Basis: <1-2 sentence explanation>
 ```
+
+---
+
+## Phase 2.5: Log Correlation
+
+After classification, correlate logs across workers:
+
+**Timeline Reconstruction**: Parse timestamps from all worker logs (ISO 8601, epoch, and relative formats) and build a unified timeline of events across workers. Events are sorted chronologically to reveal execution ordering.
+
+**Temporal Clustering**: Group events that occur within a configurable time window into clusters. Simultaneous errors across multiple workers often indicate a shared root cause (e.g., infrastructure failure) rather than independent bugs.
+
+**Cross-Worker Error Correlation**: Compare error messages across workers using Jaccard similarity on tokenized text. Workers producing similar errors (similarity > 0.6) are flagged as likely sharing the same underlying problem.
+
+**Error Evolution Tracking**: Track how errors evolve over time within and across workers. Identifies trending patterns -- errors that are increasing in frequency signal a worsening condition, while decreasing errors suggest partial self-recovery.
 
 ---
 
@@ -170,17 +204,25 @@ Gather category-specific evidence. Each category has a checklist:
 
 ## Phase 4: Hypothesis Testing
 
-For each hypothesis (max 3):
+For each hypothesis (max 3), the engine uses **Bayesian probability scoring**:
+
+- **Prior probabilities** are drawn from a knowledge base of 30+ known failure patterns spanning Python, JavaScript, Go, Rust, Docker, Git, and ZERG-specific issues. Each pattern carries a calibrated prior probability.
+- **Posterior calculation**: `posterior = prior * product((1 + confidence * 0.5) for supporting evidence) * product((1 - confidence * 0.5) for contradicting evidence)`, clamped to [0.01, 0.99].
+- **Hypothesis chaining**: When a hypothesis is confirmed, its result adjusts the priors of related hypotheses (e.g., confirming "missing package" boosts "import error" and reduces "syntax error").
+- **Automated testing**: Each hypothesis has a test command that is executed with safety gates (read-only or easily reversible commands only). Results are captured and parsed automatically.
 
 ```
 HYPOTHESIS <N>: <description>
 ─────────────────────────────
+Prior:       <probability from knowledge base>
+Posterior:   <updated probability after evidence>
+
 Evidence FOR:
-  - <supporting evidence>
-  - <supporting evidence>
+  - <supporting evidence> (confidence: <0-1>)
+  - <supporting evidence> (confidence: <0-1>)
 
 Evidence AGAINST:
-  - <contradicting evidence>
+  - <contradicting evidence> (confidence: <0-1>)
 
 Test:
   Command: <specific command to run>
@@ -214,7 +256,12 @@ If confidence is LOW, list what additional information would help.
 
 ## Phase 6: Recovery Plan
 
-Generate executable recovery steps:
+Generate executable recovery steps with **code-aware fix suggestions**:
+
+- **Dependency analysis**: For import/module errors, the engine traces the full import chain using AST parsing, identifies missing dependencies, and suggests exact `pip install` commands.
+- **Git context**: Uses `git blame` to identify who last changed error-causing lines and `git bisect` suggestions to pinpoint the commit that introduced the regression.
+- **Import chain analysis**: For dependency errors, traces which files import the problematic module to assess blast radius and suggest targeted fixes.
+- **Fix templates**: Known patterns from the knowledge base include templated fix commands that are populated with error-specific details (file paths, module names, line numbers).
 
 ```
 RECOVERY PLAN
@@ -257,7 +304,7 @@ If `--fix` flag is set:
 
 ### Save Report
 
-Write diagnostic report to `claudedocs/troubleshoot-<timestamp>.md`:
+Write diagnostic report to `claudedocs/troubleshoot-<timestamp>.md` (or to `--report <path>` if specified):
 
 ```markdown
 # Troubleshoot Report: <feature>
@@ -268,20 +315,29 @@ Category: <classification>
 ## Context
 <context snapshot from Phase 1>
 
+## Error Intelligence
+<parsed errors, fingerprints, and chain analysis from Phase 1.5>
+
 ## Classification
 <from Phase 2>
+
+## Log Correlation
+<timeline, clusters, and cross-worker analysis from Phase 2.5>
 
 ## Evidence
 <collected evidence from Phase 3>
 
 ## Hypotheses
-<hypothesis testing results from Phase 4>
+<Bayesian-scored hypothesis testing results from Phase 4>
 
 ## Root Cause
 <from Phase 5>
 
 ## Recovery
-<plan from Phase 6>
+<code-aware plan from Phase 6>
+
+## Environment
+<environment diagnostics from Phase 7.5, if --env was used>
 
 ## Status
 <what was done, what remains>
@@ -298,6 +354,63 @@ Description: "<category> - <root cause> - <recommendation>"
 
 ---
 
+## Phase 7.5: Environment Diagnostics
+
+When `--env` flag is set (or when infrastructure issues are suspected), run comprehensive environment checks:
+
+**Python Environment**:
+- Virtual environment status (active, path, Python version, executable)
+- Installed packages inventory with version numbers
+- Verify required packages are present (cross-reference with pyproject.toml)
+- Test critical imports succeed at runtime
+
+**Docker Health**:
+- Docker daemon reachability (`docker info`)
+- Running containers count and status
+- Available images relevant to ZERG
+- Docker resource allocation (memory, CPU limits)
+
+**System Resources**:
+- CPU usage and load averages
+- Memory utilization (total, available, percent used)
+- Disk space on project partition
+- Open file descriptor count vs. system limits
+
+**Configuration Validation**:
+- Parse and validate `.zerg/config.yaml` against expected schema
+- Check for missing required fields
+- Validate numeric ranges (worker counts, timeouts, port ranges)
+- Flag deprecated or unrecognized configuration keys
+
+Output:
+
+```
+ENVIRONMENT DIAGNOSTICS
+=======================
+Python:
+  venv active:    <yes|no>
+  Python version: <version>
+  Packages:       <N> installed, <N> missing
+  Critical:       <all OK | list issues>
+
+Docker:
+  Daemon:         <running|stopped|not installed>
+  Containers:     <N> running
+  Images:         <N> available
+
+Resources:
+  CPU:            <usage%>
+  Memory:         <used>/<total> (<percent>%)
+  Disk:           <used>/<total> (<percent>%)
+  File descriptors: <open>/<limit>
+
+Config:
+  Valid:          <yes|no>
+  Issues:         <list of issues or "none">
+```
+
+---
+
 ## Quick Reference
 
 ### Common Issues & Fast Paths
@@ -307,12 +420,14 @@ Description: "<category> - <root cause> - <recommendation>"
 2. Check `ANTHROPIC_API_KEY` is set
 3. Check port availability
 4. Check disk space
+5. Run `--env` to check Docker daemon and system resources
 
 **Tasks failing verification:**
 1. Read task verification command from task-graph
 2. Run verification manually
 3. Check task's owned files exist
 4. Check worker log for task execution
+5. Use error intelligence to parse multi-language stack traces
 
 **State file corrupt:**
 1. Check `.zerg/state/<feature>.json.bak`
@@ -329,6 +444,24 @@ Description: "<category> - <root cause> - <recommendation>"
 1. `git worktree prune`
 2. Remove `.zerg/worktrees/*/`
 3. Clean docker: `docker system prune -f`
+
+**Cross-worker failures:**
+1. Run log correlation to build unified timeline
+2. Check temporal clusters for simultaneous errors
+3. Use Jaccard similarity to find workers with same root cause
+4. Track error evolution to identify worsening trends
+
+**Dependency / import errors:**
+1. Run `--env` to check venv and packages
+2. Error intelligence parses import chains automatically
+3. Code fixer suggests exact `pip install` commands
+4. Import chain analysis shows blast radius
+
+**Unknown errors:**
+1. Run with `--deep --env` for full system and environment scan
+2. Error intelligence auto-detects language and parses stack traces
+3. Bayesian hypothesis engine ranks possible causes by probability
+4. Use `--report diag.md` to capture full diagnostic output for review
 
 ---
 
