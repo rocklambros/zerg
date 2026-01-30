@@ -6,7 +6,9 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from zerg.config import QualityGate, ZergConfig
 from zerg.constants import GateResult, PluginHookEvent
+from zerg.gates import GateRunner
 from zerg.plugins import (
     GateContext,
     LifecycleEvent,
@@ -196,3 +198,46 @@ class TestPluginLifecycle:
         assert gate.captured_ctx.level == 2
         assert gate.captured_ctx.cwd == expected_cwd
         assert gate.captured_ctx.config == expected_config
+
+    def test_plugin_gate_runs_after_merge(self, tmp_path: Path) -> None:
+        """Plugin gates run through GateRunner after config gates complete."""
+        # Create a registry and register a plugin gate
+        registry = PluginRegistry()
+        plugin_gate = _PassingGate()
+        registry.register_gate(plugin_gate)
+
+        # Create a config with one regular gate
+        config = ZergConfig(
+            feature="test-feature",
+            quality_gates=[
+                QualityGate(
+                    name="lint",
+                    command="true",
+                    timeout=30,
+                    required=True,
+                    coverage_threshold=0,
+                )
+            ],
+        )
+
+        # Create GateRunner with plugin registry
+        runner = GateRunner(config=config, plugin_registry=registry)
+
+        # Run all gates (config + plugin)
+        all_passed, results = runner.run_all_gates(
+            cwd=tmp_path,
+            feature="test-feature",
+            level=1,
+        )
+
+        # Should have both config gate and plugin gate results
+        assert all_passed
+        assert len(results) == 2
+
+        # First result is config gate
+        assert results[0].gate_name == "lint"
+        assert results[0].result == GateResult.PASS
+
+        # Second result is plugin gate
+        assert results[1].gate_name == "passing-gate"
+        assert results[1].result == GateResult.PASS

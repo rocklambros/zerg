@@ -129,6 +129,8 @@ class GateRunner:
         cwd: str | Path | None = None,
         stop_on_failure: bool = True,
         required_only: bool = False,
+        feature: str = "",
+        level: int = 0,
     ) -> tuple[bool, list[GateRunResult]]:
         """Run all quality gates.
 
@@ -137,6 +139,8 @@ class GateRunner:
             cwd: Working directory
             stop_on_failure: Stop on first failure
             required_only: Only run required gates
+            feature: Feature name for plugin gate context
+            level: Level number for plugin gate context
 
         Returns:
             Tuple of (all_passed, list of results)
@@ -170,8 +174,8 @@ class GateRunner:
         # Run plugin gates if registry is available
         if self._plugin_registry:
             plugin_results = self.run_plugin_gates(GateContext(
-                feature="",
-                level=0,
+                feature=feature,
+                level=level,
                 cwd=Path(cwd) if cwd else Path.cwd(),
                 config=self.config,
             ))
