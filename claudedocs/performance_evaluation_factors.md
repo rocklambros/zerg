@@ -1,4 +1,3 @@
-```markdown
 # Performance Evaluation Factors (140 CLI-Evaluatable)
 
 ## 1. CPU and Compute (12 factors)
@@ -271,50 +270,3 @@
 | 138 | Missing authentication checks | Endpoints without auth verification | Semgrep | Auth check on every protected endpoint |
 | 139 | Missing authorization checks | Auth present but no permission check | Semgrep | Authorize every resource access |
 | 140 | Exposed debug endpoints | /debug, /metrics without auth | Semgrep, Kubescape | Disable or protect in production |
-
----
-
-## Summary by Category
-
-| Category | Factor Count |
-|----------|-------------|
-| CPU and Compute | 12 |
-| Memory | 9 |
-| Disk I/O | 10 |
-| Network I/O | 14 |
-| Database | 7 |
-| Caching | 5 |
-| Concurrency | 9 |
-| Code-Level Patterns | 7 |
-| Abstraction and Structure | 5 |
-| Dependencies | 4 |
-| Code Volume | 5 |
-| Error Handling | 4 |
-| Container Image | 6 |
-| Container Runtime | 4 |
-| Orchestration | 5 |
-| Observability | 6 |
-| Architecture | 5 |
-| AI Code Detection | 9 |
-| Security Patterns | 14 |
-| **Total** | **140** |
-
----
-
-## Excluded Factors (12 runtime/process-based)
-
-These factors require production monitoring or human judgment and cannot be evaluated via CLI tools:
-
-1. CPU throttling detection (requires runtime cgroup monitoring)
-2. Cache hit ratio (production metric)
-3. Container runtime selection (deployment decision)
-4. Host resource contention (production monitoring)
-5. Kubernetes scheduler latency (control plane metric)
-6. HPA scaling lag (autoscaler timing)
-7. Profiler integration verification (manual review)
-8. Data locality assessment (architecture review)
-9. Human review process (governance)
-10. Service mesh actual latency impact (runtime measurement)
-11. Metrics collection actual overhead (runtime measurement)
-12. Log driver actual throughput impact (runtime measurement)
-```

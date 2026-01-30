@@ -135,7 +135,14 @@ def _detect_python_frameworks(project_path: Path, frameworks: set[str]) -> None:
 def _detect_docker(project_path: Path) -> bool:
     """Check for Docker configuration files."""
     docker_files = ("Dockerfile", "docker-compose.yml", "docker-compose.yaml")
-    return any((project_path / f).is_file() for f in docker_files)
+    # Check project root
+    if any((project_path / f).is_file() for f in docker_files):
+        return True
+    # Check .devcontainer/ (common for VS Code / Claude Code projects)
+    devcontainer = project_path / ".devcontainer"
+    if devcontainer.is_dir() and any((devcontainer / f).is_file() for f in docker_files):
+        return True
+    return False
 
 
 def _detect_kubernetes(project_path: Path) -> bool:
