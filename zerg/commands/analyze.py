@@ -420,7 +420,10 @@ def analyze(
         if performance:
             check = "performance"
 
-        console.print("\n[bold cyan]ZERG Analyze[/bold cyan]\n")
+        is_machine_output = output_format in ("json", "sarif")
+
+        if not is_machine_output:
+            console.print("\n[bold cyan]ZERG Analyze[/bold cyan]\n")
 
         # Parse thresholds
         thresholds = _parse_thresholds(threshold)
@@ -440,7 +443,8 @@ def analyze(
             console.print(f"[yellow]No files found in {target_path}[/yellow]")
             raise SystemExit(0)
 
-        console.print(f"Analyzing {len(file_list)} files...")
+        if not is_machine_output:
+            console.print(f"Analyzing {len(file_list)} files...")
 
         # Run analysis
         analyzer = AnalyzeCommand(config)
@@ -470,9 +474,9 @@ def analyze(
             if output_format == "text":
                 format_rich(report, console)
             elif output_format == "json":
-                console.print(perf_format_json(report))
+                print(perf_format_json(report))
             elif output_format == "sarif":
-                console.print(perf_format_sarif(report))
+                print(perf_format_sarif(report))
             elif output_format == "markdown":
                 console.print(format_markdown(report))
             overall = results[0].passed if results else True

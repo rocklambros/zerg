@@ -1,0 +1,243 @@
+{
+  "feature": "perf-report-fixes",
+  "version": "2.0",
+  "generated": "2026-01-31T00:00:00Z",
+  "total_tasks": 9,
+  "estimated_duration_minutes": 60,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "PRF-L1-001",
+      "title": "Fix Dockerfile lint and security issues",
+      "description": "Fix 3 hadolint findings in .devcontainer/Dockerfile: (1) Add --no-install-recommends to both apt-get install commands, (2) Add a non-root USER directive at the end. The Dockerfile currently runs as root (DS-0002) and uses apt-get without --no-install-recommends (DS-0029 x2). After fixing, the container should still build correctly. Keep WORKDIR, HEALTHCHECK, and CMD as-is. The USER should be set after all RUN commands that need root.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".devcontainer/Dockerfile"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Both apt-get install commands include --no-install-recommends",
+        "A non-root USER directive exists after all RUN commands",
+        "Dockerfile still builds (syntax valid)"
+      ],
+      "verification": {
+        "command": "hadolint .devcontainer/Dockerfile 2>&1; echo \"Exit: $?\"",
+        "timeout_seconds": 30
+      }
+    },
+    {
+      "id": "PRF-L1-002",
+      "title": "Remove unused variables and imports",
+      "description": "Remove unused code identified by vulture/radon:\n\n1. zerg/commands/design.py line 355: Remove unused variable 'min_minutes'. Find the assignment and delete it (or use the value if it was meant to be used).\n\n2. Remove unused imports from test files:\n   - tests/integration/test_orchestrator_fixes.py:10 — remove 'PropertyMock' import\n   - tests/unit/test_build_cmd.py:8 — remove 'PropertyMock' import\n   - tests/unit/test_log_aggregator.py:8 — remove 'LogQuery' import\n   - tests/unit/test_orchestrator_timeout.py:16 — remove 'PropertyMock' import\n   - tests/unit/test_state_sync.py:9 — remove 'PropertyMock' import\n   - tests/unit/test_worker_protocol.py:12 — remove 'PropertyMock' import\n\nFor each file, read the relevant import lines, remove the unused name from the import statement (keep other imports on the same line if any), and verify with ruff check.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/commands/design.py",
+          "tests/integration/test_orchestrator_fixes.py",
+          "tests/unit/test_build_cmd.py",
+          "tests/unit/test_log_aggregator.py",
+          "tests/unit/test_orchestrator_timeout.py",
+          "tests/unit/test_state_sync.py",
+          "tests/unit/test_worker_protocol.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "No unused imports or variables in modified files",
+        "ruff check passes on all modified files",
+        "All existing tests still pass"
+      ],
+      "verification": {
+        "command": "ruff check zerg/commands/design.py tests/integration/test_orchestrator_fixes.py tests/unit/test_build_cmd.py tests/unit/test_log_aggregator.py tests/unit/test_orchestrator_timeout.py tests/unit/test_state_sync.py tests/unit/test_worker_protocol.py",
+        "timeout_seconds": 30
+      }
+    },
+    {
+      "id": "PRF-L1-003",
+      "title": "Delete legacy .zerg Python scripts",
+      "description": "Delete legacy Python scripts in .zerg/ that duplicate functionality now in zerg/commands/. These are pre-refactor copies that cause HIGH severity code duplication findings.\n\nDelete these 5 files:\n- .zerg/analyze.py\n- .zerg/build.py\n- .zerg/refactor.py\n- .zerg/review.py\n- .zerg/test_runner.py\n\nThese files are NOT imported anywhere (verified via grep). The canonical implementations are in zerg/commands/. Use git rm to remove them from tracking.\n\nDo NOT delete other .zerg/*.py files (orchestrator.py, state.py, etc.) — those serve different purposes.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "All 5 listed files are deleted",
+        "No other .zerg/ files are affected",
+        "git rm used for proper tracking"
+      ],
+      "verification": {
+        "command": "test ! -f .zerg/analyze.py && test ! -f .zerg/build.py && test ! -f .zerg/refactor.py && test ! -f .zerg/review.py && test ! -f .zerg/test_runner.py && echo PASS",
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "id": "PRF-L1-004",
+      "title": "Clean htmlcov from git and add to gitignore",
+      "description": "The htmlcov/ directory contains generated HTML coverage reports that are causing ~100+ false positive duplicate findings in jscpd. These are build artifacts that should not be tracked.\n\n1. Add 'htmlcov/' to .gitignore (if not already present)\n2. Run: git rm -r --cached htmlcov/ (remove from tracking but keep local files)\n3. Stage the .gitignore change\n\nCheck .gitignore first — it may already have htmlcov but not be effective if files were added before the rule.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gitignore"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "htmlcov/ is in .gitignore",
+        "htmlcov/ files are no longer git-tracked",
+        "git status shows htmlcov/ removal staged"
+      ],
+      "verification": {
+        "command": "grep -q 'htmlcov' .gitignore && ! git ls-files htmlcov/ --error-unmatch 2>/dev/null && echo PASS",
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "id": "PRF-L1-005",
+      "title": "Configure vulture adapter to exclude test directories",
+      "description": "The vulture adapter currently scans all Python files including tests. Pytest fixtures appear as 'unused variables' to vulture, generating ~160 false positive HIGH findings.\n\nModify zerg/performance/adapters/vulture_adapter.py to:\n1. Add '--exclude' flag to the vulture command to exclude test directories: 'tests/,test_,.zerg/tests/'\n2. This eliminates false positives while keeping dead code detection active for production code (zerg/)\n\nRead the current adapter implementation first to understand the command construction pattern, then add the exclude flag.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/performance/adapters/vulture_adapter.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Vulture command includes --exclude for test directories",
+        "Existing adapter tests still pass",
+        "Production code (zerg/) is still scanned"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_performance_adapters.py -x -q -k vulture",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "PRF-L2-001",
+      "title": "Configure jscpd adapter ignore patterns",
+      "description": "The jscpd adapter scans all files including htmlcov/ (generated HTML), .claude/commands/ (installed copies of zerg/data/commands/), and .zerg/tests/ (legacy test copies). This generates ~100+ false positive duplicate findings.\n\nModify zerg/performance/adapters/jscpd_adapter.py to add --ignore flags to the jscpd command:\n- --ignore 'htmlcov/**'\n- --ignore '.claude/commands/**'\n- --ignore '.zerg/**'\n- --ignore '.gsd/**'\n\nRead the current adapter implementation first to understand command construction, then add the ignore flags to the jscpd invocation.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["PRF-L1-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/performance/adapters/jscpd_adapter.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "jscpd command includes --ignore flags for htmlcov, .claude/commands, .zerg, .gsd",
+        "Existing adapter tests still pass",
+        "Production code duplication is still detected"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_performance_adapters.py -x -q -k jscpd",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "PRF-L2-002",
+      "title": "Refactor debug.py long functions",
+      "description": "Two functions in zerg/commands/debug.py are flagged for excessive length:\n- debug() at 334 lines (HIGH severity) — the main Click command function\n- format_result() at 170 lines (MEDIUM)\n- run() at 103 lines (MEDIUM)\n\nRefactor debug() by extracting logical sections into private helper functions. The function likely has clear sections (setup, analysis, output formatting) that can become separate functions. Keep the Click command function as a thin orchestrator.\n\nFor format_result(), extract subsections into helpers if natural boundaries exist.\n\nFor run(), only refactor if a clean split is obvious.\n\nIMPORTANT: Do not change any public API or behavior. All existing tests must continue to pass. Read the full function bodies before refactoring to understand the structure.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["PRF-L1-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/debug.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "No function exceeds 200 lines",
+        "All existing debug tests pass",
+        "No public API changes",
+        "ruff check passes"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_debug_cmd.py -x -q && ruff check zerg/commands/debug.py",
+        "timeout_seconds": 120
+      }
+    },
+    {
+      "id": "PRF-L2-003",
+      "title": "Refactor backlog.py generate_backlog_markdown",
+      "description": "The function generate_backlog_markdown() in zerg/backlog.py is 205 lines (HIGH severity). Refactor by extracting logical sections into helper functions.\n\nThe function likely generates multiple sections of markdown. Each section (header, task table, summary, etc.) can become a private helper.\n\nIMPORTANT: Do not change any public API or behavior. All existing tests must continue to pass. Read the full function first.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["PRF-L1-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/backlog.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "generate_backlog_markdown() is under 100 lines",
+        "Extracted helpers are focused single-purpose functions",
+        "All existing backlog tests pass",
+        "ruff check passes"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/ -x -q -k backlog && ruff check zerg/backlog.py",
+        "timeout_seconds": 120
+      }
+    },
+    {
+      "id": "PRF-L3-001",
+      "title": "Full verification and re-run analysis",
+      "description": "Run the complete test suite, ruff, and mypy to verify all changes are safe. Then re-run the performance analysis to measure score improvement.\n\n1. ruff check zerg/ tests/\n2. mypy zerg/ --ignore-missing-imports\n3. python -m pytest tests/ -x -q --timeout=30\n4. python -m zerg analyze --performance --format json . (capture new score)\n\nReport: old score (86/100), new score, delta, remaining findings.",
+      "phase": "quality",
+      "level": 3,
+      "dependencies": ["PRF-L2-001", "PRF-L2-002", "PRF-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "All tests pass",
+        "ruff check clean",
+        "mypy passes",
+        "Performance score improved"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --timeout=30 && ruff check zerg/ && echo PASS",
+        "timeout_seconds": 300
+      }
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["PRF-L1-001", "PRF-L1-002", "PRF-L1-003", "PRF-L1-004", "PRF-L1-005"],
+      "parallel": true,
+      "estimated_minutes": 15
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["PRF-L2-001", "PRF-L2-002", "PRF-L2-003"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "quality",
+      "tasks": ["PRF-L3-001"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [2]
+    }
+  }
+}
