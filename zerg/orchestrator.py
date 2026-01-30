@@ -143,6 +143,14 @@ class Orchestrator:
         Returns:
             Configured WorkerLauncher instance
         """
+        # Check plugin registry first for custom launcher
+        if mode and mode not in ("subprocess", "container", "auto"):
+            from zerg.launcher import get_plugin_launcher
+            plugin_launcher = get_plugin_launcher(mode, self._plugin_registry)
+            if plugin_launcher is not None:
+                logger.info(f"Using plugin launcher: {mode}")
+                return plugin_launcher
+
         # Determine launcher type
         if mode == "subprocess":
             launcher_type = LauncherType.SUBPROCESS
@@ -152,6 +160,13 @@ class Orchestrator:
             # Auto-detect based on environment
             launcher_type = self._auto_detect_launcher_type()
         else:
+            # Try plugin launcher for unrecognized mode
+            from zerg.launcher import get_plugin_launcher
+            plugin_launcher = get_plugin_launcher(mode, self._plugin_registry)
+            if plugin_launcher is not None:
+                logger.info(f"Using plugin launcher: {mode}")
+                return plugin_launcher
+            # Fall back to config setting if plugin not found
             launcher_type = self.config.get_launcher_type()
 
         config = LauncherConfig(

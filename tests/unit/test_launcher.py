@@ -976,6 +976,7 @@ class TestContainerLauncherInit:
 class TestContainerLauncherSpawn:
     """Tests for ContainerLauncher.spawn method."""
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_verify_worker_process")
     @patch.object(ContainerLauncher, "_exec_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
@@ -986,6 +987,7 @@ class TestContainerLauncherSpawn:
         mock_wait: MagicMock,
         mock_exec: MagicMock,
         mock_verify: MagicMock,
+        mock_run: MagicMock,
         tmp_path: Path,
     ) -> None:
         """Test successful container spawn."""
@@ -993,6 +995,7 @@ class TestContainerLauncherSpawn:
         mock_wait.return_value = True
         mock_exec.return_value = True
         mock_verify.return_value = True
+        mock_run.return_value = MagicMock(returncode=0)
 
         launcher = ContainerLauncher()
         result = launcher.spawn(
@@ -1007,12 +1010,14 @@ class TestContainerLauncherSpawn:
         assert result.handle.container_id == "container-abc123"
         assert result.handle.status == WorkerStatus.RUNNING
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_container_start_fails(
-        self, mock_start: MagicMock, tmp_path: Path
+        self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn failure when container start fails."""
         mock_start.return_value = None
+        mock_run.return_value = MagicMock(returncode=0)
 
         launcher = ContainerLauncher()
         result = launcher.spawn(
@@ -1025,14 +1030,16 @@ class TestContainerLauncherSpawn:
         assert result.success is False
         assert "Failed to start container" in result.error
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_container_not_ready(
-        self, mock_start: MagicMock, mock_wait: MagicMock, tmp_path: Path
+        self, mock_start: MagicMock, mock_wait: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn failure when container doesn't become ready."""
         mock_start.return_value = "container-abc123"
         mock_wait.return_value = False
+        mock_run.return_value = MagicMock(returncode=0)
 
         launcher = ContainerLauncher()
         result = launcher.spawn(
@@ -1045,11 +1052,13 @@ class TestContainerLauncherSpawn:
         assert result.success is False
         assert "failed to become ready" in result.error
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_invalid_worker_id(
-        self, mock_start: MagicMock, tmp_path: Path
+        self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn with invalid worker ID."""
+        mock_run.return_value = MagicMock(returncode=0)
         launcher = ContainerLauncher()
         result = launcher.spawn(
             worker_id=-1,
@@ -1062,6 +1071,7 @@ class TestContainerLauncherSpawn:
         assert "Invalid worker_id" in result.error
         mock_start.assert_not_called()
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_exec_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
@@ -1071,12 +1081,14 @@ class TestContainerLauncherSpawn:
         mock_start: MagicMock,
         mock_wait: MagicMock,
         mock_exec: MagicMock,
+        mock_run: MagicMock,
         tmp_path: Path,
     ) -> None:
         """Test spawn includes API key from environment."""
         mock_start.return_value = "container-abc123"
         mock_wait.return_value = True
         mock_exec.return_value = True
+        mock_run.return_value = MagicMock(returncode=0)
 
         launcher = ContainerLauncher()
         launcher.spawn(
@@ -1090,6 +1102,7 @@ class TestContainerLauncherSpawn:
         call_env = mock_start.call_args[1]["env"]
         assert "ANTHROPIC_API_KEY" in call_env
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_exec_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
@@ -1098,12 +1111,14 @@ class TestContainerLauncherSpawn:
         mock_start: MagicMock,
         mock_wait: MagicMock,
         mock_exec: MagicMock,
+        mock_run: MagicMock,
         tmp_path: Path,
     ) -> None:
         """Test spawn applies config env vars."""
         mock_start.return_value = "container-abc123"
         mock_wait.return_value = True
         mock_exec.return_value = True
+        mock_run.return_value = MagicMock(returncode=0)
 
         config = LauncherConfig(env_vars={"ZERG_DEBUG": "true"})
         launcher = ContainerLauncher(config=config)
@@ -1118,6 +1133,7 @@ class TestContainerLauncherSpawn:
         call_env = mock_start.call_args[1]["env"]
         assert call_env.get("ZERG_DEBUG") == "true"
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_exec_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
@@ -1126,12 +1142,14 @@ class TestContainerLauncherSpawn:
         mock_start: MagicMock,
         mock_wait: MagicMock,
         mock_exec: MagicMock,
+        mock_run: MagicMock,
         tmp_path: Path,
     ) -> None:
         """Test spawn applies caller-provided env vars."""
         mock_start.return_value = "container-abc123"
         mock_wait.return_value = True
         mock_exec.return_value = True
+        mock_run.return_value = MagicMock(returncode=0)
 
         launcher = ContainerLauncher()
         launcher.spawn(
@@ -1146,12 +1164,14 @@ class TestContainerLauncherSpawn:
         call_env = mock_start.call_args[1]["env"]
         assert call_env.get("ZERG_CUSTOM") == "value"
 
+    @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_exception_handling(
-        self, mock_start: MagicMock, tmp_path: Path
+        self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn handles exceptions."""
         mock_start.side_effect = Exception("Docker error")
+        mock_run.return_value = MagicMock(returncode=0)
 
         launcher = ContainerLauncher()
         result = launcher.spawn(
