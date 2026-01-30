@@ -282,7 +282,7 @@ class LevelController:
             "levels": {
                 level: status.to_dict() for level, status in self._levels.items()
             },
-            "is_complete": completed_tasks == total_tasks and failed_tasks == 0,
+            "is_complete": (completed_tasks + failed_tasks) == total_tasks,
         }
 
     def get_level_status(self, level: int) -> LevelStatus | None:

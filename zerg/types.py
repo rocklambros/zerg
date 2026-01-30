@@ -193,8 +193,9 @@ class LevelStatus:
 
     @property
     def is_complete(self) -> bool:
-        """Check if level is complete."""
-        return self.completed_tasks == self.total_tasks and self.failed_tasks == 0
+        """Check if level is complete (all tasks resolved: completed or failed)."""
+        resolved = self.completed_tasks + self.failed_tasks
+        return resolved == self.total_tasks
 
     @property
     def progress_percent(self) -> float:

@@ -314,15 +314,16 @@ class TestIsLevelComplete:
 
         assert controller.is_level_complete(1) is True
 
-    def test_is_level_complete_false_with_failures(self, sample_tasks) -> None:
-        """Test level is not complete with failures."""
+    def test_is_level_complete_with_failures(self, sample_tasks) -> None:
+        """Test level is complete when all tasks resolved (completed + failed)."""
         controller = LevelController()
         controller.initialize(sample_tasks)
         controller.start_level(1)
         controller.mark_task_complete("TASK-001")
         controller.mark_task_failed("TASK-002")
 
-        assert controller.is_level_complete(1) is False
+        # Failed tasks count as resolved — level can advance
+        assert controller.is_level_complete(1) is True
 
     def test_is_level_complete_nonexistent(self, sample_tasks) -> None:
         """Test nonexistent level returns False."""
