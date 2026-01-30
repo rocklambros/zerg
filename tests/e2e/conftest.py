@@ -35,89 +35,91 @@ def mock_worker() -> MockWorker:
 
 
 @pytest.fixture
-def sample_e2e_task_graph() -> list[dict]:
+def sample_e2e_task_graph() -> dict:
     """Provide a sample task graph with 4 tasks across 2 levels.
 
     Level 1 (parallel):
-        T1.1 - create src/hello.py
-        T1.2 - create src/utils.py
+        L1-001 - create src/hello.py
+        L1-002 - create src/utils.py
     Level 2 (depends on L1):
-        T2.1 - create tests/test_hello.py (depends on T1.1)
-        T2.2 - create README.md (depends on T1.1, T1.2)
+        L2-001 - create tests/test_hello.py (depends on L1-001)
+        L2-002 - create README.md (depends on L1-001, L1-002)
 
     Returns:
-        List of task dictionaries in task-graph format.
+        Dict with 'tasks' key containing list of task dictionaries.
     """
-    return [
-        {
-            "id": "T1.1",
-            "title": "Create hello module",
-            "description": "Create the main hello module with greeting function.",
-            "phase": "implementation",
-            "level": 1,
-            "dependencies": [],
-            "files": {
-                "create": ["src/hello.py"],
-                "modify": [],
-                "read": [],
+    return {
+        "tasks": [
+            {
+                "id": "L1-001",
+                "title": "Create hello module",
+                "description": "Create the main hello module with greeting function.",
+                "phase": "implementation",
+                "level": 1,
+                "dependencies": [],
+                "files": {
+                    "create": ["src/hello.py"],
+                    "modify": [],
+                    "read": [],
+                },
+                "verification": {
+                    "command": "python -c \"import src.hello\"",
+                    "timeout_seconds": 30,
+                },
             },
-            "verification": {
-                "command": "python -c \"import src.hello\"",
-                "timeout_seconds": 30,
+            {
+                "id": "L1-002",
+                "title": "Create utils module",
+                "description": "Create utility helpers used across the project.",
+                "phase": "implementation",
+                "level": 1,
+                "dependencies": [],
+                "files": {
+                    "create": ["src/utils.py"],
+                    "modify": [],
+                    "read": [],
+                },
+                "verification": {
+                    "command": "python -c \"import src.utils\"",
+                    "timeout_seconds": 30,
+                },
             },
-        },
-        {
-            "id": "T1.2",
-            "title": "Create utils module",
-            "description": "Create utility helpers used across the project.",
-            "phase": "implementation",
-            "level": 1,
-            "dependencies": [],
-            "files": {
-                "create": ["src/utils.py"],
-                "modify": [],
-                "read": [],
+            {
+                "id": "L2-001",
+                "title": "Create hello tests",
+                "description": "Write tests for the hello module.",
+                "phase": "testing",
+                "level": 2,
+                "dependencies": ["L1-001"],
+                "files": {
+                    "create": ["tests/test_hello.py"],
+                    "modify": [],
+                    "read": [],
+                },
+                "verification": {
+                    "command": "python -m pytest tests/test_hello.py",
+                    "timeout_seconds": 60,
+                },
             },
-            "verification": {
-                "command": "python -c \"import src.utils\"",
-                "timeout_seconds": 30,
+            {
+                "id": "L2-002",
+                "title": "Create README",
+                "description": "Generate project README with usage instructions.",
+                "phase": "documentation",
+                "level": 2,
+                "dependencies": ["L1-001", "L1-002"],
+                "files": {
+                    "create": ["README.md"],
+                    "modify": [],
+                    "read": [],
+                },
+                "verification": {
+                    "command": "test -f README.md",
+                    "timeout_seconds": 10,
+                },
             },
-        },
-        {
-            "id": "T2.1",
-            "title": "Create hello tests",
-            "description": "Write tests for the hello module.",
-            "phase": "testing",
-            "level": 2,
-            "dependencies": ["T1.1"],
-            "files": {
-                "create": ["tests/test_hello.py"],
-                "modify": [],
-                "read": [],
-            },
-            "verification": {
-                "command": "python -m pytest tests/test_hello.py",
-                "timeout_seconds": 60,
-            },
-        },
-        {
-            "id": "T2.2",
-            "title": "Create README",
-            "description": "Generate project README with usage instructions.",
-            "phase": "documentation",
-            "level": 2,
-            "dependencies": ["T1.1", "T1.2"],
-            "files": {
-                "create": ["README.md"],
-                "modify": [],
-                "read": [],
-            },
-            "verification": {
-                "command": "test -f README.md",
-                "timeout_seconds": 10,
-            },
-        },
-    ]
+        ]
+    }
 
 
 @pytest.fixture
