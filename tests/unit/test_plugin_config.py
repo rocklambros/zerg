@@ -78,13 +78,13 @@ def test_hook_config_timeout_validation():
         HookConfig(event="test", command="echo", timeout=0)
 
     with pytest.raises(ValidationError):
-        HookConfig(event="test", command="echo", timeout=3601)
+        HookConfig(event="test", command="echo", timeout=601)
 
     # Boundary values should succeed
     hook_min = HookConfig(event="test", command="echo", timeout=1)
     assert hook_min.timeout == 1
-    hook_max = HookConfig(event="test", command="echo", timeout=3600)
-    assert hook_max.timeout == 3600
+    hook_max = HookConfig(event="test", command="echo", timeout=600)
+    assert hook_max.timeout == 600
 
 
 def test_gate_config_required_default():
