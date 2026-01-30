@@ -1,4 +1,4 @@
-"""Tests for ZERG v2 Troubleshoot Command."""
+"""Tests for ZERG v2 Debug Command."""
 
 import sys
 from pathlib import Path
@@ -6,34 +6,34 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-class TestTroubleshootPhase:
-    """Tests for troubleshoot phase enumeration."""
+class TestDebugPhase:
+    """Tests for debug phase enumeration."""
 
     def test_phases_exist(self):
-        """Test troubleshoot phases are defined."""
-        from troubleshoot import TroubleshootPhase
+        """Test debug phases are defined."""
+        from debug import DebugPhase
 
-        assert hasattr(TroubleshootPhase, "SYMPTOM")
-        assert hasattr(TroubleshootPhase, "HYPOTHESIS")
-        assert hasattr(TroubleshootPhase, "TEST")
-        assert hasattr(TroubleshootPhase, "ROOT_CAUSE")
+        assert hasattr(DebugPhase, "SYMPTOM")
+        assert hasattr(DebugPhase, "HYPOTHESIS")
+        assert hasattr(DebugPhase, "TEST")
+        assert hasattr(DebugPhase, "ROOT_CAUSE")
 
 
-class TestTroubleshootConfig:
-    """Tests for troubleshoot configuration."""
+class TestDebugConfig:
+    """Tests for debug configuration."""
 
     def test_config_defaults(self):
-        """Test TroubleshootConfig has sensible defaults."""
-        from troubleshoot import TroubleshootConfig
+        """Test DebugConfig has sensible defaults."""
+        from debug import DebugConfig
 
-        config = TroubleshootConfig()
+        config = DebugConfig()
         assert config.verbose is False
 
     def test_config_custom(self):
-        """Test TroubleshootConfig with custom values."""
-        from troubleshoot import TroubleshootConfig
+        """Test DebugConfig with custom values."""
+        from debug import DebugConfig
 
-        config = TroubleshootConfig(verbose=True, max_hypotheses=5)
+        config = DebugConfig(verbose=True, max_hypotheses=5)
         assert config.verbose is True
         assert config.max_hypotheses == 5
 
@@ -43,7 +43,7 @@ class TestHypothesis:
 
     def test_hypothesis_creation(self):
         """Test Hypothesis can be created."""
-        from troubleshoot import Hypothesis
+        from debug import Hypothesis
 
         hyp = Hypothesis(
             description="Database connection timeout",
@@ -54,7 +54,7 @@ class TestHypothesis:
 
     def test_hypothesis_to_dict(self):
         """Test Hypothesis serialization."""
-        from troubleshoot import Hypothesis
+        from debug import Hypothesis
 
         hyp = Hypothesis(
             description="Memory leak",
@@ -70,7 +70,7 @@ class TestDiagnosticResult:
 
     def test_result_creation(self):
         """Test DiagnosticResult can be created."""
-        from troubleshoot import DiagnosticResult
+        from debug import DiagnosticResult
 
         result = DiagnosticResult(
             symptom="Application crash",
@@ -82,7 +82,7 @@ class TestDiagnosticResult:
 
     def test_result_has_root_cause(self):
         """Test DiagnosticResult root cause detection."""
-        from troubleshoot import DiagnosticResult
+        from debug import DiagnosticResult
 
         with_cause = DiagnosticResult(
             symptom="Error",
@@ -106,14 +106,14 @@ class TestErrorParser:
 
     def test_parser_creation(self):
         """Test ErrorParser can be created."""
-        from troubleshoot import ErrorParser
+        from debug import ErrorParser
 
         parser = ErrorParser()
         assert parser is not None
 
     def test_parser_python_error(self):
         """Test parsing Python error."""
-        from troubleshoot import ErrorParser
+        from debug import ErrorParser
 
         parser = ErrorParser()
         error = """Traceback (most recent call last):
@@ -125,7 +125,7 @@ ValueError: test error"""
 
     def test_parser_extract_file_line(self):
         """Test extracting file and line from error."""
-        from troubleshoot import ErrorParser
+        from debug import ErrorParser
 
         parser = ErrorParser()
         error = 'File "test.py", line 10'
@@ -139,35 +139,35 @@ class TestStackTraceAnalyzer:
 
     def test_analyzer_creation(self):
         """Test StackTraceAnalyzer can be created."""
-        from troubleshoot import StackTraceAnalyzer
+        from debug import StackTraceAnalyzer
 
         analyzer = StackTraceAnalyzer()
         assert analyzer is not None
 
 
-class TestTroubleshootCommand:
-    """Tests for TroubleshootCommand class."""
+class TestDebugCommand:
+    """Tests for DebugCommand class."""
 
     def test_command_creation(self):
-        """Test TroubleshootCommand can be created."""
-        from troubleshoot import TroubleshootCommand
+        """Test DebugCommand can be created."""
+        from debug import DebugCommand
 
-        cmd = TroubleshootCommand()
+        cmd = DebugCommand()
         assert cmd is not None
 
     def test_command_run_returns_result(self):
         """Test run returns DiagnosticResult."""
-        from troubleshoot import DiagnosticResult, TroubleshootCommand
+        from debug import DiagnosticResult, DebugCommand
 
-        cmd = TroubleshootCommand()
+        cmd = DebugCommand()
         result = cmd.run(error="test error", dry_run=True)
         assert isinstance(result, DiagnosticResult)
 
     def test_command_format_text(self):
         """Test text output format."""
-        from troubleshoot import DiagnosticResult, TroubleshootCommand
+        from debug import DiagnosticResult, DebugCommand
 
-        cmd = TroubleshootCommand()
+        cmd = DebugCommand()
         result = DiagnosticResult(
             symptom="App crash",
             hypotheses=[],
@@ -175,15 +175,15 @@ class TestTroubleshootCommand:
             recommendation="Add more RAM",
         )
         output = cmd.format_result(result, format="text")
-        assert "Troubleshoot" in output or "Diagnostic" in output
+        assert "Debug" in output or "Diagnostic" in output
 
     def test_command_format_json(self):
         """Test JSON output format."""
         import json
 
-        from troubleshoot import DiagnosticResult, TroubleshootCommand
+        from debug import DiagnosticResult, DebugCommand
 
-        cmd = TroubleshootCommand()
+        cmd = DebugCommand()
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],

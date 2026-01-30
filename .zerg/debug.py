@@ -1,4 +1,4 @@
-"""ZERG v2 Troubleshoot Command - Systematic debugging with root cause analysis."""
+"""ZERG v2 Debug Command - Systematic debugging with root cause analysis."""
 
 import json
 import re
@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 
-class TroubleshootPhase(Enum):
-    """Phases of troubleshooting process."""
+class DebugPhase(Enum):
+    """Phases of debugging process."""
 
     SYMPTOM = "symptom"
     HYPOTHESIS = "hypothesis"
@@ -16,8 +16,8 @@ class TroubleshootPhase(Enum):
 
 
 @dataclass
-class TroubleshootConfig:
-    """Configuration for troubleshooting."""
+class DebugConfig:
+    """Configuration for debugging."""
 
     verbose: bool = False
     max_hypotheses: int = 3
@@ -64,7 +64,7 @@ class DiagnosticResult:
     hypotheses: list[Hypothesis]
     root_cause: str
     recommendation: str
-    phase: TroubleshootPhase = TroubleshootPhase.ROOT_CAUSE
+    phase: DebugPhase = DebugPhase.ROOT_CAUSE
     confidence: float = 0.8
 
     @property
@@ -143,12 +143,12 @@ class StackTraceAnalyzer:
         return patterns
 
 
-class TroubleshootCommand:
-    """Main troubleshoot command orchestrator."""
+class DebugCommand:
+    """Main debug command orchestrator."""
 
-    def __init__(self, config: TroubleshootConfig | None = None):
-        """Initialize troubleshoot command."""
-        self.config = config or TroubleshootConfig()
+    def __init__(self, config: DebugConfig | None = None):
+        """Initialize debug command."""
+        self.config = config or DebugConfig()
         self.parser = ErrorParser()
         self.analyzer = StackTraceAnalyzer()
 
@@ -158,7 +158,7 @@ class TroubleshootCommand:
         stack_trace: str = "",
         dry_run: bool = False,
     ) -> DiagnosticResult:
-        """Run troubleshooting.
+        """Run debugging.
 
         Args:
             error: Error message
@@ -292,12 +292,12 @@ class TroubleshootCommand:
 
 
 __all__ = [
-    "TroubleshootPhase",
-    "TroubleshootConfig",
+    "DebugPhase",
+    "DebugConfig",
     "Hypothesis",
     "ParsedError",
     "DiagnosticResult",
     "ErrorParser",
     "StackTraceAnalyzer",
-    "TroubleshootCommand",
+    "DebugCommand",
 ]
