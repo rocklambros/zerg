@@ -317,6 +317,16 @@ class MergeResult:
 # ============================================================================
 
 
+@dataclass
+class LevelCompleteResult:
+    """Result of level completion handling."""
+
+    success: bool
+    level: int
+    merge_commit: str | None = None
+    error: str | None = None
+
+
 class ExecutionEvent(TypedDict, total=False):
     """Event in execution log."""
 
