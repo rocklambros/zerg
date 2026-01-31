@@ -371,22 +371,14 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Node.js (via feature, but ensure npm global works)
-ENV NPM_CONFIG_PREFIX=/root/.npm-global
-ENV PATH=$NPM_CONFIG_PREFIX/bin:$PATH
-
-# Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code
-
-# MCP servers commonly used
-RUN npm install -g \
-    @anthropic-ai/mcp-server-filesystem \
-    @anthropic-ai/mcp-server-github
-
 # Create directories
 RUN mkdir -p /root/.claude/tasks /workspace
 
 WORKDIR /workspace
+
+# NOTE: Node.js and npm are installed by devcontainer features AFTER
+# the Dockerfile build. All npm-dependent installs (Claude Code CLI,
+# MCP servers) go in post-create.sh instead.
 ```
 
 Create `.devcontainer/post-create.sh`:
@@ -398,6 +390,17 @@ set -e
 echo "═══════════════════════════════════════════════════"
 echo "  ZERG Worker Post-Create Setup"
 echo "═══════════════════════════════════════════════════"
+
+# Configure npm global path
+export NPM_CONFIG_PREFIX=/root/.npm-global
+export PATH=$NPM_CONFIG_PREFIX/bin:$PATH
+
+# Install Claude Code CLI and MCP servers
+echo "Installing Claude Code CLI..."
+npm install -g @anthropic-ai/claude-code
+npm install -g \
+    @anthropic-ai/mcp-server-filesystem \
+    @anthropic-ai/mcp-server-github
 
 # Install project dependencies
 if [ -f "package.json" ]; then

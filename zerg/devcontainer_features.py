@@ -224,7 +224,7 @@ class DynamicDevcontainerGenerator:
         # Add Claude CLI installation if requested
         if self.install_claude:
             post_create_commands.append(
-                "npm install -g @anthropic/claude-code || true"
+                "npm install -g @anthropic-ai/claude-code || true"
             )
 
         # Add ZERG ready signal
@@ -389,7 +389,7 @@ cd "$WORKTREE"
 # Check if Claude CLI is available
 if ! command -v claude &> /dev/null; then
     echo "ERROR: Claude CLI not found. Installing..."
-    npm install -g @anthropic/claude-code
+    npm install -g @anthropic-ai/claude-code
 fi
 
 # Launch Claude Code with task list (native feature)
