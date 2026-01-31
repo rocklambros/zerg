@@ -1,109 +1,50 @@
 # Test Backlog
 
-**Updated**: 2026-01-30
-**Test Run**: `pytest tests/ -n auto --timeout=60` (16 workers, pytest-xdist)
-**Results**: 5366 passed, 3 failed, 1 skipped (99.9% pass rate), 2m09s
+**Updated**: 2026-01-31
+**Test Run**: `pytest tests/ -x -q` (serial, full suite)
+**Results**: 5418 passed, 0 failed, 1 skipped (100% pass rate on non-skipped), 5m55s
 
-## Fixed Issues (previous run: 11 failures)
+## Fixed Issues (all resolved)
 
-| # | Root Cause | Failures | Status |
-|---|-----------|----------|--------|
-| 1 | `harness.py:131` task graph parsing expects dicts, gets strings | 7 | FIXED |
-| 2 | `min_minutes` parameter removed but test still passes it | 1 | FIXED |
-| 3 | `claim_next_task` poll loop exceeds 60s test timeout | 2 | FIXED |
-| 4 | E2E test requires real Claude CLI | 1 | SKIPPED |
+| # | Root Cause | Failures | Status | Fixed In |
+|---|-----------|----------|--------|----------|
+| 1 | `harness.py:131` task graph parsing expects dicts, gets strings | 7 | FIXED | previous session |
+| 2 | `min_minutes` parameter removed but test still passes it | 1 | FIXED | previous session |
+| 3 | `claim_next_task` poll loop exceeds 60s test timeout | 2 | FIXED | previous session |
+| 4 | E2E test requires real Claude CLI | 1 | SKIPPED | previous session |
+| 5 | Mock worker task ID mismatch (`T1.2` vs `L1-002`) | 1 | FIXED | 2451f86 |
+| 6 | `is_level_complete` treated failed tasks as resolved | 1 | FIXED | 2451f86 |
+| 7 | MetricsCollector patched in wrong module (orchestrator vs level_coordinator) | 1 | FIXED | 2451f86 |
 
-## Remaining Issues (3 failures)
+## Remaining Issues
 
-| # | Root Cause | Failures | Severity | Category |
-|---|-----------|----------|----------|----------|
-| 5 | Mock worker failure simulation not working | 1 | MEDIUM | Bug |
-| 6 | LevelController marks level complete despite failed task | 1 | MEDIUM | Bug |
-| 7 | Metrics compute_feature_metrics not called after level | 1 | MEDIUM | Bug |
-
----
-
-## Issue 1: E2E Harness Task Graph Parsing Bug (7 failures)
-
-**File**: `tests/e2e/harness.py:131`
-**Error**: `AttributeError: 'str' object has no attribute 'get'`
-
-`setup_task_graph()` iterates over task graph entries expecting dicts but receives strings. The `sample_e2e_task_graph` fixture likely provides a structure where `tasks` contains string task IDs instead of task objects, or the iteration is over dict keys rather than values.
-
-**Affected tests**:
-- `tests/integration/test_orchestrator_integration.py::test_metrics_computed_after_level_completion`
-- `tests/integration/test_rush_flow.py::test_task_failure_blocks_level`
-- `tests/e2e/test_full_pipeline.py::test_mock_pipeline_completes`
-- `tests/e2e/test_full_pipeline.py::test_mock_pipeline_creates_files`
-- `tests/e2e/test_full_pipeline.py::test_mock_pipeline_merges_levels`
-- `tests/e2e/test_full_pipeline.py::test_mock_pipeline_state_consistent`
-- `tests/e2e/test_full_pipeline.py::test_mock_pipeline_handles_task_failure`
-
-**Fix**: Check `harness.py:131` — either fix the fixture to provide task dicts, or fix the iteration to handle the actual data structure.
+None.
 
 ---
 
-## Issue 2: `min_minutes` Parameter Removal Regression (1 failure)
+## Fix Details (Issues 5-7, commit 2451f86)
 
-**File**: `tests/unit/test_design_cmd.py::test_task_graph_respects_min_minutes`
-**Error**: `TypeError: create_task_graph_template() got an unexpected keyword argument 'min_minutes'`
+### Issue 5: Mock Worker Task ID Mismatch
 
-Task PRF-L1-002 removed the unused `min_minutes` parameter from `create_task_graph_template()` in `zerg/commands/design.py`, but the corresponding test still passes it.
+**File**: `tests/e2e/test_full_pipeline.py`
+**Root Cause**: Test used `fail_tasks={"T1.2"}` but the `sample_e2e_task_graph` fixture defines task IDs as `L1-001`, `L1-002`, etc. The fail set never matched any real task ID, so all tasks succeeded.
+**Fix**: Changed fail set to `{"L1-002"}`.
 
-**Fix**: Update or remove `test_task_graph_respects_min_minutes` since the parameter no longer exists.
+### Issue 6: is_level_complete Semantics
 
----
+**File**: `zerg/levels.py`, `zerg/types.py`, `zerg/orchestrator.py`
+**Root Cause**: `is_level_complete()` counted `completed + failed == total`, treating failed tasks as resolved. This contradicted the test expectation that failed tasks should block level completion.
+**Fix**: Split into two methods:
+- `is_level_complete()` — True only when ALL tasks completed successfully
+- `is_level_resolved()` — True when all tasks are terminal (completed + failed)
 
-## Issue 3: `claim_next_task` Poll Timeout (2 failures)
+Orchestrator and `can_advance()` now use `is_level_resolved()` for advancement decisions.
 
-**Files**:
-- `tests/test_worker_protocol.py::test_claim_next_task_none_available`
-- `tests/integration/test_worker_protocol_extended.py::test_claim_returns_none_when_no_tasks`
+### Issue 7: MetricsCollector Patch Location
 
-**Error**: `Failed: Timeout (>60.0s) from pytest-timeout`
-
-`claim_next_task()` in `zerg/worker_protocol.py:383` enters a `time.sleep(interval)` poll loop. With the default 120s max poll time and no available tasks, the test exceeds the 60s pytest timeout before `claim_next_task` returns `None`.
-
-**Fix**: Mock `time.sleep` in these tests, or reduce the poll timeout/interval for test scenarios. Alternatively, increase the pytest timeout for these specific tests.
-
----
-
-## Issue 4: Real Execution E2E Requires Claude CLI (1 failure) — SKIPPED
-
-**Status**: RESOLVED — `@pytest.mark.skip` added to `TestRealExecution` class.
-
----
-
-## Issue 5: Mock Worker Failure Simulation Not Working (1 failure)
-
-**File**: `tests/e2e/test_full_pipeline.py::test_mock_pipeline_handles_task_failure`
-**Error**: `assert result.success is False` — but result shows `success=True, tasks_failed=0`
-
-The test monkeypatches `tests.e2e.mock_worker.MockWorker` with a failing worker factory for task `T1.2`, but the mock pipeline still completes all 4 tasks successfully. The monkeypatch target path may not match where `MockWorker` is imported/used by the harness `run()` method.
-
-**Fix**: Investigate mock worker patching — ensure the monkeypatch targets the correct import path where `MockWorker` is resolved at runtime.
-
----
-
-## Issue 6: LevelController Marks Level Complete Despite Failed Task (1 failure)
-
-**File**: `tests/integration/test_rush_flow.py::test_task_failure_blocks_level`
-**Error**: `assert not controller.is_level_complete(1)` — but `is_level_complete(1)` returns `True`
-
-After marking TASK-001 as failed and TASK-002 as complete, `is_level_complete(1)` still returns `True`. The level controller appears to consider a level complete when all tasks have a terminal status (including "failed"), rather than requiring all tasks to succeed.
-
-**Fix**: Review `LevelController.is_level_complete()` — determine if the logic should treat failed tasks as blocking level completion, or if the test expectation is wrong.
-
----
-
-## Issue 7: Metrics compute_feature_metrics Not Called After Level (1 failure)
-
-**File**: `tests/integration/test_orchestrator_integration.py::test_metrics_computed_after_level_completion`
-**Error**: `Expected 'compute_feature_metrics' to have been called once. Called 0 times.`
-
-The orchestrator completes level 1 but never calls `compute_feature_metrics`. The mock for the metrics collector may not be injected correctly into the orchestrator instance.
-
-**Fix**: Verify that the metrics mock is properly wired into the orchestrator's metrics pipeline.
+**File**: `tests/integration/test_orchestrator_integration.py`
+**Root Cause**: Test patched `zerg.orchestrator.MetricsCollector` but `_on_level_complete_handler` delegates to `LevelCoordinator.handle_level_complete()` which imports `MetricsCollector` from `zerg.level_coordinator`.
+**Fix**: Changed patch target to `zerg.level_coordinator.MetricsCollector`.
 
 ---
 

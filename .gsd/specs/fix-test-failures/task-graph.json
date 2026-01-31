@@ -1,0 +1,87 @@
+{
+  "feature": "fix-test-failures",
+  "version": "2.0",
+  "generated": "2026-01-30T22:50:00Z",
+  "total_tasks": 3,
+  "estimated_duration_minutes": 15,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "FIX-001",
+      "title": "Fix monkeypatch target in E2E pipeline test",
+      "description": "The monkeypatch in test_mock_pipeline_handles_task_failure targets 'tests.e2e.mock_worker.MockWorker' but harness.py:215 does 'from tests.e2e.mock_worker import MockWorker' at call time, creating a new binding. Fix: change harness.py to use module-reference import so the monkeypatch path works.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/e2e/harness.py"],
+        "read": ["tests/e2e/test_full_pipeline.py", "tests/e2e/mock_worker.py"]
+      },
+      "acceptance_criteria": [
+        "tests/e2e/test_full_pipeline.py::TestFullPipeline::test_mock_pipeline_handles_task_failure passes",
+        "All other E2E tests still pass"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/e2e/test_full_pipeline.py -xvs 2>&1 | tail -20",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "FIX-002",
+      "title": "Fix MetricsCollector patch location in orchestrator test",
+      "description": "test_metrics_computed_after_level_completion patches 'zerg.orchestrator.MetricsCollector' but _on_level_complete_handler delegates to LevelCoordinator.handle_level_complete() which calls MetricsCollector from zerg.level_coordinator (line 238). Fix: patch 'zerg.level_coordinator.MetricsCollector'.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/integration/test_orchestrator_integration.py"],
+        "read": ["zerg/orchestrator.py", "zerg/level_coordinator.py"]
+      },
+      "acceptance_criteria": [
+        "tests/integration/test_orchestrator_integration.py::TestMetricsCollectionThroughFailures::test_metrics_computed_after_level_completion passes",
+        "All other orchestrator integration tests still pass"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/integration/test_orchestrator_integration.py::TestMetricsCollectionThroughFailures -xvs 2>&1 | tail -20",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "id": "FIX-003",
+      "title": "Fix is_level_complete semantics for failed tasks",
+      "description": "LevelController.is_level_complete() at zerg/levels.py:220-223 counts failed tasks as resolved (completed + failed == total). This is wrong: is_level_complete should mean ALL tasks completed successfully. Add is_level_resolved() for the 'all terminal' check. Update internal callers (can_advance, mark_task_complete line 154) and orchestrator callers (lines 560, 815) to use is_level_resolved. Fix test_is_level_complete_with_failures to test is_level_resolved instead.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/levels.py", "zerg/orchestrator.py", "tests/unit/test_levels_extended.py"],
+        "read": ["tests/integration/test_rush_flow.py"]
+      },
+      "acceptance_criteria": [
+        "tests/integration/test_rush_flow.py::TestRushFlowTaskFailure::test_task_failure_blocks_level passes",
+        "tests/unit/test_levels_extended.py::test_is_level_complete_with_failures passes (updated to test is_level_resolved)",
+        "is_level_complete returns False when any task has failed",
+        "is_level_resolved returns True when all tasks are terminal (completed + failed)",
+        "Orchestrator uses is_level_resolved for level advancement",
+        "All existing level tests pass"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/integration/test_rush_flow.py tests/unit/test_levels_extended.py tests/test_levels.py -xvs 2>&1 | tail -30",
+        "timeout_seconds": 60
+      }
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["FIX-001", "FIX-002", "FIX-003"],
+      "parallel": true,
+      "estimated_minutes": 15
+    }
+  }
+}
