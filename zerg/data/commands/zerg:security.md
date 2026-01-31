@@ -47,13 +47,15 @@ Only fetches rules relevant to your stack:
 
 ### Integration with CLAUDE.md
 
-Rules are automatically imported into your project's `CLAUDE.md`:
+Rules are stored in `.claude/rules/security/` where Claude Code auto-loads them. An informational summary is added to `CLAUDE.md`:
 
 ```markdown
 <!-- SECURITY_RULES_START -->
 # Security Rules
-@.claude/security-rules/_core/owasp-2025.md
-@.claude/security-rules/languages/python.md
+
+## Fetched Rules
+- `_core/owasp-2025.md`
+- `languages/python/CLAUDE.md`
 <!-- SECURITY_RULES_END -->
 ```
 

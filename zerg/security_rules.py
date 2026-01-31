@@ -120,6 +120,7 @@ FRAMEWORK_DETECTION: dict[str, tuple[str, str]] = {
 # Infrastructure detection patterns
 INFRASTRUCTURE_DETECTION: dict[str, str] = {
     "Dockerfile": "docker",
+    ".devcontainer/Dockerfile": "docker",
     "docker-compose.yml": "docker",
     "docker-compose.yaml": "docker",
     "kubernetes": "kubernetes",

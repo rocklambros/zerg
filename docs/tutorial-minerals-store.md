@@ -349,17 +349,17 @@ Auto-generated from TikiTribe/claude-secure-coding-rules
 - **Languages**: python
 - **Frameworks**: fastapi
 
-## Imported Rules
-@security-rules/_core/owasp-2025.md
-@security-rules/python.md
-@security-rules/fastapi.md
+## Fetched Rules
+- `_core/owasp-2025.md`
+- `languages/python/CLAUDE.md`
+- `backend/fastapi/CLAUDE.md`
 
 <!-- SECURITY_RULES_END -->
 ```
 
 **Why security rules?**
 
-Workers read `CLAUDE.md` before implementing. The security rules ensure they follow secure coding practices — like parameterized queries, input validation, and secure password handling.
+Rules are stored in `.claude/rules/security/`, which Claude Code auto-loads into context. Workers automatically follow secure coding practices — like parameterized queries, input validation, and secure password handling — without needing explicit `@-imports`.
 
 ---
 

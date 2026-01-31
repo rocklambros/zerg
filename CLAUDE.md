@@ -159,10 +159,12 @@ Auto-generated from [TikiTribe/claude-secure-coding-rules](https://github.com/Ti
 ## Detected Stack
 
 - **Languages**: javascript, python
+- **Infrastructure**: docker
 
 ## Fetched Rules
 
 - `_core/owasp-2025.md`
+- `containers/docker/CLAUDE.md`
 - `languages/javascript/CLAUDE.md`
 - `languages/python/CLAUDE.md`
 

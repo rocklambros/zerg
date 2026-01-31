@@ -92,8 +92,8 @@ zerg init --with-containers
 | `.devcontainer/mcp-servers/` | MCP server configuration |
 | `.gsd/PROJECT.md` | Project overview |
 | `.gsd/INFRASTRUCTURE.md` | Infrastructure requirements |
-| `.claude/security-rules/` | Stack-specific security rules |
-| `CLAUDE.md` (updated) | Security rules integrated |
+| `.claude/rules/security/` | Stack-specific security rules (auto-loaded by Claude Code) |
+| `CLAUDE.md` (updated) | Security rules summary |
 
 #### Multi-Language Detection
 
@@ -111,7 +111,7 @@ ZERG automatically detects all languages in your project:
 
 #### Security Rules Integration
 
-ZERG automatically fetches stack-specific security rules from [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules) and integrates them into your `CLAUDE.md`. Rules are cached in `.claude/security-rules/`.
+ZERG automatically fetches stack-specific security rules from [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules) and stores them in `.claude/rules/security/`. Claude Code auto-loads all files under `.claude/rules/`, so no `@-imports` are needed. An informational summary is added to `CLAUDE.md`.
 
 ---
 
