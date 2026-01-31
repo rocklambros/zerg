@@ -552,3 +552,75 @@ class TestContainerModeEnforcement:
         # Should have fallen back to subprocess
         mock_subprocess_launcher_class.assert_called_once()
         assert orch.launcher is mock_subprocess_instance
+
+
+class TestUnknownModeRejection:
+    """Tests that unknown launcher modes raise ValueError instead of silent fallback."""
+
+    @patch("zerg.orchestrator.StateManager")
+    @patch("zerg.orchestrator.LevelController")
+    @patch("zerg.orchestrator.TaskParser")
+    @patch("zerg.orchestrator.GateRunner")
+    @patch("zerg.orchestrator.WorktreeManager")
+    @patch("zerg.orchestrator.ContainerManager")
+    @patch("zerg.orchestrator.PortAllocator")
+    @patch("zerg.orchestrator.MergeCoordinator")
+    @patch("zerg.orchestrator.TaskSyncBridge")
+    @patch("zerg.orchestrator.SubprocessLauncher")
+    def test_unknown_mode_raises_value_error(
+        self,
+        mock_subprocess_launcher_class: MagicMock,
+        mock_task_sync: MagicMock,
+        mock_merge_coordinator: MagicMock,
+        mock_port_allocator: MagicMock,
+        mock_container_manager: MagicMock,
+        mock_worktree_manager: MagicMock,
+        mock_gate_runner: MagicMock,
+        mock_task_parser: MagicMock,
+        mock_level_controller: MagicMock,
+        mock_state_manager: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Unknown launcher mode must raise ValueError, not silently fall back."""
+        config = ZergConfig()
+        with pytest.raises(ValueError, match="Unsupported launcher mode: 'bogus'"):
+            Orchestrator(
+                feature="test-feature",
+                config=config,
+                repo_path=tmp_path,
+                launcher_mode="bogus",
+            )
+
+    @patch("zerg.orchestrator.StateManager")
+    @patch("zerg.orchestrator.LevelController")
+    @patch("zerg.orchestrator.TaskParser")
+    @patch("zerg.orchestrator.GateRunner")
+    @patch("zerg.orchestrator.WorktreeManager")
+    @patch("zerg.orchestrator.ContainerManager")
+    @patch("zerg.orchestrator.PortAllocator")
+    @patch("zerg.orchestrator.MergeCoordinator")
+    @patch("zerg.orchestrator.TaskSyncBridge")
+    @patch("zerg.orchestrator.SubprocessLauncher")
+    def test_task_mode_raises_value_error(
+        self,
+        mock_subprocess_launcher_class: MagicMock,
+        mock_task_sync: MagicMock,
+        mock_merge_coordinator: MagicMock,
+        mock_port_allocator: MagicMock,
+        mock_container_manager: MagicMock,
+        mock_worktree_manager: MagicMock,
+        mock_gate_runner: MagicMock,
+        mock_task_parser: MagicMock,
+        mock_level_controller: MagicMock,
+        mock_state_manager: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """The removed 'task' mode must raise ValueError if somehow passed."""
+        config = ZergConfig()
+        with pytest.raises(ValueError, match="Unsupported launcher mode: 'task'"):
+            Orchestrator(
+                feature="test-feature",
+                config=config,
+                repo_path=tmp_path,
+                launcher_mode="task",
+            )

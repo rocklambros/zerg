@@ -1,0 +1,106 @@
+{
+  "feature": "container-mode-bypass",
+  "version": "2.0",
+  "generated": "2026-01-31T21:30:00Z",
+  "total_tasks": 4,
+  "estimated_duration_minutes": 20,
+  "max_parallelization": 2,
+  "critical_path_minutes": 15,
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Remove task mode from CLI and add launcher confirmation",
+      "description": "In rush.py: remove 'task' from click.Choice on --mode option (line 37). After Orchestrator init (~line 158), add console.print showing the launcher class name.",
+      "phase": "fix",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/rush.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands.rush import rush; print('import ok')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python", "click"]
+    },
+    {
+      "id": "TASK-002",
+      "title": "Raise ValueError for unknown modes and add launcher logging",
+      "description": "In orchestrator.py _create_launcher() (lines 255-260): replace silent config fallback in else branch with ValueError('Unsupported launcher mode: {mode}'). Add logger.info after mode resolution (before line 262) showing selected launcher_type.",
+      "phase": "fix",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.orchestrator import Orchestrator; print('import ok')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"]
+    },
+    {
+      "id": "TASK-003",
+      "title": "Update rush.core.md help text",
+      "description": "In rush.core.md line 230: change '--mode MODE  Execution mode: container|subprocess' to '--mode MODE  Execution mode: subprocess|container|auto'",
+      "phase": "docs",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/rush.core.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'subprocess|container|auto' zerg/data/commands/rush.core.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 2,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add tests for unknown mode rejection",
+      "description": "In test_orchestrator_container_mode.py: add TestUnknownModeRejection class with two tests: (1) test_unknown_mode_raises_value_error — passing mode='bogus' raises ValueError, (2) test_task_mode_raises_value_error — passing mode='task' raises ValueError. Both follow existing patch pattern in the file.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_orchestrator_container_mode.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_orchestrator_container_mode.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest"]
+    }
+  ],
+  "levels": {
+    "1": {
+      "name": "fix",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 5
+    },
+    "2": {
+      "name": "docs-and-tests",
+      "tasks": ["TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1]
+    }
+  },
+  "conflict_matrix": {
+    "description": "No conflicts — each task owns exclusive files",
+    "conflicts": []
+  }
+}
