@@ -15,6 +15,7 @@ ZERG is a distributed software development system that coordinates multiple Clau
 - [Zergling Execution Model](#zergling-execution-model)
 - [State Management](#state-management)
 - [Claude Code Task Integration](#claude-code-task-integration)
+- [Context Engineering](#context-engineering)
 - [Quality Gates](#quality-gates)
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Security Model](#security-model)
@@ -602,6 +603,58 @@ If Task system and state JSON disagree, the **Task system wins**.
 
 ---
 
+## Context Engineering
+
+ZERG includes a context engineering plugin that reduces per-worker token usage by 30-50%. See [Context Engineering](docs/context-engineering.md) for configuration details.
+
+### Architecture
+
+```
+/zerg:design phase:
+  requirements.md + design.md
+      |
+      v
+  [Section Parser] → Extract relevant paragraphs per task
+      |
+      v
+  [Security Filter] → Match .py → Python rules, .js → JS rules
+      |
+      v
+  [Context Assembler] → Combine within token budget (default: 4000)
+      |
+      v
+  task-graph.json (each task has a "context" field)
+
+/zerg:rush phase:
+  Worker receives task assignment
+      |
+      v
+  Load .core.md (not full command file)
+      |
+      v
+  Load task.context (not full spec files)
+      |
+      v
+  Load filtered security rules (not all rules)
+      |
+      v
+  Execute task with scoped context
+```
+
+### Three Subsystems
+
+| Subsystem | What It Does | Savings |
+|-----------|-------------|---------|
+| **Command Splitting** | Split 9 large commands into `.core.md` (~30%) + `.details.md` (~70%) | ~2,000-5,000 tokens/worker |
+| **Security Rule Filtering** | Load only rules matching task file extensions | ~1,000-4,000 tokens/task |
+| **Task-Scoped Context** | Spec excerpts + dependency context per task | ~2,000-5,000 tokens/task |
+
+### Fallback Strategy
+
+If context engineering fails for any reason and `fallback_to_full: true` (default), workers load full files. A worker with full context is better than a worker that fails to load instructions.
+
+---
+
 ## Quality Gates
 
 ### Task Verification (Per-Task)
@@ -961,9 +1014,10 @@ ZERG enables rapid parallel development through:
 1. **Spec-driven execution** — Zerglings read specifications, not conversation history
 2. **Exclusive file ownership** — No merge conflicts possible within levels
 3. **Level-based dependencies** — Proper sequencing guaranteed
-4. **Resilient zerglings** — Circuit breakers, backpressure, retry with backoff
-5. **Quality gates** — Automated verification at every stage
-6. **Deep diagnostics** — Bayesian hypothesis testing, cross-worker log correlation
-7. **Plugin extensibility** — Custom gates, hooks, and launchers
-8. **Claude Code Task backbone** — Authoritative coordination across parallel instances
-9. **Security by design** — Strict validation, environment filtering, pre-commit hooks
+4. **Context engineering** — 30-50% token reduction per worker via command splitting, security rule filtering, and task-scoped context
+5. **Resilient zerglings** — Circuit breakers, backpressure, retry with backoff
+6. **Quality gates** — Automated verification at every stage
+7. **Deep diagnostics** — Bayesian hypothesis testing, cross-worker log correlation
+8. **Plugin extensibility** — Custom gates, hooks, and launchers
+9. **Claude Code Task backbone** — Authoritative coordination across parallel instances
+10. **Security by design** — Auto-fetched OWASP/language/Docker rules, environment filtering, pre-commit hooks

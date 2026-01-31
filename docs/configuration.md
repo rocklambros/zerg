@@ -12,6 +12,7 @@ Complete reference for configuring ZERG — config files, environment variables,
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Logging](#logging)
 - [Plugins](#plugins)
+- [Context Engineering](#context-engineering)
 - [Security](#security)
 - [MCP Servers](#mcp-servers)
 - [Environment Variables](#environment-variables)
@@ -287,6 +288,28 @@ plugins:
 ```
 
 See the [Plugin System](plugins.md) documentation for Python entry point plugins, the security model, and examples.
+
+### Context Engineering Plugin
+
+The context engineering plugin minimizes token usage across workers. See [Context Engineering](context-engineering.md) for full details.
+
+```yaml
+plugins:
+  context_engineering:
+    enabled: true                    # Master switch
+    command_splitting: true          # Split large commands into core/details
+    security_rule_filtering: true    # Filter security rules by task file types
+    task_context_budget_tokens: 4000 # Max tokens per task context
+    fallback_to_full: true           # Fall back to full context on errors
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `enabled` | `true` | Enable/disable all context engineering |
+| `command_splitting` | `true` | Split commands into .core.md and .details.md |
+| `security_rule_filtering` | `true` | Filter security rules by task file types |
+| `task_context_budget_tokens` | `4000` | Maximum tokens for task-scoped context |
+| `fallback_to_full` | `true` | If context engineering fails, load full context |
 
 ### Hook Event Types
 
