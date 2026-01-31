@@ -60,7 +60,7 @@ zerg install
 zerg uninstall
 ```
 
-Once installed, use `/zerg:*` commands inside any Claude Code session.
+Once installed, use `/zerg:*` commands inside any Claude Code session. Every command also has a `/z:` shortcut (e.g., `/z:plan`, `/z:rush`, `/z:status`).
 
 ---
 
