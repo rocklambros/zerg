@@ -54,11 +54,11 @@ SuperClaude capability gaps identified for future implementation.
 
 | # | Skill | Purpose | Priority |
 |---|-------|---------|----------|
-| 1 | `sc:document` | Focused docs generation for components, APIs, and functions. Auto-detect docstring style, generate usage examples, parameter tables, return type docs. | HIGH |
-| 2 | `sc:index` | Project-wide knowledge base / API doc generation. Crawl codebase → build structured index with cross-references, dependency graphs, entry points. | HIGH |
-| 3 | `sc:estimate` | Structured effort estimation with confidence intervals. Analyze complexity, dependencies, risk factors → output ranges (optimistic/expected/pessimistic). | MEDIUM |
-| 4 | `sc:explain` | Educational code explanations with progressive depth. Layer 1: summary → Layer 2: logic flow → Layer 3: implementation details → Layer 4: design decisions. | MEDIUM |
-| 5 | `sc:select-tool` | Intelligent MCP server routing. Score task complexity, map to optimal MCP server combinations, handle fallback chains when preferred tools unavailable. | LOW |
+| 1 | `zerg:document` | Focused docs generation for components, APIs, and functions. Auto-detect docstring style, generate usage examples, parameter tables, return type docs. | DONE |
+| 2 | `zerg:index` | Project-wide knowledge base / API doc generation. Crawl codebase → build structured index with cross-references, dependency graphs, entry points. | DONE |
+| 3 | `zerg:estimate` | Structured effort estimation with confidence intervals. Analyze complexity, dependencies, risk factors → output ranges (optimistic/expected/pessimistic). | MEDIUM |
+| 4 | `zerg:explain` | Educational code explanations with progressive depth. Layer 1: summary → Layer 2: logic flow → Layer 3: implementation details → Layer 4: design decisions. | MEDIUM |
+| 5 | `zerg:select-tool` | Intelligent MCP server routing. Score task complexity, map to optimal MCP server combinations, handle fallback chains when preferred tools unavailable. | LOW |
 
 ### Notes
 
