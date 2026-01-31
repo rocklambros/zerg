@@ -104,3 +104,24 @@ After marking TASK-001 as failed and TASK-002 as complete, `is_level_complete(1)
 The orchestrator completes level 1 but never calls `compute_feature_metrics`. The mock for the metrics collector may not be injected correctly into the orchestrator instance.
 
 **Fix**: Verify that the metrics mock is properly wired into the orchestrator's metrics pipeline.
+
+---
+
+## Feature Backlog
+
+SuperClaude capability gaps identified for future implementation.
+
+| # | Skill | Purpose | Priority |
+|---|-------|---------|----------|
+| 1 | `sc:document` | Focused docs generation for components, APIs, and functions. Auto-detect docstring style, generate usage examples, parameter tables, return type docs. | HIGH |
+| 2 | `sc:index` | Project-wide knowledge base / API doc generation. Crawl codebase → build structured index with cross-references, dependency graphs, entry points. | HIGH |
+| 3 | `sc:estimate` | Structured effort estimation with confidence intervals. Analyze complexity, dependencies, risk factors → output ranges (optimistic/expected/pessimistic). | MEDIUM |
+| 4 | `sc:explain` | Educational code explanations with progressive depth. Layer 1: summary → Layer 2: logic flow → Layer 3: implementation details → Layer 4: design decisions. | MEDIUM |
+| 5 | `sc:select-tool` | Intelligent MCP server routing. Score task complexity, map to optimal MCP server combinations, handle fallback chains when preferred tools unavailable. | LOW |
+
+### Notes
+
+- Items 1-2 address documentation gaps — currently no structured way to generate or maintain project docs.
+- Item 3 fills planning gap — no evidence-based sizing beyond gut feel.
+- Item 4 supports onboarding and knowledge transfer use cases.
+- Item 5 formalizes the implicit tool selection logic already described in `MODE_Orchestration.md`.

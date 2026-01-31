@@ -15,6 +15,7 @@ credentials.env
 .claude/tasks/
 .claude/mcp_servers.json
 claudedocs/zerg_scratch.md
+claudedocs/backlog.md
 
 # OS
 .DS_Store
