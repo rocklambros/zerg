@@ -194,7 +194,12 @@ class LevelStatus:
 
     @property
     def is_complete(self) -> bool:
-        """Check if level is complete (all tasks resolved: completed or failed)."""
+        """Check if level is complete (all tasks completed successfully)."""
+        return self.completed_tasks == self.total_tasks
+
+    @property
+    def is_resolved(self) -> bool:
+        """Check if level is resolved (all tasks in terminal state: completed or failed)."""
         resolved = self.completed_tasks + self.failed_tasks
         return resolved == self.total_tasks
 

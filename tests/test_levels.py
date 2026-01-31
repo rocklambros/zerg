@@ -308,7 +308,7 @@ class TestLevelController:
         assert len(pending) == len(all_tasks)
 
     def test_level_complete_with_failed_tasks(self, sample_task_graph) -> None:
-        """Test that level completes when all tasks are resolved (completed + failed)."""
+        """Test that level is not complete but is resolved when tasks have failed."""
         controller = LevelController()
         controller.initialize(sample_task_graph["tasks"])
         controller.start_level(1)
@@ -319,8 +319,9 @@ class TestLevelController:
         for task_id in level_1_tasks[1:]:
             controller.mark_task_complete(task_id)
 
-        # Level is complete because all tasks are resolved (no pending/in-progress)
-        assert controller.is_level_complete(1)
+        # Level is NOT complete (has failures) but IS resolved (all terminal)
+        assert not controller.is_level_complete(1)
+        assert controller.is_level_resolved(1)
 
     def test_get_task_status_unknown_task(self, sample_task_graph) -> None:
         """Test get_task_status returns None for unknown task."""

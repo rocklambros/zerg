@@ -101,6 +101,7 @@ def mock_orchestrator_deps():
         levels = MagicMock()
         levels.current_level = 1
         levels.is_level_complete.return_value = True
+        levels.is_level_resolved.return_value = True
         levels.can_advance.return_value = True
         levels.get_status.return_value = {
             "current_level": 1,

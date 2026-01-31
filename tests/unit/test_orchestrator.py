@@ -52,6 +52,7 @@ def mock_orchestrator_deps():
         levels = MagicMock()
         levels.current_level = 1
         levels.is_level_complete.return_value = False
+        levels.is_level_resolved.return_value = False
         levels.can_advance.return_value = False
         levels.advance_level.return_value = 2
         levels.start_level.return_value = ["TASK-001"]
@@ -424,7 +425,7 @@ class TestMainLoop:
         (tmp_path / ".zerg").mkdir()
 
         # Set up level completion sequence
-        mock_orchestrator_deps["levels"].is_level_complete.side_effect = [
+        mock_orchestrator_deps["levels"].is_level_resolved.side_effect = [
             True, False, False
         ]
         mock_orchestrator_deps["levels"].can_advance.side_effect = [True, False]
@@ -465,7 +466,7 @@ class TestMainLoop:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["levels"].is_level_complete.return_value = True
+        mock_orchestrator_deps["levels"].is_level_resolved.return_value = True
         mock_orchestrator_deps["levels"].can_advance.return_value = False
         mock_orchestrator_deps["levels"].get_status.return_value = {
             "current_level": 3,

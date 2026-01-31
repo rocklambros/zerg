@@ -79,7 +79,7 @@ class LevelController:
 
         # Check previous levels are complete
         for prev_level in range(1, level):
-            if prev_level in self._levels and not self._levels[prev_level].is_complete:
+            if prev_level in self._levels and not self._levels[prev_level].is_resolved:
                 raise LevelError(
                     f"Cannot start level {level}: level {prev_level} not complete",
                     level=level,
@@ -150,11 +150,11 @@ class LevelController:
 
         logger.info(f"Task {task_id} complete")
 
-        # Check if level is now complete
-        if self.is_level_complete(level):
+        # Check if level is now resolved (all tasks in terminal state)
+        if self.is_level_resolved(level):
             self._levels[level].status = "complete"
             self._levels[level].completed_at = datetime.now()
-            logger.info(f"Level {level} complete")
+            logger.info(f"Level {level} resolved")
             return True
 
         return False
@@ -205,20 +205,36 @@ class LevelController:
         logger.debug(f"Task {task_id} in progress{suffix}")
 
     def is_level_complete(self, level: int) -> bool:
-        """Check if a level is complete.
+        """Check if a level is complete (all tasks completed successfully).
 
         Args:
             level: Level number
 
         Returns:
-            True if level is complete
+            True if all tasks in the level completed successfully
         """
         if level not in self._levels:
             return False
 
         level_status = self._levels[level]
-        # Level is complete when all tasks are resolved (completed + failed = total)
-        # Failed tasks don't block advancement; the orchestrator logs warnings.
+        return level_status.completed_tasks == level_status.total_tasks
+
+    def is_level_resolved(self, level: int) -> bool:
+        """Check if a level is resolved (all tasks in a terminal state).
+
+        A level is resolved when all tasks are either completed or failed.
+        Failed tasks don't block advancement; the orchestrator logs warnings.
+
+        Args:
+            level: Level number
+
+        Returns:
+            True if all tasks in the level are in a terminal state
+        """
+        if level not in self._levels:
+            return False
+
+        level_status = self._levels[level]
         resolved = level_status.completed_tasks + level_status.failed_tasks
         return resolved == level_status.total_tasks
 
@@ -231,7 +247,7 @@ class LevelController:
         if not self._started or self._current_level == 0:
             return True  # Can start level 1
 
-        if not self.is_level_complete(self._current_level):
+        if not self.is_level_resolved(self._current_level):
             return False
 
         next_level = self._current_level + 1

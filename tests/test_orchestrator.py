@@ -35,6 +35,7 @@ def mock_deps():
         levels = MagicMock()
         levels.current_level = 1
         levels.is_level_complete.return_value = False
+        levels.is_level_resolved.return_value = False
         levels.get_status.return_value = {
             "current_level": 1,
             "total_tasks": 10,

@@ -38,6 +38,7 @@ def mock_full_deps():
         levels = MagicMock()
         levels.current_level = 1
         levels.is_level_complete.return_value = False
+        levels.is_level_resolved.return_value = False
         levels.can_advance.return_value = True
         levels.advance_level.side_effect = lambda: setattr(levels, 'current_level', levels.current_level + 1)
         levels.start_level.return_value = ["TASK-001"]

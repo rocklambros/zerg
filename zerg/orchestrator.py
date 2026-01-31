@@ -557,7 +557,7 @@ class Orchestrator:
                 if (
                     current > 0
                     and current not in _handled_levels
-                    and self.levels.is_level_complete(current)
+                    and self.levels.is_level_resolved(current)
                 ):
                     _handled_levels.add(current)
                     merge_ok = self._on_level_complete_handler(current)
@@ -812,7 +812,7 @@ class Orchestrator:
                 if (
                     current > 0
                     and current not in _handled_levels
-                    and self.levels.is_level_complete(current)
+                    and self.levels.is_level_resolved(current)
                 ):
                     _handled_levels.add(current)
                     merge_ok = self._on_level_complete_handler(current)

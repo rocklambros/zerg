@@ -629,7 +629,7 @@ class TestMetricsCollectionThroughFailures:
              patch("zerg.orchestrator.GateRunner"), \
              patch("zerg.orchestrator.ContainerManager"), \
              patch("zerg.orchestrator.TaskSyncBridge"), \
-             patch("zerg.orchestrator.MetricsCollector") as metrics_cls:
+             patch("zerg.level_coordinator.MetricsCollector") as metrics_cls:
 
             state_mock = MagicMock()
             state_mock.load.return_value = {}

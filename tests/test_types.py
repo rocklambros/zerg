@@ -184,7 +184,7 @@ class TestLevelStatus:
         )
         assert status.is_complete
 
-        # Complete with some failed tasks (resolved = completed + failed)
+        # With some failed tasks: is_complete is False, is_resolved is True
         status = LevelStatus(
             level=Level.FOUNDATION,
             name="foundation",
@@ -193,7 +193,8 @@ class TestLevelStatus:
             failed_tasks=2,
             status="complete",
         )
-        assert status.is_complete
+        assert not status.is_complete
+        assert status.is_resolved
 
     def test_level_status_progress(self) -> None:
         """Test LevelStatus progress calculation."""

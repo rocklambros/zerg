@@ -145,14 +145,14 @@ class TestFullPipeline:
     ) -> None:
         """Verify partial completion when one task fails.
 
-        Configures MockWorker to fail task T1.2, verifies that T1.2 fails,
+        Configures MockWorker to fail task L1-002, verifies that L1-002 fails,
         and that the pipeline reports overall failure.
         """
         e2e_harness.setup_task_graph(sample_e2e_task_graph)
 
         # Patch MockWorker inside the harness module so run() creates a
-        # worker that will fail task T1.2.
-        failing_worker_cls = _make_failing_worker_factory(fail_tasks={"T1.2"})
+        # worker that will fail task L1-002.
+        failing_worker_cls = _make_failing_worker_factory(fail_tasks={"L1-002"})
         monkeypatch.setattr(
             "tests.e2e.mock_worker.MockWorker", failing_worker_cls
         )
@@ -168,14 +168,14 @@ class TestFullPipeline:
         # Some tasks should still complete
         assert result.tasks_completed >= 1
 
-        # Level 1 should not be fully complete due to T1.2 failure
+        # Level 1 should not be fully complete due to L1-002 failure
         # In MockWorker mode, levels_completed only increments when ALL tasks succeed
         assert result.levels_completed < 2
 
         repo_path = e2e_harness.repo_path
         assert repo_path is not None
 
-        # T1.1 file should exist since it succeeded
+        # L1-001 file should exist since it succeeded
         assert (repo_path / "src/hello.py").exists()
 
 
