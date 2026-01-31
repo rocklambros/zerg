@@ -1,0 +1,1 @@
+../../../zerg/data/commands/explain.details.md

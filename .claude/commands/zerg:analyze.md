@@ -1,1 +1,0 @@
-/Users/klambros/PycharmProjects/ZERG/zerg/data/commands/zerg:analyze.md

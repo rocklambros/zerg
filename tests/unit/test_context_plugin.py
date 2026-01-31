@@ -239,10 +239,10 @@ class TestGetSplitCommandPath:
         # Point splitter to tmp_path
         plugin._splitter.commands_dir = tmp_path
 
-        core_file = tmp_path / "zerg:init.core.md"
+        core_file = tmp_path / "init.core.md"
         core_file.write_text("# Core instructions only")
 
-        result = plugin.get_split_command_path("zerg:init")
+        result = plugin.get_split_command_path("init")
 
         assert result is not None
         assert result == core_file
@@ -254,7 +254,7 @@ class TestGetSplitCommandPath:
 
         plugin._splitter.commands_dir = tmp_path
 
-        result = plugin.get_split_command_path("zerg:nonexistent")
+        result = plugin.get_split_command_path("nonexistent")
 
         assert result is None
 
@@ -266,9 +266,9 @@ class TestGetSplitCommandPath:
         plugin._splitter.commands_dir = tmp_path
 
         # Even if the file exists, splitting is off
-        core_file = tmp_path / "zerg:init.core.md"
+        core_file = tmp_path / "init.core.md"
         core_file.write_text("# Core")
 
-        result = plugin.get_split_command_path("zerg:init")
+        result = plugin.get_split_command_path("init")
 
         assert result is None

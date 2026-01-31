@@ -23,15 +23,15 @@ from zerg.security_rules import filter_rules_for_files, summarize_rules
 # ---------------------------------------------------------------------------
 
 EXPECTED_CORE_MD_FILES = [
-    "zerg:debug.core.md",
-    "zerg:design.core.md",
-    "zerg:init.core.md",
-    "zerg:merge.core.md",
-    "zerg:plan.core.md",
-    "zerg:plugins.core.md",
-    "zerg:rush.core.md",
-    "zerg:status.core.md",
-    "zerg:worker.core.md",
+    "debug.core.md",
+    "design.core.md",
+    "init.core.md",
+    "merge.core.md",
+    "plan.core.md",
+    "plugins.core.md",
+    "rush.core.md",
+    "status.core.md",
+    "worker.core.md",
 ]
 
 
@@ -308,23 +308,23 @@ class TestSplitFilesExist:
         """Plugin's get_split_command_path finds existing .core.md files."""
         plugin = ContextEngineeringPlugin()
 
-        # zerg:init should always have a .core.md
-        result = plugin.get_split_command_path("zerg:init")
+        # init should always have a .core.md
+        result = plugin.get_split_command_path("init")
         assert result is not None
-        assert result.name == "zerg:init.core.md"
+        assert result.name == "init.core.md"
         assert result.exists()
 
     def test_get_split_command_path_returns_none_for_missing(self) -> None:
         """Plugin returns None for commands without a .core.md file."""
         plugin = ContextEngineeringPlugin()
-        result = plugin.get_split_command_path("zerg:nonexistent")
+        result = plugin.get_split_command_path("nonexistent")
         assert result is None
 
     def test_get_split_command_path_disabled(self) -> None:
         """Plugin returns None when command_splitting is disabled."""
         config = ContextEngineeringConfig(command_splitting=False)
         plugin = ContextEngineeringPlugin(config)
-        result = plugin.get_split_command_path("zerg:init")
+        result = plugin.get_split_command_path("init")
         assert result is None
 
 

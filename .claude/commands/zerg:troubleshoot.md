@@ -1,1 +1,0 @@
-../../zerg/data/commands/zerg:troubleshoot.md

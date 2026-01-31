@@ -35,7 +35,7 @@ class CommandSplitter:
         Returns list of dicts: {path: Path, lines: int, tokens: int}
         """
         results = []
-        for md_file in sorted(self.commands_dir.glob("zerg:*.md")):
+        for md_file in sorted(self.commands_dir.glob("*.md")):
             # Skip already-split files
             if ".core.md" in md_file.name or ".details.md" in md_file.name:
                 continue

@@ -14,8 +14,12 @@ from zerg.logging import get_logger
 console = Console()
 logger = get_logger("install-commands")
 
-COMMAND_GLOB = "zerg:*.md"
-SHORTCUT_PREFIX = "z:"
+COMMAND_GLOB = "*.md"
+SHORTCUT_PREFIX = "z"
+CANONICAL_PREFIX = "zerg"
+
+# Legacy root-level patterns (for cleanup during migration)
+LEGACY_PATTERNS = ["zerg:*.md", "z:*.md"]
 
 
 def _get_source_dir() -> Path:
@@ -53,14 +57,15 @@ def _get_target_dir(target: str | None) -> Path:
     return d
 
 
-def _install(
-    target_dir: Path,
+def _install_to_subdir(
+    subdir: Path,
     source_dir: Path,
     *,
     copy: bool = False,
     force: bool = False,
 ) -> int:
-    """Install command files and z: shortcuts. Returns count of installed commands."""
+    """Install command files into a subdirectory. Returns count installed."""
+    subdir.mkdir(parents=True, exist_ok=True)
     sources = sorted(source_dir.glob(COMMAND_GLOB))
     if not sources:
         raise FileNotFoundError(f"No command files found in {source_dir}")
@@ -69,7 +74,7 @@ def _install(
     installed = 0
 
     for src in sources:
-        dest = target_dir / src.name
+        dest = subdir / src.name
 
         # Skip if symlink already points to the right place
         if not force and dest.is_symlink():
@@ -96,43 +101,59 @@ def _install(
 
         installed += 1
 
-    # Generate z: shortcut symlinks pointing to zerg: source files
-    shortcuts = 0
-    for src in sources:
-        shortcut_name = SHORTCUT_PREFIX + src.name.removeprefix("zerg:")
-        shortcut_dest = target_dir / shortcut_name
-
-        if not force and shortcut_dest.is_symlink():
-            try:
-                if shortcut_dest.resolve() == src.resolve():
-                    logger.debug("Shortcut already installed: %s", shortcut_name)
-                    continue
-            except OSError:
-                pass
-
-        if shortcut_dest.exists() or shortcut_dest.is_symlink():
-            if not force:
-                continue
-            shortcut_dest.unlink()
-
-        if use_copy:
-            shutil.copy2(src, shortcut_dest)
-        else:
-            shortcut_dest.symlink_to(src.resolve())
-
-        shortcuts += 1
-
-    installed += shortcuts
     return installed
 
 
-def _uninstall(target_dir: Path) -> int:
-    """Remove ZERG command files and z: shortcuts. Returns count removed."""
+def _install(
+    target_dir: Path,
+    source_dir: Path,
+    *,
+    copy: bool = False,
+    force: bool = False,
+) -> int:
+    """Install command files into zerg/ and z/ subdirs. Returns count installed."""
+    zerg_dir = target_dir / CANONICAL_PREFIX
+    z_dir = target_dir / SHORTCUT_PREFIX
+
+    # Install canonical zerg/ commands
+    canonical_count = _install_to_subdir(zerg_dir, source_dir, copy=copy, force=force)
+
+    # Install z/ shortcuts (same sources, separate subdir)
+    shortcut_count = _install_to_subdir(z_dir, source_dir, copy=copy, force=force)
+
+    return canonical_count + shortcut_count
+
+
+def _remove_legacy(target_dir: Path) -> int:
+    """Remove old root-level zerg:*.md and z:*.md files."""
     removed = 0
-    for pattern in [COMMAND_GLOB, f"{SHORTCUT_PREFIX}*.md"]:
+    for pattern in LEGACY_PATTERNS:
         for path in sorted(target_dir.glob(pattern)):
             path.unlink()
             removed += 1
+    return removed
+
+
+def _uninstall(target_dir: Path) -> int:
+    """Remove ZERG command files (subdirs + legacy root-level). Returns count removed."""
+    removed = 0
+
+    # Remove subdirectories
+    for prefix in [CANONICAL_PREFIX, SHORTCUT_PREFIX]:
+        subdir = target_dir / prefix
+        if subdir.is_dir():
+            for path in sorted(subdir.glob(COMMAND_GLOB)):
+                path.unlink()
+                removed += 1
+            # Remove dir if empty
+            try:
+                subdir.rmdir()
+            except OSError:
+                pass  # not empty, leave it
+
+    # Also clean up legacy root-level files
+    removed += _remove_legacy(target_dir)
+
     return removed
 
 
@@ -159,8 +180,8 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
     """Install ZERG slash commands globally for Claude Code.
 
     Creates symlinks (or copies with --copy) from the package's command
-    files into ~/.claude/commands/ so they are available in every
-    Claude Code session.
+    files into ~/.claude/commands/zerg/ and ~/.claude/commands/z/ so they
+    are available in every Claude Code session as /zerg:* and /z:*.
 
     Examples:
 
@@ -174,9 +195,16 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
         source_dir = _get_source_dir()
         target_dir = _get_target_dir(target)
 
+        # Clean up legacy root-level files first
+        legacy_removed = _remove_legacy(target_dir)
+        if legacy_removed > 0:
+            console.print(
+                f"  [dim]Cleaned up {legacy_removed} legacy root-level command files[/dim]"
+            )
+
         count = _install(target_dir, source_dir, copy=copy, force=force)
         source_count = len(list(source_dir.glob(COMMAND_GLOB)))
-        total = source_count * 2  # zerg: + z: shortcuts
+        total = source_count * 2  # zerg/ + z/ shortcuts
 
         if count == 0:
             console.print(
@@ -187,7 +215,7 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
             method = "copied" if (copy or os.name == "nt") else "symlinked"
             console.print(
                 f"[green]Installed {count}/{total} ZERG commands[/green] "
-                f"({method} to {target_dir})"
+                f"({method} to {target_dir}/{{zerg,z}}/)"
             )
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -204,7 +232,8 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
 def uninstall_commands(target: str | None) -> None:
     """Remove ZERG slash commands from the global Claude Code directory.
 
-    Removes files matching the zerg:*.md and z:*.md patterns.
+    Removes zerg/ and z/ subdirectories and any legacy root-level
+    zerg:*.md / z:*.md files.
 
     Examples:
 
@@ -232,13 +261,17 @@ def auto_install_commands() -> None:
 
     Called from ``zerg init`` to auto-install globally.
     """
-    sentinel = Path.home() / ".claude" / "commands" / "zerg:init.md"
+    sentinel = Path.home() / ".claude" / "commands" / "zerg" / "init.md"
     if sentinel.exists():
         return
 
     try:
         source_dir = _get_source_dir()
         target_dir = _get_target_dir(None)
+
+        # Clean up legacy files
+        _remove_legacy(target_dir)
+
         count = _install(target_dir, source_dir)
         if count > 0:
             console.print(

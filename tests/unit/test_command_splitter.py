@@ -32,7 +32,7 @@ class TestAnalyzeFile:
 
     def test_analyze_file(self, tmp_path: Path) -> None:
         """Test that analyze_file correctly parses markdown sections."""
-        md_file = tmp_path / "zerg:test.md"
+        md_file = tmp_path / "test.md"
         lines = [
             "# Main Title",
             "",
@@ -69,7 +69,7 @@ class TestSplitFile:
 
     def test_split_file_creates_both(self, tmp_path: Path) -> None:
         """Test that split_file creates .core.md and .details.md files."""
-        md_file = tmp_path / "zerg:bigcmd.md"
+        md_file = tmp_path / "bigcmd.md"
         # Create a file well over MIN_LINES_TO_SPLIT
         content_lines = [f"Line {i}" for i in range(400)]
         content_lines[0] = "# Big Command"
@@ -83,8 +83,8 @@ class TestSplitFile:
 
         assert core_path.exists()
         assert details_path.exists()
-        assert core_path.name == "zerg:bigcmd.core.md"
-        assert details_path.name == "zerg:bigcmd.details.md"
+        assert core_path.name == "bigcmd.core.md"
+        assert details_path.name == "bigcmd.details.md"
 
         # Core should be shorter than the original
         core_content = core_path.read_text()
@@ -94,7 +94,7 @@ class TestSplitFile:
 
     def test_short_file_not_split(self, tmp_path: Path) -> None:
         """Test that files under MIN_LINES_TO_SPLIT are not split."""
-        md_file = tmp_path / "zerg:small.md"
+        md_file = tmp_path / "small.md"
         content_lines = [f"Line {i}" for i in range(50)]
         md_file.write_text("\n".join(content_lines))
 
@@ -112,24 +112,24 @@ class TestLoadCommand:
     def test_load_command_core(self, tmp_path: Path) -> None:
         """Test that load_command prefers .core.md when available."""
         # Create both the full file and the core split
-        full_file = tmp_path / "zerg:example.md"
+        full_file = tmp_path / "example.md"
         full_file.write_text("# Full content with everything")
 
-        core_file = tmp_path / "zerg:example.core.md"
+        core_file = tmp_path / "example.core.md"
         core_file.write_text("# Core content only")
 
         splitter = CommandSplitter(commands_dir=tmp_path)
-        content = splitter.load_command("zerg:example")
+        content = splitter.load_command("example")
 
         assert content == "# Core content only"
 
     def test_load_command_full_fallback(self, tmp_path: Path) -> None:
         """Test that load_command falls back to full .md when no core exists."""
-        full_file = tmp_path / "zerg:example.md"
+        full_file = tmp_path / "example.md"
         full_file.write_text("# Full content")
 
         splitter = CommandSplitter(commands_dir=tmp_path)
-        content = splitter.load_command("zerg:example")
+        content = splitter.load_command("example")
 
         assert content == "# Full content"
 
@@ -138,4 +138,4 @@ class TestLoadCommand:
         splitter = CommandSplitter(commands_dir=tmp_path)
 
         with pytest.raises(FileNotFoundError):
-            splitter.load_command("zerg:nonexistent")
+            splitter.load_command("nonexistent")

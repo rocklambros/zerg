@@ -57,7 +57,7 @@ def document(
 
         zerg document zerg/doc_engine/extractor.py --depth deep
 
-        zerg document zerg/data/commands/zerg:rush.md --type command
+        zerg document zerg/data/commands/rush.md --type command
     """
     from zerg.doc_engine.crossref import CrossRefBuilder
     from zerg.doc_engine.dependencies import DependencyMapper

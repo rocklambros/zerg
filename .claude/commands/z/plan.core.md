@@ -1,0 +1,1 @@
+../../../zerg/data/commands/plan.core.md

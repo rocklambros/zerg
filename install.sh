@@ -11,7 +11,8 @@ echo "Installing ZERG to $TARGET_DIR..."
 
 # Create directories
 mkdir -p "$TARGET_DIR/.zerg"
-mkdir -p "$TARGET_DIR/.claude/commands"
+mkdir -p "$TARGET_DIR/.claude/commands/zerg"
+mkdir -p "$TARGET_DIR/.claude/commands/z"
 mkdir -p "$TARGET_DIR/.devcontainer/mcp-servers"
 mkdir -p "$TARGET_DIR/.gsd/specs"
 
@@ -19,8 +20,9 @@ mkdir -p "$TARGET_DIR/.gsd/specs"
 cp "$SCRIPT_DIR/.zerg/orchestrator.py" "$TARGET_DIR/.zerg/"
 cp "$SCRIPT_DIR/.zerg/config.yaml" "$TARGET_DIR/.zerg/"
 
-# Copy slash commands
-cp "$SCRIPT_DIR/.claude/commands/"*.md "$TARGET_DIR/.claude/commands/"
+# Copy slash commands into zerg/ and z/ subdirs
+cp "$SCRIPT_DIR/.claude/commands/zerg/"*.md "$TARGET_DIR/.claude/commands/zerg/"
+cp "$SCRIPT_DIR/.claude/commands/z/"*.md "$TARGET_DIR/.claude/commands/z/"
 
 # Copy devcontainer files
 cp "$SCRIPT_DIR/.devcontainer/devcontainer.json" "$TARGET_DIR/.devcontainer/"

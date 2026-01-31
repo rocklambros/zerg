@@ -73,11 +73,11 @@ Without Task ecosystem integration, parallel workers can't coordinate, sessions 
    ```
 
 3. **Backbone commands have additional requirements.** These 5 files have deeper integration beyond the minimum pattern. Do not reduce them to the minimum:
-   - `zerg:worker.md` — TaskUpdate to claim tasks, TaskUpdate for failures/checkpoints, TaskList at completion
-   - `zerg:status.md` — TaskList as primary data source, cross-reference with state JSON, flag mismatches
-   - `zerg:merge.md` — TaskUpdate after quality gates per level, TaskList verification at finalize
-   - `zerg:stop.md` — TaskUpdate with PAUSED/FORCE STOPPED annotations
-   - `zerg:retry.md` — TaskGet to read state, TaskUpdate to reset to pending, TaskUpdate on reassignment
+   - `worker.md` — TaskUpdate to claim tasks, TaskUpdate for failures/checkpoints, TaskList at completion
+   - `status.md` — TaskList as primary data source, cross-reference with state JSON, flag mismatches
+   - `merge.md` — TaskUpdate after quality gates per level, TaskList verification at finalize
+   - `stop.md` — TaskUpdate with PAUSED/FORCE STOPPED annotations
+   - `retry.md` — TaskGet to read state, TaskUpdate to reset to pending, TaskUpdate on reassignment
 
 4. **State JSON is the fallback, not the primary.** If you find yourself writing code that reads `.zerg/state/` without also consulting TaskList, you are drifting. State JSON supplements Tasks, not the other way around.
 
@@ -88,18 +88,18 @@ Without Task ecosystem integration, parallel workers can't coordinate, sessions 
 Run this check when modifying any ZERG command file. If any check fails, fix it before committing.
 
 ```bash
-# 1. All 19 command files must reference Task tools
-grep -rL "TaskCreate\|TaskUpdate\|TaskList\|TaskGet" zerg/data/commands/zerg:*.md
+# 1. All 19 command files must reference Task tools (exclude .core.md/.details.md)
+grep -rL "TaskCreate\|TaskUpdate\|TaskList\|TaskGet" zerg/data/commands/*.md | grep -v '\.core\.md\|\.details\.md'
 # Expected output: (empty — no files missing Task references)
 
 # 2. Backbone files must have deeper integration
 for f in worker status merge stop retry; do
-  count=$(grep -c "TaskUpdate\|TaskList\|TaskGet" "zerg/data/commands/zerg:$f.md")
-  echo "zerg:$f.md — $count Task references (expect ≥3)"
+  count=$(grep -c "TaskUpdate\|TaskList\|TaskGet" "zerg/data/commands/$f.md")
+  echo "$f.md — $count Task references (expect ≥3)"
 done
 
 # 3. No command file should reference state JSON without also referencing TaskList
-for f in zerg/data/commands/zerg:*.md; do
+for f in zerg/data/commands/*.md; do
   has_state=$(grep -c "state.*json\|STATE_FILE\|\.zerg/state" "$f")
   has_tasks=$(grep -c "TaskList\|TaskGet" "$f")
   if [ "$has_state" -gt 0 ] && [ "$has_tasks" -eq 0 ]; then

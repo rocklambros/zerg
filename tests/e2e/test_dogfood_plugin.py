@@ -335,17 +335,17 @@ def _plugin_task_graph() -> list[dict]:
         {
             "id": "DF-L4-004",
             "title": "Create plugin documentation",
-            "description": "Create zerg/data/commands/zerg:plugins.md documenting plugin system usage, ABCs, and configuration.",
+            "description": "Create zerg/data/commands/plugins.md documenting plugin system usage, ABCs, and configuration.",
             "phase": "testing",
             "level": 4,
             "dependencies": ["DF-L3-003", "DF-L3-004"],
             "files": {
-                "create": ["zerg/data/commands/zerg:plugins.md"],
+                "create": ["zerg/data/commands/plugins.md"],
                 "modify": [],
                 "read": ["zerg/plugins.py", "zerg/plugin_config.py"],
             },
             "verification": {
-                "command": "test -f zerg/data/commands/zerg:plugins.md",
+                "command": "test -f zerg/data/commands/plugins.md",
                 "timeout_seconds": 10,
             },
         },
