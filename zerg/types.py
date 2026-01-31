@@ -66,6 +66,7 @@ class Task(TypedDict, total=False):
     critical_path: bool
     assigned_worker: int
     execution: TaskExecution
+    context: str
 
 
 class LevelSpec(TypedDict, total=False):

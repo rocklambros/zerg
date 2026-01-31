@@ -143,6 +143,45 @@ Edit `.zerg/config.yaml` for:
 - MCP servers
 - Resource limits
 
+## Context Engineering
+
+ZERG includes a context engineering plugin that minimizes token usage across workers through three subsystems:
+
+### Command Splitting
+
+Large command files (>300 lines) are split into `.core.md` (essential instructions, ~30%) and `.details.md` (reference material, ~70%). The original file retains core content for backward compatibility.
+
+Split files: init, design, rush, plugins, debug, plan, worker, merge, status.
+
+### Task-Scoped Context
+
+Each task in task-graph.json can include a `context` field with scoped content:
+- Security rules filtered by file extension (.py → Python rules, .js → JavaScript rules)
+- Spec excerpts relevant to the task's description and files
+- Dependency context from upstream tasks
+
+Workers use task-scoped context instead of loading full spec files, saving ~2000-5000 tokens per task.
+
+### Configuration
+
+```yaml
+# .zerg/config.yaml
+plugins:
+  context_engineering:
+    enabled: true
+    command_splitting: true
+    security_rule_filtering: true
+    task_context_budget_tokens: 4000
+    fallback_to_full: true
+```
+
+### Monitoring
+
+Use `/zerg:status` to view the CONTEXT BUDGET section showing:
+- Split command count and token savings
+- Per-task context population rate
+- Security rule filtering stats
+
 ## Troubleshooting
 
 Zerglings not starting? Check Docker, ANTHROPIC_API_KEY, and port availability.

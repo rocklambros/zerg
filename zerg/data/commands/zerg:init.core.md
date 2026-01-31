@@ -198,7 +198,3 @@ Immediately call TaskUpdate:
 On completion (after output summary), call TaskUpdate:
   - taskId: (the Claude Task ID)
   - status: "completed"
-
-<!-- SPLIT: core=zerg:init.core.md details=zerg:init.details.md -->
-<!-- For detailed examples and templates, see zerg:init.details.md -->
-

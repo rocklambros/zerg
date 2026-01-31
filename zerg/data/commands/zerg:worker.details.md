@@ -1,115 +1,31 @@
-# ZERG Worker Execution
+<!-- SPLIT: details, parent: zerg:worker.md -->
+# ZERG Worker Execution (Details)
 
-You are a ZERG Worker executing tasks in parallel with other workers.
+Reference material, examples, error recovery, and protocol specifications for ZERG workers.
 
-## Environment
+## Task Assignment Format
 
-```bash
-WORKER_ID=${ZERG_WORKER_ID:-0}
-FEATURE=${ZERG_FEATURE:-unknown}
-BRANCH=${ZERG_BRANCH:-main}
-TASK_LIST=${CLAUDE_CODE_TASK_LIST_ID:-$FEATURE}
-```
-
-## Your Role
-
-You are Worker **$WORKER_ID** working on feature **$FEATURE**.
-
-You will execute tasks assigned to you, commit completed work, and coordinate with other workers via the shared task list.
-
-## Execution Protocol
-
-### Step 1: Load Context
-
-Read these files to understand the feature:
-
-```bash
-# Core context
-cat .gsd/specs/$FEATURE/requirements.md
-cat .gsd/specs/$FEATURE/design.md
-cat .gsd/specs/$FEATURE/task-graph.json
-
-# Your assignments
-cat .gsd/specs/$FEATURE/worker-assignments.json | jq ".workers[$WORKER_ID]"
-```
-
-### Step 2: Identify Your Tasks
-
-From worker-assignments.json, find tasks assigned to you at each level:
+From worker-assignments.json:
 
 ```json
 {
   "assignments": {
-    "1": ["TASK-001", "TASK-003"],  // Level 1 tasks
-    "2": ["TASK-005", "TASK-007"],  // Level 2 tasks
-    "3": ["TASK-009"]               // Level 3 tasks
+    "1": ["TASK-001", "TASK-003"],
+    "2": ["TASK-005", "TASK-007"],
+    "3": ["TASK-009"]
   }
 }
 ```
 
-### Step 3: Execute Task Loop
-
-For each level, starting at 1:
+## Dependency Checking (Step 3 Detail)
 
 ```
-CURRENT_LEVEL = 1
-
-WHILE CURRENT_LEVEL <= MAX_LEVEL:
-  
-  MY_TASKS = tasks assigned to me at CURRENT_LEVEL
-  
-  FOR each TASK in MY_TASKS:
-    
-    # Check dependencies
-    DEPS = task.dependencies
-    FOR each DEP in DEPS:
-      IF DEP.status != "completed":
-        WAIT or SKIP (dependency not ready)
-    
-    # Execute task
-    CALL execute_task(TASK)
-    
-  # Wait for level to complete
-  WAIT until all tasks at CURRENT_LEVEL are complete (all workers)
-  
-  # Pull merged changes from other workers
-  git pull origin zerg/FEATURE/staging --rebase
-  
-  CURRENT_LEVEL += 1
-
-END WHILE
+FOR each DEP in DEPS:
+  IF DEP.status != "completed":
+    WAIT or SKIP (dependency not ready)
 ```
 
-### Step 4: Task Execution
-
-For each task:
-
-#### 4.1 Load Task Details
-
-```bash
-TASK_ID="TASK-001"
-TASK=$(cat .gsd/specs/$FEATURE/task-graph.json | jq ".tasks[] | select(.id == \"$TASK_ID\")")
-
-TITLE=$(echo $TASK | jq -r '.title')
-DESCRIPTION=$(echo $TASK | jq -r '.description')
-FILES_CREATE=$(echo $TASK | jq -r '.files.create[]' 2>/dev/null)
-FILES_MODIFY=$(echo $TASK | jq -r '.files.modify[]' 2>/dev/null)
-FILES_READ=$(echo $TASK | jq -r '.files.read[]' 2>/dev/null)
-VERIFICATION=$(echo $TASK | jq -r '.verification.command')
-```
-
-#### 4.1.1 Claim Task in Claude Task System
-
-Before starting work, claim the task:
-
-Call TaskUpdate:
-  - taskId: (Claude Task ID for this ZERG task — find via TaskList, match subject prefix `[L{level}] {title}`)
-  - status: "in_progress"
-  - activeForm: "Worker {WORKER_ID} executing {title}"
-
-This signals to other workers and the orchestrator that this task is actively being worked on.
-
-#### 4.2 Read Dependencies
+## Reading Dependencies (Step 4.2)
 
 ```bash
 # Read files this task depends on
@@ -118,7 +34,7 @@ for FILE in $FILES_READ; do
 done
 ```
 
-#### 4.3 Implement Task
+## Implementation Guidelines (Step 4.3)
 
 Follow the design document exactly:
 - Create files listed in `files.create`
@@ -127,56 +43,7 @@ Follow the design document exactly:
 - Add clear comments explaining your implementation
 - Ensure code is complete and working
 
-#### 4.4 Verify Task
-
-```bash
-# Run the verification command
-eval "$VERIFICATION"
-EXIT_CODE=$?
-
-if [ $EXIT_CODE -eq 0 ]; then
-  echo "✅ Verification passed"
-else
-  echo "❌ Verification failed (exit code: $EXIT_CODE)"
-fi
-```
-
-#### 4.5 Commit on Success
-
-```bash
-# Stage files
-git add $FILES_CREATE $FILES_MODIFY
-
-# Commit with metadata
-git commit -m "feat($FEATURE): $TITLE
-
-Task-ID: $TASK_ID
-Worker: $WORKER_ID
-Verified: $VERIFICATION
-Level: $LEVEL
-"
-```
-
-#### 4.6 Update Claude Task Status
-
-After successful verification and commit:
-  Call TaskUpdate:
-    - taskId: (Claude Task ID for this ZERG task)
-    - status: "completed"
-
-If task failed after all retries:
-  Call TaskUpdate:
-    - taskId: (Claude Task ID)
-    - status: "in_progress" (no "failed" status exists; orchestrator manages failure state)
-    - description: Append error details: "BLOCKED: {error_message} after {retry_count} retries"
-
-If exiting due to checkpoint (context limit):
-  Call TaskUpdate:
-    - taskId: (Claude Task ID for current in-progress task)
-    - status: "in_progress" (keep as in_progress for resume)
-    - description: Append checkpoint context: "CHECKPOINT: {percentage}% complete. Next action: {next_step}"
-
-#### 4.7 Handle Failure
+## Failure Handling (Step 4.7 Detail)
 
 If verification fails:
 
@@ -195,36 +62,36 @@ else
 fi
 ```
 
-### Step 5: Context Management
+## Context Management (Step 5 Detail)
 
 Monitor your context usage. **The 70% threshold is critical** for ensuring clean handoffs.
 
 ```
 IF context_usage > 70%:
-  
+
   # Commit any work in progress
   git add -A
   git commit -m "WIP: Context limit reached, handing off
-  
+
   Worker: $WORKER_ID
   Last completed: $LAST_TASK_ID
   Next task: $NEXT_TASK_ID
   "
-  
+
   # Log handoff state
   echo "Context limit reached at task $NEXT_TASK_ID" >> .gsd/specs/$FEATURE/progress.md
-  
+
   # Exit cleanly (orchestrator will restart fresh instance)
   exit 0
 ```
 
-### Step 6: Level Completion
+## Level Completion (Step 6 Detail)
 
 After completing all your tasks at a level:
 
 ```bash
 # Signal completion
-echo "Worker $WORKER_ID completed level $CURRENT_LEVEL" 
+echo "Worker $WORKER_ID completed level $CURRENT_LEVEL"
 
 # Wait for merge signal from orchestrator
 # (Orchestrator merges all worker branches after all workers complete level)
@@ -279,9 +146,7 @@ Every task you complete must:
 6. **Be typed** - Full TypeScript types, no `any`
 7. **Handle errors** - Proper error handling, not just happy path
 
-## Completion
-
-When all levels are complete:
+## Completion Output Format
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -298,11 +163,6 @@ Final commit: {hash}
 Worker shutting down.
 ═══════════════════════════════════════════════════════════════
 ```
-
-After displaying completion output, verify all assigned tasks are marked complete:
-
-Call TaskList to retrieve all tasks. For each task assigned to this worker, confirm status is "completed".
-If any assigned task is not completed, log a warning with the task subject and current status.
 
 ## Exit Codes
 
@@ -382,8 +242,3 @@ STARTING → RUNNING → STOPPED
 2. **Progress Log**: `.gsd/specs/{feature}/progress.md` - human-readable log
 3. **Worker Log**: `.zerg/logs/worker-{id}.log` - detailed worker output
 4. **Event Stream**: State manager appends events for orchestrator
-
-<!-- SPLIT: This file has been split for context efficiency.
-     Core (~30%): zerg:worker.core.md — essential execution protocol + Task tool integration
-     Details (~70%): zerg:worker.details.md — examples, error recovery, protocol specs
--->

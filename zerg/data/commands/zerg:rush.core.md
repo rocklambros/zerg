@@ -198,7 +198,3 @@ ORCHESTRATOR_PID=$!
 echo $ORCHESTRATOR_PID > ".zerg/.orchestrator.pid"
 ```
 
-
-<!-- SPLIT: core=zerg:rush.core.md details=zerg:rush.details.md -->
-<!-- For detailed examples and templates, see zerg:rush.details.md -->
-

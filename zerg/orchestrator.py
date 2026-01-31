@@ -20,6 +20,8 @@ from zerg.assign import WorkerAssignment
 from zerg.backpressure import BackpressureController
 from zerg.circuit_breaker import CircuitBreaker
 from zerg.config import ZergConfig
+from zerg.context_plugin import ContextEngineeringPlugin
+from zerg.plugin_config import ContextEngineeringConfig
 from zerg.constants import (
     LOGS_TASKS_DIR,
     LOGS_WORKERS_DIR,
@@ -101,6 +103,18 @@ class Orchestrator:
                 self._plugin_registry.load_entry_points()
             except Exception as e:
                 logger.warning(f"Failed to load plugins: {e}")
+
+        # Register context engineering plugin
+        try:
+            ctx_config = ContextEngineeringConfig()
+            if hasattr(self.config, 'plugins') and hasattr(self.config.plugins, 'context_engineering'):
+                ctx_config = self.config.plugins.context_engineering
+            if ctx_config.enabled:
+                ctx_plugin = ContextEngineeringPlugin(ctx_config)
+                self._plugin_registry.register_context_plugin(ctx_plugin)
+                logger.info("Registered context engineering plugin")
+        except Exception:
+            logger.warning("Failed to register context engineering plugin", exc_info=True)
 
         # Initialize core components
         self.state = StateManager(feature)
@@ -958,3 +972,29 @@ class Orchestrator:
         return self._retry_manager.verify_with_retry(
             task_id, command, timeout, max_retries
         )
+
+    def generate_task_contexts(self, task_graph: dict) -> dict:
+        """Populate task['context'] for tasks missing it.
+
+        Called by rush to enrich task-graph entries that don't already
+        have context from the design phase.
+
+        Returns dict mapping task_id -> context string.
+        """
+        contexts: dict[str, str] = {}
+        feature = task_graph.get("feature", "")
+        for task in task_graph.get("tasks", []):
+            if task.get("context"):
+                continue  # Already populated by design phase
+            try:
+                ctx = self._plugin_registry.build_task_context(task, task_graph, feature)
+                if ctx:
+                    task["context"] = ctx
+                    contexts[task["id"]] = ctx
+            except Exception:
+                logger.warning(
+                    "Failed to generate context for task %s",
+                    task.get("id", "unknown"),
+                    exc_info=True,
+                )
+        return contexts

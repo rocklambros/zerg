@@ -394,3 +394,75 @@ class TestConstants:
     def test_tokens_per_tool_call(self) -> None:
         """Test tool call token estimate is reasonable."""
         assert 10 <= TOKENS_PER_TOOL_CALL <= 200
+
+
+class TestBudgetForTask:
+    """Tests for budget_for_task method."""
+
+    def test_budget_for_task(self) -> None:
+        """Test budget allocation based on file count."""
+        tracker = ContextTracker()
+
+        # 10000 budget, 5 files -> 10000 // 5 = 2000 per task
+        budget = tracker.budget_for_task(10000, ["a.py", "b.py", "c.py", "d.py", "e.py"])
+
+        assert budget == 2000
+
+    def test_budget_for_task_single_file(self) -> None:
+        """Test budget allocation with single file gets full budget."""
+        tracker = ContextTracker()
+
+        budget = tracker.budget_for_task(4000, ["only.py"])
+
+        assert budget == 4000
+
+    def test_budget_for_task_empty_files(self) -> None:
+        """Test budget allocation with empty file list uses minimum 1."""
+        tracker = ContextTracker()
+
+        budget = tracker.budget_for_task(4000, [])
+
+        # max(len([]), 1) = 1, so 4000 // 1 = 4000
+        assert budget == 4000
+
+    def test_budget_for_task_clamps_to_minimum(self) -> None:
+        """Test budget is clamped to minimum of 500."""
+        tracker = ContextTracker()
+
+        # 1000 budget, 10 files -> 1000 // 10 = 100 -> clamped to 500
+        budget = tracker.budget_for_task(1000, [f"f{i}.py" for i in range(10)])
+
+        assert budget == 500
+
+
+class TestContextBudgetSummary:
+    """Tests for context_budget_summary method."""
+
+    def test_context_budget_summary(self) -> None:
+        """Test that budget summary returns correct structure and values."""
+        tracker = ContextTracker()
+
+        tasks = [
+            {
+                "id": "T-1",
+                "files": {"create": ["a.py", "b.py"], "modify": ["c.py"]},
+            },
+            {
+                "id": "T-2",
+                "files": {"create": ["d.py"]},
+            },
+        ]
+
+        summary = tracker.context_budget_summary(tasks, total_budget=10000)
+
+        assert summary["total_budget"] == 10000
+        assert "allocated" in summary
+        assert "per_task" in summary
+        assert "avg_per_task" in summary
+        assert "T-1" in summary["per_task"]
+        assert "T-2" in summary["per_task"]
+
+        # T-1 has 3 files: 10000 // 3 = 3333
+        assert summary["per_task"]["T-1"] == 3333
+        # T-2 has 1 file: 10000 // 1 = 10000
+        assert summary["per_task"]["T-2"] == 10000

@@ -1,3 +1,4 @@
+<!-- SPLIT: core, parent: zerg:plan.md -->
 # ZERG Plan: $ARGUMENTS
 
 Capture complete requirements for feature: **$ARGUMENTS**
@@ -109,5 +110,3 @@ Present requirements for approval. User replies with:
 - All open questions resolved or accepted
 - User has explicitly approved with "APPROVED"
 - Infrastructure needs identified and documented
-
-<!-- SPLIT: core=zerg:plan.core.md details=zerg:plan.details.md -->

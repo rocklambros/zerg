@@ -27,7 +27,16 @@ class ContextUsage:
     files_read: int
     tasks_executed: int
     tool_calls: int
+    context_budget_tokens: int = 0
+    context_budget_used: int = 0
     timestamp: datetime = field(default_factory=datetime.now)
+
+    @property
+    def budget_usage_percent(self) -> float:
+        """Get budget usage as percentage."""
+        if self.context_budget_tokens == 0:
+            return 0.0
+        return (self.context_budget_used / self.context_budget_tokens) * 100
 
     @property
     def usage_percent(self) -> float:
@@ -49,6 +58,9 @@ class ContextUsage:
             "files_read": self.files_read,
             "tasks_executed": self.tasks_executed,
             "tool_calls": self.tool_calls,
+            "context_budget_tokens": self.context_budget_tokens,
+            "context_budget_used": self.context_budget_used,
+            "budget_usage_percent": round(self.budget_usage_percent, 1),
             "timestamp": self.timestamp.isoformat(),
         }
 
@@ -159,6 +171,62 @@ class ContextTracker:
         """
         usage = self.get_usage()
         return usage.is_over_threshold
+
+    def budget_for_task(self, total_budget_tokens: int, task_files: list[str]) -> int:
+        """Calculate token budget for a single task based on file count.
+
+        Returns token budget clamped to [500, total_budget_tokens].
+
+        Args:
+            total_budget_tokens: Total available budget
+            task_files: List of file paths the task operates on
+
+        Returns:
+            Token budget for this task
+        """
+        file_count = max(len(task_files), 1)
+        base = total_budget_tokens // file_count
+        return max(500, min(base, total_budget_tokens))
+
+    def remaining_budget(self, used_tokens: int, total_budget: int) -> int:
+        """Calculate remaining token budget.
+
+        Args:
+            used_tokens: Tokens already consumed
+            total_budget: Total token budget
+
+        Returns:
+            Remaining tokens (minimum 0)
+        """
+        return max(0, total_budget - used_tokens)
+
+    def context_budget_summary(self, tasks: list[dict], total_budget: int) -> dict:
+        """Generate budget summary for all tasks.
+
+        Args:
+            tasks: List of task dicts with id and files keys
+            total_budget: Total token budget
+
+        Returns:
+            Dict with total_budget, allocated, per_task dict, avg_per_task
+        """
+        per_task: dict[str, int] = {}
+        allocated = 0
+        for task in tasks:
+            task_id = task.get("id", "unknown")
+            files = task.get("files", {})
+            task_files = (files.get("create") or []) + (files.get("modify") or [])
+            budget = self.budget_for_task(total_budget, task_files)
+            per_task[task_id] = budget
+            allocated += budget
+
+        avg = allocated / max(len(tasks), 1)
+        return {
+            "total_budget": total_budget,
+            "allocated": allocated,
+            "per_task": per_task,
+            "avg_per_task": round(avg, 1),
+        }
 
     def reset(self) -> None:
         """Reset tracking state for new session."""

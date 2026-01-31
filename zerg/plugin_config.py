@@ -30,6 +30,24 @@ class LauncherPluginConfig(BaseModel):
     )
 
 
+class ContextEngineeringConfig(BaseModel):
+    """Configuration for context engineering plugin."""
+
+    enabled: bool = Field(default=True, description="Enable context engineering")
+    command_splitting: bool = Field(
+        default=True, description="Use split command files when available"
+    )
+    security_rule_filtering: bool = Field(
+        default=True, description="Filter security rules by task file extensions"
+    )
+    task_context_budget_tokens: int = Field(
+        default=4000, ge=500, le=20000, description="Max tokens for per-task context"
+    )
+    fallback_to_full: bool = Field(
+        default=True, description="Fall back to full context on errors"
+    )
+
+
 class PluginsConfig(BaseModel):
     """Complete plugin system configuration."""
 
@@ -40,4 +58,8 @@ class PluginsConfig(BaseModel):
     )
     launchers: list[LauncherPluginConfig] = Field(
         default_factory=list, description="Launcher plugins"
+    )
+    context_engineering: ContextEngineeringConfig = Field(
+        default_factory=ContextEngineeringConfig,
+        description="Context engineering plugin settings",
     )

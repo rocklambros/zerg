@@ -139,6 +139,41 @@ Critical for parallel execution: each file is owned by ONE task.
 | src/auth/service.test.ts | TASK-005 | testing |
 ```
 
+## Phase 2.5: Context Engineering
+
+For each task in the task graph, populate the optional `context` field with scoped context to minimize worker token usage.
+
+### Per-Task Context
+
+For each task entry in task-graph.json, add a `context` key containing:
+
+1. **Relevant spec excerpts** — paragraphs from requirements.md and design.md that relate to this task's title, description, and file paths
+2. **Security rules** — filtered by file extensions in the task's create/modify lists:
+   - `.py` files → include Python security rules summary
+   - `.js`/`.ts` files → include JavaScript security rules summary
+   - `Dockerfile` → include Docker security rules summary
+   - Always include OWASP core rules summary
+3. **Dependency context** — brief summary of what upstream dependencies produce (types, interfaces)
+
+### Budget
+
+Keep each task's `context` field under ~4000 tokens (~16,000 characters). Prioritize:
+- Security rules: ~30% of budget
+- Spec excerpts: ~50% of budget
+- Dependency context: ~20% of budget
+
+### Example
+
+```json
+{
+  "id": "TASK-003",
+  "title": "Implement auth service",
+  "context": "## Security Rules (Python)\n- Use parameterized queries...\n\n## Spec Context\nThe auth service must support JWT...\n\n## Dependencies\nTASK-001 creates User TypedDict in types.py..."
+}
+```
+
+Workers receiving task-scoped context skip loading full spec files, saving ~2000-5000 tokens per task.
+
 ## Phase 3: Task Graph Generation
 
 Generate `task-graph.json` for the orchestrator:
@@ -529,8 +564,4 @@ Reply with:
 - File ownership is exclusive (no conflicts)
 - User has explicitly approved
 - Claude Tasks created for all tasks with correct dependencies
-
-
-<!-- SPLIT: core=zerg:design.core.md details=zerg:design.details.md -->
-<!-- For detailed examples and templates, see zerg:design.details.md -->
 

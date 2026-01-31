@@ -18,9 +18,11 @@ from zerg.security_rules import (
     _detect_rust_frameworks,
     detect_project_stack,
     fetch_rules,
+    filter_rules_for_files,
     generate_claude_md_section,
     get_required_rules,
     integrate_security_rules,
+    summarize_rules,
 )
 
 
@@ -435,3 +437,62 @@ class TestDetectionMappings:
         """Test infrastructure detection mapping is populated."""
         assert "Dockerfile" in INFRASTRUCTURE_DETECTION
         assert "*.tf" in INFRASTRUCTURE_DETECTION
+
+
+class TestFilterRulesForFiles:
+    """Tests for filter_rules_for_files function."""
+
+    def test_filter_rules_for_files_python(self, tmp_path: Path) -> None:
+        """Test that .py files trigger python security rules."""
+        rules_dir = tmp_path / "security"
+        core_dir = rules_dir / "_core"
+        core_dir.mkdir(parents=True)
+        (core_dir / "owasp-2025.md").write_text("# OWASP core rules")
+
+        py_dir = rules_dir / "languages" / "python"
+        py_dir.mkdir(parents=True)
+        (py_dir / "CLAUDE.md").write_text("# Python security rules")
+
+        js_dir = rules_dir / "languages" / "javascript"
+        js_dir.mkdir(parents=True)
+        (js_dir / "CLAUDE.md").write_text("# JS security rules")
+
+        result = filter_rules_for_files(
+            ["src/app.py", "src/models.py"],
+            rules_dir=rules_dir,
+        )
+
+        # Should include core and python, but NOT javascript
+        result_strs = [str(p) for p in result]
+        assert any("owasp-2025.md" in s for s in result_strs)
+        assert any("python" in s for s in result_strs)
+        assert not any("javascript" in s for s in result_strs)
+
+
+class TestSummarizeRules:
+    """Tests for summarize_rules function."""
+
+    def test_summarize_rules_within_budget(self, tmp_path: Path) -> None:
+        """Test that summarize_rules stays within the token budget."""
+        # Create a rule file with known content
+        rule_file = tmp_path / "test_rules.md"
+        rule_content = (
+            "## Rule: Prevent SQL Injection\n"
+            "**Level**: `strict`\n"
+            "**When**: Constructing database queries.\n"
+            "```python\n"
+            "cursor.execute('SELECT * FROM users WHERE id = %s', (uid,))\n"
+            "```\n"
+            "## Rule: Use HTTPS\n"
+            "**Level**: `warning`\n"
+            "**When**: Making HTTP requests.\n"
+        )
+        rule_file.write_text(rule_content)
+
+        # Use a small budget: 50 tokens = ~200 chars
+        result = summarize_rules([rule_file], max_tokens=50)
+
+        # Result should not exceed budget in characters (~50 * 4 = 200 chars)
+        assert len(result) <= 50 * 4
+        # Code blocks should be excluded from the summary
+        assert "cursor.execute" not in result

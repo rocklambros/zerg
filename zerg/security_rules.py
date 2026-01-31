@@ -380,6 +380,99 @@ def get_required_rules(stack: ProjectStack) -> list[str]:
     return sorted(rules)
 
 
+def filter_rules_for_files(
+    file_paths: list[str],
+    rules_dir: str | Path = ".claude/rules/security",
+) -> list[Path]:
+    """Filter security rule files relevant to specific task files.
+
+    Maps file extensions to languages, returns matching security rule paths.
+    Always includes _core/owasp-2025.md for code implementation tasks.
+    """
+    rules_path = Path(rules_dir)
+    result: list[Path] = []
+
+    # Always include core OWASP rules
+    core = rules_path / "_core" / "owasp-2025.md"
+    if core.exists():
+        result.append(core)
+
+    # Detect languages from file extensions
+    detected_langs: set[str] = set()
+    has_docker = False
+
+    for fp in file_paths:
+        p = Path(fp)
+        ext = p.suffix.lower()
+        name = p.name.lower()
+
+        # Map extensions to languages
+        if ext in (".py", ".pyx", ".pyi"):
+            detected_langs.add("python")
+        elif ext in (".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"):
+            detected_langs.add("javascript")
+
+        # Check for Docker
+        if "dockerfile" in name or name.startswith("docker-compose"):
+            has_docker = True
+
+    # Map languages to rule files
+    for lang in detected_langs:
+        lang_rule = rules_path / "languages" / lang / "CLAUDE.md"
+        if lang_rule.exists():
+            result.append(lang_rule)
+
+    if has_docker:
+        docker_rule = rules_path / "containers" / "docker" / "CLAUDE.md"
+        if docker_rule.exists():
+            result.append(docker_rule)
+
+    return result
+
+
+def summarize_rules(rule_paths: list[Path], max_tokens: int = 2000) -> str:
+    """Read and summarize security rules within token budget.
+
+    Extracts ## Rule headers and **Level** lines only, skipping code blocks.
+    Returns markdown summary.
+    """
+    parts: list[str] = []
+    chars_budget = max_tokens * 4  # ~4 chars per token
+    chars_used = 0
+
+    for rule_path in rule_paths:
+        if not rule_path.exists():
+            continue
+
+        content = rule_path.read_text()
+        in_code_block = False
+        file_parts: list[str] = []
+
+        for line in content.split("\n"):
+            # Track code blocks
+            if line.strip().startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+
+            # Include rule headers and level indicators
+            if line.startswith("## Rule:") or line.startswith("### Rule:"):
+                file_parts.append(line)
+            elif line.startswith("**Level**:") or line.startswith("**Level**"):
+                file_parts.append(line)
+            elif line.startswith("**When**:") or line.startswith("**When**"):
+                file_parts.append(line)
+
+        if file_parts:
+            section = f"### {rule_path.parent.name}/{rule_path.name}\n" + "\n".join(file_parts)
+            if chars_used + len(section) <= chars_budget:
+                parts.append(section)
+                chars_used += len(section)
+
+    return "\n\n".join(parts)
+
+
 def fetch_rules(
     rule_paths: list[str],
     output_dir: Path,

@@ -728,8 +728,11 @@ class WorkerProtocol:
         """
         parts = []
 
-        # Inject feature context if available
-        if self._spec_context:
+        # Inject task-scoped context if available, otherwise fall back to full spec context
+        if task_context := task.get('context'):
+            parts.append('# Task Context (Scoped)')
+            parts.append(task_context)
+        elif self._spec_context:
             parts.append(self._spec_context)
 
         # Task header

@@ -230,7 +230,3 @@ Plugin operations should write state to both:
 2. **State JSON** (supplementary) — `.zerg/state/plugins.json`
 
 If Task system and state JSON disagree, Task system wins.
-
-<!-- SPLIT: core=zerg:plugins.core.md details=zerg:plugins.details.md -->
-<!-- For detailed examples and templates, see zerg:plugins.details.md -->
-

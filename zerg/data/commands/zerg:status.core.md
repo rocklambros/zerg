@@ -1,3 +1,4 @@
+<!-- SPLIT: core, parent: zerg:status.md -->
 # ZERG Status
 
 Display current factory execution status.
@@ -59,6 +60,35 @@ Commands:
 ═══════════════════════════════════════════════════════════════════════════════
 ```
 
+## Context Budget
+
+Show context engineering stats when available:
+
+```
+CONTEXT BUDGET
+──────────────────────────────────────────────
+Split Commands:  {n} files split (core + details)
+  Savings:       ~{tokens} tokens per worker session
+
+Per-Task Context:
+  Tasks with context:  {n}/{total} (populated at design time)
+  Tasks using fallback: {n}/{total} (full spec loaded)
+  Avg context size:    {n} tokens (budget: {limit})
+
+Security Rules:
+  Filtered:     {lang} ({n} tasks), {lang} ({n} tasks)
+  Core only:    {n} tasks (OWASP rules only)
+  Savings:      ~{tokens} tokens vs loading all rules
+──────────────────────────────────────────────
+```
+
+### Context Budget Data Sources
+
+- Split file count: `ls zerg/data/commands/*.core.md | wc -l`
+- Task context: read `task.context` field from task-graph.json
+- Security filtering: check task file extensions vs loaded rules
+- Budget config: `ContextEngineeringConfig.task_context_budget_tokens`
+
 ## Data Sources
 
 ### Task Status from Native Tasks
@@ -93,8 +123,3 @@ For each task:
 On invocation: TaskCreate (subject: `[Status] Check status: {feature}`)
 Immediately: TaskUpdate status "in_progress"
 On completion: TaskUpdate status "completed"
-
-<!-- SPLIT: This file has been split for context efficiency.
-  - Core: zerg:status.core.md (essential instructions, Task tool refs)
-  - Details: zerg:status.details.md (dashboard formatting, CLI options, JSON schema, examples)
--->

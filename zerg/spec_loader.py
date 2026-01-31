@@ -204,6 +204,105 @@ class SpecLoader:
 
         return truncated + "\n\n[... truncated for context limits ...]"
 
+    def format_task_context(
+        self,
+        task: dict,
+        feature: str,
+        max_tokens: int = 1000,
+    ) -> str:
+        """Format feature specs scoped to a specific task's files and keywords.
+
+        Unlike format_context_prompt (full spec summary), this extracts only
+        sections relevant to the task.
+
+        Args:
+            task: Task dictionary with title, description, and files
+            feature: Feature name to load specs for
+            max_tokens: Maximum tokens for combined content
+
+        Returns:
+            Formatted context string with relevant sections only
+        """
+        try:
+            specs = self.load_feature_specs(feature)
+        except Exception:
+            return ""
+
+        if not specs.requirements and not specs.design:
+            return ""
+
+        keywords = self._extract_task_keywords(task)
+        if not keywords:
+            return ""
+
+        parts: list[str] = []
+
+        if specs.requirements:
+            relevant = self._extract_relevant_sections(specs.requirements, keywords)
+            if relevant:
+                parts.append("## Relevant Requirements")
+                parts.append(self._truncate_to_tokens(relevant, max_tokens // 2))
+
+        if specs.design:
+            relevant = self._extract_relevant_sections(specs.design, keywords)
+            if relevant:
+                parts.append("## Relevant Design")
+                remaining = max_tokens - self._estimate_tokens("\n".join(parts))
+                parts.append(
+                    self._truncate_to_tokens(
+                        relevant, max(remaining, max_tokens // 4)
+                    )
+                )
+
+        return "\n\n".join(parts) if parts else ""
+
+    def _extract_task_keywords(self, task: dict) -> set[str]:
+        """Extract keywords from task title, description, and file paths.
+
+        Args:
+            task: Task dictionary with title, description, and files
+
+        Returns:
+            Set of lowercase keywords (length > 3 for text, > 2 for file stems)
+        """
+        words: set[str] = set()
+        for field in ("title", "description"):
+            if text := task.get(field, ""):
+                words.update(w.lower() for w in text.split() if len(w) > 3)
+        for file_list in task.get("files", {}).values():
+            if isinstance(file_list, list):
+                for fp in file_list:
+                    from pathlib import Path as _Path
+
+                    stem = _Path(fp).stem
+                    words.update(
+                        part.lower()
+                        for part in stem.replace("-", "_").split("_")
+                        if len(part) > 2
+                    )
+        return words
+
+    def _extract_relevant_sections(self, text: str, keywords: set[str]) -> str:
+        """Extract paragraphs containing keyword matches, ranked by relevance.
+
+        Args:
+            text: Full spec text to search
+            keywords: Set of lowercase keywords to match
+
+        Returns:
+            Top 5 matching paragraphs joined by double newlines
+        """
+        paragraphs = text.split("\n\n")
+        scored: list[tuple[int, str]] = []
+        for para in paragraphs:
+            if not para.strip():
+                continue
+            score = sum(1 for kw in keywords if kw in para.lower())
+            if score > 0:
+                scored.append((score, para))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return "\n\n".join(para for _, para in scored[:5])
+
     def load_and_format(self, feature: str, max_tokens: int = MAX_SPEC_TOKENS) -> str:
         """Load specs and format as prompt prefix in one call.
 

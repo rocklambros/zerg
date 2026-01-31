@@ -1,3 +1,4 @@
+<!-- SPLIT: core, parent: zerg:debug.md -->
 # ZERG Debug: $ARGUMENTS
 
 Deep diagnostic investigation for ZERG execution issues with error intelligence, log correlation, Bayesian hypothesis testing, code-aware recovery, and environment diagnostics.
@@ -82,5 +83,3 @@ Always output findings using the structured templates in the details file.
 Be specific: include file paths, line numbers, task IDs, worker IDs.
 Quantify: "3 of 12 tasks failed" not "some tasks failed".
 Prioritize: address the root cause, not symptoms.
-
-<!-- SPLIT: core=zerg:debug.core.md details=zerg:debug.details.md -->

@@ -151,3 +151,5 @@ class PluginHookEvent(Enum):
     QUALITY_GATE_RUN = "quality_gate_run"
     WORKER_SPAWNED = "worker_spawned"
     WORKER_EXITED = "worker_exited"
+    PRE_TASK_PROMPT = "pre_task_prompt"
+    POST_CONTEXT_BUILD = "post_context_build"

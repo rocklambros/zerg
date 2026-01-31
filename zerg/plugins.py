@@ -87,6 +87,31 @@ class LauncherPlugin(abc.ABC):
         """Create and return a WorkerLauncher instance from the given config."""
 
 
+class ContextPlugin(abc.ABC):
+    """Abstract base class for context engineering plugins."""
+
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        """Unique name identifying this context plugin."""
+
+    @abc.abstractmethod
+    def build_task_context(self, task: dict, task_graph: dict, feature: str) -> str:
+        """Build context string for a specific task.
+
+        Args:
+            task: Task dict from task-graph.json
+            task_graph: Full task graph dict
+            feature: Feature name
+        Returns:
+            Markdown context string to inject into worker prompt
+        """
+
+    @abc.abstractmethod
+    def estimate_context_tokens(self, task: dict) -> int:
+        """Estimate token count for task context."""
+
+
 # ============================================================================
 # Plugin Registry
 # ============================================================================
@@ -100,6 +125,7 @@ class PluginRegistry:
         self._gates: dict[str, QualityGatePlugin] = {}
         self._gate_metadata: dict[str, dict[str, Any]] = {}  # required flag + metadata
         self._launchers: dict[str, LauncherPlugin] = {}
+        self._context_plugins: dict[str, ContextPlugin] = {}
 
     # -- Registration --------------------------------------------------------
 
@@ -120,6 +146,10 @@ class PluginRegistry:
     def register_launcher(self, plugin: LauncherPlugin) -> None:
         """Register a launcher plugin by its name."""
         self._launchers[plugin.name] = plugin
+
+    def register_context_plugin(self, plugin: ContextPlugin) -> None:
+        """Register a context plugin by its name."""
+        self._context_plugins[plugin.name] = plugin
 
     # -- Dispatching ---------------------------------------------------------
 
@@ -188,6 +218,32 @@ class PluginRegistry:
         metadata = self._gate_metadata.get(name, {})
         return bool(metadata.get("required", True))
 
+    def get_context_plugins(self) -> list[ContextPlugin]:
+        """Return all registered context plugins."""
+        return list(self._context_plugins.values())
+
+    def build_task_context(self, task: dict, task_graph: dict, feature: str) -> str:
+        """Build combined context from all registered context plugins.
+
+        Calls each plugin's ``build_task_context`` method and concatenates the
+        results.  Exceptions from individual plugins are caught and logged so
+        that one failing plugin does not prevent others from contributing.
+        """
+        parts: list[str] = []
+        for plugin in self._context_plugins.values():
+            try:
+                result = plugin.build_task_context(task, task_graph, feature)
+                if result:
+                    parts.append(result)
+            except Exception:
+                logger.warning(
+                    "Context plugin %r failed for task %r",
+                    plugin.name,
+                    task.get("id", "unknown"),
+                    exc_info=True,
+                )
+        return "\n\n---\n\n".join(parts)
+
     # -- YAML hook loading ---------------------------------------------------
 
     def load_yaml_hooks(self, hooks_config: list[dict[str, Any]]) -> None:
@@ -218,7 +274,8 @@ class PluginRegistry:
         """Discover and register plugins from installed package entry points.
 
         Each entry point should reference a class implementing one of the
-        plugin ABCs (QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin).
+        plugin ABCs (QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin,
+        ContextPlugin).
         """
         eps = importlib.metadata.entry_points()
 
@@ -246,6 +303,9 @@ class PluginRegistry:
                 elif isinstance(instance, LauncherPlugin):
                     self.register_launcher(instance)
                     logger.info("Registered launcher plugin: %s", instance.name)
+                elif isinstance(instance, ContextPlugin):
+                    self.register_context_plugin(instance)
+                    logger.info("Registered context plugin: %s", instance.name)
                 else:
                     logger.warning(
                         "Entry point %r did not produce a recognised plugin type: %s",

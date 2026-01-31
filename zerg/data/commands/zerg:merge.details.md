@@ -1,18 +1,7 @@
-# ZERG Merge
+<!-- SPLIT: details, parent: zerg:merge.md -->
+# ZERG Merge — Details
 
-Manually trigger or manage level merge operations.
-
-## Pre-Flight
-
-```bash
-FEATURE=$(cat .gsd/.current-feature 2>/dev/null)
-STATE_FILE=".zerg/state/$FEATURE.json"
-SPEC_DIR=".gsd/specs/$FEATURE"
-
-# Validate prerequisites
-[ -z "$FEATURE" ] && { echo "ERROR: No active feature"; exit 1; }
-[ ! -f "$STATE_FILE" ] && { echo "ERROR: No state file found"; exit 1; }
-```
+Reference material for merge operations: step details, usage examples, conflict resolution, CLI flags, states, and troubleshooting.
 
 ## Usage
 
@@ -33,35 +22,16 @@ zerg merge --dry-run
 zerg merge --abort
 ```
 
-## Merge Protocol
-
-### Step 1: Check Level Completion
-
-```bash
-CURRENT_LEVEL=$(jq '.current_level' "$STATE_FILE")
-LEVEL_STATUS=$(jq ".levels[\"$CURRENT_LEVEL\"].status" "$STATE_FILE")
-
-# All tasks must be complete
-PENDING=$(jq "[.tasks | to_entries[] | select(.value.level == $CURRENT_LEVEL and .value.status != \"complete\")] | length" "$STATE_FILE")
-
-if [ "$PENDING" -gt 0 ]; then
-  echo "ERROR: Level $CURRENT_LEVEL has $PENDING incomplete tasks"
-  echo "Wait for tasks to complete or use --force to merge partial results"
-  exit 1
-fi
-```
+## Merge Protocol — Detailed Steps
 
 ### Step 2: Collect Worker Branches
 
 ```bash
-# Get all worker branches for this level
 BRANCHES=$(jq -r ".workers | to_entries[] | .value.branch" "$STATE_FILE")
 
 echo "Collecting branches for merge:"
 for branch in $BRANCHES; do
   echo "  - $branch"
-
-  # Verify branch exists and has commits
   if ! git rev-parse --verify "$branch" >/dev/null 2>&1; then
     echo "    WARNING: Branch does not exist"
   fi
@@ -73,8 +43,6 @@ done
 ```bash
 STAGING_BRANCH="zerg/$FEATURE/staging-level-$CURRENT_LEVEL"
 BASE_BRANCH=$(jq -r '.base_branch // "main"' "$STATE_FILE")
-
-# Create staging from base
 git checkout -B "$STAGING_BRANCH" "$BASE_BRANCH"
 ```
 
@@ -83,15 +51,11 @@ git checkout -B "$STAGING_BRANCH" "$BASE_BRANCH"
 ```bash
 for branch in $BRANCHES; do
   echo "Merging $branch..."
-
   if git merge --no-ff "$branch" -m "Merge $branch into staging"; then
     echo "  ✓ Merged successfully"
   else
     echo "  ✗ Merge conflict detected"
-
-    # Record conflicting files
     git diff --name-only --diff-filter=U > ".zerg/conflicts-level-$CURRENT_LEVEL.txt"
-
     if [ "$FORCE" != "true" ]; then
       echo "Aborting merge. Use --force to continue with conflicts"
       git merge --abort
@@ -101,88 +65,20 @@ for branch in $BRANCHES; do
 done
 ```
 
-### Step 5: Run Quality Gates
-
-```bash
-echo "Running quality gates on merged code..."
-
-# Run lint
-if ! ruff check .; then
-  echo "WARNING: Lint failed"
-  GATE_FAILURES+=("lint")
-fi
-
-# Run tests
-if ! pytest tests/ -v --tb=short; then
-  echo "WARNING: Tests failed"
-  GATE_FAILURES+=("test")
-fi
-
-# Run type check
-if ! mypy . --ignore-missing-imports; then
-  echo "WARNING: Type check failed"
-  GATE_FAILURES+=("typecheck")
-fi
-
-if [ ${#GATE_FAILURES[@]} -gt 0 ]; then
-  echo "Quality gates failed: ${GATE_FAILURES[*]}"
-
-  if [ "$FORCE" != "true" ]; then
-    echo "Aborting merge. Fix issues or use --force"
-    exit 1
-  fi
-fi
-```
-
-### Step 5.5: Update Task System After Merge
-
-After quality gates pass, update Claude Code Tasks for this level:
-
-1. Call TaskList to get all tasks
-2. For each task at the current level (match subject prefix `[L{CURRENT_LEVEL}]`):
-   - If quality gates passed: Call TaskUpdate with status "completed"
-   - If quality gates failed: Do NOT update task status (leave as in_progress for retry)
-3. Log any tasks that could not be updated
-
-If quality gates failed, skip this step entirely — tasks remain in_progress for the orchestrator to handle.
-
-### Step 6: Finalize Merge
-
-```bash
-# Tag the merge point
-git tag "zerg/$FEATURE/level-$CURRENT_LEVEL-complete"
-
-# Update state
-jq ".levels[\"$CURRENT_LEVEL\"].status = \"complete\" | .levels[\"$CURRENT_LEVEL\"].merge_commit = \"$(git rev-parse HEAD)\"" "$STATE_FILE" > tmp && mv tmp "$STATE_FILE"
-
-echo "Level $CURRENT_LEVEL merge complete"
-```
-
-After finalization, verify Task system consistency:
-
-Call TaskList and confirm all tasks at level `$CURRENT_LEVEL` show status "completed".
-If any task is not completed, log a warning: `⚠️ Task {subject} not marked completed in Task system`.
-
 ### Step 7: Rebase Worker Branches
 
 ```bash
 echo "Rebasing worker branches onto merged base..."
-
 for branch in $BRANCHES; do
   git checkout "$branch"
-
   if git rebase "$STAGING_BRANCH"; then
     echo "  ✓ $branch rebased"
   else
     echo "  ✗ Rebase conflict for $branch"
     git rebase --abort
-
-    # Mark for manual intervention
     jq ".workers[] | select(.branch == \"$branch\") | .needs_rebase = true" "$STATE_FILE" > tmp && mv tmp "$STATE_FILE"
   fi
 done
-
-# Return to staging
 git checkout "$STAGING_BRANCH"
 ```
 
@@ -218,7 +114,6 @@ git checkout --ours <file>
 ```bash
 # Identify which worker's task caused conflict
 # Re-run that task on the merged base
-
 zerg retry TASK-ID --on-base
 ```
 
@@ -313,8 +208,3 @@ Options:
 - Worker branch diverged significantly
 - Manual rebase may be needed
 - Consider re-creating worker branch from staging
-
-<!-- SPLIT: This file has been split for context engineering.
-  Core (~30%): zerg:merge.core.md — pre-flight, merge protocol, quality gates, Task tool refs
-  Details (~70%): zerg:merge.details.md — usage, conflict resolution, output, CLI flags, states, troubleshooting
--->
