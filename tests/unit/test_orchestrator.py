@@ -174,18 +174,16 @@ class TestLauncherCreation:
         mock_orchestrator_deps["container_launcher_mock"].assert_called()
         mock_orchestrator_deps["container_launcher"].ensure_network.assert_called()
 
-    def test_create_launcher_unknown_mode_uses_config(
+    def test_create_launcher_unknown_mode_raises_value_error(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
     ) -> None:
-        """Test unknown mode falls back to config setting."""
+        """Test unknown mode raises ValueError instead of silent fallback."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
         config = ZergConfig()
-        orch = Orchestrator("test-feature", config=config, launcher_mode="unknown_mode")
-
-        # Should use config's get_launcher_type
-        assert orch.launcher is not None
+        with pytest.raises(ValueError, match="Unsupported launcher mode"):
+            Orchestrator("test-feature", config=config, launcher_mode="unknown_mode")
 
     def test_create_launcher_auto_mode_no_devcontainer(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch

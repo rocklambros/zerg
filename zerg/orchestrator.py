@@ -257,7 +257,12 @@ class Orchestrator:
             if plugin_launcher is not None:
                 logger.info(f"Using plugin launcher: {mode}")
                 return plugin_launcher
-            launcher_type = self.config.get_launcher_type()
+            raise ValueError(
+                f"Unsupported launcher mode: '{mode}'. "
+                f"Valid modes: subprocess, container, auto"
+            )
+
+        logger.info(f"Launcher mode resolved: {mode!r} → {launcher_type.value}")
 
         config = LauncherConfig(
             launcher_type=launcher_type,

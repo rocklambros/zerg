@@ -34,7 +34,7 @@ logger = get_logger("rush")
 @click.option("--task-graph", "-g", help="Path to task-graph.json")
 @click.option(
     "--mode", "-m",
-    type=click.Choice(["subprocess", "container", "task", "auto"]),
+    type=click.Choice(["subprocess", "container", "auto"]),
     default="auto",
     help="Worker execution mode (default: auto-detect)",
 )
@@ -156,6 +156,8 @@ def rush(
 
         # Create orchestrator and start
         orchestrator = Orchestrator(feature, config, launcher_mode=mode)
+        launcher_name = type(orchestrator.launcher).__name__
+        console.print(f"Launcher: [bold]{launcher_name}[/bold]")
 
         # Register task completion callback with backlog update
         backlog_path = Path(f"tasks/{feature.upper()}-BACKLOG.md")
