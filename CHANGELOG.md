@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 8 new feature issues for open-source release roadmap
 - GitHub Actions workflow to enforce CHANGELOG.md updates on PRs (skippable with `skip-changelog` label)
 - Claude Code instruction in CLAUDE.md to proactively update changelog when creating PRs
+- Updated README, `docs/commands.md`, wiki `Command-git.md`, and `Command-Reference.md` to document all 11 `/zerg:git` actions
 
 ### Fixed
 
