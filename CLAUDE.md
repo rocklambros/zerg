@@ -8,6 +8,7 @@ These are Claude Code slash commands. Use them inside a Claude Code session:
 
 ```claude
 /zerg:init               # Set up project infrastructure
+/zerg:brainstorm         # Discover what to build (optional)
 /zerg:plan user-auth     # Plan a feature
 /zerg:design             # Design architecture (after approval)
 /zerg:rush --workers=5   # Launch the swarm (after approval)
@@ -53,6 +54,7 @@ All ZERG tasks use bracketed prefixes for discoverability:
 - `[Plan] Capture requirements: {feature}`
 - `[Design] Architecture for {feature}`
 - `[L{level}] {task title}` — execution tasks from task-graph.json
+- `[Brainstorm] Discovery: {domain}`
 - `[Init]`, `[Cleanup]`, `[Review]`, `[Build]`, `[Test]`, `[Security]`, etc. — utility commands
 
 ### Why This Matters
@@ -158,7 +160,7 @@ ZERG includes a context engineering plugin that minimizes token usage across wor
 
 Large command files (>300 lines) are split into `.core.md` (essential instructions, ~30%) and `.details.md` (reference material, ~70%). The original file retains core content for backward compatibility.
 
-Split files: init, design, rush, plugins, debug, plan, worker, merge, status.
+Split files: brainstorm, init, design, rush, plugins, debug, plan, worker, merge, status.
 
 ### Task-Scoped Context
 

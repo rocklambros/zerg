@@ -4,6 +4,16 @@ Key terms and concepts used throughout the ZERG documentation. Terms are listed 
 
 ---
 
+## B
+
+### Brainstorm
+
+An optional discovery phase before planning. The `/zerg:brainstorm` command performs competitive research via web search, conducts structured Socratic questioning, and creates prioritized GitHub issues. Feeds into `/zerg:plan` when a specific feature is selected.
+
+See: [[Command-brainstorm]]
+
+---
+
 ## C
 
 ### Claude Code Task System

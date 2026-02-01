@@ -78,10 +78,11 @@ Workers launched by `/zerg:rush` inherit this environment variable automatically
 ZERG registers its commands in the `.claude/commands/` directory. After running `/zerg:init`, you can use any `/zerg:*` command inside a Claude Code session:
 
 ```
-/zerg:plan <feature>     Plan a feature
-/zerg:design             Design architecture
-/zerg:rush               Launch workers
-/zerg:status             Check progress
+/zerg:brainstorm <topic>   Discover features (optional)
+/zerg:plan <feature>       Plan a feature
+/zerg:design               Design architecture
+/zerg:rush                 Launch workers
+/zerg:status               Check progress
 ```
 
 ---

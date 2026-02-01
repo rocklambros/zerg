@@ -387,6 +387,7 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 | Command | Module | Purpose |
 |---------|--------|---------|
 | `/zerg:init` | `init.py` | Project initialization (Inception/Discovery modes) |
+| `/zerg:brainstorm` | (command spec) | Feature discovery and GitHub issue creation |
 | `/zerg:plan` | `plan.py` | Capture requirements (Socratic discovery) |
 | `/zerg:design` | `design.py` | Generate architecture and task graph |
 | `/zerg:rush` | `rush.py` | Launch parallel zerglings |

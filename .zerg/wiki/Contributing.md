@@ -84,7 +84,7 @@ ZERG/
 │   ├── constants.py            # Project constants
 │   ├── exceptions.py           # Custom exceptions
 │   ├── data/
-│   │   └── commands/           # Slash command definitions (25 commands)
+│   │   └── commands/           # Slash command definitions (26 commands)
 │   │       ├── zerg:init.md
 │   │       ├── zerg:plan.md
 │   │       ├── zerg:design.md
@@ -360,7 +360,7 @@ The original file retains core content for backward compatibility. If you are mo
 Before committing changes to any command file, run the drift detection checklist from `CLAUDE.md`:
 
 ```bash
-# All 25 command files must reference Task tools
+# All 26 command files must reference Task tools
 grep -rL "TaskCreate\|TaskUpdate\|TaskList\|TaskGet" zerg/data/commands/zerg:*.md
 
 # Expected output: empty (no files missing Task references)

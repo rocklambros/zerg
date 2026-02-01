@@ -1,6 +1,6 @@
 # ZERG Command Reference
 
-Complete documentation for all 25 ZERG slash commands. Each command is available inside Claude Code sessions after running `zerg install`.
+Complete documentation for all 26 ZERG slash commands. Each command is available inside Claude Code sessions after running `zerg install`.
 
 Commands can be invoked in two ways:
 - **Slash command**: `/zerg:rush --workers=5` (inside Claude Code)
@@ -12,6 +12,7 @@ Commands can be invoked in two ways:
 
 - **Core Workflow**
   - [/zerg:init](#zerginit) — Initialize project
+  - [/zerg:brainstorm](#zergbrainstorm) — Feature discovery and ideation
   - [/zerg:plan](#zergplan) — Capture requirements
   - [/zerg:design](#zergdesign) — Design architecture
   - [/zerg:rush](#zergrush) — Launch parallel execution
@@ -118,6 +119,52 @@ ZERG automatically detects all languages in your project:
 #### Security Rules Integration
 
 ZERG automatically fetches stack-specific security rules from [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules) and stores them in `.claude/rules/security/`. Claude Code auto-loads all files under `.claude/rules/`, so no `@-imports` are needed. An informational summary is added to `CLAUDE.md`.
+
+---
+
+### /zerg:brainstorm
+
+Open-ended feature discovery through competitive research, Socratic questioning, and automated GitHub issue creation.
+
+**When to use**: Before `/zerg:plan`, when you don't yet know what feature to build or want to explore the competitive landscape. Brainstorm produces prioritized GitHub issues; plan takes one of those issues and captures detailed requirements.
+
+#### Usage
+
+```bash
+/zerg:brainstorm mobile-app-features
+/zerg:brainstorm --skip-research
+/zerg:brainstorm --rounds 5 --dry-run
+```
+
+#### Flags
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--rounds N` | | Number of Socratic discovery rounds | `3` |
+| `--skip-research` | | Skip competitive analysis web research | off |
+| `--skip-issues` | | Ideate only, don't create GitHub issues | off |
+| `--dry-run` | | Preview issues without creating them | off |
+| `--resume` | | Resume previous brainstorm session | off |
+
+#### Workflow
+
+1. **Research** — WebSearch for competitors, market gaps, trends (3-5 queries)
+2. **Socratic Discovery** — 3 rounds of structured questions (problem → solution → prioritization)
+3. **Issue Generation** — Creates GitHub issues with acceptance criteria and priority labels
+4. **Handoff** — Presents ranked recommendations and suggests `/z:plan` for the top pick
+
+#### What Gets Created
+
+```
+.gsd/specs/brainstorm-{timestamp}/
+  research.md     # Competitive analysis findings
+  brainstorm.md   # Session summary with all Q&A
+  issues.json     # Machine-readable issue manifest
+```
+
+#### Context Management
+
+Uses command splitting (`.core.md` + `.details.md`), scoped context loading, and session resumability.
 
 ---
 

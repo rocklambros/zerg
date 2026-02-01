@@ -1554,7 +1554,7 @@ Now that you understand ZERG, try these:
 5. **Build something new**: Use ZERG on your own project
 
 For more details, see:
-- [Command Reference](commands.md) — Complete documentation for all 25 commands
+- [Command Reference](commands.md) — Complete documentation for all 26 commands
 - [Configuration Guide](configuration.md) — Config files, tuning, environment variables
 - [Architecture](../ARCHITECTURE.md) — System design, module reference, execution model
 - [Plugin System](plugins.md) — Extend ZERG with custom gates, hooks, and launchers

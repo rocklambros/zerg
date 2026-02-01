@@ -1,13 +1,13 @@
 # ZERG Command Reference
 
-This page provides an index of all 25 ZERG commands. Each command has its own detailed reference page.
+This page provides an index of all 26 ZERG commands. Each command has its own detailed reference page.
 
 ## Workflow Overview
 
 ZERG commands follow a sequential workflow. The typical order of operations is:
 
 ```
-init --> plan --> design --> rush --> status/logs --> merge --> cleanup
+brainstorm (optional) --> init --> plan --> design --> rush --> status/logs --> merge --> cleanup
 ```
 
 During execution, use `stop` to halt workers, `retry` to re-run failed tasks, and `logs` to inspect worker output.
@@ -17,6 +17,7 @@ During execution, use `stop` to halt workers, `retry` to re-run failed tasks, an
 | Command | Purpose | Phase |
 |---------|---------|-------|
 | [[/zerg:init|Command-init]] | Initialize ZERG for a new or existing project | Setup |
+| [[/zerg:brainstorm|Command-brainstorm]] | Feature discovery and GitHub issue creation | Planning |
 | [[/zerg:plan|Command-plan]] | Capture requirements for a feature | Planning |
 | [[/zerg:design|Command-design]] | Generate architecture and task graph for parallel execution | Design |
 | [[/zerg:rush|Command-rush]] | Launch parallel workers to execute the task graph | Execution |
@@ -50,6 +51,7 @@ During execution, use `stop` to halt workers, `retry` to re-run failed tasks, an
 
 ### Planning and Design
 
+- **[[/zerg:brainstorm|Command-brainstorm]]** -- Open-ended feature discovery through competitive research, Socratic questioning, and automated issue creation.
 - **[[/zerg:plan|Command-plan]]** -- Interactive requirements gathering. Produces `requirements.md` in the spec directory.
 - **[[/zerg:design|Command-design]]** -- Generates `design.md` and `task-graph.json`. Breaks work into parallelizable tasks with exclusive file ownership.
 

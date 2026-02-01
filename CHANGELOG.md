@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `/zerg:brainstorm` command for open-ended feature discovery with competitive research, Socratic ideation, and automated GitHub issue creation
+- 8 new feature issues for open-source release roadmap
 - GitHub Actions workflow to enforce CHANGELOG.md updates on PRs (skippable with `skip-changelog` label)
 - Claude Code instruction in CLAUDE.md to proactively update changelog when creating PRs
 
@@ -24,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Parallel Claude Code execution system with orchestrator, workers, and task graphs
-- 25 slash commands (`/zerg:init`, `/zerg:plan`, `/zerg:design`, `/zerg:rush`, `/zerg:status`, `/zerg:merge`, `/zerg:stop`, `/zerg:retry`, `/zerg:cleanup`, `/zerg:worker`, `/zerg:debug`, `/zerg:build`, `/zerg:test`, `/zerg:review`, `/zerg:analyze`, `/zerg:refactor`, `/zerg:security`, `/zerg:git`, `/zerg:logs`, `/zerg:document`, `/zerg:estimate`, `/zerg:explain`, `/zerg:index`, `/zerg:select-tool`, `/zerg:plugins`)
+- 26 slash commands (`/zerg:brainstorm`, `/zerg:init`, `/zerg:plan`, `/zerg:design`, `/zerg:rush`, `/zerg:status`, `/zerg:merge`, `/zerg:stop`, `/zerg:retry`, `/zerg:cleanup`, `/zerg:worker`, `/zerg:debug`, `/zerg:build`, `/zerg:test`, `/zerg:review`, `/zerg:analyze`, `/zerg:refactor`, `/zerg:security`, `/zerg:git`, `/zerg:logs`, `/zerg:document`, `/zerg:estimate`, `/zerg:explain`, `/zerg:index`, `/zerg:select-tool`, `/zerg:plugins`)
 - Shortcut aliases (`/z:*`) for all commands
 - Dual execution modes: subprocess and Docker container
 - Git worktree-based branch isolation for parallel workers

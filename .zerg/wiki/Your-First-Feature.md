@@ -396,6 +396,10 @@ The design phase is your last chance to influence the architecture before worker
 - **Verification commands** -- Weak verification means tasks can "pass" without actually working.
 - **Level assignments** -- Incorrect levels force unnecessary serialization or cause dependency errors.
 
+### Use Brainstorm for Discovery
+
+If you are starting a new project and do not have a clear feature list, try `/zerg:brainstorm` before planning. It conducts competitive research and structured questioning to help you identify and prioritize features. The output includes GitHub issues that you can feed directly into `/zerg:plan`.
+
 ### Start with Fewer Workers
 
 For your first few features, use 2 to 3 workers. This makes the execution easier to follow and debug. Scale up to 5 to 10 workers once you are comfortable with the workflow.
@@ -409,6 +413,6 @@ The TUI dashboard (`zerg status --dashboard`) gives you real-time visibility int
 ## Next Steps
 
 - [[Getting Started]] -- Review core concepts in depth.
-- Command Reference -- Full documentation for all 19 `/zerg:*` commands.
+- Command Reference -- Full documentation for all 26 `/zerg:*` commands.
 - Configuration -- Customize quality gates, worker limits, and resource constraints.
 - Troubleshooting -- Solutions for common problems.

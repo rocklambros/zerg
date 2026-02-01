@@ -49,7 +49,7 @@ The goal was simple: stop repeating myself and start shipping faster. ZERG is th
   - [Plugin System](#plugin-system)
   - [Diagnostics Engine](#diagnostics-engine)
 - **Detailed Documentation**
-  - [Command Reference](docs/commands.md) — All 25 commands with every flag and option
+  - [Command Reference](docs/commands.md) — All 26 commands with every flag and option
   - [Configuration Guide](docs/configuration.md) — Config files, tuning, environment variables
   - [Architecture](ARCHITECTURE.md) — System design, module reference, execution model
   - [Tutorial: Minerals Store](docs/tutorial-minerals-store.md) — Build a Starcraft 2 themed store from scratch
@@ -83,7 +83,7 @@ zerg --help
 
 ### Install Slash Commands
 
-ZERG ships with 25 slash commands for Claude Code. Install them into your project:
+ZERG ships with 26 slash commands for Claude Code. Install them into your project:
 
 ```bash
 # Install commands into .claude/commands/
@@ -397,13 +397,14 @@ When things go wrong, `/zerg:debug` provides deep investigation capabilities:
 
 ## Command Overview
 
-ZERG provides 25 slash commands organized into five categories. See the [Command Reference](docs/commands.md) for complete documentation.
+ZERG provides 26 slash commands organized into five categories. See the [Command Reference](docs/commands.md) for complete documentation.
 
 ### Core Workflow
 
 | Command | Purpose |
 |---------|---------|
 | `/zerg:init` | Initialize ZERG for a project (Inception or Discovery mode) |
+| `/zerg:brainstorm` | Feature discovery, competitive analysis, and issue creation |
 | `/zerg:plan <feature>` | Capture requirements for a feature |
 | `/zerg:design` | Generate architecture and task graph |
 | `/zerg:rush` | Launch parallel zerglings to execute tasks |
@@ -573,7 +574,7 @@ MIT
 
 | Document | Description |
 |----------|-------------|
-| [Command Reference](docs/commands.md) | Complete documentation for all 25 commands |
+| [Command Reference](docs/commands.md) | Complete documentation for all 26 commands |
 | [Configuration Guide](docs/configuration.md) | Config files, tuning, environment variables, plugins |
 | [Architecture](ARCHITECTURE.md) | System design, module reference, execution model |
 | [Context Engineering](docs/context-engineering.md) | How ZERG minimizes worker token usage |
