@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from zerg.config import ZergConfig
+from zerg.constants import GSD_DIR, SPECS_DIR
 from zerg.containers import ContainerManager
 from zerg.git_ops import GitOps
 from zerg.logging import get_logger
@@ -342,6 +343,29 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
             except Exception as e:
                 console.print(f"  [red]✗[/red] {log_file}: {e}")
                 errors.append(str(e))
+
+    # Remove spec directories for cleaned features
+    for feature in plan["features"]:
+        spec_dir = Path(SPECS_DIR) / feature
+        if spec_dir.exists():
+            try:
+                shutil.rmtree(spec_dir)
+                console.print(f"  [green]✓[/green] Removed spec dir {spec_dir}")
+            except Exception as e:
+                console.print(f"  [red]✗[/red] {spec_dir}: {e}")
+                errors.append(str(e))
+
+    # Clear .current-feature if it points to a cleaned feature
+    current_feature_file = Path(GSD_DIR) / ".current-feature"
+    if current_feature_file.exists():
+        try:
+            current = current_feature_file.read_text().strip()
+            if current in plan["features"]:
+                current_feature_file.unlink()
+                console.print("  [green]✓[/green] Cleared active feature pointer")
+        except Exception as e:
+            console.print(f"  [red]✗[/red] .current-feature: {e}")
+            errors.append(str(e))
 
     if errors:
         console.print(f"\n[yellow]Completed with {len(errors)} error(s)[/yellow]")

@@ -262,6 +262,21 @@ class TestStatusCommand:
         assert result.exit_code != 0
         assert "no state found" in result.output.lower()
 
+    def test_status_planned_not_executed(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+        """Test status shows helpful message for planned-but-not-executed features."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / ".zerg" / "state").mkdir(parents=True)
+        # Create spec dir but no state file
+        (tmp_path / ".gsd" / "specs" / "my-feature").mkdir(parents=True)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["status", "--feature", "my-feature"])
+
+        assert result.exit_code != 0
+        assert "planned but not yet executed" in result.output.lower()
+        assert "zerg rush" in result.output.lower()
+        assert "zerg cleanup" in result.output.lower()
+
     def test_status_basic_display(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test basic status display."""
         monkeypatch.chdir(tmp_path)
