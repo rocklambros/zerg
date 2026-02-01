@@ -564,9 +564,17 @@ ZERG is crash-safe. Run `/zerg:rush --resume` to continue from where you left of
 
 ---
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, PR process, and how to add new commands.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and security architecture.
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for full text.
 
 ---
 
@@ -580,3 +588,6 @@ MIT
 | [Context Engineering](docs/context-engineering.md) | How ZERG minimizes worker token usage |
 | [Tutorial](docs/tutorial-minerals-store.md) | Build a Starcraft 2 themed ecommerce store |
 | [Plugin System](docs/plugins.md) | Extend ZERG with custom gates, hooks, and launchers |
+| [Design Principles](docs/design-principles.md) | Context management and token minimization guidelines |
+| [Contributing](CONTRIBUTING.md) | Development setup, code style, and PR process |
+| [Security Policy](SECURITY.md) | Vulnerability reporting and security architecture |

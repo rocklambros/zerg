@@ -1,0 +1,19 @@
+{
+  "feature": "test-feat",
+  "worker_count": 2,
+  "assignments": [
+    {
+      "task_id": "T1",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "T2",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    }
+  ],
+  "generated_at": "2026-01-31T16:06:05.009589"
+}
