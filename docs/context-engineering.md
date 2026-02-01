@@ -44,7 +44,7 @@ Large command files (>300 lines) are split into two parts:
 
 The original command file retains core content for backward compatibility. Workers load `.core.md` by default and reference `.details.md` only when they encounter situations that need it.
 
-**Split commands** (9 total): init, design, rush, plugins, debug, plan, worker, merge, status.
+**Split commands** (10 total): brainstorm, init, design, rush, plugins, debug, plan, worker, merge, status.
 
 **Token savings**: ~2,000-5,000 tokens per worker per command invocation.
 

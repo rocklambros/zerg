@@ -44,14 +44,14 @@ ZERG coordinates multiple Claude Code sessions to build features in parallel. Yo
 The workflow has four stages. Each stage requires explicit user approval before proceeding to the next.
 
 ```
-Plan  -->  Design  -->  Rush  -->  Merge
- |           |           |          |
- v           v           v          v
-Capture    Generate    Launch     Merge
-requirements  task      parallel   branches,
-and specs    graph     workers    run quality
-             with file            gates
-             ownership
+Brainstorm       Plan  -->  Design  -->  Rush  -->  Merge
+(optional)        |           |           |          |
+    |             v           v           v          v
+    v          Capture    Generate    Launch     Merge
+ Discover      requirements  task      parallel   branches,
+ features,     and specs    graph     workers    run quality
+ create                    with file            gates
+ issues                    ownership
 ```
 
 **Plan.** You describe what to build. ZERG captures requirements through structured questions and writes them to a spec file.
@@ -68,6 +68,7 @@ and specs    graph     workers    run quality
 
 ```
 /zerg:init               Initialize ZERG for a project
+/zerg:brainstorm           Discover features and create issues (optional)
 /zerg:plan <feature>     Capture requirements for a feature
 /zerg:design             Generate architecture and task graph
 /zerg:rush --workers=5   Launch parallel workers
@@ -77,7 +78,7 @@ and specs    graph     workers    run quality
 /zerg:retry <task-id>    Retry a failed task
 ```
 
-See the Command Reference page for the full list of 25 commands.
+See the Command Reference page for the full list of 26 commands.
 
 ---
 

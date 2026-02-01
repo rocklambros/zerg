@@ -9,7 +9,7 @@ Before starting any tutorial, confirm the following:
 - Claude Code is installed and authenticated
 - Docker is installed and running (required for container mode tutorials)
 - You have cloned the ZERG repository and can run `zerg --help`
-- You understand the basic ZERG lifecycle: **Plan -> Design -> Rush -> Merge**
+- You understand the basic ZERG lifecycle: **Brainstorm (optional) -> Plan -> Design -> Rush -> Merge**
 
 ## Available Tutorials
 

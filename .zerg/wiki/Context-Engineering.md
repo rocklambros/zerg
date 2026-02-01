@@ -34,7 +34,7 @@ Workers load the `.core.md` file by default. The `.details.md` content is loaded
 
 ### Currently Split Commands
 
-The following command files have been split:
+The following 10 command files have been split:
 
 | Command | Core File | Details File |
 |---------|-----------|-------------|
@@ -47,6 +47,7 @@ The following command files have been split:
 | `zerg:worker` | `zerg:worker.core.md` | `zerg:worker.details.md` |
 | `zerg:merge` | `zerg:merge.core.md` | `zerg:merge.details.md` |
 | `zerg:status` | `zerg:status.core.md` | `zerg:status.details.md` |
+| `zerg:brainstorm` | `zerg:brainstorm.core.md` | `zerg:brainstorm.details.md` |
 
 The original `.md` file is preserved with core content plus a reference comment pointing to the details file. This maintains backward compatibility with existing symlinks.
 

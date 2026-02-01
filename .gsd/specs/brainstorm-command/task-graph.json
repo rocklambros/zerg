@@ -1,0 +1,151 @@
+{
+  "feature": "brainstorm-command",
+  "version": "2.0",
+  "generated": "2026-02-01T15:00:00Z",
+  "total_tasks": 5,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "BS-001",
+      "title": "Create brainstorm command files",
+      "description": "Create brainstorm.md, brainstorm.core.md, and brainstorm.details.md following ZERG command patterns. Core file includes: flags, pre-flight, task tracking (TaskCreate/TaskUpdate), 4-phase workflow overview, completion criteria, help text. Details file includes: Socratic question templates (3 rounds x 3-4 questions), research analysis framework, issue template with gh CLI commands, output schemas (brainstorm.md, issues.json), example sessions. Main file mirrors core with SPLIT marker. Follow plan.core.md and plan.details.md as pattern references. Context management features: command splitting, scoped loading, session resumability, question batching.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [
+          "zerg/data/commands/brainstorm.md",
+          "zerg/data/commands/brainstorm.core.md",
+          "zerg/data/commands/brainstorm.details.md"
+        ],
+        "modify": [],
+        "read": [
+          "zerg/data/commands/plan.core.md",
+          "zerg/data/commands/plan.details.md",
+          "zerg/data/commands/analyze.md"
+        ]
+      },
+      "verification": {
+        "command": "test -f zerg/data/commands/brainstorm.md && test -f zerg/data/commands/brainstorm.core.md && test -f zerg/data/commands/brainstorm.details.md && grep -q 'SPLIT' zerg/data/commands/brainstorm.core.md && grep -q 'TaskCreate' zerg/data/commands/brainstorm.core.md && grep -q 'TaskUpdate' zerg/data/commands/brainstorm.core.md",
+        "timeout_seconds": 60
+      },
+      "context": "## Pattern Reference\nFollow plan.core.md structure exactly: SPLIT marker, title, flags, pre-flight bash, task tracking section, workflow phases, completion criteria, help.\n\n## Flags\n--rounds N (default 3, max 5) | --skip-research | --skip-issues | --dry-run | --resume | --help\n\n## Context Management\n1. Command splitting: .core.md (~30%) + .details.md (~70%)\n2. Scoped web research: 3-5 WebSearch queries, cache in .gsd/specs/brainstorm-{id}/research.md\n3. Incremental loading: PROJECT.md first, codebase only in Phase 2 if needed\n4. Session resumability: save state after each phase\n5. AskUserQuestion batching: 3-4 questions per round\n\n## Task Ecosystem\nTaskCreate '[Brainstorm] Discovery: {domain}' -> in_progress -> completed"
+    },
+    {
+      "id": "BS-002",
+      "title": "Update project documentation (non-wiki)",
+      "description": "Update all non-wiki documentation files to reflect 26 commands and include brainstorm. Files: docs/commands.md (TOC + full section with flags table, usage examples, output format), README.md (4 count updates + command table row + quick start), ARCHITECTURE.md (CLI commands table row), CLAUDE.md (quick start + task subject convention + update command count references), docs/context-engineering.md (split commands 9->10), docs/tutorial-minerals-store.md (footer link count), CHANGELOG.md ([0.1.0] command list update + [Unreleased] entries). Every instance of '25 commands' or '25 slash commands' must become '26'.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "docs/commands.md",
+          "README.md",
+          "ARCHITECTURE.md",
+          "CLAUDE.md",
+          "docs/context-engineering.md",
+          "docs/tutorial-minerals-store.md",
+          "CHANGELOG.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -r '25 slash commands\\|25 commands\\|all 25\\|25 ZERG\\|list of 25\\|19 .*/zerg' docs/ README.md ARCHITECTURE.md CLAUDE.md CHANGELOG.md --include='*.md' | grep -v '.gsd/' | grep -v node_modules",
+        "timeout_seconds": 60
+      },
+      "context": "## Count Updates\nREADME.md lines 3,52,86,400,576: '25' -> '26'\nCHANGELOG.md line 27: '25 slash commands' -> '26 slash commands', add /zerg:brainstorm to list\ndocs/commands.md line 3: 'all 25' -> 'all 26'\ndocs/tutorial-minerals-store.md line 1557: 'all 25' -> 'all 26'\ndocs/context-engineering.md line 47: '9 total' -> '10 total'\n\n## New Content\ndocs/commands.md: Add /zerg:brainstorm section under Core Workflow between init and plan. Include synopsis, description, flags table, examples, output format.\nREADME.md: Add row to command overview table.\nARCHITECTURE.md ~line 407: Add row to CLI Commands table.\nCLAUDE.md: Add [Brainstorm] to task subject convention. Add /zerg:brainstorm to quick start.\nCHANGELOG.md [Unreleased]: Add brainstorm command entry."
+    },
+    {
+      "id": "BS-003",
+      "title": "Update wiki documentation (13 files)",
+      "description": "Create Command-brainstorm.md wiki page following Command-plan.md pattern. Update 12 existing wiki files: Command-Reference.md (index row + '25'->'26' + Planning category entry), _Sidebar.md (add brainstorm link under Core Workflow between init and plan), Home.md (command count + key commands list), Quick-Start.md (optional brainstorm step before plan), Your-First-Feature.md (tip about brainstorm + fix '19' -> '26'), Getting-Started.md (workflow table row), Tutorials.md (lifecycle reference), Installation.md (slash commands listing), FAQ.md (workflow description), Glossary.md (Brainstorm term definition), Context-Engineering.md (split commands 9->10), Contributing.md (command count 25->26 in 2 places).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [
+          ".zerg/wiki/Command-brainstorm.md"
+        ],
+        "modify": [
+          ".zerg/wiki/Command-Reference.md",
+          ".zerg/wiki/_Sidebar.md",
+          ".zerg/wiki/Home.md",
+          ".zerg/wiki/Quick-Start.md",
+          ".zerg/wiki/Your-First-Feature.md",
+          ".zerg/wiki/Getting-Started.md",
+          ".zerg/wiki/Tutorials.md",
+          ".zerg/wiki/Installation.md",
+          ".zerg/wiki/FAQ.md",
+          ".zerg/wiki/Glossary.md",
+          ".zerg/wiki/Context-Engineering.md",
+          ".zerg/wiki/Contributing.md"
+        ],
+        "read": [
+          ".zerg/wiki/Command-plan.md"
+        ]
+      },
+      "verification": {
+        "command": "test -f .zerg/wiki/Command-brainstorm.md && ! grep -r '25 commands\\|all 25\\|25 ZERG\\|list of 25\\|19 .*/zerg\\|all 19' .zerg/wiki/ --include='*.md' && grep -q 'brainstorm' .zerg/wiki/_Sidebar.md && grep -q 'brainstorm' .zerg/wiki/Command-Reference.md",
+        "timeout_seconds": 60
+      },
+      "context": "## New File: Command-brainstorm.md\nFollow Command-plan.md pattern: Synopsis, Description (4 phases), Options table, Examples (basic + advanced), Output section, Completion Criteria, See Also links.\n\n## Count Updates\nCommand-Reference.md line 2: '25' -> '26'\nHome.md line 80: '25' -> '26'\nContributing.md lines 87,363: '25' -> '26'\nYour-First-Feature.md line 412: '19' -> '26'\nContext-Engineering.md line 47: '9 total' -> '10 total'\n\n## Sidebar Placement\nAdd brainstorm between init and plan under Core Workflow:\n  * [[brainstorm|Command-brainstorm]]\n\n## Glossary Entry\nAdd under B section: 'Brainstorm' - discovery command description."
+    },
+    {
+      "id": "BS-004",
+      "title": "Create feature issues for open-source roadmap",
+      "description": "Create 6-10 GitHub issues using gh issue create. Each issue needs: clear title, problem statement (2-3 sentences), acceptance criteria (checkboxes), priority label (P0/P1/P2), competitive context from analysis. Issues: (P1) AI code review agent /z:review enhancement, (P1) Worker auto-recovery & health monitoring, (P1) Architecture compliance gates, (P1) /z:brainstorm command tracking issue, (P2) MCP integration for business context, (P2) Repository map with intelligent context selection, (P2) Benchmark suite for speedup claims, (P2) Interactive TUI dashboard /z:status --live. Optional P2: Multi-model backend support, Example plugins gallery.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "issue_count=$(gh issue list --state open --label brainstorm 2>/dev/null | wc -l); test \"$issue_count\" -ge 1 || gh issue list --state open | wc -l | xargs test 15 -le",
+        "timeout_seconds": 30
+      },
+      "context": "## Issue Template\ngh issue create --title 'Title' --body '## Problem\\n...\\n## Acceptance Criteria\\n- [ ] ...\\n## Priority: P1\\n## Competitive Context\\n...' --label enhancement\n\n## Issues to Create\nP1: AI code review, Worker auto-recovery, Architecture compliance, /z:brainstorm tracking\nP2: MCP business context, Repository map, Benchmark suite, TUI dashboard\nP2 optional: Multi-model support, Example plugins gallery"
+    },
+    {
+      "id": "BS-005",
+      "title": "Validation: verify all documentation consistent",
+      "description": "Run comprehensive verification: 1) grep for any remaining '25 command' references across all .md files, 2) verify brainstorm appears in all expected locations, 3) verify SPLIT markers in command files, 4) verify TaskCreate/TaskUpdate in core file, 5) verify all wiki cross-references resolve, 6) verify CHANGELOG updated.",
+      "phase": "validation",
+      "level": 2,
+      "dependencies": ["BS-001", "BS-002", "BS-003", "BS-004"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "echo '=== Checking stale counts ===' && ! grep -rn '25 slash commands\\|25 commands\\|all 25\\|list of 25' --include='*.md' . | grep -v '.gsd/specs' | grep -v node_modules | grep -v '.git/' && echo '=== Checking brainstorm files ===' && test -f zerg/data/commands/brainstorm.md && test -f zerg/data/commands/brainstorm.core.md && test -f zerg/data/commands/brainstorm.details.md && test -f .zerg/wiki/Command-brainstorm.md && echo '=== Checking task ecosystem ===' && grep -q 'TaskCreate' zerg/data/commands/brainstorm.core.md && grep -q 'TaskUpdate' zerg/data/commands/brainstorm.core.md && echo '=== Checking SPLIT markers ===' && grep -q 'SPLIT.*core' zerg/data/commands/brainstorm.core.md && grep -q 'SPLIT.*details' zerg/data/commands/brainstorm.details.md && echo '=== All checks passed ==='",
+        "timeout_seconds": 120
+      }
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["BS-001", "BS-002", "BS-003", "BS-004"],
+      "parallel": true
+    },
+    "2": {
+      "name": "validation",
+      "tasks": ["BS-005"],
+      "parallel": false,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts - each task owns distinct files or directories",
+    "conflicts": []
+  }
+}

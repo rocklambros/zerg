@@ -61,6 +61,7 @@ Yes. ZERG is language-agnostic. It coordinates Claude Code sessions and manages 
 
 Four stages, each requiring explicit approval:
 
+0. **Brainstorm** (`/zerg:brainstorm`) -- (Optional) Discover features through competitive research and Socratic questioning.
 1. **Plan** (`/zerg:plan <feature>`) -- Capture requirements through interactive questions.
 2. **Design** (`/zerg:design`) -- Generate architecture and task graph.
 3. **Rush** (`/zerg:rush --workers=N`) -- Execute tasks in parallel.

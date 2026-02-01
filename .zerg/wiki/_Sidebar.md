@@ -17,6 +17,7 @@
   * [[Command Reference]]
   * _Core Workflow_
   * [[init|Command-init]]
+  * [[brainstorm|Command-brainstorm]]
   * [[plan|Command-plan]]
   * [[design|Command-design]]
   * [[rush|Command-rush]]

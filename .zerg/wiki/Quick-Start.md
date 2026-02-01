@@ -57,6 +57,27 @@ You only need to run `/zerg:init` once per project. Skip this step if your proje
 
 ---
 
+## Step 1.5: Brainstorm (Optional)
+
+If you are not sure what to build yet, use the brainstorm command to explore ideas before planning.
+
+```
+/zerg:brainstorm
+```
+
+**What it does:**
+
+- Optionally researches the competitive landscape via web search.
+- Conducts structured Socratic questioning rounds to refine ideas.
+- Creates prioritized GitHub issues from the results.
+- Suggests a top-priority feature to pass to `/zerg:plan`.
+
+This step is entirely optional. If you already know what feature to build, skip directly to Step 2.
+
+See [[Command-brainstorm]] for full details and options.
+
+---
+
 ## Step 2: Plan
 
 Tell ZERG what feature to build.
