@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 5 new CLI actions: `pr`, `release`, `review`, `rescue`, `bisect` (total: 11 actions)
 - `git.core.md` and `git.details.md` command file split for context engineering
 - 402 new tests across 12 test files for the git package
+- `ship` action for `/zerg:git`: full delivery pipeline (commit → push → PR → merge → cleanup) with `--no-merge` flag
 
 ### Changed
 

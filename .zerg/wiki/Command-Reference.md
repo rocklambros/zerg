@@ -33,7 +33,7 @@ During execution, use `stop` to halt workers, `retry` to re-run failed tasks, an
 | [[/zerg:review|Command-review]] | Two-stage code review (spec compliance + quality) | Quality |
 | [[/zerg:security|Command-security]] | Vulnerability scanning and secure coding rules | Quality |
 | [[/zerg:refactor|Command-refactor]] | Automated code improvement and cleanup | Quality |
-| [[/zerg:git|Command-git]] | Git operations: commits, PRs, releases, rescue, review, bisect | Utility |
+| [[/zerg:git|Command-git]] | Git operations: commits, PRs, releases, rescue, review, bisect, ship (12 actions) | Utility |
 | [[/zerg:debug|Command-debug]] | Deep diagnostic investigation with Bayesian hypothesis testing | Utility |
 | [[/zerg:worker|Command-worker]] | Internal: zergling execution protocol | Utility |
 | [[/zerg:plugins|Command-plugins]] | Plugin system management | Utility |
@@ -82,7 +82,7 @@ During execution, use `stop` to halt workers, `retry` to re-run failed tasks, an
 
 ### Utilities
 
-- **[[/zerg:git|Command-git]]** -- Git operations: commit, branch, merge, sync, history, finish, pr, release, review, rescue, bisect.
+- **[[/zerg:git|Command-git]]** -- Git operations: commit, branch, merge, sync, history, finish, pr, release, review, rescue, bisect, ship.
 - **[[/zerg:debug|Command-debug]]** -- Deep diagnostic investigation with Bayesian hypothesis testing and recovery plans.
 - **[[/zerg:worker|Command-worker]]** -- Internal zergling execution protocol. Not invoked directly by users.
 - **[[/zerg:plugins|Command-plugins]]** -- Plugin system management: quality gates, lifecycle hooks, and custom launchers.

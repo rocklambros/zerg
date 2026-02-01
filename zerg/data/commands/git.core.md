@@ -5,7 +5,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 ## Usage
 
 ```bash
-/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect
+/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect|ship
           [options...]
 ```
 
@@ -24,6 +24,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 | review | Pre-review context assembly | --focus |
 | rescue | Undo/recovery operations | --list-ops, --undo, --restore, --recover-branch |
 | bisect | AI-powered bug bisection | --symptom, --test-cmd, --good |
+| ship | Commit, push, PR, merge, cleanup in one shot | --base, --draft, --reviewer, --no-merge |
 
 ## Flags Reference
 
@@ -49,6 +50,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 --undo                 Undo last operation (rescue)
 --restore TAG          Restore snapshot tag (rescue)
 --recover-branch NAME  Recover deleted branch (rescue)
+--no-merge             Stop after PR creation (skip merge+cleanup)
 ```
 
 ## Task Tracking

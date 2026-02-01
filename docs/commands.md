@@ -1056,13 +1056,14 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 /zerg:git --action rescue --restore v1.2.0 # Restore snapshot tag
 /zerg:git --action rescue --recover-branch feature/lost  # Recover deleted branch
 /zerg:git --action bisect --symptom "login returns 500" --test-cmd "pytest tests/auth" --good v1.0.0
+/zerg:git --action ship              # Full pipeline: commit, push, PR, merge, cleanup
 ```
 
 #### Flags
 
 | Flag | Description |
 |------|-------------|
-| `--action, -a TEXT` | Action: `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect` |
+| `--action, -a TEXT` | Action: `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect`, `ship` |
 | `--push, -p` | Push after commit/finish |
 | `--base, -b TEXT` | Base branch (default: `main`) |
 | `--name, -n TEXT` | Branch name (for branch action) |
@@ -1083,6 +1084,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 | `--undo` | Undo last operation (for rescue action) |
 | `--restore TEXT` | Restore snapshot tag (for rescue action) |
 | `--recover-branch TEXT` | Recover deleted branch (for rescue action) |
+| `--no-merge` | Stop after PR creation (skip merge+cleanup, for ship action) |
 
 #### Finish Workflow
 
@@ -1132,6 +1134,18 @@ The `bisect` action performs AI-powered bug bisection:
 1. Requires `--symptom` (description of the bug), `--test-cmd` (verification command), and `--good` (known working ref)
 2. Automates `git bisect` using the test command to identify the first bad commit
 3. Reports the offending commit with context about what changed
+
+#### Ship
+
+The `ship` action executes the full delivery pipeline in one shot:
+
+1. **Commit** — Auto-generate conventional commit message and commit
+2. **Push** — Push branch to remote
+3. **Create PR** — Create pull request with full context
+4. **Merge** — Squash merge the PR (falls back to `--admin` if blocked)
+5. **Cleanup** — Switch to base, pull, delete feature branch
+
+Use `--no-merge` to stop after PR creation (for team review workflows).
 
 #### Conventional Commits
 

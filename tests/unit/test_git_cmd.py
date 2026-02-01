@@ -29,6 +29,7 @@ from zerg.commands.git_cmd import (
     action_finish,
     action_history,
     action_merge,
+    action_ship,
     action_sync,
     detect_commit_type,
     generate_commit_message,
@@ -919,6 +920,143 @@ class TestActionFinish:
 
         assert result == 0
         mock_git.push.assert_not_called()
+
+
+# =============================================================================
+# Test action_ship
+# =============================================================================
+
+
+class TestActionShip:
+    """Tests for ship action."""
+
+    @patch("zerg.commands.git_cmd.action_pr", return_value=0)
+    @patch("zerg.commands.git_cmd.action_commit", return_value=0)
+    def test_ship_happy_path(self, mock_commit: MagicMock, mock_pr: MagicMock) -> None:
+        """Test ship happy path: commit, push, PR, merge, checkout, cleanup."""
+        mock_git = MagicMock()
+        mock_git.current_branch.return_value = "feature/auth"
+        mock_git.has_changes.return_value = True
+
+        # Mock subprocess calls for gh pr view and gh pr merge
+        pr_view_result = MagicMock()
+        pr_view_result.stdout = "42\n"
+        pr_view_result.returncode = 0
+
+        merge_result = MagicMock()
+        merge_result.returncode = 0
+
+        with patch("subprocess.run") as mock_subprocess:
+            mock_subprocess.side_effect = [pr_view_result, merge_result]
+            result = action_ship(mock_git, base="main", draft=False, reviewer=None, no_merge=False)
+
+        assert result == 0
+        mock_commit.assert_called_once_with(mock_git, push=True, mode="auto")
+        mock_pr.assert_called_once_with(mock_git, "main", False, None)
+        mock_git.checkout.assert_called_once_with("main")
+        mock_git._run.assert_called_with("pull", "--rebase")
+        mock_git.delete_branch.assert_called_once_with("feature/auth", force=True)
+
+    def test_ship_already_on_base(self) -> None:
+        """Test ship when already on base branch returns 0 with warning."""
+        mock_git = MagicMock()
+        mock_git.current_branch.return_value = "main"
+
+        result = action_ship(mock_git, base="main", draft=False, reviewer=None, no_merge=False)
+        assert result == 0
+
+    @patch("zerg.commands.git_cmd.action_commit", return_value=1)
+    def test_ship_commit_fails(self, mock_commit: MagicMock) -> None:
+        """Test ship aborts when commit fails."""
+        mock_git = MagicMock()
+        mock_git.current_branch.return_value = "feature/auth"
+        mock_git.has_changes.return_value = True
+
+        result = action_ship(mock_git, base="main", draft=False, reviewer=None, no_merge=False)
+        assert result == 1
+
+    @patch("zerg.commands.git_cmd.action_pr", return_value=1)
+    @patch("zerg.commands.git_cmd.action_commit", return_value=0)
+    def test_ship_pr_fails(self, mock_commit: MagicMock, mock_pr: MagicMock) -> None:
+        """Test ship aborts when PR creation fails."""
+        mock_git = MagicMock()
+        mock_git.current_branch.return_value = "feature/auth"
+        mock_git.has_changes.return_value = True
+
+        result = action_ship(mock_git, base="main", draft=False, reviewer=None, no_merge=False)
+        assert result == 1
+        mock_commit.assert_called_once()
+        mock_pr.assert_called_once()
+
+    @patch("zerg.commands.git_cmd.action_pr", return_value=0)
+    @patch("zerg.commands.git_cmd.action_commit", return_value=0)
+    def test_ship_merge_falls_back_to_admin(
+        self, mock_commit: MagicMock, mock_pr: MagicMock
+    ) -> None:
+        """Test ship falls back to admin merge when regular merge is blocked."""
+        mock_git = MagicMock()
+        mock_git.current_branch.return_value = "feature/auth"
+        mock_git.has_changes.return_value = True
+
+        pr_view_result = MagicMock()
+        pr_view_result.stdout = "42\n"
+        pr_view_result.returncode = 0
+
+        # First merge fails (returncode != 0)
+        merge_fail_result = MagicMock()
+        merge_fail_result.returncode = 1
+
+        # Admin merge succeeds
+        admin_merge_result = MagicMock()
+        admin_merge_result.returncode = 0
+
+        with patch("subprocess.run") as mock_subprocess:
+            mock_subprocess.side_effect = [pr_view_result, merge_fail_result, admin_merge_result]
+            result = action_ship(mock_git, base="main", draft=False, reviewer=None, no_merge=False)
+
+        assert result == 0
+        # Should have called subprocess 3 times: pr view, merge, admin merge
+        assert mock_subprocess.call_count == 3
+
+    @patch("zerg.commands.git_cmd.action_pr", return_value=0)
+    @patch("zerg.commands.git_cmd.action_commit", return_value=0)
+    def test_ship_no_merge_flag(self, mock_commit: MagicMock, mock_pr: MagicMock) -> None:
+        """Test ship stops after PR creation with --no-merge flag."""
+        mock_git = MagicMock()
+        mock_git.current_branch.return_value = "feature/auth"
+        mock_git.has_changes.return_value = True
+
+        result = action_ship(mock_git, base="main", draft=False, reviewer=None, no_merge=True)
+
+        assert result == 0
+        mock_commit.assert_called_once()
+        mock_pr.assert_called_once()
+        # Should NOT have called checkout or delete_branch
+        mock_git.checkout.assert_not_called()
+        mock_git.delete_branch.assert_not_called()
+
+    @patch("zerg.commands.git_cmd.action_pr", return_value=0)
+    def test_ship_no_local_changes(self, mock_pr: MagicMock) -> None:
+        """Test ship with no local changes still pushes and creates PR."""
+        mock_git = MagicMock()
+        mock_git.current_branch.return_value = "feature/auth"
+        mock_git.has_changes.return_value = False
+
+        pr_view_result = MagicMock()
+        pr_view_result.stdout = "42\n"
+        pr_view_result.returncode = 0
+
+        merge_result = MagicMock()
+        merge_result.returncode = 0
+
+        with patch("subprocess.run") as mock_subprocess:
+            mock_subprocess.side_effect = [pr_view_result, merge_result]
+            result = action_ship(mock_git, base="main", draft=False, reviewer=None, no_merge=False)
+
+        assert result == 0
+        # Should have pushed without committing
+        mock_git.push.assert_called_once_with(set_upstream=True)
+        mock_pr.assert_called_once()
 
 
 # =============================================================================

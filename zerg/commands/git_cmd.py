@@ -441,13 +441,104 @@ def action_bisect(
     return engine.run(symptom=symptom or "", test_cmd=test_cmd, good=good, bad="HEAD")
 
 
+def action_ship(
+    git: GitOps, base: str, draft: bool, reviewer: str | None, no_merge: bool
+) -> int:
+    """Ship: commit -> push -> PR -> merge -> cleanup in one shot."""
+    import subprocess as _subprocess
+
+    current = git.current_branch()
+    if current == base:
+        console.print(f"[yellow]Already on {base}, nothing to ship[/yellow]")
+        return 0
+
+    # Step 1: Commit + push
+    console.print("\n[bold]Step 1/5: Commit & push[/bold]")
+    if git.has_changes():
+        rc = action_commit(git, push=True, mode="auto")
+        if rc != 0:
+            console.print("[red]Ship aborted: commit failed[/red]")
+            return rc
+    else:
+        # No local changes but branch may have unpushed commits
+        console.print("[dim]No uncommitted changes, pushing existing commits...[/dim]")
+        try:
+            git.push(set_upstream=True)
+            console.print("[green]\u2713[/green] Pushed to remote")
+        except GitError as e:
+            console.print(f"[red]Push failed:[/red] {e}")
+            return 1
+
+    # Step 2: Create PR
+    console.print("\n[bold]Step 2/5: Create PR[/bold]")
+    rc = action_pr(git, base, draft, reviewer)
+    if rc != 0:
+        console.print("[red]Ship aborted: PR creation failed[/red]")
+        return rc
+
+    if no_merge:
+        console.print(
+            f"\n[green]\u2713[/green] PR created for {current} \u2192 {base} (--no-merge: stopping here)"
+        )
+        return 0
+
+    # Step 3: Merge PR
+    console.print("\n[bold]Step 3/5: Merge PR[/bold]")
+    try:
+        # Get PR number
+        pr_result = _subprocess.run(
+            ["gh", "pr", "view", "--json", "number", "-q", ".number"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        pr_number = pr_result.stdout.strip()
+
+        # Try regular merge first
+        merge_result = _subprocess.run(
+            ["gh", "pr", "merge", pr_number, "--squash", "--delete-branch"],
+            capture_output=True,
+            text=True,
+        )
+        if merge_result.returncode != 0:
+            # Fall back to admin merge
+            console.print("[dim]Regular merge blocked, trying with --admin...[/dim]")
+            _subprocess.run(
+                ["gh", "pr", "merge", pr_number, "--squash", "--admin", "--delete-branch"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        console.print(f"[green]\u2713[/green] Merged PR #{pr_number}")
+    except _subprocess.CalledProcessError as e:
+        console.print(f"[red]Merge failed:[/red] {e.stderr or e}")
+        return 1
+
+    # Step 4: Switch to base + pull
+    console.print("\n[bold]Step 4/5: Update base[/bold]")
+    git.checkout(base)
+    git._run("pull", "--rebase")
+    console.print(f"[green]\u2713[/green] Updated {base}")
+
+    # Step 5: Cleanup local branch
+    console.print("\n[bold]Step 5/5: Cleanup[/bold]")
+    try:
+        git.delete_branch(current, force=True)
+        console.print(f"[green]\u2713[/green] Deleted local branch {current}")
+    except GitError:
+        console.print(f"[dim]Local branch {current} already deleted[/dim]")
+
+    console.print(f"\n[bold green]\u2713 Shipped {current} \u2192 {base}[/bold green]")
+    return 0
+
+
 @click.command("git")
 @click.option(
     "--action",
     "-a",
     type=click.Choice([
         "commit", "branch", "merge", "sync", "history", "finish",
-        "pr", "release", "review", "rescue", "bisect",
+        "pr", "release", "review", "rescue", "bisect", "ship",
     ]),
     default="commit",
     help="Git action to perform",
@@ -490,6 +581,7 @@ def action_bisect(
 @click.option("--cleanup", is_flag=True, help="Run history cleanup")
 @click.option("--test-cmd", "test_cmd", help="Test command for bisect")
 @click.option("--good", help="Known good commit/tag (for bisect)")
+@click.option("--no-merge", "no_merge", is_flag=True, help="Stop after PR creation (skip merge+cleanup)")
 @click.pass_context
 def git_cmd(
     ctx: click.Context,
@@ -514,6 +606,7 @@ def git_cmd(
     cleanup: bool,
     test_cmd: str | None,
     good: str | None,
+    no_merge: bool,
 ) -> None:
     """Git operations with intelligent commits, PR creation, releases, and more.
 
@@ -538,6 +631,10 @@ def git_cmd(
         zerg git --action rescue --list-ops
 
         zerg git --action bisect --symptom "login broken" --test-cmd "pytest tests/"
+
+        zerg git --action ship --base main
+
+        zerg git --action ship --base main --no-merge
     """
     try:
         console.print("\n[bold cyan]ZERG Git[/bold cyan]\n")
@@ -568,6 +665,8 @@ def git_cmd(
             exit_code = action_rescue(git, list_ops, undo, restore, recover_branch)
         elif action == "bisect":
             exit_code = action_bisect(git, symptom, test_cmd, good, base)
+        elif action == "ship":
+            exit_code = action_ship(git, base, draft, reviewer, no_merge)
         else:
             console.print(f"[red]Unknown action: {action}[/red]")
             exit_code = 1

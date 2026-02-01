@@ -1,6 +1,6 @@
 # ZERG Git (Details)
 
-Detailed reference for all 11 git actions, their workflows, and advanced usage.
+Detailed reference for all 12 git actions, their workflows, and advanced usage.
 
 ## Action: commit
 
@@ -295,6 +295,38 @@ AI-powered binary search for bug-introducing commits via BisectEngine.
 # Bisect with all options
 /zerg:git --action bisect --symptom "memory leak" --test-cmd "python bench.py" --good abc123 --base main
 ```
+
+---
+
+## Action: ship
+
+**Full delivery pipeline**: commit → push → create PR → merge PR → cleanup branch.
+
+Non-interactive by default. Uses `mode=auto` for commit generation.
+
+```bash
+# Ship current branch to main
+/zerg:git --action ship
+
+# Ship with draft PR and reviewer
+/zerg:git --action ship --draft --reviewer octocat
+
+# Ship but stop after PR creation (for team review)
+/zerg:git --action ship --no-merge
+
+# Ship to a different base branch
+/zerg:git --action ship --base develop
+```
+
+**Pipeline steps:**
+
+1. **Commit** — Stage all changes, auto-generate conventional commit message, commit
+2. **Push** — Push branch to remote with `--set-upstream`
+3. **Create PR** — Create pull request via `gh pr create` with full context
+4. **Merge** — Merge PR via `gh pr merge --squash` (falls back to `--admin` if blocked)
+5. **Cleanup** — Switch to base, pull latest, delete feature branch (local + remote)
+
+If `--no-merge` is set, stops after step 3. If any step fails, the pipeline stops and reports the failure point.
 
 ---
 

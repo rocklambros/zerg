@@ -1,11 +1,11 @@
 # /zerg:git
 
-Git operations with intelligent commits, PR creation, releases, rescue, review, and bisect.
+Git operations with intelligent commits, PR creation, releases, rescue, review, bisect, and ship.
 
 ## Synopsis
 
 ```
-/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect
+/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect|ship
           [--push]
           [--base main]
           [--mode auto|confirm|suggest]
@@ -14,6 +14,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
           [--focus security|performance|quality|architecture]
           [--symptom TEXT] [--test-cmd CMD] [--good REF]
           [--list-ops] [--undo] [--restore TAG] [--recover-branch NAME]
+          [--no-merge]
 ```
 
 ## Description
@@ -98,6 +99,12 @@ Which option?
 /zerg:git --action bisect --symptom "login returns 500" --test-cmd "pytest tests/auth/" [--good v1.2.0]
 ```
 
+**ship** -- Full delivery pipeline: commit, push, create PR, merge, and cleanup in one shot. Non-interactive. Uses auto mode for commit generation. Tries regular merge first, falls back to admin merge if blocked by branch protection.
+
+```
+/zerg:git --action ship [--base main] [--draft] [--reviewer USER] [--no-merge]
+```
+
 ### Conventional Commit Types
 
 Auto-generated commit messages follow the conventional commits specification:
@@ -116,7 +123,7 @@ Auto-generated commit messages follow the conventional commits specification:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--action`, `-a` | (required) | Git operation to perform. Accepts `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, or `bisect`. |
+| `--action`, `-a` | (required) | Git operation to perform. Accepts `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect`, or `ship`. |
 | `--push`, `-p` | off | Push to remote after committing, merging, or finishing. |
 | `--base`, `-b` | `main` | Base branch for finish, sync, pr, review, and history workflows. |
 | `--name`, `-n` | -- | Branch name for the `branch` action. |
@@ -137,6 +144,7 @@ Auto-generated commit messages follow the conventional commits specification:
 | `--undo` | off | Undo the last recorded operation (for `rescue` action). |
 | `--restore` | -- | Restore repository state from a snapshot tag (for `rescue` action). |
 | `--recover-branch` | -- | Recover a deleted branch from the reflog (for `rescue` action). |
+| `--no-merge` | off | Stop after PR creation, skip merge and cleanup (for `ship` action). |
 
 ## Examples
 
@@ -270,6 +278,18 @@ Bisect with a known good tag:
 
 ```
 /zerg:git --action bisect --symptom "CSS broken" --good v1.2.0
+```
+
+Ship current branch (full pipeline):
+
+```
+/zerg:git --action ship
+```
+
+Ship with draft PR for team review:
+
+```
+/zerg:git --action ship --no-merge --draft --reviewer octocat
 ```
 
 ## Exit Codes
