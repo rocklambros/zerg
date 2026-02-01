@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow to enforce CHANGELOG.md updates on PRs (skippable with `skip-changelog` label)
 - Claude Code instruction in CLAUDE.md to proactively update changelog when creating PRs
 
+### Fixed
+
+- `zerg status` now shows "planned but not yet executed" instead of cryptic error for features with specs but no state
+- `zerg cleanup` now clears `.gsd/.current-feature` when it points to a cleaned feature
+- `zerg cleanup` now removes orphaned `.gsd/specs/{feature}/` directories
+- `zerg rush` now clears `.gsd/.current-feature` on successful completion to prevent stale pointers
+
 ## [0.1.0] - 2026-01-31
 
 ### Added

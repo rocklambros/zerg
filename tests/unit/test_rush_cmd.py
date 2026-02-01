@@ -967,6 +967,77 @@ class TestRushExecution:
         mock_orchestrator.on_level_complete.assert_called_once()
 
 
+class TestRushCurrentFeatureCleanup:
+    """Tests for rush clearing .current-feature on successful completion."""
+
+    def test_rush_clears_current_feature_on_complete(
+        self,
+        tmp_path: Path,
+        task_graph_file_setup: Path,
+        monkeypatch: MonkeyPatch,
+        mock_orchestrator: MagicMock,
+    ) -> None:
+        """Test rush clears .current-feature when all tasks complete."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .current-feature pointing to the feature
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True, exist_ok=True)
+        current_feature = gsd_dir / ".current-feature"
+        current_feature.write_text("test-feature")
+
+        runner = CliRunner()
+        with (
+            patch("zerg.commands.rush.ZergConfig") as mock_config_cls,
+            patch("zerg.commands.rush.Orchestrator") as mock_orch_cls,
+        ):
+            mock_config = MagicMock()
+            mock_config_cls.load.return_value = mock_config
+            mock_orch_cls.return_value = mock_orchestrator
+
+            result = runner.invoke(
+                cli,
+                ["rush", "--task-graph", str(task_graph_file_setup), "--resume"],
+            )
+
+        assert "All tasks complete" in result.output
+        assert not current_feature.exists()
+
+    def test_rush_preserves_current_feature_on_incomplete(
+        self,
+        tmp_path: Path,
+        task_graph_file_setup: Path,
+        monkeypatch: MonkeyPatch,
+        mock_orchestrator_incomplete: MagicMock,
+    ) -> None:
+        """Test rush preserves .current-feature when tasks are incomplete."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .current-feature pointing to the feature
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True, exist_ok=True)
+        current_feature = gsd_dir / ".current-feature"
+        current_feature.write_text("test-feature")
+
+        runner = CliRunner()
+        with (
+            patch("zerg.commands.rush.ZergConfig") as mock_config_cls,
+            patch("zerg.commands.rush.Orchestrator") as mock_orch_cls,
+        ):
+            mock_config = MagicMock()
+            mock_config_cls.load.return_value = mock_config
+            mock_orch_cls.return_value = mock_orchestrator_incomplete
+
+            runner.invoke(
+                cli,
+                ["rush", "--task-graph", str(task_graph_file_setup), "--resume"],
+            )
+
+        # Should still exist since tasks aren't complete
+        assert current_feature.exists()
+        assert current_feature.read_text().strip() == "test-feature"
+
+
 class TestRushErrorHandling:
     """Tests for rush command error handling."""
 

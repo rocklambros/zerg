@@ -191,6 +191,15 @@ def rush(
         status = orchestrator.status()
         if status["is_complete"]:
             console.print(f"\n[bold green]✓ All tasks complete![/bold green] (mode: {mode_label})")
+            # Clear .current-feature so stale pointers don't persist
+            current_feature_file = Path(".gsd/.current-feature")
+            if current_feature_file.exists():
+                try:
+                    current = current_feature_file.read_text().strip()
+                    if current == feature:
+                        current_feature_file.unlink()
+                except Exception:
+                    pass  # Non-critical cleanup
         else:
             pct = status["progress"]["percent"]
             console.print(

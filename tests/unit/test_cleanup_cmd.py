@@ -1036,6 +1036,120 @@ class TestExecuteCleanup:
 
     @patch("zerg.commands.cleanup.WorktreeManager")
     @patch("zerg.commands.cleanup.ContainerManager")
+    def test_execute_clears_current_feature(
+        self,
+        mock_container_cls: MagicMock,
+        mock_worktree_cls: MagicMock,
+        tmp_path: Path,
+        mock_config,
+    ) -> None:
+        """Test execute clears .current-feature when it points to a cleaned feature."""
+        mock_worktree_cls.return_value = MagicMock()
+        mock_container_cls.return_value = MagicMock()
+
+        # Create .current-feature pointing to the feature being cleaned
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True)
+        current_feature_file = gsd_dir / ".current-feature"
+        current_feature_file.write_text("test-feature")
+
+        plan = {
+            "features": ["test-feature"],
+            "worktrees": [],
+            "branches": [],
+            "containers": [],
+            "state_files": [],
+            "log_files": [],
+        }
+
+        import os
+        original = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            execute_cleanup(plan, mock_config)
+        finally:
+            os.chdir(original)
+
+        assert not current_feature_file.exists()
+
+    @patch("zerg.commands.cleanup.WorktreeManager")
+    @patch("zerg.commands.cleanup.ContainerManager")
+    def test_execute_preserves_current_feature_for_other(
+        self,
+        mock_container_cls: MagicMock,
+        mock_worktree_cls: MagicMock,
+        tmp_path: Path,
+        mock_config,
+    ) -> None:
+        """Test execute preserves .current-feature when it points to a different feature."""
+        mock_worktree_cls.return_value = MagicMock()
+        mock_container_cls.return_value = MagicMock()
+
+        # Create .current-feature pointing to a DIFFERENT feature
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True)
+        current_feature_file = gsd_dir / ".current-feature"
+        current_feature_file.write_text("other-feature")
+
+        plan = {
+            "features": ["test-feature"],
+            "worktrees": [],
+            "branches": [],
+            "containers": [],
+            "state_files": [],
+            "log_files": [],
+        }
+
+        import os
+        original = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            execute_cleanup(plan, mock_config)
+        finally:
+            os.chdir(original)
+
+        assert current_feature_file.exists()
+        assert current_feature_file.read_text().strip() == "other-feature"
+
+    @patch("zerg.commands.cleanup.WorktreeManager")
+    @patch("zerg.commands.cleanup.ContainerManager")
+    def test_execute_removes_spec_dirs(
+        self,
+        mock_container_cls: MagicMock,
+        mock_worktree_cls: MagicMock,
+        tmp_path: Path,
+        mock_config,
+    ) -> None:
+        """Test execute removes spec directories for cleaned features."""
+        mock_worktree_cls.return_value = MagicMock()
+        mock_container_cls.return_value = MagicMock()
+
+        # Create spec dir
+        spec_dir = tmp_path / ".gsd" / "specs" / "test-feature"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("spec content")
+
+        plan = {
+            "features": ["test-feature"],
+            "worktrees": [],
+            "branches": [],
+            "containers": [],
+            "state_files": [],
+            "log_files": [],
+        }
+
+        import os
+        original = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            execute_cleanup(plan, mock_config)
+        finally:
+            os.chdir(original)
+
+        assert not spec_dir.exists()
+
+    @patch("zerg.commands.cleanup.WorktreeManager")
+    @patch("zerg.commands.cleanup.ContainerManager")
     @patch("zerg.commands.cleanup.GitOps")
     def test_execute_reports_multiple_errors(
         self,

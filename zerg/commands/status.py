@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from zerg.constants import TaskStatus, WorkerStatus
+from zerg.constants import SPECS_DIR, TaskStatus, WorkerStatus
 from zerg.logging import get_logger
 from zerg.metrics import MetricsCollector
 from zerg.state import StateManager
@@ -95,7 +95,19 @@ def status(
         # Load state
         state = StateManager(feature)
         if not state.exists():
-            console.print(f"[red]Error:[/red] No state found for feature '{feature}'")
+            spec_dir = Path(SPECS_DIR) / feature
+            if spec_dir.exists():
+                console.print(
+                    f"[yellow]Feature '{feature}' is planned but not yet executed.[/yellow]"
+                )
+                console.print(
+                    f"Run [cyan]zerg rush[/cyan] to start,"
+                    f" or [cyan]zerg cleanup -f {feature}[/cyan] to remove."
+                )
+            else:
+                console.print(
+                    f"[red]Error:[/red] No state found for feature '{feature}'"
+                )
             raise SystemExit(1)
 
         state.load()
