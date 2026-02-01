@@ -1,4 +1,4 @@
-# ZERG Git
+# ZERG Git (Core)
 
 Git operations with intelligent commits, PR creation, releases, rescue, review, and bisect.
 
@@ -51,17 +51,6 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 --recover-branch NAME  Recover deleted branch (rescue)
 ```
 
-## Conventional Commits
-
-Auto-generated commit types:
-- `feat`: New features
-- `fix`: Bug fixes
-- `docs`: Documentation
-- `style`: Formatting
-- `refactor`: Code restructuring
-- `test`: Tests
-- `chore`: Maintenance
-
 ## Task Tracking
 
 On invocation, create a Claude Code Task to track this command:
@@ -83,38 +72,3 @@ On completion, call TaskUpdate:
 
 - 0: Success
 - 1: Failure
-
-## Help
-
-When `--help` is passed in `$ARGUMENTS`, display usage and exit:
-
-```
-/zerg:git -- Git operations with intelligent commits, PR creation, releases, and more.
-
-Flags:
-  --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect
-                    Git action to perform (required)
-  --push            Push after operation
-  --base main       Base branch (default: main)
-  --name NAME       Branch name (for branch action)
-  --branch BRANCH   Branch to merge (for merge action)
-  --strategy STRATEGY
-                    Merge strategy (for merge action)
-  --since TAG       Starting point (for history action)
-  --mode MODE       auto|confirm|suggest (commit mode)
-  --cleanup         Run history cleanup
-  --draft           Create draft PR
-  --reviewer USER   PR reviewer username
-  --focus DOMAIN    security|performance|quality|architecture
-  --bump TYPE       auto|major|minor|patch (default: auto)
-  --dry-run         Preview release without executing
-  --symptom TEXT    Bug symptom (for bisect)
-  --test-cmd CMD    Test command (for bisect)
-  --good REF        Known good ref (for bisect)
-  --list-ops        List rescue operations
-  --undo            Undo last operation (rescue)
-  --restore TAG     Restore snapshot (rescue)
-  --recover-branch NAME
-                    Recover branch (rescue)
-  --help            Show this help message
-```

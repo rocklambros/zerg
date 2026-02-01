@@ -15,6 +15,7 @@ from zerg.constants import (
     DEFAULT_TIMEOUT_MINUTES,
     DEFAULT_WORKERS,
 )
+from zerg.git.config import GitConfig
 from zerg.launcher import LauncherType
 from zerg.plugin_config import PluginsConfig
 
@@ -132,6 +133,7 @@ class ZergConfig(BaseModel):
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     plugins: PluginsConfig = Field(default_factory=PluginsConfig)
     error_recovery: ErrorRecoveryConfig = Field(default_factory=ErrorRecoveryConfig)
+    git: GitConfig = Field(default_factory=GitConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "ZergConfig":

@@ -72,8 +72,23 @@ def generate_commit_message(diff: str, files: list[str]) -> str:
     return f"{commit_type}: {summary}"
 
 
-def action_commit(git: GitOps, push: bool) -> int:
-    """Perform commit action."""
+def action_commit(git: GitOps, push: bool, mode: str | None = None) -> int:
+    """Perform commit action.
+
+    When mode is provided, delegates to CommitEngine for advanced workflow.
+    Otherwise uses the inline commit logic.
+    """
+    if mode:
+        from zerg.git.commit_engine import CommitEngine
+        from zerg.git.config import GitConfig
+
+        config = GitConfig()
+        engine = CommitEngine(git, config)
+        result = engine.run(mode=mode)
+        if result == 0 and push:
+            git.push(set_upstream=True)
+        return result
+
     if not git.has_changes():
         console.print("[yellow]No changes to commit[/yellow]")
         return 0
@@ -115,12 +130,12 @@ def action_commit(git: GitOps, push: bool) -> int:
     # Commit
     try:
         commit_sha = git.commit(message)
-        console.print(f"\n[green]✓[/green] Created commit: {commit_sha[:8]}")
+        console.print(f"\n[green]\u2713[/green] Created commit: {commit_sha[:8]}")
 
         if push:
             console.print("[dim]Pushing...[/dim]")
             git.push(set_upstream=True)
-            console.print("[green]✓[/green] Pushed to remote")
+            console.print("[green]\u2713[/green] Pushed to remote")
 
         return 0
     except GitError as e:
@@ -139,7 +154,7 @@ def action_branch(git: GitOps, name: str | None, base: str) -> int:
         table.add_column("Current")
 
         for branch in branches:
-            current = "✓" if branch.is_current else ""
+            current = "\u2713" if branch.is_current else ""
             table.add_row(branch.name, branch.commit[:8], current)
 
         console.print(table)
@@ -152,11 +167,11 @@ def action_branch(git: GitOps, name: str | None, base: str) -> int:
 
     try:
         git.create_branch(name, base)
-        console.print(f"[green]✓[/green] Created branch: {name}")
+        console.print(f"[green]\u2713[/green] Created branch: {name}")
 
         if Confirm.ask("Switch to new branch?", default=True):
             git.checkout(name)
-            console.print(f"[green]✓[/green] Switched to {name}")
+            console.print(f"[green]\u2713[/green] Switched to {name}")
 
         return 0
     except GitError as e:
@@ -178,16 +193,16 @@ def action_merge(git: GitOps, branch: str | None, strategy: str, base: str) -> i
         if strategy == "squash":
             # Squash merge
             git._run("merge", "--squash", branch)
-            console.print(f"[green]✓[/green] Squash merged {branch}")
+            console.print(f"[green]\u2713[/green] Squash merged {branch}")
             console.print("[dim]Changes staged, commit manually or use --action commit[/dim]")
         elif strategy == "rebase":
             # Rebase
             git.rebase(branch)
-            console.print(f"[green]✓[/green] Rebased onto {branch}")
+            console.print(f"[green]\u2713[/green] Rebased onto {branch}")
         else:
             # Regular merge
             git.merge(branch)
-            console.print(f"[green]✓[/green] Merged {branch}")
+            console.print(f"[green]\u2713[/green] Merged {branch}")
 
         return 0
     except MergeConflictError as e:
@@ -214,7 +229,7 @@ def action_sync(git: GitOps, base: str) -> int:
         # Pull if tracking remote
         try:
             git._run("pull", "--rebase", check=False)
-            console.print("  [green]✓[/green] Pulled latest changes")
+            console.print("  [green]\u2713[/green] Pulled latest changes")
         except GitError:
             pass
 
@@ -223,22 +238,30 @@ def action_sync(git: GitOps, base: str) -> int:
             console.print(f"  Rebasing onto {base}...")
             try:
                 git.rebase(f"origin/{base}")
-                console.print(f"  [green]✓[/green] Rebased onto {base}")
+                console.print(f"  [green]\u2713[/green] Rebased onto {base}")
             except MergeConflictError:
                 console.print("  [red]Rebase conflict[/red]")
                 return 1
             except GitError:
                 pass
 
-        console.print("\n[green]✓[/green] Branch is up to date")
+        console.print("\n[green]\u2713[/green] Branch is up to date")
         return 0
     except GitError as e:
         console.print(f"[red]Sync failed:[/red] {e}")
         return 1
 
 
-def action_history(git: GitOps, since: str | None) -> int:
-    """Show commit history."""
+def action_history(git: GitOps, since: str | None, cleanup: bool = False, base: str = "main") -> int:
+    """Show commit history or run cleanup."""
+    if cleanup:
+        from zerg.git.config import GitConfig
+        from zerg.git.history_engine import HistoryEngine
+
+        config = GitConfig()
+        engine = HistoryEngine(git, config)
+        return engine.run(action="cleanup", base_branch=base)
+
     args = ["log", "--oneline", "-20"]
     if since:
         args.append(f"{since}..HEAD")
@@ -303,15 +326,15 @@ def action_finish(git: GitOps, base: str, push: bool) -> int:
             suggested = f"feat: merge {current}"
             message = Prompt.ask("Commit message", default=suggested)
             git.commit(message)
-            console.print(f"[green]✓[/green] Merged {current} into {base}")
+            console.print(f"[green]\u2713[/green] Merged {current} into {base}")
 
             if push or Confirm.ask("Push to remote?", default=True):
                 git.push()
-                console.print("[green]✓[/green] Pushed")
+                console.print("[green]\u2713[/green] Pushed")
 
             if Confirm.ask(f"Delete branch {current}?", default=True):
                 git.delete_branch(current, force=True)
-                console.print(f"[green]✓[/green] Deleted {current}")
+                console.print(f"[green]\u2713[/green] Deleted {current}")
 
         except MergeConflictError as e:
             console.print("[red]Merge conflict:[/red]")
@@ -324,28 +347,108 @@ def action_finish(git: GitOps, base: str, push: bool) -> int:
         # Push branch
         if push or Confirm.ask("Push branch to remote?", default=True):
             git.push(set_upstream=True)
-            console.print("[green]✓[/green] Pushed branch")
+            console.print("[green]\u2713[/green] Pushed branch")
         console.print(f"\n[cyan]Create PR manually: {current} -> {base}[/cyan]")
 
     elif choice == "keep":
         if push or Confirm.ask("Push branch?", default=True):
             git.push(set_upstream=True)
-            console.print("[green]✓[/green] Pushed branch")
+            console.print("[green]\u2713[/green] Pushed branch")
 
     elif choice == "discard":
         if Confirm.ask(f"[red]Discard all changes in {current}?[/red]", default=False):
             git.checkout(base)
             git.delete_branch(current, force=True)
-            console.print(f"[green]✓[/green] Discarded {current}")
+            console.print(f"[green]\u2713[/green] Discarded {current}")
 
     return 0
+
+
+# =========================================================================
+# New action handlers for engines
+# =========================================================================
+
+
+def action_pr(git: GitOps, base: str, draft: bool, reviewer: str | None) -> int:
+    """Create a pull request with full context."""
+    from zerg.git.config import GitConfig
+    from zerg.git.pr_engine import PREngine
+
+    config = GitConfig()
+    engine = PREngine(git, config)
+    return engine.run(base_branch=base, draft=draft, reviewer=reviewer)
+
+
+def action_release(git: GitOps, bump: str, dry_run: bool) -> int:
+    """Run release workflow."""
+    from zerg.git.config import GitConfig
+    from zerg.git.release_engine import ReleaseEngine
+
+    config = GitConfig()
+    engine = ReleaseEngine(git, config)
+    bump_arg = bump if bump != "auto" else None
+    return engine.run(bump=bump_arg, dry_run=dry_run)
+
+
+def action_review(git: GitOps, base: str, focus: str | None) -> int:
+    """Run pre-review context assembly."""
+    from zerg.git.config import GitConfig
+    from zerg.git.prereview import PreReviewEngine
+
+    config = GitConfig()
+    engine = PreReviewEngine(git, config)
+    return engine.run(base_branch=base, focus=focus)
+
+
+def action_rescue(
+    git: GitOps,
+    list_ops: bool,
+    undo: bool,
+    restore: str | None,
+    recover_branch: str | None,
+) -> int:
+    """Git rescue operations."""
+    from zerg.git.config import GitConfig
+    from zerg.git.rescue import RescueEngine
+
+    config = GitConfig()
+    engine = RescueEngine(git, config)
+    if list_ops:
+        return engine.run("list")
+    if undo:
+        return engine.run("undo")
+    if restore:
+        return engine.run("restore", snapshot_tag=restore)
+    if recover_branch:
+        return engine.run("recover-branch", branch_name=recover_branch)
+    console.print("[yellow]Specify --list-ops, --undo, --restore, or --recover-branch[/yellow]")
+    return 1
+
+
+def action_bisect(
+    git: GitOps,
+    symptom: str | None,
+    test_cmd: str | None,
+    good: str | None,
+    base: str,
+) -> int:
+    """Run AI-powered bisect."""
+    from zerg.git.bisect_engine import BisectEngine
+    from zerg.git.config import GitConfig
+
+    config = GitConfig()
+    engine = BisectEngine(git, config)
+    return engine.run(symptom=symptom or "", test_cmd=test_cmd, good=good, bad="HEAD")
 
 
 @click.command("git")
 @click.option(
     "--action",
     "-a",
-    type=click.Choice(["commit", "branch", "merge", "sync", "history", "finish"]),
+    type=click.Choice([
+        "commit", "branch", "merge", "sync", "history", "finish",
+        "pr", "release", "review", "rescue", "bisect",
+    ]),
     default="commit",
     help="Git action to perform",
 )
@@ -360,6 +463,33 @@ def action_finish(git: GitOps, base: str, push: bool) -> int:
     help="Merge strategy",
 )
 @click.option("--since", help="Starting point for history (tag or commit)")
+@click.option("--symptom", help="Bug symptom description (for bisect)")
+@click.option(
+    "--bump",
+    type=click.Choice(["auto", "major", "minor", "patch"]),
+    default="auto",
+    help="Version bump type (for release)",
+)
+@click.option("--draft", is_flag=True, help="Create draft PR")
+@click.option("--reviewer", help="PR reviewer username")
+@click.option(
+    "--focus",
+    type=click.Choice(["security", "performance", "quality", "architecture"]),
+    help="Review focus domain",
+)
+@click.option("--dry-run", "dry_run", is_flag=True, help="Preview without executing (for release)")
+@click.option(
+    "--mode",
+    type=click.Choice(["auto", "confirm", "suggest"]),
+    help="Commit mode override",
+)
+@click.option("--list-ops", "list_ops", is_flag=True, help="List rescue operations")
+@click.option("--undo", is_flag=True, help="Undo last operation (rescue)")
+@click.option("--restore", help="Restore snapshot tag (rescue)")
+@click.option("--recover-branch", "recover_branch", help="Recover deleted branch (rescue)")
+@click.option("--cleanup", is_flag=True, help="Run history cleanup")
+@click.option("--test-cmd", "test_cmd", help="Test command for bisect")
+@click.option("--good", help="Known good commit/tag (for bisect)")
 @click.pass_context
 def git_cmd(
     ctx: click.Context,
@@ -370,11 +500,26 @@ def git_cmd(
     branch: str | None,
     strategy: str,
     since: str | None,
+    symptom: str | None,
+    bump: str,
+    draft: bool,
+    reviewer: str | None,
+    focus: str | None,
+    dry_run: bool,
+    mode: str | None,
+    list_ops: bool,
+    undo: bool,
+    restore: str | None,
+    recover_branch: str | None,
+    cleanup: bool,
+    test_cmd: str | None,
+    good: str | None,
 ) -> None:
-    """Git operations with intelligent commits and finish workflow.
+    """Git operations with intelligent commits, PR creation, releases, and more.
 
     Supports intelligent commit message generation, branch management,
-    merge operations, sync, history analysis, and completion workflow.
+    merge operations, sync, history analysis, completion workflow,
+    PR creation, release automation, pre-review, rescue, and bisect.
 
     Examples:
 
@@ -383,6 +528,16 @@ def git_cmd(
         zerg git --action branch --name feature/auth
 
         zerg git --action finish --base main
+
+        zerg git --action pr --draft --reviewer octocat
+
+        zerg git --action release --bump minor
+
+        zerg git --action review --focus security
+
+        zerg git --action rescue --list-ops
+
+        zerg git --action bisect --symptom "login broken" --test-cmd "pytest tests/"
     """
     try:
         console.print("\n[bold cyan]ZERG Git[/bold cyan]\n")
@@ -392,7 +547,7 @@ def git_cmd(
         console.print(f"Current branch: [cyan]{current}[/cyan]")
 
         if action == "commit":
-            exit_code = action_commit(git, push)
+            exit_code = action_commit(git, push, mode=mode)
         elif action == "branch":
             exit_code = action_branch(git, name, base)
         elif action == "merge":
@@ -400,9 +555,19 @@ def git_cmd(
         elif action == "sync":
             exit_code = action_sync(git, base)
         elif action == "history":
-            exit_code = action_history(git, since)
+            exit_code = action_history(git, since, cleanup=cleanup, base=base)
         elif action == "finish":
             exit_code = action_finish(git, base, push)
+        elif action == "pr":
+            exit_code = action_pr(git, base, draft, reviewer)
+        elif action == "release":
+            exit_code = action_release(git, bump, dry_run)
+        elif action == "review":
+            exit_code = action_review(git, base, focus)
+        elif action == "rescue":
+            exit_code = action_rescue(git, list_ops, undo, restore, recover_branch)
+        elif action == "bisect":
+            exit_code = action_bisect(git, symptom, test_cmd, good, base)
         else:
             console.print(f"[red]Unknown action: {action}[/red]")
             exit_code = 1

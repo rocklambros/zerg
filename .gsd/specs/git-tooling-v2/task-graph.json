@@ -1,0 +1,198 @@
+{
+  "feature": "git-tooling-v2",
+  "version": "2.0",
+  "generated": "2026-02-01T00:00:00Z",
+  "total_tasks": 9,
+  "max_parallelization": 4,
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Architecture: zerg/git/ package, GitRunner, types, config",
+      "description": "Create zerg/git/ package. Extract GitRunner base from GitOps. Define shared types. Create GitConfig Pydantic model. Add GitConfig to ZergConfig. Replace zerg/git_ops.py with backward-compatible shim.",
+      "issue": 49,
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/git/__init__.py", "zerg/git/types.py", "zerg/git/config.py", "zerg/git/base.py", "zerg/git/ops.py", "tests/unit/test_git_base.py", "tests/unit/test_git_config.py", "tests/unit/test_git_types.py"],
+        "modify": ["zerg/git_ops.py", "zerg/config.py"],
+        "read": ["zerg/exceptions.py", "zerg/logging.py", "zerg/plugin_config.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.git import GitOps; from zerg.git_ops import GitOps, BranchInfo; from zerg.git.types import CommitInfo, CommitType; from zerg.git.config import GitConfig; from zerg.git.base import GitRunner; print(\"OK\")' && pytest tests/unit/test_git_base.py tests/unit/test_git_config.py tests/unit/test_git_types.py tests/unit/test_git_ops.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python", "pydantic"],
+      "context": "## Spec Context\nCreate zerg/git/ package as foundation for 7 engine modules. GitRunner extracts _run(), _validate_repo(), current_branch(), current_commit(), has_changes() from existing GitOps (445 lines). GitOps inherits GitRunner. Shim at zerg/git_ops.py re-exports GitOps and BranchInfo. 4 consumers must keep working: merge.py, worker_protocol.py, git_cmd.py, cleanup.py.\n\n## Types\nCommitType(str, Enum): feat/fix/docs/style/refactor/test/chore/perf/ci/build/revert. CommitInfo(frozen): sha, message, author, date, files, commit_type. DiffAnalysis: files_changed, insertions, deletions, by_extension, by_directory. ReviewFinding: domain, severity, file, line, message, suggestion, rule_id. RescueSnapshot: timestamp, branch, commit, operation, tag, description.\n\n## Config\nGitConfig sub-models: GitCommitConfig(mode=confirm), GitPRConfig(context_depth=full, size_warning_loc=400), GitReleaseConfig(tag_prefix=v), GitRescueConfig(auto_snapshot=True, max_snapshots=20), GitReviewConfig(domains=[security,performance,quality,architecture]). detect_context(): solo/team/swarm.\n\n## Security\n- subprocess argument lists only, never shell=True\n- Path.resolve() + is_relative_to() for file validation\n- JSON serialization only for state files"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Smart commit engine with configurable AI aggression",
+      "description": "Build commit_engine.py: DiffAnalyzer, CommitMessageGenerator (auto/confirm/suggest), StagingSuggester, PreCommitValidator. Absorb detect_commit_type() and generate_commit_message() logic from git_cmd.py.",
+      "issue": 42,
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["zerg/git/commit_engine.py", "tests/unit/test_git_commit_engine.py"],
+        "modify": [],
+        "read": ["zerg/git/base.py", "zerg/git/types.py", "zerg/git/config.py", "zerg/commands/git_cmd.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_commit_engine.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python"],
+      "context": "## Spec\nMulti-mode: auto (stage+generate+commit), confirm (generate+preview, default), suggest (3 candidates). Semantic diff analysis for commit type. Conventional commit format. Smart staging: suggest related unstaged files. Pre-commit validation: reject WIP/fixup markers.\n\nExisting logic in git_cmd.py lines 22-72: COMMIT_TYPE_PATTERNS, detect_commit_type(), generate_commit_message().\n\n## Deps\nTASK-001: GitRunner, CommitInfo, CommitType, DiffAnalysis, GitCommitConfig\n\n## Security\n- subprocess argument lists only\n- No dynamic code for pattern matching"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Git rescue system: triple-layer undo/recovery",
+      "description": "Build rescue.py: OperationLogger (JSON lines to .zerg/git-ops.log), SnapshotManager (lightweight tags, pruning), RescueEngine (--list/--undo/--restore/--recover-branch). Auto-snapshot before risky ops.",
+      "issue": 46,
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["zerg/git/rescue.py", "tests/unit/test_git_rescue.py"],
+        "modify": [],
+        "read": ["zerg/git/base.py", "zerg/git/types.py", "zerg/git/config.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_rescue.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python"],
+      "context": "## Spec\nLayer 1: Enhanced reflog with human-readable descriptions. Layer 2: JSON lines ops log. Layer 3: Snapshot tags (zerg-snapshot-{timestamp}), max 20. Rescue: --list (20 ops), --undo (revert last), --restore SNAPSHOT, --recover-branch NAME.\n\n## Deps\nTASK-001: GitRunner, RescueSnapshot, GitRescueConfig\n\n## Security\n- subprocess argument lists only\n- Validate ops_log path\n- JSON only for serialization"
+    },
+    {
+      "id": "TASK-004",
+      "title": "AI-powered PR creation with full project context",
+      "description": "Build pr_engine.py: ContextAssembler (commits, issues via gh, CLAUDE.md, specs, tests), PRGenerator (structured body, auto-labels, reviewers), PRCreator (gh pr create, --draft). Size warning at LOC threshold.",
+      "issue": 43,
+      "phase": "features",
+      "level": 3,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": ["zerg/git/pr_engine.py", "tests/unit/test_git_pr_engine.py"],
+        "modify": [],
+        "read": ["zerg/git/base.py", "zerg/git/types.py", "zerg/git/config.py", "zerg/git/commit_engine.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_pr_engine.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python"],
+      "context": "## Spec\nContext assembly: commits since base, linked issues via gh, CLAUDE.md, .gsd/specs/, test results. Body: Summary bullets, Changes table, Test Plan checklist, Linked Issues. Auto-labels: feat->enhancement, fix->bug. Reviewer: CODEOWNERS + git log authors. Size warning at 400 LOC. Graceful if gh missing.\n\n## Deps\nTASK-002: CommitMessageGenerator, DiffAnalyzer. TASK-001: GitRunner, CommitInfo, GitPRConfig.\n\n## Security\n- Validate URLs, subprocess argument lists, sanitize content"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Automated release workflow with semver and changelog",
+      "description": "Build release_engine.py: SemverCalculator (conventional commits -> bump), ChangelogGenerator (group by type), ReleaseCreator (version files, tag, gh release). --dry-run and --pre support.",
+      "issue": 44,
+      "phase": "features",
+      "level": 3,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": ["zerg/git/release_engine.py", "tests/unit/test_git_release_engine.py"],
+        "modify": [],
+        "read": ["zerg/git/base.py", "zerg/git/types.py", "zerg/git/config.py", "zerg/git/commit_engine.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_release_engine.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python"],
+      "context": "## Spec\nSemver: feat->minor, fix->patch, BREAKING CHANGE->major. --bump override. Changelog: Keep a Changelog format (Added/Changed/Fixed/Removed). Version files: detect package.json/pyproject.toml/Cargo.toml. Release: annotated tag, push, gh release create. --dry-run, --pre alpha|beta|rc.\n\n## Deps\nTASK-002: commit type detection. TASK-001: GitRunner, CommitInfo, CommitType, GitReleaseConfig.\n\n## Security\n- Validate version strings, subprocess argument lists"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Commit history intelligence: squash, reorder, rewrite",
+      "description": "Build history_engine.py: HistoryAnalyzer (WIP/fixup detection, domain grouping), RewritePlanner (squash/reorder/messages), SafeRewriter (new branch, GIT_SEQUENCE_EDITOR rebase, preview). Non-destructive.",
+      "issue": 47,
+      "phase": "features",
+      "level": 3,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": ["zerg/git/history_engine.py", "tests/unit/test_git_history_engine.py"],
+        "modify": [],
+        "read": ["zerg/git/base.py", "zerg/git/types.py", "zerg/git/config.py", "zerg/git/commit_engine.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_history_engine.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python"],
+      "context": "## Spec\nSquash: WIP, fixup!, squash!, related (same files), small (<5 lines, <1hr). Reorder: group by directory then type. Rewrite: conventional format. Safe: {branch}-cleaned, GIT_SEQUENCE_EDITOR, original preserved.\n\n## Deps\nTASK-002: CommitMessageGenerator, detect_commit_type(). TASK-001: GitRunner, CommitInfo, CommitType.\n\n## Security\n- No shell=True, validate branch names"
+    },
+    {
+      "id": "TASK-007",
+      "title": "AI pre-review: context assembly for Claude Code analysis",
+      "description": "Build prereview.py: ContextPreparer (changed files + hunks), DomainFilter (security rules by extension), ReviewReporter (structured markdown to .zerg/review-reports/, budget ~4000 tokens/domain). Context assembler, not analyzer.",
+      "issue": 48,
+      "phase": "features",
+      "level": 3,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": ["zerg/git/prereview.py", "tests/unit/test_git_prereview.py"],
+        "modify": [],
+        "read": ["zerg/git/base.py", "zerg/git/types.py", "zerg/git/config.py", ".claude/rules/security"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_prereview.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python"],
+      "context": "## Spec\nContext assembler: prepare scoped context for Claude Code AI.\nContextPreparer: git diff --name-only + per-file hunks, truncate to budget.\nDomainFilter: .py->Python rules, .js/.ts->JS rules, Dockerfile->Docker rules, always OWASP core summary. Extract Quick Reference tables.\nReviewReporter: .zerg/review-reports/{timestamp}-{branch}.md. Budget: ~30% rules, ~50% code, ~20% context.\n\n## Deps\nTASK-002: DiffAnalyzer. TASK-001: GitRunner, DiffAnalysis, ReviewFinding, GitReviewConfig.\n\n## Security\n- Validate paths when reading rules, JSON only"
+    },
+    {
+      "id": "TASK-008",
+      "title": "AI-powered bisect: predictive + semantic + auto-fix",
+      "description": "Build bisect_engine.py: CommitRanker (score by file overlap, size, recency, type), SemanticTester (test output analysis), BisectRunner (predictive then git bisect), RootCauseAnalyzer. Report to .zerg/bisect-reports/.",
+      "issue": 45,
+      "phase": "advanced",
+      "level": 4,
+      "dependencies": ["TASK-002", "TASK-007"],
+      "files": {
+        "create": ["zerg/git/bisect_engine.py", "tests/unit/test_git_bisect_engine.py"],
+        "modify": [],
+        "read": ["zerg/git/base.py", "zerg/git/types.py", "zerg/git/config.py", "zerg/git/commit_engine.py", "zerg/git/prereview.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_bisect_engine.py -x -q",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python"],
+      "context": "## Spec\nPipeline: 1) Predictive score (file_overlap*0.4 + size*0.2 + recency*0.2 + type*0.2), skip if >90%. 2) Semantic bisect: git bisect with output analysis. 3) Root cause + fix suggestion. 4) Report to .zerg/bisect-reports/.\n\n## Deps\nTASK-002: DiffAnalyzer, CommitType. TASK-007: ContextPreparer. TASK-001: GitRunner, CommitInfo.\n\n## Security\n- Validate test commands, subprocess argument lists, sanitize symptom text"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Integration: CLI routing, command file split, install-commands",
+      "description": "Wire all engines into git_cmd.py. Add 5 new Click actions. Move commit logic to engine. Split git.md into git.core.md + git.details.md. Validate and install commands.",
+      "issue": 50,
+      "phase": "integration",
+      "level": 4,
+      "dependencies": ["TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008"],
+      "files": {
+        "create": ["zerg/data/commands/git.core.md", "zerg/data/commands/git.details.md"],
+        "modify": ["zerg/commands/git_cmd.py", "zerg/data/commands/git.md"],
+        "read": ["zerg/git/commit_engine.py", "zerg/git/rescue.py", "zerg/git/pr_engine.py", "zerg/git/release_engine.py", "zerg/git/history_engine.py", "zerg/git/prereview.py", "zerg/git/bisect_engine.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_cmd.py -x -q && python -m zerg.validate_commands && python -m zerg git --help",
+        "timeout_seconds": 120
+      },
+      "skills_required": ["python", "click"]
+    }
+  ],
+  "levels": {
+    "1": {"name": "foundation", "tasks": ["TASK-001"], "parallel": false},
+    "2": {"name": "core", "tasks": ["TASK-002", "TASK-003"], "parallel": true, "depends_on_levels": [1]},
+    "3": {"name": "features", "tasks": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"], "parallel": true, "depends_on_levels": [2]},
+    "4": {"name": "advanced_integration", "tasks": ["TASK-008", "TASK-009"], "parallel": true, "depends_on_levels": [3]}
+  },
+  "conflict_matrix": {
+    "description": "No file conflicts. Every file owned by exactly one task.",
+    "conflicts": []
+  }
+}

@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `zerg/git/` package with 7 engine modules: commit, rescue, PR, release, history, pre-review, bisect
+- `GitRunner` base class extracted from `GitOps` for low-level git command execution
+- `GitConfig` Pydantic model with per-project config sections (commit, pr, release, rescue, review)
+- Smart commit engine with auto/confirm/suggest modes and conventional commit detection
+- PR creation engine with full context assembly (commits, issues, specs) and auto-labeling
+- Automated release workflow with semver calculation, changelog generation, and GitHub releases
+- Git rescue system with triple-layer undo (reflog, ops log, snapshot tags)
+- History intelligence engine for commit squash, reorder, and message rewriting
+- Pre-review context assembler for Claude Code AI analysis with security rule filtering
+- AI-powered bisect engine with predictive commit ranking and semantic test analysis
+- 5 new CLI actions: `pr`, `release`, `review`, `rescue`, `bisect` (total: 11 actions)
+- `git.core.md` and `git.details.md` command file split for context engineering
+- 402 new tests across 12 test files for the git package
+
+### Changed
+
+- `zerg/git_ops.py` converted to backward-compatible shim re-exporting from `zerg/git/ops.py`
+- `zerg/commands/git_cmd.py` expanded from 6 to 11 actions with engine delegation
 - Context engineering guardrails: automated drift detection and command validation (`python -m zerg.validate_commands`)
 - Command template (`_template.md`) for new commands to inherit CE patterns by default
 - CI workflow and pre-commit hook for command file validation
