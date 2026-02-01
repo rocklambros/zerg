@@ -1030,33 +1030,59 @@ Automated code improvement and cleanup.
 
 ### /zerg:git
 
-Git operations with intelligent commits and finish workflow.
+Git operations with intelligent commits, PR creation, releases, rescue, review, and bisect.
 
-**When to use**: For commit, branch, merge, sync, history, or to finish a development branch.
+**When to use**: For commit, branch, merge, sync, history, finish, PR creation, releases, code review, rescue/undo operations, or AI-powered bug bisection.
 
 #### Usage
 
 ```bash
 /zerg:git --action commit            # Intelligent commit message
 /zerg:git --action commit --push     # Commit and push
+/zerg:git --action commit --mode suggest  # Suggest message without committing
 /zerg:git --action branch --name feature/auth
 /zerg:git --action merge --branch feature/auth --strategy squash
 /zerg:git --action sync              # Synchronize with remote
 /zerg:git --action history --since v1.0.0
+/zerg:git --action history --cleanup # Clean up commit history
 /zerg:git --action finish            # Complete development branch
+/zerg:git --action pr --draft        # Create a draft pull request
+/zerg:git --action pr --reviewer octocat  # Create PR with reviewer
+/zerg:git --action release --bump minor   # Minor version release
+/zerg:git --action release --dry-run      # Preview release without executing
+/zerg:git --action review --focus security  # Pre-review with security focus
+/zerg:git --action rescue --list-ops       # List rescue operations
+/zerg:git --action rescue --undo           # Undo last operation
+/zerg:git --action rescue --restore v1.2.0 # Restore snapshot tag
+/zerg:git --action rescue --recover-branch feature/lost  # Recover deleted branch
+/zerg:git --action bisect --symptom "login returns 500" --test-cmd "pytest tests/auth" --good v1.0.0
 ```
 
 #### Flags
 
 | Flag | Description |
 |------|-------------|
-| `--action TEXT` | Action: `commit`, `branch`, `merge`, `sync`, `history`, `finish` |
-| `--push` | Push after commit |
-| `--base TEXT` | Base branch for merge/finish (default: `main`) |
-| `--name TEXT` | Branch name (for branch action) |
+| `--action, -a TEXT` | Action: `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect` |
+| `--push, -p` | Push after commit/finish |
+| `--base, -b TEXT` | Base branch (default: `main`) |
+| `--name, -n TEXT` | Branch name (for branch action) |
 | `--branch TEXT` | Branch to merge (for merge action) |
-| `--strategy TEXT` | Merge strategy (for merge action) |
+| `--strategy TEXT` | Merge strategy: `merge`, `squash`, `rebase` (default: `squash`) |
 | `--since TEXT` | Starting point for history |
+| `--mode TEXT` | Commit mode: `auto`, `confirm`, `suggest` |
+| `--cleanup` | Run history cleanup (for history action) |
+| `--draft` | Create draft PR (for pr action) |
+| `--reviewer TEXT` | PR reviewer username (for pr action) |
+| `--focus TEXT` | Review focus: `security`, `performance`, `quality`, `architecture` |
+| `--bump TEXT` | Release bump type: `auto`, `major`, `minor`, `patch` (default: `auto`) |
+| `--dry-run` | Preview release without executing (for release action) |
+| `--symptom TEXT` | Bug symptom description (for bisect action) |
+| `--test-cmd TEXT` | Test command for bisect verification |
+| `--good TEXT` | Known good commit or tag (for bisect action) |
+| `--list-ops` | List rescue operations (for rescue action) |
+| `--undo` | Undo last operation (for rescue action) |
+| `--restore TEXT` | Restore snapshot tag (for rescue action) |
+| `--recover-branch TEXT` | Recover deleted branch (for rescue action) |
 
 #### Finish Workflow
 
@@ -1066,6 +1092,46 @@ The `finish` action presents four options after verifying tests pass:
 2. **Push and create a Pull Request**
 3. **Keep the branch as-is** (handle it later)
 4. **Discard this work**
+
+#### PR Creation
+
+The `pr` action creates a pull request with full context:
+
+1. Analyzes all commits on the current branch vs base
+2. Generates a descriptive title and body with summary and test plan
+3. Supports `--draft` for work-in-progress PRs and `--reviewer` to request reviews
+
+#### Release Workflow
+
+The `release` action performs a semver release:
+
+1. Determines next version from conventional commit history (`--bump auto` analyzes commits)
+2. Updates CHANGELOG.md and version files
+3. Creates a git tag and pushes (unless `--dry-run` is specified)
+
+#### Rescue Operations
+
+The `rescue` action provides undo and recovery:
+
+- `--list-ops` — Show recent operations that can be undone
+- `--undo` — Undo the last git operation
+- `--restore TAG` — Restore a previously saved snapshot tag
+- `--recover-branch NAME` — Recover a deleted branch from reflog
+
+#### Review
+
+The `review` action assembles pre-review context for the current branch:
+
+1. Collects diff, commit history, and changed file summaries
+2. Optionally focuses analysis on a domain with `--focus` (security, performance, quality, architecture)
+
+#### Bisect
+
+The `bisect` action performs AI-powered bug bisection:
+
+1. Requires `--symptom` (description of the bug), `--test-cmd` (verification command), and `--good` (known working ref)
+2. Automates `git bisect` using the test command to identify the first bad commit
+3. Reports the offending commit with context about what changed
 
 #### Conventional Commits
 

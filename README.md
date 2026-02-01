@@ -435,7 +435,7 @@ ZERG provides 26 slash commands organized into five categories. See the [Command
 
 | Command | Purpose |
 |---------|---------|
-| `/zerg:git` | Intelligent commits, branch management, finish workflow |
+| `/zerg:git` | Git operations: commits, PRs, releases, rescue, review, bisect (11 actions) |
 | `/zerg:debug` | Deep diagnostic investigation with Bayesian hypothesis testing |
 | `/zerg:worker` | Internal: zergling execution protocol |
 | `/zerg:plugins` | Plugin system management |
