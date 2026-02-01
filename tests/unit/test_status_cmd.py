@@ -256,8 +256,10 @@ class TestStatusCommand:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg" / "state").mkdir(parents=True)
 
-        runner = CliRunner()
-        result = runner.invoke(cli, ["status", "--feature", "nonexistent"])
+        with patch("zerg.commands.status.ClaudeTasksReader") as mock_reader_cls:
+            mock_reader_cls.return_value.find_feature_task_list.return_value = None
+            runner = CliRunner()
+            result = runner.invoke(cli, ["status", "--feature", "nonexistent"])
 
         assert result.exit_code != 0
         assert "no state found" in result.output.lower()
@@ -269,8 +271,10 @@ class TestStatusCommand:
         # Create spec dir but no state file
         (tmp_path / ".gsd" / "specs" / "my-feature").mkdir(parents=True)
 
-        runner = CliRunner()
-        result = runner.invoke(cli, ["status", "--feature", "my-feature"])
+        with patch("zerg.commands.status.ClaudeTasksReader") as mock_reader_cls:
+            mock_reader_cls.return_value.find_feature_task_list.return_value = None
+            runner = CliRunner()
+            result = runner.invoke(cli, ["status", "--feature", "my-feature"])
 
         assert result.exit_code != 0
         assert "planned but not yet designed" in result.output.lower()
@@ -376,6 +380,7 @@ class TestStatusCommand:
 
         with patch("zerg.commands.status.StateManager") as mock_sm:
             mock_sm.return_value.exists.return_value = True
+            mock_sm.return_value._state = None
             mock_sm.return_value.load.side_effect = Exception("Test error")
 
             runner = CliRunner()

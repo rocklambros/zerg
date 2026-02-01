@@ -13,6 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from zerg.claude_tasks_reader import ClaudeTasksReader
 from zerg.constants import SPECS_DIR, TaskStatus, WorkerStatus
 from zerg.logging import get_logger
 from zerg.metrics import MetricsCollector
@@ -95,50 +96,68 @@ def status(
         # Load state
         state = StateManager(feature)
         if not state.exists():
-            spec_dir = Path(SPECS_DIR) / feature
-            if spec_dir.exists():
-                task_graph_path = spec_dir / "task-graph.json"
-                started = spec_dir / ".started"
-                if task_graph_path.exists():
-                    console.print(
-                        f"[yellow]Feature '{feature}' is designed but not yet executing.[/yellow]"
-                    )
-                    try:
-                        tg = json.loads(task_graph_path.read_text())
-                        total = tg.get("total_tasks", "?")
-                        levels = tg.get("levels", {})
-                        max_par = tg.get("max_parallelization", "?")
-                        console.print(f"\n[bold]Task Graph Summary[/bold]")
-                        console.print(f"  Tasks: {total}  |  Levels: {len(levels)}  |  Max parallel: {max_par}")
-                        for lvl_num, lvl_data in sorted(levels.items(), key=lambda x: int(x[0])):
-                            name = lvl_data.get("name", "")
-                            task_ids = lvl_data.get("tasks", [])
-                            console.print(f"  L{lvl_num} ({name}): {len(task_ids)} tasks")
-                    except Exception:
-                        pass
-                    console.print(
-                        f"\nRun [cyan]zerg rush[/cyan] to start execution,"
-                        f" or [cyan]zerg cleanup -f {feature}[/cyan] to remove."
-                    )
-                elif started.exists():
-                    console.print(
-                        f"[yellow]Feature '{feature}' design is in progress.[/yellow]"
-                    )
+            # Try Claude Code Tasks as fallback before declaring "not executing"
+            _injected = False
+            try:
+                reader = ClaudeTasksReader()
+                task_list_dir = reader.find_feature_task_list(feature)
+                if task_list_dir:
+                    task_state = reader.read_tasks(task_list_dir)
+                    if task_state.get("tasks"):
+                        state.inject_state(task_state)
+                        _injected = True
+            except Exception:
+                logger.debug("Claude Tasks reader fallback failed", exc_info=True)
+
+            if _injected:
+                pass  # Fall through to normal display path
+            else:
+                # No Claude Code Tasks found — show spec-based messages
+                spec_dir = Path(SPECS_DIR) / feature
+                if spec_dir.exists():
+                    task_graph_path = spec_dir / "task-graph.json"
+                    started = spec_dir / ".started"
+                    if task_graph_path.exists():
+                        console.print(
+                            f"[yellow]Feature '{feature}' is designed but not yet executing.[/yellow]"
+                        )
+                        try:
+                            tg = json.loads(task_graph_path.read_text())
+                            total = tg.get("total_tasks", "?")
+                            levels = tg.get("levels", {})
+                            max_par = tg.get("max_parallelization", "?")
+                            console.print(f"\n[bold]Task Graph Summary[/bold]")
+                            console.print(f"  Tasks: {total}  |  Levels: {len(levels)}  |  Max parallel: {max_par}")
+                            for lvl_num, lvl_data in sorted(levels.items(), key=lambda x: int(x[0])):
+                                name = lvl_data.get("name", "")
+                                task_ids = lvl_data.get("tasks", [])
+                                console.print(f"  L{lvl_num} ({name}): {len(task_ids)} tasks")
+                        except Exception:
+                            pass
+                        console.print(
+                            f"\nRun [cyan]zerg rush[/cyan] to start execution,"
+                            f" or [cyan]zerg cleanup -f {feature}[/cyan] to remove."
+                        )
+                    elif started.exists():
+                        console.print(
+                            f"[yellow]Feature '{feature}' design is in progress.[/yellow]"
+                        )
+                    else:
+                        console.print(
+                            f"[yellow]Feature '{feature}' is planned but not yet designed.[/yellow]"
+                        )
+                        console.print(
+                            f"Run [cyan]zerg design[/cyan] to create task graph,"
+                            f" or [cyan]zerg cleanup -f {feature}[/cyan] to remove."
+                        )
                 else:
                     console.print(
-                        f"[yellow]Feature '{feature}' is planned but not yet designed.[/yellow]"
+                        f"[red]Error:[/red] No state found for feature '{feature}'"
                     )
-                    console.print(
-                        f"Run [cyan]zerg design[/cyan] to create task graph,"
-                        f" or [cyan]zerg cleanup -f {feature}[/cyan] to remove."
-                    )
-            else:
-                console.print(
-                    f"[red]Error:[/red] No state found for feature '{feature}'"
-                )
-            raise SystemExit(1)
+                raise SystemExit(1)
 
-        state.load()
+        if not state._state:
+            state.load()
 
         if json_output:
             show_json_status(state, level)
