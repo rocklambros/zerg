@@ -1170,6 +1170,10 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 | `--title TEXT` | Issue title (for issue action) |
 | `--label TEXT` | Issue label (for issue action, repeatable) |
 | `--assignee TEXT` | Issue assignee (for issue action) |
+| `--no-docker` | Skip Docker cleanup (for cleanup action) |
+| `--include-stashes` | Clear git stashes during cleanup (off by default) |
+| `--limit N` | Max issues to create (for issue action, default: 10) |
+| `--priority P` | Filter by priority: `P0`, `P1`, `P2` (for issue action) |
 
 #### Finish Workflow
 
