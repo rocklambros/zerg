@@ -10,7 +10,7 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.12"
 authors = [
-    {name = "ZERG Team"}
+    {name = "rocklambros", email = "rocklambros@users.noreply.github.com"}
 ]
 keywords = ["claude", "parallel", "orchestration", "devcontainer", "workflow"]
 classifiers = [
@@ -43,9 +43,11 @@ dev = [
 zerg = "zerg.cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/zerg-dev/zerg"
-Documentation = "https://github.com/zerg-dev/zerg#readme"
-Repository = "https://github.com/zerg-dev/zerg"
+Homepage = "https://github.com/rocklambros/zerg"
+Documentation = "https://github.com/rocklambros/zerg/wiki"
+Repository = "https://github.com/rocklambros/zerg"
+Issues = "https://github.com/rocklambros/zerg/issues"
+Changelog = "https://github.com/rocklambros/zerg/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
