@@ -387,7 +387,6 @@ def _collect_files(path: str | None) -> list[str]:
     multiple=True,
     help="Thresholds (e.g., complexity=10,coverage=70)",
 )
-@click.option("--files", "-p", help="Path to files to analyze (deprecated, use PATH)")
 @click.option(
     "--performance", is_flag=True, help="Run comprehensive performance audit (140 factors)"
 )
@@ -398,7 +397,6 @@ def analyze(
     check: str,
     output_format: str,
     threshold: tuple[str, ...],
-    files: str | None,
     performance: bool,
 ) -> None:
     """Run static analysis, complexity metrics, and quality assessment.
@@ -436,11 +434,10 @@ def analyze(
             config.coverage_threshold = thresholds["coverage"]
 
         # Collect files
-        target_path = files or path
-        file_list = _collect_files(target_path)
+        file_list = _collect_files(path)
 
         if not file_list:
-            console.print(f"[yellow]No files found in {target_path}[/yellow]")
+            console.print(f"[yellow]No files found in {path}[/yellow]")
             raise SystemExit(0)
 
         if not is_machine_output:

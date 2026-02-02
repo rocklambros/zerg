@@ -440,7 +440,6 @@ def _collect_files(path: str | None) -> list[str]:
 )
 @click.option("--dry-run", is_flag=True, help="Show suggestions without applying")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive mode")
-@click.option("--files", "-f", help="Path to files to refactor (deprecated, use PATH)")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.pass_context
 def refactor(
@@ -449,7 +448,6 @@ def refactor(
     transforms: str,
     dry_run: bool,
     interactive: bool,
-    files: str | None,
     json_output: bool,
 ) -> None:
     """Automated code improvement and cleanup.
@@ -480,11 +478,10 @@ def refactor(
             console.print("[yellow]Interactive mode - will prompt for each change[/yellow]")
 
         # Collect files
-        target_path = files or path
-        file_list = _collect_files(target_path)
+        file_list = _collect_files(path)
 
         if not file_list:
-            console.print(f"[yellow]No Python files found in {target_path}[/yellow]")
+            console.print(f"[yellow]No Python files found in {path}[/yellow]")
             raise SystemExit(0)
 
         console.print(f"\nAnalyzing {len(file_list)} files...\n")

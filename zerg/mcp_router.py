@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from zerg.mcp_telemetry import RoutingEvent, RoutingTelemetry
+
 logger = logging.getLogger(__name__)
 
 
@@ -93,6 +95,7 @@ class MCPRouter:
         available_servers: list[str] | None = None,
         cost_aware: bool = True,
         max_servers: int = 3,
+        telemetry_enabled: bool = False,
     ) -> None:
         """Initialize MCP router.
 
@@ -101,9 +104,13 @@ class MCPRouter:
                 If None, all known servers are available.
             cost_aware: Enable cost-based optimization.
             max_servers: Maximum number of servers to recommend.
+            telemetry_enabled: Enable routing telemetry collection.
         """
         self.cost_aware = cost_aware
         self.max_servers = max_servers
+        self._telemetry: RoutingTelemetry | None = (
+            RoutingTelemetry() if telemetry_enabled else None
+        )
 
         if available_servers is not None:
             self.available: list[MCPServer] = []
@@ -194,12 +201,28 @@ class MCPRouter:
         if not matched:
             reasoning.append("no specific MCP servers needed")
 
-        return RoutingDecision(
+        decision = RoutingDecision(
             recommended_servers=matched,
             reasoning=reasoning,
             cost_estimate=cost,
             depth_tier=depth_tier,
         )
+
+        if self._telemetry is not None:
+            task_id = task_type or task_description or "unknown"
+            event = RoutingEvent(
+                task_id=task_id,
+                servers_recommended=decision.server_names,
+                cost_estimate=decision.cost_estimate,
+            )
+            self._telemetry.record(event)
+
+        return decision
+
+    @property
+    def telemetry(self) -> RoutingTelemetry | None:
+        """Access the telemetry instance, or None if telemetry is disabled."""
+        return self._telemetry
 
     def _match_servers(self, needed: set[str]) -> list[MCPServer]:
         """Match needed capabilities to available servers.

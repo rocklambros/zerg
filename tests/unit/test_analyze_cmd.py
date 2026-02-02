@@ -959,23 +959,15 @@ class TestAnalyzeCLI:
 
             assert result.exit_code == 0
 
-    def test_analyze_deprecated_files_option(self, tmp_path: Path, monkeypatch) -> None:
-        """Test analyze with deprecated --files option."""
+    def test_analyze_deprecated_files_option_removed(self, tmp_path: Path, monkeypatch) -> None:
+        """Test that removed --files option is rejected."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "test.py").write_text("# test")
 
-        with patch("zerg.commands.analyze.AnalyzeCommand") as mock_cmd_class:
-            mock_cmd = MagicMock()
-            mock_cmd.run.return_value = [
-                AnalysisResult(CheckType.LINT, True, [], 100.0),
-            ]
-            mock_cmd.overall_passed.return_value = True
-            mock_cmd_class.return_value = mock_cmd
+        runner = CliRunner()
+        result = runner.invoke(cli, ["analyze", "--files", str(tmp_path)])
 
-            runner = CliRunner()
-            result = runner.invoke(cli, ["analyze", "--files", str(tmp_path)])
-
-            assert result.exit_code == 0
+        assert result.exit_code == 2  # Click rejects unknown option
 
     def test_analyze_failure_exit_code(self, tmp_path: Path, monkeypatch) -> None:
         """Test analyze returns exit code 1 on failure."""

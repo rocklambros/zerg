@@ -1242,27 +1242,15 @@ class TestRefactorCLI:
 
             assert result.exit_code == 1
 
-    @patch("zerg.commands.refactor.RefactorCommand")
-    @patch("zerg.commands.refactor.console")
-    def test_refactor_files_option_deprecated(
-        self, mock_console: MagicMock, mock_command_class: MagicMock, tmp_path: Path
-    ) -> None:
-        """Test refactor with deprecated --files option."""
+    def test_refactor_files_option_removed(self, tmp_path: Path) -> None:
+        """Test that removed --files option is rejected."""
         test_file = tmp_path / "test.py"
         test_file.write_text("x = 1")
-
-        mock_command = MagicMock()
-        mock_command.run.return_value = RefactorResult(
-            files_analyzed=1,
-            suggestions=[],
-            applied=0,
-        )
-        mock_command_class.return_value = mock_command
 
         runner = CliRunner()
         result = runner.invoke(refactor, ["--files", str(test_file), "--dry-run"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 2  # Click rejects unknown option
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")

@@ -12,26 +12,6 @@ from zerg.exceptions import WorktreeError
 from zerg.worktree import WorktreeInfo, WorktreeManager
 
 
-@pytest.fixture
-def tmp_repo(tmp_path: Path):
-    """Create a temporary git repository."""
-    orig_dir = os.getcwd()
-    os.chdir(tmp_path)
-
-    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, check=True)
-
-    # Create initial commit
-    (tmp_path / "README.md").write_text("# Test Repo")
-    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "commit", "-q", "-m", "Initial commit"], cwd=tmp_path, check=True)
-
-    yield tmp_path
-
-    os.chdir(orig_dir)
-
-
 class TestWorktreeInfo:
     """Tests for WorktreeInfo dataclass."""
 

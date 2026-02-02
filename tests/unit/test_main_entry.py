@@ -173,8 +173,8 @@ class TestMainBlockExecution:
 class TestCLIIntegrationFromMain:
     """Integration tests verifying CLI works through __main__."""
 
-    def test_verbose_flag_through_main(self) -> None:
-        """Test verbose flag works through main entry."""
+    def test_verbose_flag_removed_from_main(self) -> None:
+        """Test that removed --verbose global flag is rejected."""
         import subprocess
 
         result = subprocess.run(
@@ -184,11 +184,10 @@ class TestCLIIntegrationFromMain:
             timeout=30,
         )
 
-        assert result.returncode == 0
-        assert "ZERG" in result.stdout
+        assert result.returncode == 2
 
-    def test_quiet_flag_through_main(self) -> None:
-        """Test quiet flag works through main entry."""
+    def test_quiet_flag_removed_from_main(self) -> None:
+        """Test that removed --quiet global flag is rejected."""
         import subprocess
 
         result = subprocess.run(
@@ -198,8 +197,7 @@ class TestCLIIntegrationFromMain:
             timeout=30,
         )
 
-        assert result.returncode == 0
-        assert "ZERG" in result.stdout
+        assert result.returncode == 2
 
     def test_command_help_through_main(self) -> None:
         """Test command help works through main entry."""

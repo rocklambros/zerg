@@ -34,7 +34,7 @@ def tmp_repo(tmp_path: Path) -> Generator[Path, None, None]:
     os.chdir(tmp_path)
 
     # Use subprocess.run with argument list - no shell=True
-    _run_git("init", "-q", cwd=tmp_path)
+    _run_git("init", "-q", "-b", "main", cwd=tmp_path)
     _run_git("config", "user.email", "test@test.com", cwd=tmp_path)
     _run_git("config", "user.name", "Test", cwd=tmp_path)
 

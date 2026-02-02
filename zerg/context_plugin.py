@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
 from zerg.command_splitter import CommandSplitter
+from zerg.efficiency import CompactFormatter
 from zerg.plugin_config import ContextEngineeringConfig
 from zerg.plugins import ContextPlugin
 from zerg.security_rules import filter_rules_for_files, summarize_rules
@@ -36,6 +38,15 @@ class ContextEngineeringPlugin(ContextPlugin):
     def __init__(self, config: ContextEngineeringConfig | None = None) -> None:
         self._config = config or ContextEngineeringConfig()
         self._splitter = CommandSplitter()
+        self._formatter: CompactFormatter | None = self._init_formatter()
+
+    @staticmethod
+    def _init_formatter() -> CompactFormatter | None:
+        """Create a CompactFormatter when ZERG_COMPACT_MODE is active."""
+        compact = os.environ.get("ZERG_COMPACT_MODE", "")
+        if compact in ("1", "true"):
+            return CompactFormatter(use_symbols=True, use_abbreviations=True)
+        return None
 
     # -- ABC properties / methods --------------------------------------------
 
@@ -172,12 +183,22 @@ class ContextEngineeringPlugin(ContextPlugin):
         if efficiency_section:
             sections.append(efficiency_section)
 
-        return "\n\n".join(sections)
+        assembled = "\n\n".join(sections)
+
+        # Apply compact formatting when ZERG_COMPACT_MODE is active
+        if self._formatter is not None:
+            try:
+                assembled = self._formatter.abbreviate(assembled)
+            except Exception:
+                logger.debug(
+                    "CompactFormatter.abbreviate failed; returning uncompressed context",
+                    exc_info=True,
+                )
+
+        return assembled
 
     def _build_depth_section(self, max_tokens: int) -> str:
         """Inject analysis depth guidance from ZERG_ANALYSIS_DEPTH env var."""
-        import os
-
         depth = os.environ.get("ZERG_ANALYSIS_DEPTH", "")
         if not depth or depth == "standard":
             return ""
@@ -202,8 +223,6 @@ class ContextEngineeringPlugin(ContextPlugin):
 
     def _build_mode_section(self, max_tokens: int) -> str:
         """Inject behavioral mode instructions from ZERG_BEHAVIORAL_MODE env var."""
-        import os
-
         mode = os.environ.get("ZERG_BEHAVIORAL_MODE", "")
         if not mode or mode == "precision":
             return ""
@@ -222,8 +241,6 @@ class ContextEngineeringPlugin(ContextPlugin):
 
     def _build_tdd_section(self, max_tokens: int) -> str:
         """Inject TDD enforcement workflow from ZERG_TDD_MODE env var."""
-        import os
-
         tdd = os.environ.get("ZERG_TDD_MODE", "")
         if tdd != "1":
             return ""
@@ -239,8 +256,6 @@ class ContextEngineeringPlugin(ContextPlugin):
 
     def _build_efficiency_section(self) -> str:
         """Inject token efficiency hints from ZERG_COMPACT_MODE env var."""
-        import os
-
         compact = os.environ.get("ZERG_COMPACT_MODE", "")
         if compact != "1":
             return ""
@@ -332,7 +347,6 @@ class ContextEngineeringPlugin(ContextPlugin):
         """
         try:
             from zerg.mcp_router import MCPRouter
-            import os
 
             router = MCPRouter()
             file_paths = self._collect_task_files(task)

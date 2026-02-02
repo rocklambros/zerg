@@ -27,19 +27,19 @@ class TestCliGroup:
         assert result.exit_code == 0
         assert "zerg" in result.output.lower()
 
-    def test_cli_verbose_flag(self) -> None:
-        """Test CLI accepts verbose flag."""
+    def test_cli_verbose_flag_removed(self) -> None:
+        """Test that removed --verbose flag is rejected."""
         runner = CliRunner()
         result = runner.invoke(cli, ["--verbose", "--help"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 2  # Click rejects unknown option
 
-    def test_cli_quiet_flag(self) -> None:
-        """Test CLI accepts quiet flag."""
+    def test_cli_quiet_flag_removed(self) -> None:
+        """Test that removed --quiet flag is rejected."""
         runner = CliRunner()
         result = runner.invoke(cli, ["--quiet", "--help"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 2  # Click rejects unknown option
 
 
 class TestCommandRegistration:
@@ -96,14 +96,14 @@ class TestCliContext:
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
 
-    def test_verbose_in_context(self) -> None:
-        """Test verbose flag stored in context."""
+    def test_verbose_removed_from_context(self) -> None:
+        """Test verbose flag no longer accepted."""
         runner = CliRunner()
         result = runner.invoke(cli, ["--verbose", "--help"])
-        assert result.exit_code == 0
+        assert result.exit_code == 2
 
-    def test_quiet_in_context(self) -> None:
-        """Test quiet flag stored in context."""
+    def test_quiet_removed_from_context(self) -> None:
+        """Test quiet flag no longer accepted."""
         runner = CliRunner()
         result = runner.invoke(cli, ["--quiet", "--help"])
-        assert result.exit_code == 0
+        assert result.exit_code == 2

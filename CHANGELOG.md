@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cleanup` action for `/zerg:git`: prune merged branches, stale remote refs, orphaned worktrees, Docker containers/images
 - `issue` action for `/zerg:git`: create AI-optimized GitHub issues from codebase scan or user description with strict 8-section template
 - `/zerg:git` now has 14 actions (was 12)
+- `pip-audit` added to dev dependencies and CI workflow for supply chain security (#88)
+- Routing telemetry wired into `MCPRouter` with configurable `telemetry_enabled` flag (#79)
+- `GatePipeline` wired into orchestrator merge quality gates with artifact storage and staleness caching (#78)
+- `ModeContext` wired into orchestrator for mode-aware gate strictness (#78)
+- `CompactFormatter` wired into context plugin for token-efficient output when `ZERG_COMPACT_MODE` is set (#78)
 
 ### Changed
 
@@ -20,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global CLI Flags documentation updated: `--no-compact` (ON by default), `--no-loop` (ON by default), `--iterations N`
 - `sidebar.py` references updated to match new wiki file naming
 - All deprecated `--uc`/`--compact` flag references removed from documentation
+- CI workflow now configures `git init.defaultBranch main` and user identity for test stability (#85)
+- `conftest.py` fixture uses explicit `git init -b main` (#85)
+
+### Fixed
+
+- `ast.Str` deprecation warning removed from `extractor.py` — only `ast.Constant` used now (#87)
+- Unawaited coroutine `RuntimeWarning` in `test_launcher_coverage.py` async mock setup (#91)
+- 51 CI test failures caused by missing git config in GitHub Actions runners (#85)
+- Duplicate `tmp_repo` fixtures removed from `test_worktree.py` and `test_worktree_extended.py` (#85)
+
+### Removed
+
+- Deprecated `--uc`/`--compact` and `--loop` hidden CLI flags and their deprecation callbacks (#84)
+- Deprecated `--verbose`/`--quiet` global CLI flags (unused since project inception) (#81)
+- Deprecated `--files` option from `refactor` and `analyze` commands — use positional PATH (#90)
 
 ### Previously Added
 

@@ -1069,7 +1069,7 @@ class TestContainerStartContainerAsync:
             return await coro
 
         with (
-            patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec,
+            patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc) as mock_exec,
             patch("asyncio.wait_for", side_effect=fake_wait_for),
             patch("os.getuid", return_value=1000),
             patch("os.getgid", return_value=1000),

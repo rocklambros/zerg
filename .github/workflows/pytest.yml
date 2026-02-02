@@ -12,6 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure Git for tests
+        run: |
+          git config --global init.defaultBranch main
+          git config --global user.email "ci@test.com"
+          git config --global user.name "CI Test"
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -27,3 +33,20 @@ jobs:
 
       - name: Validate command files
         run: python -m zerg.validate_commands
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+          pip install pip-audit
+
+      - name: Audit dependencies
+        run: pip-audit --strict --desc

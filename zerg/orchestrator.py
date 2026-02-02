@@ -43,9 +43,10 @@ from zerg.launcher import (
     get_plugin_launcher,
 )
 from zerg.launcher_configurator import LauncherConfigurator
-from zerg.level_coordinator import LevelCoordinator
+from zerg.level_coordinator import GatePipeline, LevelCoordinator
 from zerg.levels import LevelController
 from zerg.loops import LoopController
+from zerg.modes import BehavioralMode, ModeContext, ModeDetector
 from zerg.log_writer import StructuredLogWriter
 from zerg.logging import get_logger, setup_structured_logging
 from zerg.merge import MergeCoordinator, MergeFlowResult
@@ -250,6 +251,40 @@ class Orchestrator:
                 f"Loop controller enabled: max_iterations={self._capabilities.loop_iterations}"
             )
 
+        # Create gate pipeline if capabilities enable it
+        self._gate_pipeline: GatePipeline | None = None
+        if self._capabilities and self._capabilities.gates_enabled:
+            artifacts_dir = Path(self.config.verification.artifact_dir)
+            self._gate_pipeline = GatePipeline(
+                gate_runner=self.gates,
+                artifacts_dir=artifacts_dir,
+                staleness_threshold_seconds=self._capabilities.staleness_threshold,
+            )
+            logger.info(
+                f"Gate pipeline enabled: staleness_threshold={self._capabilities.staleness_threshold}s"
+            )
+
+        # Create mode context from resolved capabilities
+        self._mode_context: ModeContext | None = None
+        if self._capabilities:
+            try:
+                mode_enum = BehavioralMode(self._capabilities.mode)
+            except ValueError:
+                mode_enum = BehavioralMode.PRECISION
+            detector = ModeDetector(
+                auto_detect=self.config.behavioral_modes.auto_detect,
+                default_mode=mode_enum,
+                log_transitions=self.config.behavioral_modes.log_transitions,
+            )
+            self._mode_context = detector.detect(
+                explicit_mode=mode_enum,
+                depth_tier=self._capabilities.depth_tier,
+            )
+            logger.info(
+                f"Mode context: mode={self._mode_context.mode.value}, "
+                f"verification_level={self._mode_context.mode.verification_level}"
+            )
+
     # ------------------------------------------------------------------
     # Backward-compatible thin wrappers (delegate to components)
     # ------------------------------------------------------------------
@@ -396,22 +431,59 @@ class Orchestrator:
         Scores the level by gate pass rate and re-runs if the loop
         controller determines improvement is still possible.
 
+        When a GatePipeline is available, gates are run through the pipeline
+        for artifact storage and staleness detection.  When a ModeContext is
+        present, its verification_level controls which gates are executed:
+        - "none": skip all gates (score = 1.0)
+        - "minimal": run only required gates
+        - "full" / "verbose" (or any other value): run all gates
+
         Args:
             level: Level that just completed.
         """
+        # Determine gate filtering from mode context
+        verification_level = "full"
+        if self._mode_context:
+            verification_level = self._mode_context.mode.verification_level
+
+        if verification_level == "none":
+            logger.info(
+                f"Skipping gates for level {level} (verification_level=none)"
+            )
+            return
+
+        required_only = verification_level == "minimal"
 
         def score_level(iteration: int) -> float:
             """Score current level by running quality gates."""
             try:
-                all_passed, gate_results = self.gates.run_all_gates(
-                    feature=self.feature, level=level,
-                )
-                if not gate_results:
-                    return 1.0  # No gates configured = perfect score
-                passed = sum(
-                    1 for r in gate_results if r.result == GateResult.PASS
-                )
-                return passed / len(gate_results)
+                if self._gate_pipeline:
+                    # Use pipeline for artifact storage and staleness
+                    gates_to_run = list(self.config.quality_gates)
+                    if required_only:
+                        gates_to_run = [g for g in gates_to_run if g.required]
+                    gate_results = self._gate_pipeline.run_gates_for_level(
+                        level=level, gates=gates_to_run,
+                    )
+                    if not gate_results:
+                        return 1.0
+                    passed = sum(
+                        1 for r in gate_results if r.result == GateResult.PASS
+                    )
+                    return passed / len(gate_results)
+                else:
+                    # Fallback to direct GateRunner
+                    all_passed, gate_results = self.gates.run_all_gates(
+                        feature=self.feature,
+                        level=level,
+                        required_only=required_only,
+                    )
+                    if not gate_results:
+                        return 1.0
+                    passed = sum(
+                        1 for r in gate_results if r.result == GateResult.PASS
+                    )
+                    return passed / len(gate_results)
             except Exception as e:
                 logger.warning(
                     f"Gate scoring failed in loop iteration {iteration}: {e}"

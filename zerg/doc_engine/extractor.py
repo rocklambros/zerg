@@ -70,7 +70,7 @@ def _extract_docstring(node: ast.AST) -> str | None:
     if (
         node.body
         and isinstance(node.body[0], ast.Expr)
-        and isinstance(node.body[0].value, (ast.Constant, ast.Str))
+        and isinstance(node.body[0].value, ast.Constant)
     ):
         value = node.body[0].value
         if isinstance(value, ast.Constant) and isinstance(value.value, str):

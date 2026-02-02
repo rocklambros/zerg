@@ -1,0 +1,305 @@
+{
+  "feature": "fix-issues-78-91",
+  "version": "2.0",
+  "generated": "2026-02-02T00:00:00Z",
+  "total_tasks": 12,
+  "estimated_duration_minutes": 90,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "T-001",
+      "title": "Fix ast.Str deprecation (#87)",
+      "description": "Remove ast.Str from isinstance check in extractor.py:73. Only ast.Constant needed for Python 3.8+.",
+      "phase": "trivial-fixes",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/doc_engine/extractor.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import ast; import zerg.doc_engine.extractor\" && pytest tests/unit/ -k extractor -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-002",
+      "title": "Fix unawaited coroutine warning (#91)",
+      "description": "Fix async mock setup in test_launcher_coverage.py TestContainerStartContainerAsync to eliminate RuntimeWarning.",
+      "phase": "trivial-fixes",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_launcher_coverage.py"],
+        "read": ["zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_launcher_coverage.py -v -W error::RuntimeWarning --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-003",
+      "title": "Remove deprecated CLI flags (#84, #81)",
+      "description": "Remove --uc, --compact, --loop hidden options and deprecation callbacks. Remove --verbose, --quiet global flags (unused). Update affected tests.",
+      "phase": "trivial-fixes",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/cli.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/ -k cli -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "click"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-004",
+      "title": "Remove deprecated --files flag (#90)",
+      "description": "Remove --files/-f from refactor.py:443 and --files/-p from analyze.py:390. Migrate any args.files references to PATH.",
+      "phase": "trivial-fixes",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/refactor.py", "zerg/commands/analyze.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/ -k 'refactor or analyze' -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "click"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-005",
+      "title": "Close false-positive issues (#80, #89)",
+      "description": "Close issues with explanatory comments via gh CLI. #80: worker_main.py invoked dynamically. #89: TODOs are template stubs.",
+      "phase": "trivial-fixes",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "gh issue view 80 --json state -q '.state' | grep -q CLOSED && gh issue view 89 --json state -q '.state' | grep -q CLOSED",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["github"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-006",
+      "title": "Fix CI test failures (#85)",
+      "description": "Add git config to CI workflow, fix conftest.py fixture with explicit -b main, remove duplicate fixtures from test_worktree*.py.",
+      "phase": "medium-fixes",
+      "level": 1,
+      "dependencies": ["T-001", "T-002", "T-003", "T-004", "T-005"],
+      "files": {
+        "create": [],
+        "modify": [".github/workflows/pytest.yml", "tests/conftest.py", "tests/unit/test_worktree.py", "tests/unit/test_worktree_extended.py"],
+        "read": ["tests/unit/test_merge_coordinator_init.py", "tests/unit/test_git_rescue.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_worktree.py tests/unit/test_worktree_extended.py tests/unit/test_merge_coordinator_init.py -v --tb=short",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "git", "github-actions"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-007",
+      "title": "Add pip-audit to CI (#88)",
+      "description": "Add pip-audit as dev dependency and add audit step to CI workflow.",
+      "phase": "medium-fixes",
+      "level": 1,
+      "dependencies": ["T-001", "T-002", "T-003", "T-004", "T-005"],
+      "files": {
+        "create": [],
+        "modify": ["pyproject.toml", ".github/workflows/pytest.yml"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'pip-audit' pyproject.toml && grep -q 'pip.audit\\|pip-audit' .github/workflows/pytest.yml",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "github-actions"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-008",
+      "title": "Wire mcp_telemetry into mcp_router (#79)",
+      "description": "Import RoutingTelemetry in mcp_router, record routing decisions, respect config flag. Create dedicated test file.",
+      "phase": "medium-fixes",
+      "level": 1,
+      "dependencies": ["T-001", "T-002", "T-003", "T-004", "T-005"],
+      "files": {
+        "create": ["tests/unit/test_mcp_telemetry.py"],
+        "modify": ["zerg/mcp_router.py"],
+        "read": ["zerg/mcp_telemetry.py", "zerg/config.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_mcp_telemetry.py tests/unit/test_mcp_router.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "testing"],
+      "consumers": ["T-009"],
+      "integration_test": "tests/unit/test_mcp_telemetry.py"
+    },
+    {
+      "id": "T-009",
+      "title": "Wire GatePipeline + ModeContext into orchestrator (#78 part 1)",
+      "description": "Import and instantiate GatePipeline when gates_enabled. Wire ModeContext for gate strictness. Verify LoopController.run() is called.",
+      "phase": "capability-wiring",
+      "level": 2,
+      "dependencies": ["T-006", "T-007", "T-008"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": ["zerg/verification_gates.py", "zerg/modes.py", "zerg/loops.py", "zerg/capability_resolver.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_orchestrator*.py tests/integration/ -k orchestrator -v --tb=short",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "architecture"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-010",
+      "title": "Wire CompactFormatter into context_plugin (#78 part 2)",
+      "description": "Import CompactFormatter, apply when ZERG_COMPACT_MODE is true to compress task context output.",
+      "phase": "capability-wiring",
+      "level": 2,
+      "dependencies": ["T-006", "T-007", "T-008"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/context_plugin.py"],
+        "read": ["zerg/efficiency.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_context_plugin*.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-011",
+      "title": "CHANGELOG + validation",
+      "description": "Update CHANGELOG.md with all changes. Run validate_commands and full test suite.",
+      "phase": "finalize",
+      "level": 3,
+      "dependencies": ["T-009", "T-010"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands && pytest tests/ -q --tb=short",
+        "timeout_seconds": 600
+      },
+      "estimate_minutes": 10,
+      "skills_required": [],
+      "consumers": ["leaf"],
+      "integration_test": null
+    },
+    {
+      "id": "T-012",
+      "title": "Push wiki + close issues",
+      "description": "Run zerg wiki --push to publish to GitHub Wiki. Close all resolved issues via gh CLI.",
+      "phase": "finalize",
+      "level": 3,
+      "dependencies": ["T-011"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "gh issue list --state open --json number -q '.[].number' | python3 -c 'import sys,json; nums=json.load(sys.stdin); open_in_range=[n for n in nums if 78<=n<=91]; print(f\"{len(open_in_range)} issues still open\"); assert len(open_in_range)==0'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["github"],
+      "consumers": ["leaf"],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "0": {
+      "name": "trivial-fixes",
+      "tasks": ["T-001", "T-002", "T-003", "T-004", "T-005"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": []
+    },
+    "1": {
+      "name": "medium-fixes",
+      "tasks": ["T-006", "T-007", "T-008"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [0]
+    },
+    "2": {
+      "name": "capability-wiring",
+      "tasks": ["T-009", "T-010"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "finalize",
+      "tasks": ["T-011", "T-012"],
+      "parallel": false,
+      "estimated_minutes": 20,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["T-006", "T-007"],
+        "file": ".github/workflows/pytest.yml",
+        "resolution": "T-006 owns the git config section, T-007 owns the pip-audit step. No overlap."
+      }
+    ]
+  }
+}
