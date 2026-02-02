@@ -145,7 +145,7 @@ Each task produces artifact files that can be viewed with `--artifacts`:
 
 ## See Also
 
-- [[Command-status]] -- High-level progress overview
-- [[Command-retry]] -- Re-run tasks identified through log inspection
-- [[Command-cleanup]] -- Remove log files with `--keep-logs` option to preserve them
-- [[Command-Reference]] -- Full command index
+- [[zerg-status]] -- High-level progress overview
+- [[zerg-retry]] -- Re-run tasks identified through log inspection
+- [[zerg-cleanup]] -- Remove log files with `--keep-logs` option to preserve them
+- [[zerg-Reference]] -- Full command index

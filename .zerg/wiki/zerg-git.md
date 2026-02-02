@@ -1,11 +1,11 @@
 # /zerg:git
 
-Git operations with intelligent commits, PR creation, releases, rescue, review, bisect, and ship.
+Git operations with intelligent commits, PR creation, releases, rescue, review, bisect, ship, cleanup, and issue creation.
 
 ## Synopsis
 
 ```
-/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect|ship
+/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect|ship|cleanup|issue
           [--push]
           [--base main]
           [--mode auto|confirm|suggest]
@@ -15,11 +15,14 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
           [--symptom TEXT] [--test-cmd CMD] [--good REF]
           [--list-ops] [--undo] [--restore TAG] [--recover-branch NAME]
           [--no-merge]
+          [--scan] [--title TEXT] [--dry-run]
+          [--no-docker] [--include-stashes]
+          [--limit N] [--label LABEL] [--priority P0|P1|P2]
 ```
 
 ## Description
 
-The `git` command wraps common Git operations with ZERG-aware intelligence. It auto-generates conventional commit messages from staged changes, manages branches, performs merges with conflict detection, provides a structured finish workflow, creates pull requests with full context assembly, automates semver releases, assembles pre-review context filtered by security rules, offers triple-layer undo/recovery, and runs AI-powered bug bisection.
+The `git` command wraps 14 Git operations with ZERG-aware intelligence. It auto-generates conventional commit messages from staged changes, manages branches, performs merges with conflict detection, provides a structured finish workflow, creates pull requests with full context assembly, automates semver releases, assembles pre-review context filtered by security rules, offers triple-layer undo/recovery, runs AI-powered bug bisection, performs repository cleanup, and creates AI-optimized GitHub issues.
 
 ### Actions
 
@@ -105,6 +108,18 @@ Which option?
 /zerg:git --action ship [--base main] [--draft] [--reviewer USER] [--no-merge]
 ```
 
+**cleanup** -- Repository hygiene: prune merged branches, stale remote refs, orphaned worktrees, and ZERG Docker resources. Auto-detects stopped containers. Use `--no-docker` to skip Docker cleanup, `--include-stashes` to clear stashes, `--dry-run` to preview.
+
+```
+/zerg:git --action cleanup [--dry-run] [--no-docker] [--include-stashes] [--base main]
+```
+
+**issue** -- Create maximally-detailed GitHub issues optimized for AI coding assistants. Scan mode (default) auto-detects problems from test failures, TODO comments, lint errors, security findings, orphaned modules, stale deps, and CI results. Description mode enriches a user-provided title with codebase analysis.
+
+```
+/zerg:git --action issue [--scan] [--title TEXT] [--dry-run] [--limit N] [--label LABEL] [--priority P0|P1|P2]
+```
+
 ### Conventional Commit Types
 
 Auto-generated commit messages follow the conventional commits specification:
@@ -123,7 +138,7 @@ Auto-generated commit messages follow the conventional commits specification:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--action`, `-a` | (required) | Git operation to perform. Accepts `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect`, or `ship`. |
+| `--action`, `-a` | (required) | Git operation to perform. Accepts `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect`, `ship`, `cleanup`, or `issue`. |
 | `--push`, `-p` | off | Push to remote after committing, merging, or finishing. |
 | `--base`, `-b` | `main` | Base branch for finish, sync, pr, review, and history workflows. |
 | `--name`, `-n` | -- | Branch name for the `branch` action. |
@@ -145,6 +160,13 @@ Auto-generated commit messages follow the conventional commits specification:
 | `--restore` | -- | Restore repository state from a snapshot tag (for `rescue` action). |
 | `--recover-branch` | -- | Recover a deleted branch from the reflog (for `rescue` action). |
 | `--no-merge` | off | Stop after PR creation, skip merge and cleanup (for `ship` action). |
+| `--scan` | on | Auto-detect issues from codebase analysis (default for `issue` action). |
+| `--title` | -- | Issue title; switches `issue` action to description mode. |
+| `--no-docker` | off | Skip Docker container/image cleanup (for `cleanup` action). |
+| `--include-stashes` | off | Also clear git stashes (for `cleanup` action). |
+| `--limit` | `10` | Maximum number of issues to create (for `issue` action). |
+| `--label` | -- | Add a label to created issues. Can be specified multiple times (for `issue` action). |
+| `--priority` | -- | Filter issues by priority: `P0`, `P1`, or `P2` (for `issue` action). |
 
 ## Examples
 
@@ -292,6 +314,30 @@ Ship with draft PR for team review:
 /zerg:git --action ship --no-merge --draft --reviewer octocat
 ```
 
+Cleanup merged branches, stale refs, and Docker resources:
+
+```
+/zerg:git --action cleanup
+```
+
+Preview cleanup without executing:
+
+```
+/zerg:git --action cleanup --dry-run
+```
+
+Auto-scan codebase and create issues:
+
+```
+/zerg:git --action issue
+```
+
+Create a specific issue from description:
+
+```
+/zerg:git --action issue --title "Fix auth timeout" "Users report 504 errors on login"
+```
+
 ## Exit Codes
 
 | Code | Meaning |
@@ -306,6 +352,6 @@ This command creates a Claude Code Task with the subject prefix `[Git]` on invoc
 
 ## See Also
 
-- [[Command-review]] -- Review code before committing or finishing
-- [[Command-build]] -- Verify the build passes before finishing a branch
-- [[Command-test]] -- Ensure tests pass before the finish workflow
+- [[zerg-review]] -- Review code before committing or finishing
+- [[zerg-build]] -- Verify the build passes before finishing a branch
+- [[zerg-test]] -- Ensure tests pass before the finish workflow

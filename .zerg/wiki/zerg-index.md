@@ -38,7 +38,7 @@ The generated wiki follows this hierarchy:
   Home.md
   Getting-Started.md
   Tutorial.md
-  Command-Reference/
+  zerg-Reference/
     zerg-init.md
     zerg-plan.md
     zerg-design.md
@@ -115,6 +115,6 @@ This command creates a Claude Code Task with the subject prefix `[Index]` on inv
 
 ## See Also
 
-- [[Command-document]] -- Generate documentation for a single component
-- [[Command-plugins]] -- Plugin configuration documented in the generated wiki
-- [[Command-review]] -- Review generated documentation
+- [[zerg-document]] -- Generate documentation for a single component
+- [[zerg-plugins]] -- Plugin configuration documented in the generated wiki
+- [[zerg-review]] -- Review generated documentation

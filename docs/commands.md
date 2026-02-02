@@ -65,8 +65,6 @@ Mutually exclusive flags controlling analysis depth:
 |------|-------------|
 | `--no-compact` | Disable compact output (compact is ON by default) |
 
-> **Note**: `--uc` and `--compact` are deprecated. Compact output is now enabled by default. Use `--no-compact` to disable it.
-
 ### Behavioral Mode
 
 | Flag | Values | Description |
@@ -86,8 +84,6 @@ Mutually exclusive flags controlling analysis depth:
 |------|-------------|
 | `--no-loop` | Disable improvement loops (loops are ON by default) |
 | `--iterations N` | Set max loop iterations (overrides config default) |
-
-> **Note**: `--loop` is deprecated. Improvement loops are now enabled by default. Use `--no-loop` to disable them.
 
 ### TDD Enforcement
 
@@ -1101,9 +1097,9 @@ Automated code improvement and cleanup.
 
 ### /zerg:git
 
-Git operations with intelligent commits, PR creation, releases, rescue, review, and bisect.
+Git operations with intelligent commits, PR creation, releases, rescue, review, bisect, cleanup, and issue management.
 
-**When to use**: For commit, branch, merge, sync, history, finish, PR creation, releases, code review, rescue/undo operations, or AI-powered bug bisection.
+**When to use**: For commit, branch, merge, sync, history, finish, PR creation, releases, code review, rescue/undo operations, AI-powered bug bisection, branch cleanup, or GitHub issue creation.
 
 #### Usage
 
@@ -1128,13 +1124,16 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 /zerg:git --action rescue --recover-branch feature/lost  # Recover deleted branch
 /zerg:git --action bisect --symptom "login returns 500" --test-cmd "pytest tests/auth" --good v1.0.0
 /zerg:git --action ship              # Full pipeline: commit, push, PR, merge, cleanup
+/zerg:git --action cleanup           # Delete merged/stale branches
+/zerg:git --action cleanup --dry-run # Preview branch cleanup
+/zerg:git --action issue --title "Bug: login fails" --label bug  # Create GitHub issue
 ```
 
 #### Flags
 
 | Flag | Description |
 |------|-------------|
-| `--action, -a TEXT` | Action: `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect`, `ship` |
+| `--action, -a TEXT` | Action: `commit`, `branch`, `merge`, `sync`, `history`, `finish`, `pr`, `release`, `review`, `rescue`, `bisect`, `ship`, `cleanup`, `issue` |
 | `--push, -p` | Push after commit/finish |
 | `--base, -b TEXT` | Base branch (default: `main`) |
 | `--name, -n TEXT` | Branch name (for branch action) |
@@ -1156,6 +1155,10 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 | `--restore TEXT` | Restore snapshot tag (for rescue action) |
 | `--recover-branch TEXT` | Recover deleted branch (for rescue action) |
 | `--no-merge` | Stop after PR creation (skip merge+cleanup, for ship action) |
+| `--stale-days N` | Branch age threshold in days for cleanup (default: 30) |
+| `--title TEXT` | Issue title (for issue action) |
+| `--label TEXT` | Issue label (for issue action, repeatable) |
+| `--assignee TEXT` | Issue assignee (for issue action) |
 
 #### Finish Workflow
 
@@ -1217,6 +1220,23 @@ The `ship` action executes the full delivery pipeline in one shot:
 5. **Cleanup** — Switch to base, pull, delete feature branch
 
 Use `--no-merge` to stop after PR creation (for team review workflows).
+
+#### Cleanup
+
+The `cleanup` action removes merged and stale branches:
+
+1. Identifies branches already merged into base (local and remote)
+2. Identifies branches with no activity for `--stale-days` days (default: 30)
+3. Presents list for confirmation (or use `--dry-run` to preview)
+4. Deletes confirmed branches locally and from remote
+
+#### Issue
+
+The `issue` action creates a GitHub issue with structured context:
+
+1. Requires `--title` (issue title)
+2. Optionally accepts `--label` (repeatable), `--assignee`, and a body from the conversation context
+3. Creates the issue via `gh issue create` and returns the URL
 
 #### Conventional Commits
 

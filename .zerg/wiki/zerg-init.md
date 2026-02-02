@@ -110,5 +110,5 @@ my-api/
 
 ## See Also
 
-- [[Command-plan]] -- Next step after initialization: capture feature requirements
-- [[Command-Reference]] -- Full command index
+- [[zerg-plan]] -- Next step after initialization: capture feature requirements
+- [[zerg-Reference]] -- Full command index

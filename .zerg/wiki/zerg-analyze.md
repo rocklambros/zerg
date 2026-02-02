@@ -84,6 +84,6 @@ This command creates a Claude Code Task with the subject prefix `[Analyze]` on i
 
 ## See Also
 
-- [[Command-security]] -- Dedicated security scanning with compliance presets
-- [[Command-test]] -- Test execution and coverage measurement
-- [[Command-refactor]] -- Automated code improvements based on analysis findings
+- [[zerg-security]] -- Dedicated security scanning with compliance presets
+- [[zerg-test]] -- Test execution and coverage measurement
+- [[zerg-refactor]] -- Automated code improvements based on analysis findings

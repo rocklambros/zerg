@@ -99,6 +99,6 @@ This command creates a Claude Code Task with the subject prefix `[Estimate]` on 
 
 ## See Also
 
-- [[Command-design]] -- Generates the task graph that estimate analyzes
-- [[Command-rush]] -- Execute tasks that estimate projects
-- [[Command-status]] -- Real-time progress during execution
+- [[zerg-design]] -- Generates the task graph that estimate analyzes
+- [[zerg-rush]] -- Execute tasks that estimate projects
+- [[zerg-status]] -- Real-time progress during execution

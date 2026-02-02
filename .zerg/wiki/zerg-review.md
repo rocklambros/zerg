@@ -84,6 +84,6 @@ This command creates a Claude Code Task with the subject prefix `[Review]` on in
 
 ## See Also
 
-- [[Command-git]] -- Git operations including the finish workflow for merging reviewed code
-- [[Command-analyze]] -- Static analysis to supplement manual review
-- [[Command-security]] -- Security-focused scanning
+- [[zerg-git]] -- Git operations including the finish workflow for merging reviewed code
+- [[zerg-analyze]] -- Static analysis to supplement manual review
+- [[zerg-security]] -- Security-focused scanning

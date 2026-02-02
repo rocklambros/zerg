@@ -116,6 +116,6 @@ On completion, the following files are created:
 
 ## See Also
 
-- [[Command-plan]] -- Next step: capture detailed requirements for a specific feature
-- [[Command-design]] -- After planning, generate architecture and task graph
-- [[Command-Reference]] -- Full command index
+- [[zerg-plan]] -- Next step: capture detailed requirements for a specific feature
+- [[zerg-design]] -- After planning, generate architecture and task graph
+- [[zerg-Reference]] -- Full command index

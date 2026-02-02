@@ -1,0 +1,371 @@
+{
+  "feature": "git-cleanup-issues-docs",
+  "version": "2.0",
+  "generated": "2026-02-02T12:00:00Z",
+  "total_tasks": 11,
+  "estimated_duration_minutes": 86,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "T-001",
+      "title": "Add cleanup + issue actions to git command files",
+      "description": "Add two new actions (cleanup and issue) to git.md, git.core.md, and git.details.md. Update actions table from 12 to 14 actions. Add cleanup section: prune merged branches, stale remote refs, orphaned worktrees, Docker containers (auto-detect, --no-docker to skip), stashes (--include-stashes). Add issue section: two modes (--title description-based, --scan auto-detect default). Scan sources: test failures, TODO/FIXME/HACK, lint/type errors, security findings, orphaned modules, stale deps, CI results. Include strict 8-section issue body template. Add flags: --scan, --title, --no-docker, --include-stashes, --limit, --label, --priority, --dry-run (for both). Update help text in all three files.",
+      "phase": "content",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/data/commands/git.md",
+          "zerg/data/commands/git.core.md",
+          "zerg/data/commands/git.details.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'cleanup\\|issue' zerg/data/commands/git.md && grep -c '## Action: cleanup' zerg/data/commands/git.details.md && grep -c '## Action: issue' zerg/data/commands/git.details.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "prompt-engineering"],
+      "consumers": ["T-002"],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd cleanup action: delete merged local branches (skip main/master/current), git remote prune origin, git worktree prune + remove orphaned .zerg-worktrees/, auto-detect stopped factory-worker-* Docker containers and dangling images, --include-stashes for stash clearing (off by default), --no-docker to skip Docker, --dry-run to preview, --base BRANCH. Print summary table.\n\nAdd issue action: Mode A (--title + description text) enriches with codebase analysis, Mode B (--scan, default) auto-detects from ALL: test failures, TODO/FIXME/HACK, lint/type errors, security findings, orphaned modules, stale deps, CI results. Groups related findings. --dry-run, --limit N (default 10), --label, --priority P0|P1|P2.\n\nStrict issue template: Problem Statement, Root Cause Analysis, Affected Files (path:line table), Reproduction Steps, Proposed Solution (with code sketches), Acceptance Criteria (with verification commands), Dependencies, Context for AI Assistants.\n\n## Pattern\nFollow existing action pattern in git.details.md: ## Action: {name}, description, code block examples, --- separator. See Action: ship (line 301) as template. Actions table in git.md has format: | action | Description | Key Flags |. Flags reference lists all flags with descriptions."
+    },
+    {
+      "id": "T-002",
+      "title": "Add cleanup + issue to wiki Command-git page",
+      "description": "Add cleanup and issue action documentation to .zerg/wiki/Command-git.md following existing page patterns. Add to Synopsis (action enum), Description section (two new action blocks with code examples), Options table (new flags), Examples section (usage examples for both actions).",
+      "phase": "content",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".zerg/wiki/Command-git.md"],
+        "read": ["zerg/data/commands/git.details.md"]
+      },
+      "verification": {
+        "command": "grep -c 'cleanup\\|issue' .zerg/wiki/Command-git.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd cleanup and issue actions to the wiki page for /zerg:git. Follow the exact pattern of existing actions on the page (see ship action as template). Synopsis should list all 14 actions. Options table needs new flags: --scan, --title, --no-docker, --include-stashes, --limit, --label, --priority. Examples section needs cleanup and issue usage examples.\n\n## Pattern\nExisting page has: Synopsis code block with all actions listed, Description section with one subsection per action (bold action name, description paragraph, code block), Options table, Examples section, Exit Codes, Task Tracking, See Also."
+    },
+    {
+      "id": "T-003",
+      "title": "Update Global CLI Flags in Command-Reference + Home",
+      "description": "In Command-Reference.md: replace --uc/--compact row with --no-compact (compact ON by default), add --no-loop and --iterations N rows to Global CLI Flags table, update git action count from 12 to 14 in Command Index. In Home.md: update Cross-Cutting Capabilities table — Token Efficiency → --no-compact (ON by default), Improvement Loops → --no-loop/--iterations (ON by default). Remove any 'planned'/'coming soon' text — all 8 capabilities are wired.",
+      "phase": "content",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          ".zerg/wiki/Command-Reference.md",
+          ".zerg/wiki/Home.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -q '\\-\\-uc\\|\\-\\-compact' .zerg/wiki/Command-Reference.md .zerg/wiki/Home.md && grep -c '\\-\\-no-compact' .zerg/wiki/Command-Reference.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 8,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nPR #83 inverted defaults: compact and loops are now ON by default. Old flags --uc/--compact/--loop are deprecated no-op aliases. Replace with:\n- --no-compact: Disable token-efficient compact output (compact is ON by default)\n- --no-loop: Disable improvement loops (loops are ON by default)\n- --iterations N: Override loop iteration count\n\nAll 8 cross-cutting capabilities are now wired (PR #83). No 'planned' or 'coming soon' text should remain."
+    },
+    {
+      "id": "T-004",
+      "title": "Update flags in README.md + docs/commands.md",
+      "description": "In README.md: replace any --uc references with --no-compact, verify Cross-Cutting Capabilities section reflects PR #83 changes, update git action count if referenced. In docs/commands.md: make --no-compact the primary flag (remove deprecation language from PR #83 partial update), add --no-loop and --iterations, update git action descriptions to mention 14 actions.",
+      "phase": "content",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["README.md", "docs/commands.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -q '\\-\\-uc' README.md docs/commands.md && echo 'clean'",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nPR #83 partially updated docs/commands.md but left some deprecation language. Make --no-compact the authoritative flag (not 'deprecated --uc'). Add --no-loop and --iterations. README.md Cross-Cutting Capabilities section should match CLAUDE.md table."
+    },
+    {
+      "id": "T-005",
+      "title": "Update CLAUDE.md capabilities table",
+      "description": "Update Cross-Cutting Capabilities table in CLAUDE.md: replace --uc/--compact with --no-compact (ON by default), replace --loop/--iterations with --no-loop/--iterations (ON by default). Verify all 8 capabilities show as wired. Update any git action count references from 12 to 14.",
+      "phase": "content",
+      "level": 0,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["CLAUDE.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -q '\\-\\-uc' CLAUDE.md && grep -c '\\-\\-no-compact' CLAUDE.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nCLAUDE.md has a Cross-Cutting Capabilities table around line 95. Current state after PR #83: Token Efficiency shows '--uc/--compact' → should be '--no-compact (ON by default)'. Improvement Loops shows '--loop/--iterations' → should be '--no-loop/--iterations (ON by default)'. All 8 capabilities are wired."
+    },
+    {
+      "id": "T-006",
+      "title": "Rename 27 wiki Command-*.md files to zerg-*.md",
+      "description": "Rename all 27 files in .zerg/wiki/ from Command-{name}.md to zerg-{name}.md. This includes 26 command pages + Command-Reference.md → zerg-Reference.md. Use git mv to preserve history.",
+      "phase": "rename",
+      "level": 1,
+      "dependencies": ["T-001", "T-002", "T-003", "T-004", "T-005"],
+      "files": {
+        "create": [],
+        "modify": [
+          ".zerg/wiki/Command-init.md",
+          ".zerg/wiki/Command-brainstorm.md",
+          ".zerg/wiki/Command-plan.md",
+          ".zerg/wiki/Command-design.md",
+          ".zerg/wiki/Command-rush.md",
+          ".zerg/wiki/Command-status.md",
+          ".zerg/wiki/Command-logs.md",
+          ".zerg/wiki/Command-stop.md",
+          ".zerg/wiki/Command-retry.md",
+          ".zerg/wiki/Command-merge.md",
+          ".zerg/wiki/Command-cleanup.md",
+          ".zerg/wiki/Command-build.md",
+          ".zerg/wiki/Command-test.md",
+          ".zerg/wiki/Command-analyze.md",
+          ".zerg/wiki/Command-review.md",
+          ".zerg/wiki/Command-security.md",
+          ".zerg/wiki/Command-refactor.md",
+          ".zerg/wiki/Command-git.md",
+          ".zerg/wiki/Command-debug.md",
+          ".zerg/wiki/Command-worker.md",
+          ".zerg/wiki/Command-plugins.md",
+          ".zerg/wiki/Command-document.md",
+          ".zerg/wiki/Command-index.md",
+          ".zerg/wiki/Command-estimate.md",
+          ".zerg/wiki/Command-explain.md",
+          ".zerg/wiki/Command-select-tool.md",
+          ".zerg/wiki/Command-Reference.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "test $(ls .zerg/wiki/Command-*.md 2>/dev/null | wc -l) -eq 0 && test $(ls .zerg/wiki/zerg-*.md | wc -l) -eq 27",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["git"],
+      "consumers": ["T-008", "T-009"],
+      "integration_test": null
+    },
+    {
+      "id": "T-007",
+      "title": "Update sidebar.py hardcoded references",
+      "description": "In zerg/doc_engine/sidebar.py lines 55-78: replace all 'Command-*' strings with 'zerg-*' equivalents. Command-Reference → zerg-Reference, Command-init → zerg-init, etc. Also add missing entries: zerg-brainstorm, zerg-estimate, zerg-explain, zerg-select-tool (these wiki pages exist but are not in sidebar.py DEFAULT_SECTIONS).",
+      "phase": "rename",
+      "level": 1,
+      "dependencies": ["T-001", "T-002", "T-003", "T-004", "T-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/doc_engine/sidebar.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -q 'Command-' zerg/doc_engine/sidebar.py && grep -c 'zerg-' zerg/doc_engine/sidebar.py",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Current State\nsidebar.py lines 55-78 contain DEFAULT_SECTIONS with entries like 'Command-Reference', 'Command-init', 'Command-plan', etc. Replace all with 'zerg-' prefix. Missing from current list: brainstorm, estimate, explain, select-tool — add these."
+    },
+    {
+      "id": "T-008",
+      "title": "Update _Sidebar.md links and display text",
+      "description": "Replace all sidebar entries from [[init|Command-init]] to [[/zerg:init|zerg-init]] format. Replace [[Command Reference]] with [[Command Reference|zerg-Reference]]. All 26 command links get /zerg: prefix in display text. Keep section headers unchanged.",
+      "phase": "crossrefs",
+      "level": 2,
+      "dependencies": ["T-006", "T-007"],
+      "files": {
+        "create": [],
+        "modify": [".zerg/wiki/_Sidebar.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -q 'Command-' .zerg/wiki/_Sidebar.md && grep -c '/zerg:' .zerg/wiki/_Sidebar.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 8,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Current State\n_Sidebar.md has entries like:\n  * [[init|Command-init]]\n  * [[brainstorm|Command-brainstorm]]\n  * [[Command Reference]]\n\nChange to:\n  * [[/zerg:init|zerg-init]]\n  * [[/zerg:brainstorm|zerg-brainstorm]]\n  * [[Command Reference|zerg-Reference]]"
+    },
+    {
+      "id": "T-009",
+      "title": "Fix all cross-references in wiki pages",
+      "description": "In ALL .zerg/wiki/*.md files (except _Sidebar.md which is T-008): replace every occurrence of 'Command-init' with 'zerg-init', 'Command-Reference' with 'zerg-Reference', etc. This covers ~108 wiki links across ~31 files including the 27 renamed zerg-*.md files, plus Glossary.md, FAQ.md, Quick-Start.md, Getting-Started.md, tutorials, architecture pages, etc. Also audit for any stale --uc/--compact flag references in individual command pages.",
+      "phase": "crossrefs",
+      "level": 2,
+      "dependencies": ["T-006", "T-007"],
+      "files": {
+        "create": [],
+        "modify": [
+          ".zerg/wiki/zerg-init.md",
+          ".zerg/wiki/zerg-brainstorm.md",
+          ".zerg/wiki/zerg-plan.md",
+          ".zerg/wiki/zerg-design.md",
+          ".zerg/wiki/zerg-rush.md",
+          ".zerg/wiki/zerg-status.md",
+          ".zerg/wiki/zerg-logs.md",
+          ".zerg/wiki/zerg-stop.md",
+          ".zerg/wiki/zerg-retry.md",
+          ".zerg/wiki/zerg-merge.md",
+          ".zerg/wiki/zerg-cleanup.md",
+          ".zerg/wiki/zerg-build.md",
+          ".zerg/wiki/zerg-test.md",
+          ".zerg/wiki/zerg-analyze.md",
+          ".zerg/wiki/zerg-review.md",
+          ".zerg/wiki/zerg-security.md",
+          ".zerg/wiki/zerg-refactor.md",
+          ".zerg/wiki/zerg-git.md",
+          ".zerg/wiki/zerg-debug.md",
+          ".zerg/wiki/zerg-worker.md",
+          ".zerg/wiki/zerg-plugins.md",
+          ".zerg/wiki/zerg-document.md",
+          ".zerg/wiki/zerg-index.md",
+          ".zerg/wiki/zerg-estimate.md",
+          ".zerg/wiki/zerg-explain.md",
+          ".zerg/wiki/zerg-select-tool.md",
+          ".zerg/wiki/zerg-Reference.md",
+          ".zerg/wiki/Glossary.md",
+          ".zerg/wiki/FAQ.md",
+          ".zerg/wiki/Quick-Start.md",
+          ".zerg/wiki/Getting-Started.md",
+          ".zerg/wiki/Your-First-Feature.md",
+          ".zerg/wiki/Tutorials.md",
+          ".zerg/wiki/Tutorial-Minerals-Store.md",
+          ".zerg/wiki/Tutorial-Container-Mode.md",
+          ".zerg/wiki/Architecture-Overview.md",
+          ".zerg/wiki/Architecture-Execution-Flow.md",
+          ".zerg/wiki/Architecture-Module-Reference.md",
+          ".zerg/wiki/Architecture-State-Management.md",
+          ".zerg/wiki/Architecture-Dependency-Graph.md",
+          ".zerg/wiki/Configuration.md",
+          ".zerg/wiki/Tuning-Guide.md",
+          ".zerg/wiki/Plugin-System.md",
+          ".zerg/wiki/Plugin-API-Reference.md",
+          ".zerg/wiki/Context-Engineering.md",
+          ".zerg/wiki/Context-Engineering-Internals.md",
+          ".zerg/wiki/Contributing.md",
+          ".zerg/wiki/Testing.md",
+          ".zerg/wiki/Troubleshooting.md",
+          ".zerg/wiki/Debug-Guide.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "test $(grep -rl 'Command-' .zerg/wiki/ | wc -l) -eq 0",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 12,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Pattern\nReplace ALL occurrences of 'Command-{name}' with 'zerg-{name}' in wiki link syntax: [[display|Command-init]] → [[display|zerg-init]]. Also replace bare references like 'See Command-init' → 'See zerg-init'. Check for stale --uc/--compact in individual command pages."
+    },
+    {
+      "id": "T-010",
+      "title": "Update CHANGELOG.md",
+      "description": "Add entries under [Unreleased]: Added: cleanup and issue actions for /zerg:git (14 total actions). Changed: Wiki files renamed Command-*.md → zerg-*.md; sidebar uses /zerg: prefix. Changed: Global CLI flags updated (--no-compact, --no-loop, --iterations replace deprecated flags).",
+      "phase": "finalize",
+      "level": 3,
+      "dependencies": ["T-008", "T-009"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'cleanup\\|issue\\|zerg-\\|no-compact' CHANGELOG.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "T-011",
+      "title": "Final validation sweep",
+      "description": "Read-only audit: (1) python -m zerg.validate_commands passes, (2) grep -rl 'Command-' .zerg/wiki/ returns empty, (3) grep -rl '--uc' .zerg/wiki/ README.md docs/commands.md CLAUDE.md returns empty, (4) all 14 git actions documented in git.md, (5) all 26 commands in sidebar with /zerg: prefix, (6) pytest tests/ passes.",
+      "phase": "finalize",
+      "level": 3,
+      "dependencies": ["T-010"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands && ! grep -rl 'Command-' .zerg/wiki/ && ! grep -rl '\\-\\-uc\\b' .zerg/wiki/ README.md docs/commands.md CLAUDE.md && pytest tests/unit -x -q --tb=line",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 8,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "0": {
+      "name": "content",
+      "tasks": ["T-001", "T-002", "T-003", "T-004", "T-005"],
+      "parallel": true,
+      "estimated_minutes": 15
+    },
+    "1": {
+      "name": "rename",
+      "tasks": ["T-006", "T-007"],
+      "parallel": true,
+      "estimated_minutes": 5,
+      "depends_on_levels": [0]
+    },
+    "2": {
+      "name": "crossrefs",
+      "tasks": ["T-008", "T-009"],
+      "parallel": true,
+      "estimated_minutes": 12,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "finalize",
+      "tasks": ["T-010", "T-011"],
+      "parallel": false,
+      "estimated_minutes": 13,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — file ownership is exclusive within each level",
+    "conflicts": []
+  }
+}

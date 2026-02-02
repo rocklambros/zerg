@@ -10,7 +10,7 @@ Key terms and concepts used throughout the ZERG documentation. Terms are listed 
 
 An optional discovery phase before planning. The `/zerg:brainstorm` command performs competitive research via web search, conducts structured Socratic questioning, and creates prioritized GitHub issues. Feeds into `/zerg:plan` when a specific feature is selected.
 
-See: [[Command-brainstorm]]
+See: [[zerg-brainstorm]]
 
 ---
 
@@ -54,7 +54,7 @@ See: [[Architecture-Dependency-Graph]]
 
 The second stage of the ZERG workflow. Reads approved requirements, generates a technical architecture (`design.md`), and produces a task graph (`task-graph.json`) with exclusive file ownership. Invoked with `/zerg:design`.
 
-See: [[Command-design]], [[Quick Start#step-3-design]]
+See: [[zerg-design]], [[Quick Start#step-3-design]]
 
 ---
 
@@ -88,7 +88,7 @@ See: [[Getting Started#levels]], [[Architecture-Execution-Flow]]
 
 The process that occurs between levels. After all tasks at a level complete, the orchestrator collects worker branches, merges them into a staging branch, and runs quality gates. If gates pass, the next level begins. Triggered automatically by the orchestrator or manually with `/zerg:merge`.
 
-See: [[Command-merge]], [[Quick Start#step-6-merge]]
+See: [[zerg-merge]], [[Quick Start#step-6-merge]]
 
 ---
 
@@ -108,7 +108,7 @@ See: [[Architecture-Overview]], [[Architecture-Execution-Flow]]
 
 The first stage of the ZERG workflow. ZERG asks clarifying questions about the requested feature, then generates a `requirements.md` file from the answers. Requires explicit user approval before proceeding. Invoked with `/zerg:plan <feature>`.
 
-See: [[Command-plan]], [[Quick Start#step-2-plan]]
+See: [[zerg-plan]], [[Quick Start#step-2-plan]]
 
 ---
 
@@ -130,7 +130,7 @@ See: [[Configuration#quality_gates]], [[Plugin System]]
 
 The third stage of the ZERG workflow and the primary execution phase. Multiple Claude Code workers execute tasks in parallel, organized by dependency levels. Invoked with `/zerg:rush --workers=N`. The rush occupies the current Claude Code session; use a separate terminal for monitoring.
 
-See: [[Command-rush]], [[Quick Start#step-4-rush]]
+See: [[zerg-rush]], [[Quick Start#step-4-rush]]
 
 ---
 
@@ -198,7 +198,7 @@ See: [[Getting Started#verification]]
 
 A Claude Code instance that executes assigned tasks. Each worker runs in its own git worktree on a dedicated branch. Workers are stateless -- they read spec files for instructions and communicate status through the Claude Code Task system and state JSON files. Multiple workers execute in parallel within a level.
 
-See: [[Command-worker]], [[Architecture-Overview#worker-isolation]]
+See: [[zerg-worker]], [[Architecture-Overview#worker-isolation]]
 
 ### Worktree
 

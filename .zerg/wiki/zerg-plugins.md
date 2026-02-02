@@ -193,7 +193,7 @@ State is tracked in both the Task system (authoritative) and `.zerg/state/plugin
 
 ## See Also
 
-- [[Command-worker]] -- Worker execution that triggers lifecycle events
-- [[Command-debug]] -- Diagnose plugin failures
-- [[Command-security]] -- Security scanning as a built-in quality gate
-- [[Command-analyze]] -- Analysis checks that can complement custom gates
+- [[zerg-worker]] -- Worker execution that triggers lifecycle events
+- [[zerg-debug]] -- Diagnose plugin failures
+- [[zerg-security]] -- Security scanning as a built-in quality gate
+- [[zerg-analyze]] -- Analysis checks that can complement custom gates

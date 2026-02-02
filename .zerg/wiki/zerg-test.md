@@ -101,6 +101,6 @@ This command creates a Claude Code Task with the subject prefix `[Test]` on invo
 
 ## See Also
 
-- [[Command-build]] -- Build the project before testing
-- [[Command-analyze]] -- Static analysis including coverage thresholds
-- [[Command-review]] -- Code review with test verification
+- [[zerg-build]] -- Build the project before testing
+- [[zerg-analyze]] -- Static analysis including coverage thresholds
+- [[zerg-review]] -- Code review with test verification

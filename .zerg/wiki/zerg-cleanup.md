@@ -112,7 +112,7 @@ Worktrees must be recreated by running `/zerg:rush` again.
 
 ## See Also
 
-- [[Command-status]] -- Verify completion before cleanup
-- [[Command-logs]] -- Export logs before cleanup
-- [[Command-stop]] -- Stop workers before cleanup if still running
-- [[Command-Reference]] -- Full command index
+- [[zerg-status]] -- Verify completion before cleanup
+- [[zerg-logs]] -- Export logs before cleanup
+- [[zerg-stop]] -- Stop workers before cleanup if still running
+- [[zerg-Reference]] -- Full command index

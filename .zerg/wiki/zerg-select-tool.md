@@ -93,6 +93,6 @@ This command creates a Claude Code Task with the subject prefix `[Select-Tool]` 
 
 ## See Also
 
-- [[Command-plugins]] -- Plugin system that extends available tools
-- [[Command-debug]] -- Deep diagnostics that select-tool may recommend
-- [[Command-analyze]] -- Analysis tools that select-tool routes to
+- [[zerg-plugins]] -- Plugin system that extends available tools
+- [[zerg-debug]] -- Deep diagnostics that select-tool may recommend
+- [[zerg-analyze]] -- Analysis tools that select-tool routes to

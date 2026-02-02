@@ -109,8 +109,8 @@ Context-Usage: <percentage>%
 
 ## See Also
 
-- [[Command-rush]] -- Resume execution after stopping
-- [[Command-status]] -- Check state after stop
-- [[Command-retry]] -- Re-run tasks that failed during stop
-- [[Command-logs]] -- Inspect worker logs for issues
-- [[Command-Reference]] -- Full command index
+- [[zerg-rush]] -- Resume execution after stopping
+- [[zerg-status]] -- Check state after stop
+- [[zerg-retry]] -- Re-run tasks that failed during stop
+- [[zerg-logs]] -- Inspect worker logs for issues
+- [[zerg-Reference]] -- Full command index

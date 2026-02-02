@@ -101,6 +101,6 @@ This command creates a Claude Code Task with the subject prefix `[Refactor]` on 
 
 ## See Also
 
-- [[Command-analyze]] -- Static analysis to identify areas needing refactoring
-- [[Command-review]] -- Review refactored code before committing
-- [[Command-test]] -- Verify tests still pass after refactoring
+- [[zerg-analyze]] -- Static analysis to identify areas needing refactoring
+- [[zerg-review]] -- Review refactored code before committing
+- [[zerg-test]] -- Verify tests still pass after refactoring

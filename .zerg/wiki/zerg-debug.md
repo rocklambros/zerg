@@ -132,7 +132,7 @@ This command creates a Claude Code Task with the subject prefix `[Debug]` on inv
 
 ## See Also
 
-- [[Command-worker]] -- Worker execution protocol and failure handling
-- [[Command-plugins]] -- Plugin system for custom quality gates and hooks
-- [[Command-build]] -- Rebuild after applying fixes
-- [[Command-test]] -- Re-run tests to verify fixes
+- [[zerg-worker]] -- Worker execution protocol and failure handling
+- [[zerg-plugins]] -- Plugin system for custom quality gates and hooks
+- [[zerg-build]] -- Rebuild after applying fixes
+- [[zerg-test]] -- Re-run tests to verify fixes

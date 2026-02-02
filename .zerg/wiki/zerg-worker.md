@@ -154,6 +154,6 @@ Workers use the Claude Code Task system extensively:
 
 ## See Also
 
-- [[Command-debug]] -- Diagnose worker failures
-- [[Command-plugins]] -- Custom lifecycle hooks that observe worker events
-- [[Command-index]] -- Generate documentation for the worker protocol
+- [[zerg-debug]] -- Diagnose worker failures
+- [[zerg-plugins]] -- Custom lifecycle hooks that observe worker events
+- [[zerg-index]] -- Generate documentation for the worker protocol

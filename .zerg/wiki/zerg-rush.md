@@ -102,9 +102,9 @@ During execution, the following files are created or updated:
 
 ## See Also
 
-- [[Command-design]] -- Must complete before rush
-- [[Command-status]] -- Monitor execution progress
-- [[Command-logs]] -- View worker output
-- [[Command-stop]] -- Halt execution
-- [[Command-merge]] -- Manually trigger level merges
-- [[Command-Reference]] -- Full command index
+- [[zerg-design]] -- Must complete before rush
+- [[zerg-status]] -- Monitor execution progress
+- [[zerg-logs]] -- View worker output
+- [[zerg-stop]] -- Halt execution
+- [[zerg-merge]] -- Manually trigger level merges
+- [[zerg-Reference]] -- Full command index

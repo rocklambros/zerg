@@ -79,7 +79,7 @@ The brainstorm output goes through validation (trade-offs vs. scope), followed b
 
 This step is entirely optional. If you already know what feature to build, skip directly to Step 2.
 
-See [[Command-brainstorm]] for full details and options.
+See [[zerg-brainstorm]] for full details and options.
 
 ---
 
