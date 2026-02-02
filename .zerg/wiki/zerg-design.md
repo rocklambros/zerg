@@ -98,6 +98,6 @@ Tasks are also registered in the Claude Code Task system with subjects following
 
 ## See Also
 
-- [[Command-plan]] -- Must complete before design
-- [[Command-rush]] -- Next step after design is approved
-- [[Command-Reference]] -- Full command index
+- [[zerg-plan]] -- Must complete before design
+- [[zerg-rush]] -- Next step after design is approved
+- [[zerg-Reference]] -- Full command index

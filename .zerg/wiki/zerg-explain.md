@@ -92,6 +92,6 @@ This command creates a Claude Code Task with the subject prefix `[Explain]` on i
 
 ## See Also
 
-- [[Command-document]] -- Generate formal documentation (vs educational explanation)
-- [[Command-analyze]] -- Static analysis that complements explanations
-- [[Command-review]] -- Review code rather than explain it
+- [[zerg-document]] -- Generate formal documentation (vs educational explanation)
+- [[zerg-analyze]] -- Static analysis that complements explanations
+- [[zerg-review]] -- Review code rather than explain it

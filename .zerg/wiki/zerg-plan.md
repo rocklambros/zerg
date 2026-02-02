@@ -83,6 +83,6 @@ On completion, the following files are created:
 
 ## See Also
 
-- [[Command-init]] -- Must be run before planning
-- [[Command-design]] -- Next step after requirements are approved
-- [[Command-Reference]] -- Full command index
+- [[zerg-init]] -- Must be run before planning
+- [[zerg-design]] -- Next step after requirements are approved
+- [[zerg-Reference]] -- Full command index

@@ -101,7 +101,7 @@ Commands:
 
 ## See Also
 
-- [[Command-rush]] -- Starts the execution that status monitors
-- [[Command-logs]] -- Detailed worker and task logs
-- [[Command-stop]] -- Stop execution
-- [[Command-Reference]] -- Full command index
+- [[zerg-rush]] -- Starts the execution that status monitors
+- [[zerg-logs]] -- Detailed worker and task logs
+- [[zerg-stop]] -- Stop execution
+- [[zerg-Reference]] -- Full command index

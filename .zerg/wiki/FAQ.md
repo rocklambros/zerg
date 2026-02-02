@@ -71,7 +71,7 @@ See [[Quick Start]] for a step-by-step walkthrough.
 
 ### Can I skip the plan phase?
 
-The plan phase produces `requirements.md`, which the design phase reads. If you already have a requirements document or want to write one manually, you can place it at `.gsd/specs/<feature>/requirements.md` and proceed directly to `/zerg:design`. The file should follow the format described in [[Command-plan]].
+The plan phase produces `requirements.md`, which the design phase reads. If you already have a requirements document or want to write one manually, you can place it at `.gsd/specs/<feature>/requirements.md` and proceed directly to `/zerg:design`. The file should follow the format described in [[zerg-plan]].
 
 ### How do I resume an interrupted rush?
 
@@ -220,7 +220,7 @@ This removes worktrees, worker branches, and temporary state files. Your feature
 
 Worker logs are in `.zerg/logs/`. Each worker produces stdout and stderr log files. The orchestrator also writes to this directory. Use `/zerg:logs` to view logs or `/zerg:debug` for structured diagnostics.
 
-See [[Command-logs]], [[Debug Guide]].
+See [[zerg-logs]], [[Debug Guide]].
 
 ---
 

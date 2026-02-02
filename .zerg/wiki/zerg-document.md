@@ -92,6 +92,6 @@ This command creates a Claude Code Task with the subject prefix `[Document]` on 
 
 ## See Also
 
-- [[Command-index]] -- Generate a complete project wiki using the same pipeline
-- [[Command-analyze]] -- Static analysis that feeds into documentation quality
-- [[Command-review]] -- Review generated documentation for accuracy
+- [[zerg-index]] -- Generate a complete project wiki using the same pipeline
+- [[zerg-analyze]] -- Static analysis that feeds into documentation quality
+- [[zerg-review]] -- Review generated documentation for accuracy

@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `cleanup` action for `/zerg:git`: prune merged branches, stale remote refs, orphaned worktrees, Docker containers/images
+- `issue` action for `/zerg:git`: create AI-optimized GitHub issues from codebase scan or user description with strict 8-section template
+- `/zerg:git` now has 14 actions (was 12)
+
+### Changed
+
+- Wiki files renamed from `Command-*.md` to `zerg-*.md` for consistency with `/zerg:` command prefix
+- Wiki sidebar displays `/zerg:init` format instead of bare `init` names
+- Global CLI Flags documentation updated: `--no-compact` (ON by default), `--no-loop` (ON by default), `--iterations N`
+- `sidebar.py` references updated to match new wiki file naming
+- All deprecated `--uc`/`--compact` flag references removed from documentation
+
+### Previously Added
+
 - Cross-cutting capability wiring: CLI flags now flow through to worker processes via `CapabilityResolver` (#78)
 - `--no-compact` flag (compact output is now ON by default)
 - `--no-loop` flag (improvement loops are now ON by default)

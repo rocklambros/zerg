@@ -222,10 +222,10 @@ Control how deeply workers analyze tasks with mutually exclusive flags:
 
 ### Token Efficiency Mode
 
-Automatic token optimization when context usage is high:
+Compact output is enabled by default. Disable it when you need full verbosity:
 
 ```bash
-/zerg:rush --uc             # Force ultra-compressed output
+/zerg:rush --no-compact     # Disable compact output (full verbosity)
 ```
 
 Three zones: GREEN (0-75%, full output), YELLOW (75-85%, reduced verbosity), RED (85%+, essential operations only). Auto-activates based on context usage.
@@ -260,7 +260,7 @@ Routes tasks to the right servers: Sequential for analysis, Context7 for docs, P
 | Capability | Config Section | Description |
 |------------|---------------|-------------|
 | Engineering Rules | `rules` | 25 YAML rules (safety, quality, efficiency) injected into worker context |
-| Iterative Loops | `improvement_loops` | `--loop` flag for convergence-based improvement cycles |
+| Iterative Loops | `improvement_loops` | `--no-loop` to disable (on by default), `--iterations N` to set max cycles |
 | Verification Gates | `verification` | Artifact storage, staleness detection, pipeline orchestration |
 | TDD Enforcement | `tdd` | `--tdd` flag for red-green-refactor protocol with anti-pattern detection |
 
@@ -536,7 +536,7 @@ ZERG provides 26 slash commands organized into five categories. See the [Command
 
 | Command | Purpose |
 |---------|---------|
-| `/zerg:git` | Git operations: commits, PRs, releases, rescue, review, bisect, ship (12 actions) |
+| `/zerg:git` | Git operations: commits, PRs, releases, rescue, review, bisect, ship, cleanup, issue (14 actions) |
 | `/zerg:debug` | Deep diagnostic investigation with Bayesian hypothesis testing |
 | `/zerg:worker` | Internal: zergling execution protocol |
 | `/zerg:plugins` | Plugin system management |

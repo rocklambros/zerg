@@ -111,7 +111,7 @@ A worker branch has diverged significantly from staging. Manual rebase may be ne
 
 ## See Also
 
-- [[Command-rush]] -- Triggers merges automatically between levels
-- [[Command-status]] -- Check level completion before merging
-- [[Command-retry]] -- Re-run tasks that caused conflicts
-- [[Command-Reference]] -- Full command index
+- [[zerg-rush]] -- Triggers merges automatically between levels
+- [[zerg-status]] -- Check level completion before merging
+- [[zerg-retry]] -- Re-run tasks that caused conflicts
+- [[zerg-Reference]] -- Full command index

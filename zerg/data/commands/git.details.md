@@ -1,6 +1,6 @@
 # ZERG Git (Details)
 
-Detailed reference for all 12 git actions, their workflows, and advanced usage.
+Detailed reference for all 14 git actions, their workflows, and advanced usage.
 
 ## Action: commit
 
@@ -330,6 +330,163 @@ If `--no-merge` is set, stops after step 3. If any step fails, the pipeline stop
 
 ---
 
+## Action: cleanup
+
+**Repository hygiene**: prune merged branches, stale remote refs, orphaned worktrees, and ZERG Docker resources.
+
+Auto-detects and removes stopped ZERG Docker containers and dangling images. Use `--no-docker` to skip Docker cleanup. Use `--include-stashes` to also clear git stashes (off by default). Use `--dry-run` to preview what would be deleted.
+
+```bash
+# Preview what would be cleaned
+/zerg:git --action cleanup --dry-run
+
+# Full cleanup (includes Docker auto-detect)
+/zerg:git --action cleanup
+
+# Skip Docker cleanup
+/zerg:git --action cleanup --no-docker
+
+# Include stash clearing
+/zerg:git --action cleanup --include-stashes
+
+# Cleanup against a different base branch
+/zerg:git --action cleanup --base develop
+```
+
+**What gets cleaned:**
+
+1. **Merged local branches** — Delete branches already merged into base (skip main/master/current)
+2. **Stale remote refs** — `git remote prune origin`
+3. **Orphaned worktrees** — `git worktree prune` + remove orphaned `.zerg-worktrees/` directories
+4. **Docker containers** — Auto-detect stopped `factory-worker-*` containers and remove
+5. **Docker images** — Auto-detect dangling ZERG images and remove
+6. **Stashes** — Only with `--include-stashes` flag
+
+**Output format:**
+
+```
+Git Cleanup Summary:
+  Local branches deleted:    3  (feature/auth, feature/old, fix/typo)
+  Remote refs pruned:        2  (origin/feature/auth, origin/fix/typo)
+  Worktrees removed:         1  (.zerg-worktrees/old-feature/worker-0)
+  Docker containers removed: 2  (factory-worker-0, factory-worker-1)
+  Docker images removed:     0
+  Stashes cleared:           0  (use --include-stashes to clear)
+```
+
+---
+
+## Action: issue
+
+**Create maximally-detailed GitHub issues** optimized for AI coding assistants. Zero ambiguity — every issue contains enough context for Claude Code or similar tools to implement the fix without guessing.
+
+### Two Modes
+
+**Scan mode** (default when no `--title`):
+
+Scans the codebase for problems across ALL of these sources:
+- **Test failures**: Parse most recent pytest/jest output
+- **TODO/FIXME/HACK comments**: Search source code for deferred work
+- **Lint/type errors**: Run ruff, mypy, eslint, tsc and parse output
+- **Security findings**: Evaluate against ZERG security rules
+- **Orphaned modules**: Detect modules with no production callers (via `validate_commands`)
+- **Stale dependencies**: Check for outdated or vulnerable packages
+- **CI pipeline results**: Parse most recent `gh run` output for failures
+
+Groups related findings into logical issues. Creates one issue per distinct problem.
+
+```bash
+# Auto-scan and create issues (default)
+/zerg:git --action issue
+
+# Preview without creating
+/zerg:git --action issue --dry-run
+
+# Limit to 5 issues
+/zerg:git --action issue --limit 5
+
+# Only critical issues
+/zerg:git --action issue --priority P0
+
+# Add labels
+/zerg:git --action issue --label bug --label tech-debt
+```
+
+**Description mode** (when `--title` is provided):
+
+Takes a title and description from the user, enriches with codebase analysis (finds relevant files, traces code paths, identifies root cause candidates), and creates a single detailed issue.
+
+```bash
+# Create issue from description
+/zerg:git --action issue --title "Fix auth timeout" "Users report 504 errors after 30s on login"
+
+# Create as draft with label
+/zerg:git --action issue --title "Add rate limiting" "API has no rate limits" --label enhancement
+```
+
+### Issue Body Template (Strict)
+
+Every issue created by this action MUST follow this template. No exceptions. The template is designed so an AI coding assistant has zero chance of misinterpreting the intent.
+
+```markdown
+## Problem Statement
+{2-3 sentences. What is broken/missing and who is affected. Be specific.}
+
+## Root Cause Analysis
+{Why this problem exists. Technical explanation with evidence from codebase analysis.}
+
+## Affected Files
+{Exhaustive list with line numbers.}
+
+| File | Lines | Role |
+|------|-------|------|
+| `path/to/file.py` | 45-67 | Contains the buggy function |
+| `path/to/other.py` | 12 | Caller that triggers the issue |
+
+## Reproduction Steps
+1. {Step 1 with exact command}
+2. {Step 2}
+3. {Observe: expected vs actual behavior}
+
+## Proposed Solution
+{Concrete implementation plan. Specific changes to specific files. Not vague.}
+
+### Changes Required
+- **`path/to/file.py`**: {What to change and why}
+- **`path/to/other.py`**: {What to change and why}
+
+### Code Sketch
+\`\`\`python
+# Before (problematic)
+def buggy_function():
+    ...
+
+# After (fixed)
+def fixed_function():
+    ...
+\`\`\`
+
+## Acceptance Criteria
+- [ ] {Criterion with verification command}
+  \`\`\`bash
+  pytest tests/unit/test_auth.py -v  # must pass
+  \`\`\`
+- [ ] {Criterion 2}
+- [ ] All existing tests pass: `pytest tests/ -v`
+
+## Dependencies
+- Blocked by: {issue numbers or "none"}
+- Blocks: {issue numbers or "none"}
+- Related: {issue numbers}
+
+## Context for AI Assistants
+- **Codebase patterns**: {Relevant patterns this fix should follow}
+- **Test expectations**: {What tests exist, what new tests are needed}
+- **Security considerations**: {OWASP/security implications if any}
+```
+
+---
+
 ## Error Handling
 
 All actions follow a consistent error pattern:
@@ -347,7 +504,7 @@ When `--help` is passed, display usage and exit:
 /zerg:git -- Git operations with intelligent commits, PR creation, releases, and more.
 
 Flags:
-  --action, -a ACTION   commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect
+  --action, -a ACTION   commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect|ship|cleanup|issue
   --push, -p            Push after operation
   --base, -b BRANCH     Base branch (default: main)
   --name, -n NAME       Branch name (for branch action)
@@ -360,7 +517,7 @@ Flags:
   --reviewer USER       PR reviewer username
   --focus DOMAIN        security|performance|quality|architecture
   --bump TYPE           auto|major|minor|patch (default: auto)
-  --dry-run             Preview release without executing
+  --dry-run             Preview without executing (release, cleanup, issue)
   --symptom TEXT        Bug symptom (for bisect)
   --test-cmd CMD        Test command (for bisect)
   --good REF            Known good ref (for bisect)
@@ -368,5 +525,13 @@ Flags:
   --undo                Undo last operation (rescue)
   --restore TAG         Restore snapshot (rescue)
   --recover-branch NAME Recover branch (rescue)
+  --no-merge            Stop after PR creation (skip merge+cleanup)
+  --scan                Auto-detect issues from codebase (issue action)
+  --title TEXT          Issue title (issue action, description mode)
+  --no-docker           Skip Docker cleanup (cleanup action)
+  --include-stashes     Clear git stashes (cleanup action)
+  --limit N             Max issues to create (issue action, default: 10)
+  --label LABEL         Add label to issues (issue action)
+  --priority P          Filter by priority: P0|P1|P2 (issue action)
   --help                Show this help message
 ```

@@ -114,6 +114,6 @@ This command creates a Claude Code Task with the subject prefix `[Security]` on 
 
 ## See Also
 
-- [[Command-analyze]] -- General static analysis including a security check type
-- [[Command-review]] -- Code review with security considerations
-- [[Command-build]] -- Build verification after applying security fixes
+- [[zerg-analyze]] -- General static analysis including a security check type
+- [[zerg-review]] -- Code review with security considerations
+- [[zerg-build]] -- Build verification after applying security fixes

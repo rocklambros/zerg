@@ -88,6 +88,6 @@ This command creates a Claude Code Task with the subject prefix `[Build]` on inv
 
 ## See Also
 
-- [[Command-test]] -- Run tests after a successful build
-- [[Command-analyze]] -- Static analysis and quality checks
-- [[Command-review]] -- Code review workflow
+- [[zerg-test]] -- Run tests after a successful build
+- [[zerg-analyze]] -- Static analysis and quality checks
+- [[zerg-review]] -- Code review workflow

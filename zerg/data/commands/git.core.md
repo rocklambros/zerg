@@ -5,7 +5,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 ## Usage
 
 ```bash
-/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect|ship
+/zerg:git --action commit|branch|merge|sync|history|finish|pr|release|review|rescue|bisect|ship|cleanup|issue
           [options...]
 ```
 
@@ -25,6 +25,8 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 | rescue | Undo/recovery operations | --list-ops, --undo, --restore, --recover-branch |
 | bisect | AI-powered bug bisection | --symptom, --test-cmd, --good |
 | ship | Commit, push, PR, merge, cleanup in one shot | --base, --draft, --reviewer, --no-merge |
+| cleanup | Repository hygiene: prune branches, refs, worktrees, Docker | --dry-run, --no-docker, --include-stashes |
+| issue | Create AI-optimized GitHub issues from scan or description | --scan, --title, --dry-run, --limit, --label, --priority |
 
 ## Flags Reference
 
@@ -51,6 +53,13 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 --restore TAG          Restore snapshot tag (rescue)
 --recover-branch NAME  Recover deleted branch (rescue)
 --no-merge             Stop after PR creation (skip merge+cleanup)
+--scan                 Auto-detect issues from codebase analysis (default for issue action)
+--title TEXT           Issue title (for issue action, switches to description mode)
+--no-docker            Skip Docker container/image cleanup (for cleanup action)
+--include-stashes      Also clear git stashes (for cleanup action, off by default)
+--limit N              Max issues to create (default: 10, for issue action)
+--label LABEL          Add label to created issues (for issue action)
+--priority P           Filter by priority: P0|P1|P2 (for issue action)
 ```
 
 ## Task Tracking

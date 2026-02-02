@@ -105,8 +105,8 @@ cat .gsd/specs/<feature>/task-graph.json | jq '.tasks[] | select(.id == "TASK-00
 
 ## See Also
 
-- [[Command-rush]] -- Original execution command
-- [[Command-logs]] -- Investigate failures before retrying
-- [[Command-status]] -- Check overall progress
-- [[Command-stop]] -- Tasks may need retry after a forced stop
-- [[Command-Reference]] -- Full command index
+- [[zerg-rush]] -- Original execution command
+- [[zerg-logs]] -- Investigate failures before retrying
+- [[zerg-status]] -- Check overall progress
+- [[zerg-stop]] -- Tasks may need retry after a forced stop
+- [[zerg-Reference]] -- Full command index
