@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Post-approval handoff prompt in `/zerg:plan` — AskUserQuestion with 3 next-step options after requirements approval (#94)
+- Documentation section (Section 10) added to requirements.md template referencing `/zerg:document` (#94)
+- Missing `/zerg:git` flags added to `docs/commands.md`: `--no-docker`, `--include-stashes`, `--limit`, `--priority` (#94)
 - Worker intelligence subsystem: heartbeat health monitoring with auto-restart for stalled workers (#67, #27, #30)
 - Three-tier verification (syntax/correctness/quality) with configurable blocking and escalation for ambiguous failures (#67)
 - Escalation protocol: workers report ambiguous failures to orchestrator with terminal alerts (#67)
