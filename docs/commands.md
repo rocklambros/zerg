@@ -44,6 +44,57 @@ Commands can be invoked in two ways:
 
 ---
 
+## Global Flags
+
+These flags apply to all ZERG commands when invoked via the CLI (`zerg <command>`).
+
+### Analysis Depth
+
+Mutually exclusive flags controlling analysis depth:
+
+| Flag | Description | Token Budget |
+|------|-------------|-------------|
+| `--quick` | Surface-level, fast execution | ~1K |
+| `--think` | Structured multi-step analysis | ~4K |
+| `--think-hard` | Deep architectural analysis | ~10K |
+| `--ultrathink` | Maximum depth, all MCP servers | ~32K |
+
+### Output & Efficiency
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--uc` | `--compact` | Ultra-compressed token-efficient output |
+
+### Behavioral Mode
+
+| Flag | Values | Description |
+|------|--------|-------------|
+| `--mode` | `precision`, `speed`, `exploration`, `refactor`, `debug` | Override auto-detected behavioral mode |
+
+### MCP Routing
+
+| Flag | Description |
+|------|-------------|
+| `--mcp` | Enable MCP auto-routing (default) |
+| `--no-mcp` | Disable all MCP server recommendations |
+
+### TDD Enforcement
+
+| Flag | Description |
+|------|-------------|
+| `--tdd` | Enable TDD enforcement (red-green-refactor protocol) |
+
+### Standard Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--verbose` | `-v` | Enable verbose output |
+| `--quiet` | `-q` | Suppress non-essential output |
+| `--version` | | Show version and exit |
+| `--help` | | Show help message and exit |
+
+---
+
 ## Core Workflow
 
 ---

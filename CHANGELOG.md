@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Cross-cutting capabilities framework with 8 new subsystems (#76):
+  - **Engineering Rules Framework** (`zerg/rules/`): YAML-based rule engine with loader, validator, and injector; ships with 25 rules across safety, quality, and efficiency rulesets
+  - **Analysis Depth Tiers** (`zerg/depth_tiers.py`): 5-tier depth system (QUICK → ULTRATHINK) with `--quick`, `--think`, `--think-hard`, `--ultrathink` CLI flags; auto-detection from task descriptions
+  - **Token Efficiency Mode** (`zerg/efficiency.py`): GREEN/YELLOW/RED zone detection with `--uc`/`--compact` CLI flag; symbol system and abbreviation engine for 30-50% token reduction
+  - **Iterative Improvement Loops** (`zerg/loops.py`): LoopController with convergence detection, plateau threshold, regression rollback; `--loop`, `--iterations`, `--convergence` CLI options
+  - **Verification Gates** (`zerg/verification_gates.py`): Gate pipeline with artifact storage, staleness detection, fresh-cache reuse, and stop-on-required-failure semantics
+  - **Behavioral Mode Auto-Trigger** (`zerg/modes.py`): 5 modes (PRECISION, SPEED, EXPLORATION, REFACTOR, DEBUG) with `--mode` CLI flag; priority-based detection from keywords, efficiency zones, and depth tiers
+  - **MCP Auto-Routing** (`zerg/mcp_router.py`, `zerg/mcp_telemetry.py`): Capability-based server matching with cost optimization, `--mcp`/`--no-mcp` CLI flags, routing telemetry
+  - **TDD Enforcement** (`zerg/tdd.py`): Red-green-refactor protocol with `--tdd` CLI flag; anti-pattern detection (mock_heavy, testing_impl, no_assertions, large_tests)
+- 8 new config sections in `ZergConfig`: `rules`, `efficiency`, `improvement_loops`, `verification`, `behavioral_modes`, `mcp_routing`, `tdd`, `error_recovery`
+- Context engineering plugin now injects MCP routing hints and engineering rules into task-scoped context (budget: 15% rules, 15% security, 35% spec, 15% MCP)
+- ~490 new tests across 8 test files for cross-cutting capabilities
 - `zerg/git/` package with 7 engine modules: commit, rescue, PR, release, history, pre-review, bisect
 - `GitRunner` base class extracted from `GitOps` for low-level git command execution
 - `GitConfig` Pydantic model with per-project config sections (commit, pr, release, rescue, review)

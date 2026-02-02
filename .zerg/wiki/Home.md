@@ -28,6 +28,19 @@ ZERG coordinates multiple Claude Code sessions to build features in parallel. Yo
 | [[Contributing]] | Development setup, coding standards, testing, PR workflow |
 | [[Testing]] | Test organization, running tests, coverage targets, writing new tests |
 
+### Cross-Cutting Capabilities
+
+| Capability | CLI Flags | Description |
+|------------|-----------|-------------|
+| Analysis Depth | `--quick/--think/--think-hard/--ultrathink` | 5-tier depth control for worker analysis |
+| Token Efficiency | `--uc/--compact` | Automatic compact mode with symbol/abbreviation system |
+| Behavioral Modes | `--mode` | 5 modes (precision, speed, exploration, refactor, debug) with auto-detection |
+| MCP Auto-Routing | `--mcp/--no-mcp` | Capability-based MCP server selection with cost optimization |
+| Engineering Rules | via config | 25 YAML rules injected into worker context by file type |
+| Improvement Loops | `--loop` | Convergence-based iterative improvement cycles |
+| Verification Gates | via config | Artifact storage, staleness detection, pipeline orchestration |
+| TDD Enforcement | `--tdd` | Red-green-refactor protocol with anti-pattern detection |
+
 ### Plugins and Context Engineering
 
 | Section | Description |

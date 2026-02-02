@@ -387,6 +387,108 @@ MCP server configuration is copied to worker containers at `.devcontainer/mcp-se
 
 ---
 
+## Cross-Cutting Capabilities
+
+New configuration sections for the cross-cutting capabilities framework.
+
+### Engineering Rules
+
+```yaml
+rules:
+  enabled: true              # Master switch for rule injection
+  base_rules: true           # Include built-in safety/quality/efficiency rules
+  custom_rules: true         # Include project-specific custom rules
+  disabled_rules: []         # List of rule IDs to disable
+  inject_into_workers: true  # Inject relevant rules into worker context
+```
+
+Rule files are YAML in `.zerg/rules/` (safety.yaml, quality.yaml, efficiency.yaml). Rules are filtered by file extension and injected into worker context at ~15% of the task context budget.
+
+### Efficiency
+
+```yaml
+efficiency:
+  auto_compact_threshold: 0.75  # Context usage % to trigger compact mode
+  symbol_system: true            # Use symbols for status/domain indicators
+  abbreviations: true            # Abbreviate common terms (configuration→cfg)
+```
+
+### Improvement Loops
+
+```yaml
+improvement_loops:
+  max_iterations: 5            # Max loop iterations (1-10)
+  plateau_threshold: 2         # Consecutive no-improvement rounds to stop (1-5)
+  rollback_on_regression: true # Revert if score decreases
+  convergence_threshold: 0.02  # Min improvement to count as progress (0.001-0.5)
+```
+
+### Verification Gates
+
+```yaml
+verification:
+  require_before_completion: true       # Require verification before marking done
+  staleness_threshold_seconds: 300      # Re-run if older than this (10-3600)
+  store_artifacts: true                 # Store verification results as JSON
+  artifact_dir: ".zerg/artifacts"       # Artifact storage directory
+```
+
+### Behavioral Modes
+
+```yaml
+behavioral_modes:
+  auto_detect: true          # Auto-detect mode from task keywords
+  default_mode: precision    # Default when no mode detected
+  log_transitions: true      # Log mode changes
+```
+
+Available modes: `precision`, `speed`, `exploration`, `refactor`, `debug`.
+
+### MCP Auto-Routing
+
+```yaml
+mcp_routing:
+  auto_detect: true           # Enable capability-based server matching
+  available_servers:           # Servers to consider
+    - sequential
+    - context7
+    - playwright
+    - morphllm
+    - magic
+    - serena
+  cost_aware: true            # Optimize for lower-cost servers
+  telemetry: true             # Record routing decisions
+  max_servers: 3              # Max servers per task (1-6)
+```
+
+### TDD Enforcement
+
+```yaml
+tdd:
+  enabled: false              # Master switch (off by default)
+  enforce_red_green: true     # Require red→green→refactor order
+  anti_patterns:              # Anti-patterns to detect
+    - mock_heavy
+    - testing_impl
+    - no_assertions
+```
+
+### Error Recovery
+
+```yaml
+error_recovery:
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 3       # Failures before tripping (1-20)
+    cooldown_seconds: 60       # Recovery wait time (5-600)
+  backpressure:
+    enabled: true
+    failure_rate_threshold: 0.5  # Rate to trigger throttling (0.1-1.0)
+    window_size: 10              # Rolling window size (3-100)
+```
+
+---
+
 ## Environment Variables
 
 ### Required
@@ -402,6 +504,9 @@ MCP server configuration is copied to worker containers at `.devcontainer/mcp-se
 | `ZERG_WORKER_ID` | Worker identifier (0-N) |
 | `ZERG_FEATURE` | Current feature name |
 | `ZERG_BRANCH` | Worker's git branch |
+| `ZERG_ANALYSIS_DEPTH` | Analysis depth tier (quick/standard/think/think_hard/ultrathink) |
+| `ZERG_COMPACT_MODE` | Compact output mode (true/false) |
+| `ZERG_MCP_HINT` | Recommended MCP servers for the task |
 | `CLAUDE_CODE_TASK_LIST_ID` | Shared task list for coordination |
 
 ### Optional

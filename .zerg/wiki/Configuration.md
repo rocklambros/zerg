@@ -239,6 +239,171 @@ plugins:
 
 For `context_engineering` options, see [[Context Engineering]].
 
+### rules
+
+Engineering rules injected into worker context based on file extensions.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | `true` | Master switch for rule injection |
+| `base_rules` | bool | `true` | Include built-in safety/quality/efficiency rules |
+| `custom_rules` | bool | `true` | Include project-specific custom rules |
+| `disabled_rules` | list | `[]` | Rule IDs to disable |
+| `inject_into_workers` | bool | `true` | Inject rules into worker context |
+
+```yaml
+rules:
+  enabled: true
+  base_rules: true
+  custom_rules: true
+  disabled_rules: []
+  inject_into_workers: true
+```
+
+### efficiency
+
+Token efficiency settings for automatic compact mode activation.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `auto_compact_threshold` | float | `0.75` | Context usage % to trigger compact mode (0.5-1.0) |
+| `symbol_system` | bool | `true` | Use symbols for status indicators |
+| `abbreviations` | bool | `true` | Abbreviate common terms |
+
+```yaml
+efficiency:
+  auto_compact_threshold: 0.75
+  symbol_system: true
+  abbreviations: true
+```
+
+### improvement_loops
+
+Iterative improvement loop configuration.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `max_iterations` | int | `5` | Maximum loop iterations (1-10) |
+| `plateau_threshold` | int | `2` | No-improvement rounds before stopping (1-5) |
+| `rollback_on_regression` | bool | `true` | Revert if score decreases |
+| `convergence_threshold` | float | `0.02` | Minimum improvement to continue (0.001-0.5) |
+
+```yaml
+improvement_loops:
+  max_iterations: 5
+  plateau_threshold: 2
+  rollback_on_regression: true
+  convergence_threshold: 0.02
+```
+
+### verification
+
+Verification gate pipeline settings.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `require_before_completion` | bool | `true` | Require verification before marking done |
+| `staleness_threshold_seconds` | int | `300` | Re-run if older than this (10-3600) |
+| `store_artifacts` | bool | `true` | Store verification results |
+| `artifact_dir` | string | `".zerg/artifacts"` | Artifact storage path |
+
+```yaml
+verification:
+  require_before_completion: true
+  staleness_threshold_seconds: 300
+  store_artifacts: true
+  artifact_dir: ".zerg/artifacts"
+```
+
+### behavioral_modes
+
+Behavioral mode auto-detection and defaults.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `auto_detect` | bool | `true` | Auto-detect mode from task keywords |
+| `default_mode` | string | `"precision"` | Default mode (precision/speed/exploration/refactor/debug) |
+| `log_transitions` | bool | `true` | Log mode changes |
+
+```yaml
+behavioral_modes:
+  auto_detect: true
+  default_mode: precision
+  log_transitions: true
+```
+
+### mcp_routing
+
+MCP auto-routing configuration.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `auto_detect` | bool | `true` | Enable capability-based server matching |
+| `available_servers` | list | `[sequential, context7, playwright, morphllm, magic, serena]` | Servers to consider |
+| `cost_aware` | bool | `true` | Prefer lower-cost servers |
+| `telemetry` | bool | `true` | Record routing decisions |
+| `max_servers` | int | `3` | Maximum servers per task (1-6) |
+
+```yaml
+mcp_routing:
+  auto_detect: true
+  available_servers:
+    - sequential
+    - context7
+    - playwright
+    - morphllm
+    - magic
+    - serena
+  cost_aware: true
+  telemetry: true
+  max_servers: 3
+```
+
+### tdd
+
+TDD enforcement configuration (off by default).
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | `false` | Master switch for TDD mode |
+| `enforce_red_green` | bool | `true` | Require red-green-refactor order |
+| `anti_patterns` | list | `[mock_heavy, testing_impl, no_assertions]` | Anti-patterns to detect |
+
+```yaml
+tdd:
+  enabled: false
+  enforce_red_green: true
+  anti_patterns:
+    - mock_heavy
+    - testing_impl
+    - no_assertions
+```
+
+### error_recovery
+
+Error recovery with circuit breaker and backpressure.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `circuit_breaker.enabled` | bool | `true` | Enable circuit breaker |
+| `circuit_breaker.failure_threshold` | int | `3` | Failures before tripping (1-20) |
+| `circuit_breaker.cooldown_seconds` | int | `60` | Recovery wait time (5-600) |
+| `backpressure.enabled` | bool | `true` | Enable backpressure controller |
+| `backpressure.failure_rate_threshold` | float | `0.5` | Rate to trigger throttling |
+| `backpressure.window_size` | int | `10` | Rolling window size |
+
+```yaml
+error_recovery:
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 3
+    cooldown_seconds: 60
+  backpressure:
+    enabled: true
+    failure_rate_threshold: 0.5
+    window_size: 10
+```
+
 ---
 
 ## Complete Example
@@ -312,6 +477,66 @@ plugins:
     security_rule_filtering: true
     task_context_budget_tokens: 4000
     fallback_to_full: true
+
+rules:
+  enabled: true
+  base_rules: true
+  custom_rules: true
+  disabled_rules: []
+  inject_into_workers: true
+
+efficiency:
+  auto_compact_threshold: 0.75
+  symbol_system: true
+  abbreviations: true
+
+improvement_loops:
+  max_iterations: 5
+  plateau_threshold: 2
+  rollback_on_regression: true
+  convergence_threshold: 0.02
+
+verification:
+  require_before_completion: true
+  staleness_threshold_seconds: 300
+  store_artifacts: true
+  artifact_dir: ".zerg/artifacts"
+
+behavioral_modes:
+  auto_detect: true
+  default_mode: precision
+  log_transitions: true
+
+mcp_routing:
+  auto_detect: true
+  available_servers:
+    - sequential
+    - context7
+    - playwright
+    - morphllm
+    - magic
+    - serena
+  cost_aware: true
+  telemetry: true
+  max_servers: 3
+
+tdd:
+  enabled: false
+  enforce_red_green: true
+  anti_patterns:
+    - mock_heavy
+    - testing_impl
+    - no_assertions
+
+error_recovery:
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 3
+    cooldown_seconds: 60
+  backpressure:
+    enabled: true
+    failure_rate_threshold: 0.5
+    window_size: 10
 ```
 
 ---
@@ -328,6 +553,9 @@ Workers recognize specific environment variables for cross-session coordination.
 | `ZERG_TASK_ID` | Current task identifier |
 | `ZERG_WORKTREE` | Git worktree path for the worker |
 | `ZERG_BRANCH` | Git branch name for the worker |
+| `ZERG_ANALYSIS_DEPTH` | Analysis depth tier (quick/standard/think/think_hard/ultrathink) |
+| `ZERG_COMPACT_MODE` | Compact output mode (true/false) |
+| `ZERG_MCP_HINT` | Recommended MCP servers for the task |
 | `ZERG_SPEC_DIR` | Path to feature spec files |
 | `ZERG_STATE_DIR` | Path to ZERG state directory |
 | `ZERG_REPO_PATH` | Path to the main repository |

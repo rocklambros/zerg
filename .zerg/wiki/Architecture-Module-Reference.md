@@ -12,7 +12,7 @@ This page provides a complete reference of all Python modules in the `zerg/` pac
 | `constants.py` | Enumerations and constants used across the codebase. | `Level`, `TaskStatus`, `WorkerStatus`, `GateResult`, `MergeStatus` |
 | `types.py` | TypedDict and dataclass definitions for structured data. | `Task`, `TaskGraph`, `FileSpec`, `VerificationSpec`, `WorkerState`, `FeatureMetrics` |
 | `exceptions.py` | Exception hierarchy for all ZERG error types. | `ZergError`, `StateError`, `GitError`, `MergeConflictError`, `ValidationError`, `GateFailureError` |
-| `config.py` | Pydantic-based configuration loaded from `.zerg/config.yaml`. | `ZergConfig`, `WorkersConfig`, `ProjectConfig`, `QualityGate` |
+| `config.py` | Pydantic-based configuration loaded from `.zerg/config.yaml`. | `ZergConfig`, `WorkersConfig`, `ProjectConfig`, `QualityGate`, `RulesConfig`, `EfficiencyConfig`, `LoopConfig`, `VerificationConfig`, `ModeConfig`, `MCPRoutingConfig`, `TDDConfig`, `ErrorRecoveryConfig` |
 | `logging.py` | Structured JSON logging with worker context support. | `get_logger()` |
 
 ## Orchestration Modules
@@ -79,6 +79,20 @@ This page provides a complete reference of all Python modules in the `zerg/` pac
 | `risk_scoring.py` | Per-task risk assessment, critical path identification, and overall risk grading. | Risk scoring functions |
 | `preflight.py` | Pre-flight checks before rush: Docker, auth, ports, disk space, git worktree support. | `CheckResult` |
 
+## Cross-Cutting Capability Modules
+
+| Module | Purpose | Key Classes / Functions |
+|--------|---------|------------------------|
+| `depth_tiers.py` | 5-tier analysis depth control (quick → ultrathink). Maps CLI flags to token budgets and MCP server recommendations. | `DepthTier` (enum), `DepthRouter`, `DepthConfig` |
+| `efficiency.py` | Token efficiency with 3 context zones (green/yellow/red). Auto-triggers compact mode at configurable threshold. | `EfficiencyZone` (enum), `ZoneDetector`, `CompactFormatter`, `EfficiencyConfig` |
+| `modes.py` | 5 behavioral modes (precision/speed/exploration/refactor/debug) with keyword auto-detection from task descriptions. | `BehavioralMode` (enum), `ModeDetector`, `ModeConfig` |
+| `mcp_router.py` | Capability-based MCP server selection. Matches task keywords to server capabilities with cost-aware ranking. | `MCPRouter`, `MCPRoutingConfig`, `ServerCapability`, `RoutingDecision` |
+| `mcp_telemetry.py` | Records MCP routing decisions for analysis. Tracks server selection frequency and latency. | `RoutingTelemetry`, `RoutingRecord` |
+| `verification_gates.py` | Verification pipeline with artifact storage and staleness detection. Re-runs gates older than configurable threshold. | `GatePipeline`, `VerificationConfig`, `GateArtifact` |
+| `loops.py` | Convergence-based iterative improvement cycles. Stops on plateau or regression with optional rollback. | `LoopController`, `IterationResult`, `LoopConfig` |
+| `tdd.py` | TDD enforcement protocol. Validates red-green-refactor order and detects anti-patterns (mock-heavy, no-assertions). | `TDDProtocol`, `TestFirstValidator`, `TDDConfig` |
+| `rules/` | Engineering rules framework. Loads YAML rules from `.zerg/rules/`, filters by file extension, injects into worker context. | `RuleLoader`, `RuleValidator`, `RuleInjector`, `RulesConfig` |
+
 ## Plugin and Extension Modules
 
 | Module | Purpose | Key Classes / Functions |
@@ -138,6 +152,7 @@ Each file in `zerg/commands/` implements a Click subcommand registered in `cli.p
 | `document.py` | `zerg document` | Documentation generation |
 | `wiki.py` | `zerg wiki` | Wiki management |
 | `git_cmd.py` | `zerg git` | Git helper operations |
+| `tdd.py` | `zerg tdd` | TDD enforcement commands (status, reset) |
 | `security_rules_cmd.py` | `zerg security-rules` | Security rule management |
 | `install_commands.py` | `zerg install-commands` | Install slash commands |
 

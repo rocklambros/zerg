@@ -12,6 +12,23 @@ brainstorm (optional) --> init --> plan --> design --> rush --> status/logs --> 
 
 During execution, use `stop` to halt workers, `retry` to re-run failed tasks, and `logs` to inspect worker output.
 
+## Global CLI Flags
+
+These flags apply to all ZERG commands:
+
+| Flag | Description |
+|------|-------------|
+| `--quick` | Surface-level analysis |
+| `--think` | Structured multi-step analysis |
+| `--think-hard` | Deep architectural analysis |
+| `--ultrathink` | Maximum depth, all MCP servers |
+| `--uc` / `--compact` | Ultra-compressed token-efficient output |
+| `--mode MODE` | Behavioral mode: precision, speed, exploration, refactor, debug |
+| `--mcp` / `--no-mcp` | Enable/disable MCP auto-routing |
+| `--tdd` | Enable TDD enforcement |
+| `-v` / `--verbose` | Verbose output |
+| `-q` / `--quiet` | Suppress non-essential output |
+
 ## Command Index
 
 | Command | Purpose | Phase |

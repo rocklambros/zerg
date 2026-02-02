@@ -145,6 +145,23 @@ Container workers authenticate via two methods:
 
 Both are implemented in `zerg/launcher.py:684-819`. This is settled infrastructure — do not reimplement or bypass.
 
+## Cross-Cutting Capabilities
+
+ZERG includes 8 cross-cutting capabilities controlled via CLI flags and config:
+
+| Capability | CLI Flag | Config Section |
+|------------|----------|---------------|
+| Analysis Depth Tiers | `--quick/--think/--think-hard/--ultrathink` | — |
+| Token Efficiency | `--uc/--compact` | `efficiency` |
+| Behavioral Modes | `--mode` | `behavioral_modes` |
+| MCP Auto-Routing | `--mcp/--no-mcp` | `mcp_routing` |
+| Engineering Rules | — | `rules` |
+| Improvement Loops | `--loop/--iterations` | `improvement_loops` |
+| Verification Gates | — | `verification` |
+| TDD Enforcement | `--tdd` | `tdd` |
+
+These integrate with the context engineering plugin to inject rules, MCP hints, and mode-specific behavior into worker prompts.
+
 ## Configuration
 
 Edit `.zerg/config.yaml` for:
@@ -153,6 +170,7 @@ Edit `.zerg/config.yaml` for:
 - Quality gate commands
 - MCP servers
 - Resource limits
+- Cross-cutting capabilities (rules, efficiency, modes, verification, TDD, etc.)
 
 ## Context Engineering
 

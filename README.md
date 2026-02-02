@@ -43,6 +43,7 @@ The goal was simple: stop repeating myself and start shipping faster. ZERG is th
   - [Quick Start](#quick-start)
   - [How It Works](#how-it-works)
 - **Key Features**
+  - [Cross-Cutting Capabilities](#cross-cutting-capabilities)
   - [Context Engineering](#context-engineering)
   - [Security Rules](#security-rules)
   - [Dev Containers](#dev-containers)
@@ -201,6 +202,105 @@ ZERG supports three execution modes for zerglings:
 | `task` | Claude Code Task sub-agents | Running from slash commands inside Claude Code |
 
 Auto-detection: If `--mode` is not set, ZERG picks the best option based on your environment.
+
+---
+
+## Cross-Cutting Capabilities
+
+ZERG includes 8 cross-cutting capabilities that enhance worker intelligence, enforce quality, and optimize resource usage. These are controlled via CLI flags and `.zerg/config.yaml`.
+
+### Analysis Depth Tiers
+
+Control how deeply workers analyze tasks with mutually exclusive flags:
+
+```bash
+/zerg:rush --quick          # Surface-level, fast execution
+/zerg:rush --think          # Structured multi-step analysis
+/zerg:rush --think-hard     # Deep architectural analysis
+/zerg:rush --ultrathink     # Maximum depth (enables all MCP servers)
+```
+
+### Token Efficiency Mode
+
+Automatic token optimization when context usage is high:
+
+```bash
+/zerg:rush --uc             # Force ultra-compressed output
+```
+
+Three zones: GREEN (0-75%, full output), YELLOW (75-85%, reduced verbosity), RED (85%+, essential operations only). Auto-activates based on context usage.
+
+### Behavioral Modes
+
+Workers adapt their execution strategy based on task characteristics:
+
+```bash
+/zerg:rush --mode precision   # Careful, thorough (default)
+/zerg:rush --mode speed       # Fast execution, minimal output
+/zerg:rush --mode exploration # Creative, try alternatives
+/zerg:rush --mode refactor    # Code improvement focus
+/zerg:rush --mode debug       # Diagnostic investigation
+```
+
+Auto-detected from task keywords when `--mode` is not set.
+
+### MCP Auto-Routing
+
+Intelligent MCP server selection based on task type and file extensions:
+
+```bash
+/zerg:rush --mcp              # Enable auto-routing (default)
+/zerg:rush --no-mcp           # Disable MCP servers
+```
+
+Routes tasks to the right servers: Sequential for analysis, Context7 for docs, Playwright for testing, etc. Cost-aware optimization limits to 3 servers per task.
+
+### Additional Capabilities
+
+| Capability | Config Section | Description |
+|------------|---------------|-------------|
+| Engineering Rules | `rules` | 25 YAML rules (safety, quality, efficiency) injected into worker context |
+| Iterative Loops | `improvement_loops` | `--loop` flag for convergence-based improvement cycles |
+| Verification Gates | `verification` | Artifact storage, staleness detection, pipeline orchestration |
+| TDD Enforcement | `tdd` | `--tdd` flag for red-green-refactor protocol with anti-pattern detection |
+
+### Configuration
+
+```yaml
+# .zerg/config.yaml (new sections)
+rules:
+  enabled: true
+  base_rules: true
+  custom_rules: true
+
+efficiency:
+  auto_compact_threshold: 0.75
+  symbol_system: true
+  abbreviations: true
+
+behavioral_modes:
+  auto_detect: true
+  default_mode: precision
+
+mcp_routing:
+  auto_detect: true
+  cost_aware: true
+  max_servers: 3
+
+improvement_loops:
+  max_iterations: 5
+  plateau_threshold: 2
+  rollback_on_regression: true
+
+verification:
+  require_before_completion: true
+  staleness_threshold_seconds: 300
+  store_artifacts: true
+
+tdd:
+  enabled: false
+  enforce_red_green: true
+```
 
 ---
 
