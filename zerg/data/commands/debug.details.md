@@ -7,8 +7,9 @@ Full templates, evidence checklists, examples, and edge cases for `zerg:debug`.
 
 ## Phase 1: Context Gathering — Templates
 
-**ZERG State** (read in parallel):
-- `.zerg/state/<feature>.json` - Task states, worker states, errors
+**ZERG State** (read in parallel — TaskList is authoritative, state JSON is supplementary):
+- TaskList / TaskGet — authoritative task status
+- `.zerg/state/<feature>.json` - Task states, worker states, errors (fallback)
 - `.zerg/logs/worker-*.stderr.log` - Last 50 lines from each worker
 - `.gsd/specs/<feature>/task-graph.json` - Task definitions and dependencies
 - `.gsd/specs/<feature>/design.md` - Architecture context
@@ -403,9 +404,10 @@ Config:
 5. Use error intelligence to parse multi-language stack traces
 
 **State file corrupt:**
-1. Check `.zerg/state/<feature>.json.bak`
-2. Restore from backup
-3. If no backup, rebuild from task-graph
+1. Use TaskList/TaskGet as authoritative source
+2. Check `.zerg/state/<feature>.json.bak`
+3. Restore from backup
+4. If no backup, rebuild from task-graph
 
 **Merge conflicts:**
 1. Check file ownership in task-graph

@@ -238,7 +238,8 @@ STARTING → RUNNING → STOPPED
 
 ### Communication Channels
 
-1. **State File**: `.zerg/state/{feature}.json` - shared task state
+1. **Task System**: TaskList/TaskGet — authoritative task status
+2. **State File**: `.zerg/state/{feature}.json` - supplementary shared state
 2. **Progress Log**: `.gsd/specs/{feature}/progress.md` - human-readable log
 3. **Worker Log**: `.zerg/logs/worker-{id}.log` - detailed worker output
 4. **Event Stream**: State manager appends events for orchestrator

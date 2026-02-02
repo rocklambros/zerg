@@ -226,10 +226,10 @@ Use bracketed prefixes for plugin-related tasks:
 
 Plugin operations should write state to both:
 
-1. **Task system** (authoritative) — via `TaskCreate`/`TaskUpdate`
+1. **Task system** (authoritative) — via `TaskCreate`/`TaskUpdate`; read via `TaskList`/`TaskGet`
 2. **State JSON** (supplementary) — `.zerg/state/plugins.json`
 
-If Task system and state JSON disagree, Task system wins.
+If Task system and state JSON disagree, Task system wins (verify via TaskList).
 
 ## Help
 

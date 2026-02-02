@@ -27,6 +27,7 @@ zerg merge --abort
 ### Step 2: Collect Worker Branches
 
 ```bash
+# Cross-reference TaskList for authoritative task status before merging
 BRANCHES=$(jq -r ".workers | to_entries[] | .value.branch" "$STATE_FILE")
 
 echo "Collecting branches for merge:"

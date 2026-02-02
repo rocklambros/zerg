@@ -348,8 +348,9 @@ zerg rush --resume --level 3
 ```
 
 Resume behavior:
-1. Loads existing state from `.zerg/state/{feature}.json`
-2. Identifies incomplete and failed tasks
+1. Calls TaskList to identify completed/pending tasks (authoritative)
+2. Cross-references `.zerg/state/{feature}.json` for supplementary state
+3. Identifies incomplete and failed tasks
 3. Restores worker assignments where possible
 4. Continues from last checkpoint
 

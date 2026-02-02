@@ -43,8 +43,8 @@ CALIBRATION_FILE="$ESTIMATE_DIR/calibration.json"
 
 If no explicit `--pre`, `--post`, or `--calibrate` flag:
 
-1. If `$STATE_FILE` does not exist or has zero completed tasks → **pre** mode
-2. If `$STATE_FILE` exists and has completed tasks → **post** mode
+1. If TaskList shows zero completed `[L*]` tasks and `$STATE_FILE` has none → **pre** mode
+2. If TaskList shows completed `[L*]` tasks or `$STATE_FILE` has completed tasks → **post** mode
 3. `--calibrate` flag always overrides to calibration mode
 4. Explicit `--pre`/`--post` overrides auto-detection
 
@@ -67,7 +67,7 @@ Execute the detected mode. See `estimate.details.md` for full formulas, template
 ### Mode 2: Post-Execution Comparison
 
 1. **Load pre-estimate** from `$ESTIMATE_FILE` (if exists)
-2. **Load actuals** from `$STATE_FILE` and metrics
+2. **Load actuals** from TaskList/TaskGet (authoritative) and `$STATE_FILE` (supplementary)
 3. **Compute accuracy** per task, level, and total: `actual / estimated`
 4. **Flag outliers** with >50% deviation
 5. **Append post snapshot** to `$ESTIMATE_FILE`
