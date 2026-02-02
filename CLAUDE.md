@@ -168,11 +168,11 @@ ZERG includes 8 cross-cutting capabilities controlled via CLI flags and config:
 | Capability | CLI Flag | Config Section |
 |------------|----------|---------------|
 | Analysis Depth Tiers | `--quick/--think/--think-hard/--ultrathink` | — |
-| Token Efficiency | `--uc/--compact` | `efficiency` |
+| Token Efficiency | `--no-compact` (ON by default) | `efficiency` |
 | Behavioral Modes | `--mode` | `behavioral_modes` |
 | MCP Auto-Routing | `--mcp/--no-mcp` | `mcp_routing` |
 | Engineering Rules | — | `rules` |
-| Improvement Loops | `--loop/--iterations` | `improvement_loops` |
+| Improvement Loops | `--no-loop/--iterations` (ON by default) | `improvement_loops` |
 | Verification Gates | — | `verification` |
 | TDD Enforcement | `--tdd` | `tdd` |
 

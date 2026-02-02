@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from zerg.assign import WorkerAssignment
-from zerg.config import ZergConfig
+from zerg.gates import GateRunner
+from zerg.config import QualityGate, ZergConfig
 from zerg.constants import (
     LevelMergeStatus,
     LogEvent,
@@ -29,7 +30,7 @@ from zerg.parser import TaskParser
 from zerg.plugins import LifecycleEvent, PluginRegistry
 from zerg.state import StateManager
 from zerg.task_sync import TaskSyncBridge, load_design_manifest
-from zerg.types import WorkerState
+from zerg.types import GateRunResult, WorkerState
 
 if TYPE_CHECKING:
     from zerg.backpressure import BackpressureController
@@ -391,3 +392,172 @@ class LevelCoordinator:
         self._paused = True
         self.state.set_paused(True)
         self.state.append_event("recoverable_error", {"error": error})
+
+
+class GatePipeline:
+    """Wraps GateRunner with artifact storage and staleness checking.
+
+    Delegates gate execution to GateRunner, but adds:
+    - Artifact storage: gate results saved to .zerg/artifacts/{level}/
+    - Staleness check: skip re-running gates if results are fresh and code unchanged
+    """
+
+    def __init__(
+        self,
+        gate_runner: GateRunner,
+        artifacts_dir: Path | None = None,
+        staleness_threshold_seconds: int = 300,
+    ) -> None:
+        """Initialize GatePipeline.
+
+        Args:
+            gate_runner: Underlying GateRunner to delegate execution to
+            artifacts_dir: Directory for storing gate artifacts
+            staleness_threshold_seconds: Seconds before a cached result is
+                considered stale (default 300, configurable via
+                verification.staleness_threshold_seconds)
+        """
+        self._runner = gate_runner
+        self._artifacts_dir = artifacts_dir or Path(".zerg/artifacts")
+        self._staleness_threshold = staleness_threshold_seconds
+
+    def run_gates_for_level(
+        self,
+        level: int,
+        gates: list[QualityGate],
+        cwd: str | Path | None = None,
+    ) -> list[GateRunResult]:
+        """Run gates for a level with artifact storage and staleness check.
+
+        For each gate, checks whether a cached result exists and is still
+        fresh (younger than staleness_threshold_seconds). If so, the cached
+        result is returned without re-executing. Otherwise, the gate is
+        delegated to the underlying GateRunner, and the result is persisted
+        as a JSON artifact under .zerg/artifacts/{level}/.
+
+        Args:
+            level: Level number
+            gates: List of QualityGate configs to run
+            cwd: Working directory for gate execution
+
+        Returns:
+            List of GateRunResult (one per gate, in order)
+        """
+        level_dir = self._artifacts_dir / str(level)
+        level_dir.mkdir(parents=True, exist_ok=True)
+
+        results: list[GateRunResult] = []
+        for gate in gates:
+            cached = self._load_cached_result(level_dir, gate.name)
+            if cached is not None and not self._is_stale(cached):
+                logger.info("Gate '%s' result still fresh, skipping", gate.name)
+                restored = self._restore_result(cached, gate)
+                results.append(restored)
+                continue
+
+            result = self._runner.run_gate(gate, cwd=cwd)
+            results.append(result)
+            self._store_result(level_dir, gate.name, result)
+
+        return results
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _load_cached_result(self, level_dir: Path, gate_name: str) -> dict[str, Any] | None:
+        """Load cached gate result if it exists.
+
+        Args:
+            level_dir: Artifact directory for the level
+            gate_name: Name of the gate
+
+        Returns:
+            Parsed JSON dict or None if not found / unreadable
+        """
+        import json
+
+        artifact_path = level_dir / f"{gate_name}.json"
+        if not artifact_path.exists():
+            return None
+        try:
+            with open(artifact_path) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning("Failed to load cached artifact for '%s': %s", gate_name, exc)
+            return None
+
+    def _is_stale(self, cached: dict[str, Any]) -> bool:
+        """Check if a cached result is stale (older than threshold).
+
+        Args:
+            cached: Cached artifact dict (must contain 'timestamp')
+
+        Returns:
+            True if the result is stale and should be re-run
+        """
+        import time as _time
+
+        timestamp = cached.get("timestamp", 0)
+        age = _time.time() - timestamp
+        return age > self._staleness_threshold
+
+    def _restore_result(self, cached: dict[str, Any], gate: QualityGate) -> GateRunResult:
+        """Reconstruct a GateRunResult from a cached artifact.
+
+        Args:
+            cached: Cached artifact dict with a 'result' sub-dict
+            gate: The QualityGate config (used as fallback for fields)
+
+        Returns:
+            Reconstituted GateRunResult
+        """
+        from zerg.constants import GateResult
+
+        r = cached.get("result", {})
+        gate_result_str = r.get("result", "unknown")
+        try:
+            gate_result = GateResult(gate_result_str)
+        except ValueError:
+            gate_result = GateResult.ERROR
+
+        return GateRunResult(
+            gate_name=r.get("name", gate.name),
+            result=gate_result,
+            command=r.get("command", gate.command),
+            exit_code=r.get("exit_code", 0),
+            stdout=r.get("stdout", ""),
+            stderr=r.get("stderr", ""),
+            duration_ms=r.get("duration_ms", 0),
+        )
+
+    def _store_result(self, level_dir: Path, gate_name: str, result: GateRunResult) -> None:
+        """Store gate result as a JSON artifact.
+
+        Args:
+            level_dir: Artifact directory for the level
+            gate_name: Name of the gate
+            result: GateRunResult to persist
+        """
+        import json
+        import time as _time
+
+        artifact_path = level_dir / f"{gate_name}.json"
+        try:
+            data = {
+                "gate_name": gate_name,
+                "timestamp": _time.time(),
+                "result": {
+                    "name": result.gate_name,
+                    "result": result.result.value,
+                    "command": result.command,
+                    "exit_code": result.exit_code,
+                    "duration_ms": result.duration_ms,
+                    "stdout": result.stdout[:500],
+                    "stderr": result.stderr[:500],
+                },
+            }
+            with open(artifact_path, "w") as f:
+                json.dump(data, f, indent=2)
+        except OSError as exc:
+            logger.warning("Failed to store gate artifact for '%s': %s", gate_name, exc)

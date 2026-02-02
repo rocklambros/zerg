@@ -22,11 +22,15 @@ class ContextEngineeringPlugin(ContextPlugin):
     """Concrete context plugin that combines engineering rules, security rules, spec context, and command splitting.
 
     Budget allocation strategy for ``build_task_context``:
-        - Engineering rules: ~15% of task_context_budget_tokens
-        - Security rules summary:  ~15% of task_context_budget_tokens
-        - Spec context (relevant sections): ~35%
-        - MCP routing hints: ~15%
-        - Remaining ~20% is reserved as buffer / overhead
+        - Engineering rules: ~10% of task_context_budget_tokens
+        - Security rules summary: ~10%
+        - Spec context (relevant sections): ~25%
+        - MCP routing hints: ~10%
+        - Analysis depth guidance: ~10%
+        - Behavioral mode: ~10%
+        - TDD enforcement: ~10%
+        - Token efficiency hints: ~5%
+        - Remaining ~10% is reserved as buffer / overhead
     """
 
     def __init__(self, config: ContextEngineeringConfig | None = None) -> None:
@@ -121,31 +125,134 @@ class ContextEngineeringPlugin(ContextPlugin):
 
         sections: list[str] = []
 
-        # -- Engineering rules (~15% of budget) -----------------------------
-        rules_budget = int(budget * 0.15)
+        # -- Engineering rules (~10% of budget) -----------------------------
+        rules_budget = int(budget * 0.10)
         rules_section = self._build_rules_section(file_paths, rules_budget)
         if rules_section:
             sections.append(rules_section)
 
-        # -- Security rules (~15% of budget) --------------------------------
-        security_budget = int(budget * 0.15)
+        # -- Security rules (~10% of budget) --------------------------------
+        security_budget = int(budget * 0.10)
         security_section = self._build_security_section(file_paths, security_budget)
         if security_section:
             sections.append(security_section)
 
-        # -- Spec context (~35% of budget) ----------------------------------
-        spec_budget = int(budget * 0.35)
+        # -- Spec context (~25% of budget) ----------------------------------
+        spec_budget = int(budget * 0.25)
         spec_section = self._build_spec_section(task, feature, spec_budget)
         if spec_section:
             sections.append(spec_section)
 
-        # -- MCP routing hints (~15% of budget) -----------------------------
-        mcp_budget = int(budget * 0.15)
+        # -- MCP routing hints (~10% of budget) -----------------------------
+        mcp_budget = int(budget * 0.10)
         mcp_section = self._build_mcp_section(task, mcp_budget)
         if mcp_section:
             sections.append(mcp_section)
 
+        # -- Depth tier guidance (~10% of budget) ---------------------------
+        depth_budget = int(budget * 0.10)
+        depth_section = self._build_depth_section(depth_budget)
+        if depth_section:
+            sections.append(depth_section)
+
+        # -- Behavioral mode (~10% of budget) -------------------------------
+        mode_budget = int(budget * 0.10)
+        mode_section = self._build_mode_section(mode_budget)
+        if mode_section:
+            sections.append(mode_section)
+
+        # -- TDD enforcement (~10% of budget) -------------------------------
+        tdd_budget = int(budget * 0.10)
+        tdd_section = self._build_tdd_section(tdd_budget)
+        if tdd_section:
+            sections.append(tdd_section)
+
+        # -- Efficiency hints (~5% of budget) -------------------------------
+        efficiency_section = self._build_efficiency_section()
+        if efficiency_section:
+            sections.append(efficiency_section)
+
         return "\n\n".join(sections)
+
+    def _build_depth_section(self, max_tokens: int) -> str:
+        """Inject analysis depth guidance from ZERG_ANALYSIS_DEPTH env var."""
+        import os
+
+        depth = os.environ.get("ZERG_ANALYSIS_DEPTH", "")
+        if not depth or depth == "standard":
+            return ""
+
+        token_budgets = {
+            "quick": 1000,
+            "think": 4000,
+            "think_hard": 10000,
+            "ultrathink": 32000,
+        }
+        budget = token_budgets.get(depth, 2000)
+
+        guidance = {
+            "quick": "Surface-level analysis. Focus on obvious issues only. Be concise.",
+            "think": "Structured analysis. Consider component interactions. ~4K token budget.",
+            "think_hard": "Deep architectural analysis. Trace dependencies across modules. ~10K token budget.",
+            "ultrathink": "Maximum depth analysis. Full system-wide impact assessment. ~32K token budget.",
+        }
+        hint = guidance.get(depth, "Standard analysis depth.")
+
+        return f"## Analysis Depth: {depth}\n\nToken budget: {budget}\n{hint}"
+
+    def _build_mode_section(self, max_tokens: int) -> str:
+        """Inject behavioral mode instructions from ZERG_BEHAVIORAL_MODE env var."""
+        import os
+
+        mode = os.environ.get("ZERG_BEHAVIORAL_MODE", "")
+        if not mode or mode == "precision":
+            return ""
+
+        mode_instructions = {
+            "speed": "Prioritize fast delivery. Minimal validation. Skip non-essential checks.",
+            "exploration": "Explore alternatives. Consider multiple approaches before implementing.",
+            "refactor": "Focus on code quality. Improve structure, naming, and patterns.",
+            "debug": "Systematic debugging. Trace root causes. Add diagnostic logging.",
+        }
+        instruction = mode_instructions.get(mode, "")
+        if not instruction:
+            return ""
+
+        return f"## Behavioral Mode: {mode}\n\n{instruction}"
+
+    def _build_tdd_section(self, max_tokens: int) -> str:
+        """Inject TDD enforcement workflow from ZERG_TDD_MODE env var."""
+        import os
+
+        tdd = os.environ.get("ZERG_TDD_MODE", "")
+        if tdd != "1":
+            return ""
+
+        return (
+            "## TDD Enforcement\n\n"
+            "Follow RED \u2192 GREEN \u2192 REFACTOR workflow strictly:\n"
+            "1. **RED**: Write a failing test first that captures the requirement\n"
+            "2. **GREEN**: Write minimal code to make the test pass\n"
+            "3. **REFACTOR**: Clean up while keeping tests green\n\n"
+            "Do NOT write implementation code before tests exist."
+        )
+
+    def _build_efficiency_section(self) -> str:
+        """Inject token efficiency hints from ZERG_COMPACT_MODE env var."""
+        import os
+
+        compact = os.environ.get("ZERG_COMPACT_MODE", "")
+        if compact != "1":
+            return ""
+
+        return (
+            "## Token Efficiency\n\n"
+            "Compact mode is active. Minimize token usage:\n"
+            "- Use concise variable names in explanations\n"
+            "- Skip verbose comments on obvious code\n"
+            "- Prefer bullet points over paragraphs\n"
+            "- Omit redundant type annotations in documentation"
+        )
 
     def _build_rules_section(self, file_paths: list[str], max_tokens: int) -> str:
         """Inject engineering rules relevant to the task files.
@@ -225,6 +332,7 @@ class ContextEngineeringPlugin(ContextPlugin):
         """
         try:
             from zerg.mcp_router import MCPRouter
+            import os
 
             router = MCPRouter()
             file_paths = self._collect_task_files(task)
@@ -232,9 +340,13 @@ class ContextEngineeringPlugin(ContextPlugin):
                 {Path(f).suffix for f in file_paths if Path(f).suffix}
             )
 
+            # Use resolved depth tier if available
+            depth_tier = os.environ.get("ZERG_ANALYSIS_DEPTH")
+
             decision = router.route(
                 task_description=task.get("description", ""),
                 file_extensions=extensions,
+                depth_tier=depth_tier,
             )
 
             if decision.recommended_servers:

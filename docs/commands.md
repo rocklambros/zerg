@@ -61,9 +61,11 @@ Mutually exclusive flags controlling analysis depth:
 
 ### Output & Efficiency
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--uc` | `--compact` | Ultra-compressed token-efficient output |
+| Flag | Description |
+|------|-------------|
+| `--no-compact` | Disable compact output (compact is ON by default) |
+
+> **Note**: `--uc` and `--compact` are deprecated. Compact output is now enabled by default. Use `--no-compact` to disable it.
 
 ### Behavioral Mode
 
@@ -77,6 +79,15 @@ Mutually exclusive flags controlling analysis depth:
 |------|-------------|
 | `--mcp` | Enable MCP auto-routing (default) |
 | `--no-mcp` | Disable all MCP server recommendations |
+
+### Improvement Loops
+
+| Flag | Description |
+|------|-------------|
+| `--no-loop` | Disable improvement loops (loops are ON by default) |
+| `--iterations N` | Set max loop iterations (overrides config default) |
+
+> **Note**: `--loop` is deprecated. Improvement loops are now enabled by default. Use `--no-loop` to disable them.
 
 ### TDD Enforcement
 

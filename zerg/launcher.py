@@ -36,6 +36,14 @@ ALLOWED_ENV_VARS = {
     "ZERG_ANALYSIS_DEPTH",
     "ZERG_COMPACT_MODE",
     "ZERG_MCP_HINT",
+    "ZERG_TOKEN_BUDGET",
+    "ZERG_BEHAVIORAL_MODE",
+    "ZERG_TDD_MODE",
+    "ZERG_RULES_ENABLED",
+    "ZERG_LOOP_ENABLED",
+    "ZERG_LOOP_ITERATIONS",
+    "ZERG_VERIFICATION_GATES",
+    "ZERG_STALENESS_THRESHOLD",
     # Claude Code cross-session coordination
     "CLAUDE_CODE_TASK_LIST_ID",
     # Common development env vars
