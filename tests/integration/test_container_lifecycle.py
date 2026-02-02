@@ -225,13 +225,11 @@ class TestContainerSpawn:
         assert result.success is False
 
     @patch("subprocess.run")
-    def test_spawn_validates_env(self, mock_run, tmp_path: Path) -> None:
+    @patch.object(ContainerLauncher, "_verify_worker_process", return_value=True)
+    @patch.object(ContainerLauncher, "_wait_ready", return_value=True)
+    def test_spawn_validates_env(self, mock_wait, mock_verify, mock_run, tmp_path: Path) -> None:
         """Test spawn validates environment variables."""
-        mock_run.side_effect = [
-            MagicMock(returncode=0, stdout="container123\n"),
-            MagicMock(returncode=0, stdout="true\n"),
-            MagicMock(returncode=0),
-        ]
+        mock_run.return_value = MagicMock(returncode=0, stdout="container123\n")
 
         launcher = ContainerLauncher()
 
@@ -243,9 +241,10 @@ class TestContainerSpawn:
             env={"LD_PRELOAD": "/evil.so", "ZERG_CUSTOM": "ok"},  # LD_PRELOAD should be blocked
         )
 
-        # Check that LD_PRELOAD was not passed to docker
-        docker_run_call = mock_run.call_args_list[0]
-        cmd = docker_run_call[0][0]
+        # Find the docker run call (skip the docker rm -f call)
+        docker_calls = [c for c in mock_run.call_args_list if "rm" not in str(c)]
+        assert len(docker_calls) > 0
+        cmd = docker_calls[0][0][0]
         cmd_str = " ".join(cmd)
         assert "LD_PRELOAD" not in cmd_str
 

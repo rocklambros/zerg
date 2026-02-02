@@ -179,7 +179,8 @@ class TestMergeConflictRecovery:
         merge_result.error = "Merge conflict in src/auth.py"
         merge.full_merge_flow.return_value = merge_result
 
-        with patch("zerg.orchestrator.MergeCoordinator", return_value=merge):
+        with patch("zerg.orchestrator.MergeCoordinator", return_value=merge), \
+             patch("zerg.level_coordinator.time.sleep"):
             orch = Orchestrator("recovery-test")
             orch._spawn_worker(0)
             orch._on_level_complete_handler(1)

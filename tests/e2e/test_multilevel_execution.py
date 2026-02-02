@@ -197,12 +197,13 @@ class TestLevelProgression:
         mock_orchestrator_deps["merge"].full_merge_flow.return_value.success = False
         mock_orchestrator_deps["merge"].full_merge_flow.return_value.error = "Conflict"
 
-        orch = Orchestrator("multilevel-test")
-        orch._spawn_worker(0)
-        orch._on_level_complete_handler(1)
+        with patch("zerg.level_coordinator.time.sleep"):
+            orch = Orchestrator("multilevel-test")
+            orch._spawn_worker(0)
+            orch._on_level_complete_handler(1)
 
-        # Should not advance due to merge failure
-        mock_orchestrator_deps["levels"].advance_level.assert_not_called()
+            # Should not advance due to merge failure
+            mock_orchestrator_deps["levels"].advance_level.assert_not_called()
 
 
 class TestTaskDependencies:
