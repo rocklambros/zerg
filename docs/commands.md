@@ -124,7 +124,7 @@ ZERG automatically fetches stack-specific security rules from [TikiTribe/claude-
 
 ### /zerg:brainstorm
 
-Open-ended feature discovery through competitive research, Socratic questioning, and automated GitHub issue creation.
+Open-ended feature discovery through competitive research, Socratic questioning, and automated GitHub issue creation. Supports both batch questioning (multiple questions per round) and single-question Socratic mode with domain-specific question trees.
 
 **When to use**: Before `/zerg:plan`, when you don't yet know what feature to build or want to explore the competitive landscape. Brainstorm produces prioritized GitHub issues; plan takes one of those issues and captures detailed requirements.
 
@@ -132,6 +132,7 @@ Open-ended feature discovery through competitive research, Socratic questioning,
 
 ```bash
 /zerg:brainstorm mobile-app-features
+/zerg:brainstorm user-auth --socratic
 /zerg:brainstorm --skip-research
 /zerg:brainstorm --rounds 5 --dry-run
 ```
@@ -141,6 +142,7 @@ Open-ended feature discovery through competitive research, Socratic questioning,
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
 | `--rounds N` | | Number of Socratic discovery rounds | `3` |
+| `--socratic` | | Enable single-question Socratic mode with domain question trees | off |
 | `--skip-research` | | Skip competitive analysis web research | off |
 | `--skip-issues` | | Ideate only, don't create GitHub issues | off |
 | `--dry-run` | | Preview issues without creating them | off |
@@ -149,9 +151,12 @@ Open-ended feature discovery through competitive research, Socratic questioning,
 #### Workflow
 
 1. **Research** — WebSearch for competitors, market gaps, trends (3-5 queries)
-2. **Socratic Discovery** — 3 rounds of structured questions (problem → solution → prioritization)
-3. **Issue Generation** — Creates GitHub issues with acceptance criteria and priority labels
-4. **Handoff** — Presents ranked recommendations and suggests `/z:plan` for the top pick
+2. **Socratic Discovery** — Structured questioning with dynamic question count and saturation detection. In batch mode, asks multiple questions per round. In `--socratic` mode, asks one question at a time drawn from 6 domain question trees (Auth, API, Data Pipeline, UI/Frontend, Infrastructure, General).
+3. **Trade-off Exploration** — Surfaces key trade-offs (build vs buy, consistency vs availability, etc.) and asks the user to state preferences. Runs in both batch and socratic modes.
+4. **Design Validation** — Validates proposed architecture against stated requirements and constraints, flagging contradictions or gaps. Runs in both batch and socratic modes.
+5. **YAGNI Gate** — Reviews all captured requirements and challenges each one: "Do you need this for MVP?" Prunes speculative features before handoff. Runs in both batch and socratic modes.
+6. **Issue Generation** — Creates GitHub issues with acceptance criteria and priority labels
+7. **Handoff** — Presents ranked recommendations and suggests `/z:plan` for the top pick
 
 #### What Gets Created
 

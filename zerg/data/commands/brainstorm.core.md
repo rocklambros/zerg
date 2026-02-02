@@ -10,6 +10,7 @@ Discover opportunities and generate actionable GitHub issues for domain: **$ARGU
 - `--skip-issues`: Ideate only, don't create GitHub issues
 - `--dry-run`: Preview issues without creating them
 - `--resume`: Resume previous session from checkpoint
+- `--socratic`: Enable single-question Socratic mode with domain question trees (default: batch mode)
 - `--help`: Show usage
 
 ## Pre-Flight
@@ -91,27 +92,58 @@ If `--skip-research` is set, skip this phase entirely.
 
 ### Phase 2: Socratic Discovery
 
-Conduct structured discovery via AskUserQuestion. Batch 3-4 questions per round to reduce back-and-forth.
+**Batch Mode** (default): Conduct structured discovery via AskUserQuestion. Batch 3-4 questions per round to reduce back-and-forth. Default: 3 rounds. Override with `--rounds N` (max 5). See details file for round templates.
 
-Default: 3 rounds. Override with `--rounds N` (max 5).
+**Socratic Mode** (`--socratic`): Single-question interactive mode with domain question trees.
 
-**Round 1: Problem Space**
-Ask 3-4 questions about problems, users, and inadequacies in current solutions.
-See details file for question templates.
+1. **Domain Detection**: Match $ARGUMENTS keywords to question tree:
+   - auth/login/session/jwt/oauth/password/token/2fa → Auth & Authorization tree
+   - api/rest/graphql/endpoint/route/http → API Design tree
+   - data/pipeline/etl/streaming/batch/warehouse → Data Pipeline tree
+   - ui/frontend/react/vue/angular/component/css → UI/Frontend tree
+   - infra/deploy/ci/cd/docker/kubernetes/cloud → Infrastructure tree
+   - (no match) → General tree
 
-**Round 2: Solution Ideation**
-Ask 3-4 questions about features, value/effort tradeoffs, and constraints.
-See details file for question templates.
+2. **Question Loop**: Present questions one at a time via AskUserQuestion (multiSelect: false). Show "Question N of ~M" in header. If user picks a tree option, follow that branch. If user picks "Other" or tree is exhausted, generate LLM follow-up.
 
-**Round 3: Prioritization**
-Ask 3-4 questions about MVP scope, sequencing, dependencies, and success metrics.
-See details file for question templates.
+3. **Saturation Rule**: Stop when 2 consecutive answers introduce zero new entities, constraints, or requirements. Minimum 3 questions before checking. Announce: "Discovery complete — your answers have converged."
 
-Save discovery transcript to `.gsd/specs/{session-id}/transcript.md`.
+Save discovery transcript to `.gsd/specs/{session-id}/transcript.md`. After each round/question, save checkpoint.
 
-After each round, save a checkpoint to `.gsd/specs/{session-id}/.checkpoint` with the current round number. If `--resume` is set, read the checkpoint and skip completed rounds.
+### Phase 2.5: Trade-off Exploration
+
+Runs in both batch and socratic modes. For each architectural decision identified during discovery:
+
+1. Present 2-3 alternatives via AskUserQuestion, each with one-line pro and one-line con
+2. Record chosen approach and reasoning
+3. Skip if no architectural decisions were identified
+
+Save trade-off outcomes to `.gsd/specs/{session-id}/tradeoffs.md`.
+
+### Phase 2.6: Design Validation
+
+Runs in both modes. 4 validation checkpoints via AskUserQuestion:
+
+1. **Scope**: "Does this scope match your vision?" → Confirmed / Revise / Add
+2. **Entities**: "Are these the right data models?" → Confirmed / Revise / Add
+3. **Workflows**: "Do these user flows cover your needs?" → Confirmed / Revise / Add
+4. **NFRs**: "Are these non-functional requirements correct?" → Confirmed / Revise / Add
+
+If user selects "Revise" or "Add" at checkpoint N, regenerate checkpoints N+1..4 with updated context. Save to `.gsd/specs/{session-id}/validated-design.md`.
+
+### Phase 2.7: YAGNI Gate
+
+Runs in both modes. Present all identified features via AskUserQuestion (multiSelect: true):
+
+- Header: "YAGNI Gate"
+- Question: "Which features should be built now? Unselected items will be deferred."
+- Options: Each identified feature with one-line description
+
+Kept features → proceed to Phase 3. Dropped features → logged in `.gsd/specs/{session-id}/deferred.md`.
 
 ### Phase 3: Issue Generation
+
+Apply YAGNI filter: only generate issues for features that passed the YAGNI Gate (Phase 2.7).
 
 For each identified feature/opportunity, create a GitHub issue via `gh issue create`.
 
@@ -145,6 +177,7 @@ Present ranked recommendations:
 - **Scoped loading**: Load PROJECT.md first, codebase only if relevant
 - **Session resumability**: State saved after each phase via checkpoint files
 - **Question batching**: 3-4 questions per AskUserQuestion call to minimize round-trips
+- **Socratic mode**: Single-question flow with domain trees, saturation detection, and dynamic follow-ups
 
 ## Completion Criteria
 
@@ -170,10 +203,12 @@ Flags:
   --skip-issues         Ideate only, don't create GitHub issues
   --dry-run             Preview issues without creating them
   --resume              Resume previous session from checkpoint
+  --socratic            Single-question mode with domain question trees
   --help                Show this help message
 
 Examples:
   /zerg:brainstorm user-authentication
   /zerg:brainstorm payment-processing --rounds 5
   /zerg:brainstorm api-redesign --skip-research --dry-run
+  /zerg:brainstorm user-auth --socratic
 ```

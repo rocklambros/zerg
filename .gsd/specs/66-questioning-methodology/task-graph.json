@@ -1,0 +1,299 @@
+{
+  "feature": "66-questioning-methodology",
+  "version": "2.0",
+  "generated": "2026-02-01T22:15:00Z",
+  "total_tasks": 13,
+  "max_parallelization": 8,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add --socratic flag and dual-mode Phase 2 to core.md",
+      "description": "Modify brainstorm.core.md: (1) Add --socratic flag to Flags section after line 7. (2) Replace Phase 2 Socratic Discovery (lines 92-112) with dual-mode section: batch mode stub (4 lines referencing existing round templates unchanged) + socratic mode block with methodology explanation, domain detection (match keywords: auth/login/session/jwt → auth tree, api/rest/graphql/endpoint → api tree, data/pipeline/etl/streaming → data tree, ui/frontend/react/vue/component → ui tree, infra/deploy/ci/docker/cloud → infra tree, else → general tree), question loop using AskUserQuestion(multiSelect:false) showing 'Question N of ~M', hybrid branching (tree question if available, LLM follow-up if 'Other' or tree exhausted), saturation rule (2 consecutive answers with zero new entities/constraints/requirements → stop, minimum 3 questions). (3) Add Phase 2.5 Trade-off Exploration (~15 lines): runs in both modes, present 2-3 alternatives per architectural decision via AskUserQuestion, skip if none identified. (4) Add Phase 2.6 Design Validation (~18 lines): 4 checkpoints (Scope/Entities/Workflows/NFRs) each via AskUserQuestion with Confirmed/Revise/Add options, revision at N regenerates N+1..4, save to validated-design.md. (5) Add Phase 2.7 YAGNI Gate (~12 lines): AskUserQuestion with multiSelect:true, all features listed, kept→Phase 3, dropped→logged as Deferred. (6) Update Phase 3 to add YAGNI filter line. (7) Add --socratic to Help section. (8) Add socratic mode bullet to Context Management. CRITICAL: Keep total ≤ 300 lines. Current: 180, budget: +120 lines.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.core.md"],
+        "read": ["zerg/data/commands/brainstorm.details.md"]
+      },
+      "verification": {
+        "command": "test $(wc -l < zerg/data/commands/brainstorm.core.md) -le 300 && grep -q 'socratic' zerg/data/commands/brainstorm.core.md && grep -q 'TaskCreate' zerg/data/commands/brainstorm.core.md && grep -q 'YAGNI' zerg/data/commands/brainstorm.core.md && echo PASS || echo FAIL",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["markdown", "prompt-engineering"],
+      "context": "## Spec Context\nThis task modifies the behavioral flow of /zerg:brainstorm. The core.md file is what Claude Code interprets as slash command instructions. It must contain TaskCreate/TaskUpdate calls for the Claude Task ecosystem. The --socratic flag is opt-in; batch mode (default) must remain unchanged. Trade-offs, validation, and YAGNI gate run in BOTH modes.\n\n## Dependencies\nNone — this is a Level 1 foundation task.\n\n## Constraints\n- File must stay ≤ 300 lines (currently 180)\n- Must preserve <!-- SPLIT: core, parent: brainstorm.md --> header on line 1\n- Must preserve TaskCreate/TaskUpdate section (lines 55-74)\n- Must preserve Pre-Flight bash block (lines 15-51)\n- Phase 1 Research section unchanged (lines 79-90)\n- Phase 4 Handoff section unchanged (lines 133-138)"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Write 6 domain question trees",
+      "description": "Create .gsd/specs/66-questioning-methodology/question-trees.md containing 6 Socratic question trees for --socratic mode. Each tree: 5-8 questions, 3-5 depth levels, 2-4 options per question with one-line descriptions plus implicit Other. Use branch IDs (Q1, Q2a, Q2b, etc.) to link options to next questions.\n\nDomains:\n1. Auth & Authorization: login type → session management → storage → security level. Keywords: auth, login, session, jwt, oauth, password, token, 2fa\n2. API Design: style → versioning → pagination → auth method. Keywords: api, rest, graphql, endpoint, route, http\n3. Data Pipeline: processing model → sources → transformation → storage. Keywords: data, pipeline, etl, streaming, batch, warehouse, analytics\n4. UI/Frontend: framework → rendering → state management → design system. Keywords: ui, frontend, react, vue, angular, component, css, design\n5. Infrastructure: hosting → CI/CD → monitoring → scaling. Keywords: infra, deploy, ci, cd, docker, kubernetes, cloud, aws, gcp\n6. General: problem type → scope → users → constraints. Keywords: (fallback for unmatched domains)\n\nEach tree should be 25-30 lines. Total ~170 lines.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".gsd/specs/66-questioning-methodology/question-trees.md"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "test -f .gsd/specs/66-questioning-methodology/question-trees.md && grep -c '### Domain:' .gsd/specs/66-questioning-methodology/question-trees.md | grep -q '6' && echo PASS || echo FAIL",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["markdown", "domain-knowledge"],
+      "context": "## Spec Context\nThese question trees power the --socratic mode of /zerg:brainstorm. When a user runs /zerg:brainstorm user-auth --socratic, domain detection matches 'auth' keyword to the Auth tree, and the system asks Q1 from that tree. Based on the user's answer (option a/b/c), it follows the branch to Q2a/Q2b/Q2c. If user picks 'Other', the LLM generates a dynamic follow-up.\n\nThe trees are written to an intermediate file here and will be appended to brainstorm.details.md by TASK-005.\n\n## Quality Standards\n- Questions should be genuinely useful for requirements discovery\n- Options should cover the most common 3-4 choices plus Other\n- Descriptions should highlight the key trade-off or implication of each choice\n- Trees should converge (depth 3-5), not branch infinitely"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Write trade-off, validation, YAGNI, and saturation templates",
+      "description": "Create .gsd/specs/66-questioning-methodology/new-templates.md containing 5 new template sections for brainstorm.details.md:\n\n1. **Saturation Detection** (~15 lines): Definition (2 consecutive answers introducing zero new entities, constraints, or requirements). Signal phrases: 'that's about it', 'nothing else', 'same as before', confirmations of prior points. Rule: minimum 3 questions before checking. Announce: 'Discovery complete -- your answers have converged.'\n\n2. **Trade-off Round Templates** (~40 lines): AskUserQuestion format template for presenting alternatives. Each option has label + one-line pro + one-line con. Common trade-offs table by domain.\n\n3. **Validation Checkpoint Templates** (~50 lines): 4 checkpoint format blocks with Confirmed/Revise/Add options. Include validated-design.md output schema.\n\n4. **YAGNI Gate Template** (~25 lines): AskUserQuestion format with multiSelect:true. Deferred feature log entry schema.\n\n5. **Updated Transcript Template** (~15 lines): Socratic mode Q&A format, trade-off outcomes, validation results, YAGNI gate results.\n\nTotal: ~145 lines.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".gsd/specs/66-questioning-methodology/new-templates.md"],
+        "modify": [],
+        "read": ["zerg/data/commands/brainstorm.details.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/specs/66-questioning-methodology/new-templates.md && grep -q 'Saturation' .gsd/specs/66-questioning-methodology/new-templates.md && grep -q 'YAGNI' .gsd/specs/66-questioning-methodology/new-templates.md && grep -q 'Trade-off' .gsd/specs/66-questioning-methodology/new-templates.md && echo PASS || echo FAIL",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["markdown", "prompt-engineering"],
+      "context": "## Spec Context\nThese templates provide the reference material for new brainstorm phases. They'll be appended to brainstorm.details.md by TASK-005.\n\nThe templates must match AskUserQuestion tool API: questions array with header, question, options (label + description), multiSelect boolean.\n\nTrade-offs, validation, and YAGNI gate run in BOTH batch and socratic modes."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Update CHANGELOG.md",
+      "description": "Add entry under [Unreleased] → Added section for all 5 features with issue references #69-#73.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'socratic' CHANGELOG.md && grep -q 'YAGNI' CHANGELOG.md && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-005",
+      "title": "Assemble brainstorm.details.md with new content",
+      "description": "Append question trees (from TASK-002) and new templates (from TASK-003) into zerg/data/commands/brainstorm.details.md. Insert trees after line 159 with section header. Insert templates after trees. Update transcript template. Do NOT modify existing Research, Round 1/2/3, Issue Template, or Output Schema sections.",
+      "phase": "assembly",
+      "level": 2,
+      "dependencies": ["TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.details.md"],
+        "read": [
+          ".gsd/specs/66-questioning-methodology/question-trees.md",
+          ".gsd/specs/66-questioning-methodology/new-templates.md"
+        ]
+      },
+      "verification": {
+        "command": "grep -q 'Socratic Question Trees' zerg/data/commands/brainstorm.details.md && grep -q 'Saturation Detection' zerg/data/commands/brainstorm.details.md && grep -q 'YAGNI Gate' zerg/data/commands/brainstorm.details.md && echo PASS || echo FAIL",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-006",
+      "title": "Mirror core.md to brainstorm.md",
+      "description": "Copy exact content of brainstorm.core.md to brainstorm.md, excluding the SPLIT header on line 1.",
+      "phase": "assembly",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.md"],
+        "read": ["zerg/data/commands/brainstorm.core.md"]
+      },
+      "verification": {
+        "command": "diff <(tail -n +2 zerg/data/commands/brainstorm.core.md) <(tail -n +1 zerg/data/commands/brainstorm.md) && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-008",
+      "title": "Update docs/commands.md brainstorm section",
+      "description": "Update docs/commands.md brainstorm section (lines ~125-168): Add --socratic flag to flags table. Add new workflow phases (Trade-off Exploration, Design Validation, YAGNI Gate). Add usage example with --socratic. Mention dynamic question count, saturation detection, 6 domain trees. Note trade-offs/validation/YAGNI run in both modes.",
+      "phase": "documentation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["docs/commands.md"],
+        "read": ["zerg/data/commands/brainstorm.core.md"]
+      },
+      "verification": {
+        "command": "grep -q 'socratic' docs/commands.md && grep -q 'YAGNI' docs/commands.md && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "documentation"]
+    },
+    {
+      "id": "TASK-009",
+      "title": "Update wiki Command-brainstorm.md",
+      "description": "Update .zerg/wiki/Command-brainstorm.md (full page rewrite ~100 lines): Add --socratic flag to options table. Expand workflow phases to include Socratic Discovery, Trade-off Exploration, Design Validation, YAGNI Gate. Add domain question trees section (6 domains). Add --socratic usage examples. Update completion criteria. Mention saturation detection.",
+      "phase": "documentation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [".zerg/wiki/Command-brainstorm.md"],
+        "read": ["zerg/data/commands/brainstorm.core.md"]
+      },
+      "verification": {
+        "command": "grep -q 'socratic' .zerg/wiki/Command-brainstorm.md && grep -q 'YAGNI' .zerg/wiki/Command-brainstorm.md && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "documentation"]
+    },
+    {
+      "id": "TASK-010",
+      "title": "Update wiki Command-Reference.md index",
+      "description": "Update .zerg/wiki/Command-Reference.md: Update command index table entry for brainstorm to mention --socratic mode. Update description in categories section.",
+      "phase": "documentation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [".zerg/wiki/Command-Reference.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'socratic' .zerg/wiki/Command-Reference.md && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-011",
+      "title": "Update README.md brainstorm entry",
+      "description": "Update README.md: Add --socratic to Quick Start comment (line ~11). Update command table description (line ~407-408) to mention --socratic and enhanced questioning.",
+      "phase": "documentation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["README.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'socratic' README.md && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-012",
+      "title": "Update wiki Quick-Start.md brainstorm section",
+      "description": "Update .zerg/wiki/Quick-Start.md brainstorm section (lines ~60-77): Add --socratic to command example. Mention single-question mode with structured options. Briefly describe enhanced pipeline.",
+      "phase": "documentation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [".zerg/wiki/Quick-Start.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'socratic' .zerg/wiki/Quick-Start.md && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-013",
+      "title": "Update wiki Getting-Started.md brainstorm entry",
+      "description": "Update .zerg/wiki/Getting-Started.md brainstorm entry (line ~28): Update overview table to mention --socratic mode. Keep brief.",
+      "phase": "documentation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [".zerg/wiki/Getting-Started.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'socratic' .zerg/wiki/Getting-Started.md && echo PASS || echo FAIL",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-007",
+      "title": "Validate all constraints and run drift checks",
+      "description": "Run all validation checks:\n1. python -m zerg.validate_commands — must pass\n2. wc -l core.md ≤ 300\n3. diff core.md vs brainstorm.md — must match\n4. grep TaskCreate/TaskUpdate in core.md ≥ 2\n5. grep --socratic in all doc files\n6. grep 6 domain trees in details.md\n7. Verify batch mode sections preserved\n8. Clean up intermediate files (question-trees.md, new-templates.md)\n\nIf any check fails, fix and re-verify.",
+      "phase": "validation",
+      "level": 3,
+      "dependencies": ["TASK-004", "TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": [
+          "zerg/data/commands/brainstorm.core.md",
+          "zerg/data/commands/brainstorm.details.md",
+          "zerg/data/commands/brainstorm.md",
+          "CHANGELOG.md",
+          "README.md",
+          "docs/commands.md",
+          ".zerg/wiki/Command-brainstorm.md",
+          ".zerg/wiki/Command-Reference.md",
+          ".zerg/wiki/Quick-Start.md",
+          ".zerg/wiki/Getting-Started.md"
+        ]
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands && test $(wc -l < zerg/data/commands/brainstorm.core.md) -le 300 && diff <(tail -n +2 zerg/data/commands/brainstorm.core.md) <(tail -n +1 zerg/data/commands/brainstorm.md) > /dev/null && for f in README.md docs/commands.md .zerg/wiki/Command-brainstorm.md .zerg/wiki/Command-Reference.md .zerg/wiki/Quick-Start.md .zerg/wiki/Getting-Started.md; do grep -q 'socratic' \"$f\" || { echo \"FAIL: $f missing socratic\"; exit 1; }; done && echo ALL_PASS || echo SOME_FAILED",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["bash", "validation"]
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "parallel": true
+    },
+    "2": {
+      "name": "assembly + documentation",
+      "tasks": ["TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013"],
+      "parallel": true,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "validation",
+      "tasks": ["TASK-007"],
+      "parallel": false,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — each file owned by exactly one task",
+    "conflicts": []
+  }
+}

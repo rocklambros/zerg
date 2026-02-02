@@ -1,0 +1,44 @@
+{
+  "epic": {
+    "number": 66,
+    "title": "Enhance /zerg:brainstorm questioning methodology",
+    "url": "https://github.com/rocklambros/zerg/issues/66"
+  },
+  "sub_issues": [
+    {
+      "number": 69,
+      "title": "feat(brainstorm): single-question --socratic mode with AskUserQuestion",
+      "level": 1,
+      "depends_on": [],
+      "url": "https://github.com/rocklambros/zerg/issues/69"
+    },
+    {
+      "number": 70,
+      "title": "feat(brainstorm): hybrid adaptive questioning (tree + LLM fallback)",
+      "level": 2,
+      "depends_on": [69],
+      "url": "https://github.com/rocklambros/zerg/issues/70"
+    },
+    {
+      "number": 71,
+      "title": "feat(brainstorm): dedicated trade-off exploration round",
+      "level": 2,
+      "depends_on": [69],
+      "url": "https://github.com/rocklambros/zerg/issues/71"
+    },
+    {
+      "number": 72,
+      "title": "feat(brainstorm): incremental design validation with 4 checkpoints",
+      "level": 2,
+      "depends_on": [71],
+      "url": "https://github.com/rocklambros/zerg/issues/72"
+    },
+    {
+      "number": 73,
+      "title": "feat(brainstorm): binary YAGNI gate before issue generation",
+      "level": 3,
+      "depends_on": [72],
+      "url": "https://github.com/rocklambros/zerg/issues/73"
+    }
+  ]
+}

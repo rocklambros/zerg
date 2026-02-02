@@ -17,7 +17,7 @@ During execution, use `stop` to halt workers, `retry` to re-run failed tasks, an
 | Command | Purpose | Phase |
 |---------|---------|-------|
 | [[/zerg:init|Command-init]] | Initialize ZERG for a new or existing project | Setup |
-| [[/zerg:brainstorm|Command-brainstorm]] | Feature discovery and GitHub issue creation | Planning |
+| [[/zerg:brainstorm|Command-brainstorm]] | Feature discovery with Socratic dialogue, `--socratic` mode, trade-off exploration, and YAGNI filtering | Planning |
 | [[/zerg:plan|Command-plan]] | Capture requirements for a feature | Planning |
 | [[/zerg:design|Command-design]] | Generate architecture and task graph for parallel execution | Design |
 | [[/zerg:rush|Command-rush]] | Launch parallel workers to execute the task graph | Execution |
@@ -51,7 +51,7 @@ During execution, use `stop` to halt workers, `retry` to re-run failed tasks, an
 
 ### Planning and Design
 
-- **[[/zerg:brainstorm|Command-brainstorm]]** -- Open-ended feature discovery through competitive research, Socratic questioning, and automated issue creation.
+- **[[/zerg:brainstorm|Command-brainstorm]]** -- Open-ended feature discovery through competitive research, Socratic questioning with `--socratic` mode, trade-off exploration, YAGNI filtering, and automated issue creation.
 - **[[/zerg:plan|Command-plan]]** -- Interactive requirements gathering. Produces `requirements.md` in the spec directory.
 - **[[/zerg:design|Command-design]]** -- Generates `design.md` and `task-graph.json`. Breaks work into parallelizable tasks with exclusive file ownership.
 

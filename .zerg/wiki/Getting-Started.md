@@ -25,7 +25,7 @@ ZERG turns a feature request into parallel work by following a strict pipeline:
 
 | Stage | Command | Output |
 |-------|---------|--------|
-| 0. Brainstorm (optional) | `/zerg:brainstorm` | GitHub issues |
+| 0. Brainstorm (optional) | `/zerg:brainstorm` (--socratic mode) | GitHub issues |
 | 1. Plan | `/zerg:plan <feature>` | `requirements.md` |
 | 2. Design | `/zerg:design` | `design.md` + `task-graph.json` |
 | 3. Rush | `/zerg:rush --workers=N` | Parallel worker sessions |

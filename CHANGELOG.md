@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `git.core.md` and `git.details.md` command file split for context engineering
 - 402 new tests across 12 test files for the git package
 - `ship` action for `/zerg:git`: full delivery pipeline (commit → push → PR → merge → cleanup) with `--no-merge` flag
+- `--socratic` flag for `/zerg:brainstorm`: single-question interactive mode with 6 domain question trees, dynamic follow-ups, and saturation detection (#69)
+- Trade-off Exploration phase (Phase 2.5): present architectural alternatives with pros/cons via AskUserQuestion (#70)
+- Design Validation phase (Phase 2.6): 4-checkpoint validation loop (Scope, Entities, Workflows, NFRs) with revision support (#71)
+- YAGNI Gate phase (Phase 2.7): multi-select feature filter to defer non-essential scope before issue generation (#72)
+- 6 Socratic domain question trees: Auth, API Design, Data Pipeline, UI/Frontend, Infrastructure, General (#73)
 
 ### Changed
 

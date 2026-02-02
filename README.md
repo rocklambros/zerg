@@ -103,6 +103,7 @@ These are Claude Code slash commands. Use them inside a Claude Code session:
 
 ```
 /zerg:init                         # Set up project infrastructure
+/zerg:brainstorm                   # Feature discovery (add --socratic for enhanced questioning)
 /zerg:plan user-auth               # Plan a feature — capture requirements
 /zerg:design                       # Design architecture and task graph
 /zerg:rush --workers=5             # Launch the swarm
@@ -404,7 +405,7 @@ ZERG provides 26 slash commands organized into five categories. See the [Command
 | Command | Purpose |
 |---------|---------|
 | `/zerg:init` | Initialize ZERG for a project (Inception or Discovery mode) |
-| `/zerg:brainstorm` | Feature discovery, competitive analysis, and issue creation |
+| `/zerg:brainstorm` | Feature discovery with interactive questioning (--socratic for enhanced Socratic methodology) |
 | `/zerg:plan <feature>` | Capture requirements for a feature |
 | `/zerg:design` | Generate architecture and task graph |
 | `/zerg:rush` | Launch parallel zerglings to execute tasks |
