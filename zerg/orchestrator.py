@@ -19,11 +19,13 @@ from typing import Any
 
 from zerg.assign import WorkerAssignment
 from zerg.backpressure import BackpressureController
+from zerg.capability_resolver import ResolvedCapabilities
 from zerg.circuit_breaker import CircuitBreaker
 from zerg.config import ZergConfig
 from zerg.context_plugin import ContextEngineeringPlugin
 from zerg.plugin_config import ContextEngineeringConfig
 from zerg.constants import (
+    GateResult,
     LOGS_TASKS_DIR,
     LOGS_WORKERS_DIR,
     PluginHookEvent,
@@ -43,6 +45,7 @@ from zerg.launcher import (
 from zerg.launcher_configurator import LauncherConfigurator
 from zerg.level_coordinator import LevelCoordinator
 from zerg.levels import LevelController
+from zerg.loops import LoopController
 from zerg.log_writer import StructuredLogWriter
 from zerg.logging import get_logger, setup_structured_logging
 from zerg.merge import MergeCoordinator, MergeFlowResult
@@ -80,6 +83,7 @@ class Orchestrator:
         config: ZergConfig | None = None,
         repo_path: str | Path = ".",
         launcher_mode: str | None = None,
+        capabilities: ResolvedCapabilities | None = None,
     ) -> None:
         """Initialize orchestrator.
 
@@ -88,11 +92,13 @@ class Orchestrator:
             config: ZERG configuration
             repo_path: Path to git repository
             launcher_mode: Launcher mode (subprocess, container, auto)
+            capabilities: Resolved cross-cutting capabilities for worker env injection
         """
         self.feature = feature
         self.config = config or ZergConfig.load()
         self.repo_path = Path(repo_path).resolve()
         self._launcher_mode = launcher_mode
+        self._capabilities = capabilities
 
         # Initialize plugin registry first (needed by other components)
         self._plugin_registry = PluginRegistry()
@@ -213,6 +219,7 @@ class Orchestrator:
             on_task_failure=self._retry_manager.handle_task_failure,
             structured_writer=self._structured_writer,
             circuit_breaker=self._circuit_breaker,
+            capabilities=self._capabilities,
         )
         self._level_coord = LevelCoordinator(
             feature=self.feature,
@@ -229,6 +236,19 @@ class Orchestrator:
             structured_writer=self._structured_writer,
             backpressure=self._backpressure,
         )
+
+        # Create loop controller if capabilities enable it
+        self._loop_controller: LoopController | None = None
+        if self._capabilities and self._capabilities.loop_enabled:
+            loop_config = self.config.improvement_loops
+            self._loop_controller = LoopController(
+                max_iterations=self._capabilities.loop_iterations,
+                convergence_threshold=loop_config.convergence_threshold,
+                plateau_threshold=loop_config.plateau_threshold,
+            )
+            logger.info(
+                f"Loop controller enabled: max_iterations={self._capabilities.loop_iterations}"
+            )
 
     # ------------------------------------------------------------------
     # Backward-compatible thin wrappers (delegate to components)
@@ -363,7 +383,64 @@ class Orchestrator:
         # Sync paused state back from LevelCoordinator
         if self._level_coord.paused:
             self._paused = True
+
+        # Run improvement loop if enabled and level merge succeeded
+        if result and self._loop_controller is not None:
+            self._run_level_loop(level)
+
         return result
+
+    def _run_level_loop(self, level: int) -> None:
+        """Run improvement loop for a completed level.
+
+        Scores the level by gate pass rate and re-runs if the loop
+        controller determines improvement is still possible.
+
+        Args:
+            level: Level that just completed.
+        """
+
+        def score_level(iteration: int) -> float:
+            """Score current level by running quality gates."""
+            try:
+                all_passed, gate_results = self.gates.run_all_gates(
+                    feature=self.feature, level=level,
+                )
+                if not gate_results:
+                    return 1.0  # No gates configured = perfect score
+                passed = sum(
+                    1 for r in gate_results if r.result == GateResult.PASS
+                )
+                return passed / len(gate_results)
+            except Exception as e:
+                logger.warning(
+                    f"Gate scoring failed in loop iteration {iteration}: {e}"
+                )
+                return 0.0
+
+        # Get initial score
+        initial_score = score_level(0)
+        if initial_score >= 1.0:
+            logger.info(f"Level {level} already at perfect score, skipping loop")
+            return
+
+        logger.info(
+            f"Running improvement loop for level {level} "
+            f"(initial score: {initial_score:.2f})"
+        )
+        summary = self._loop_controller.run(score_level, initial_score=initial_score)
+        logger.info(
+            f"Loop completed: status={summary.status.value}, "
+            f"best_score={summary.best_score:.2f}, "
+            f"iterations={len(summary.iterations)}"
+        )
+        self.state.append_event("loop_completed", {
+            "level": level,
+            "status": summary.status.value,
+            "best_score": summary.best_score,
+            "iterations": len(summary.iterations),
+            "improvement": summary.improvement,
+        })
 
     def _merge_level(self, level: int) -> MergeFlowResult:
         return self._level_coord.merge_level(level)

@@ -162,6 +162,20 @@ def main() -> int:
         if key.startswith("ZERG_"):
             os.environ[key] = value
 
+    # Log cross-cutting capability env vars at startup
+    capability_vars = {
+        k: v for k, v in os.environ.items()
+        if k.startswith("ZERG_") and k not in (
+            "ZERG_WORKER_ID", "ZERG_FEATURE", "ZERG_WORKTREE",
+            "ZERG_BRANCH", "ZERG_TASK_GRAPH", "ZERG_SPEC_DIR",
+            "ZERG_STATE_DIR", "ZERG_LOG_DIR", "ZERG_PORT",
+        )
+    }
+    if capability_vars:
+        print(f"Worker {args.worker_id} capabilities:", file=sys.stderr)
+        for k, v in sorted(capability_vars.items()):
+            print(f"  {k}={v}", file=sys.stderr)
+
     if args.dry_run:
         print(f"Worker {args.worker_id} validated successfully")
         print(f"  Feature: {args.feature}")

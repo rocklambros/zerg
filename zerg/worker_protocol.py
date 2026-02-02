@@ -77,6 +77,13 @@ class WorkerContext:
     branch: str
     context_threshold: float = DEFAULT_CONTEXT_THRESHOLD
 
+    # Cross-cutting capability fields (populated from ZERG_* env vars)
+    depth: str = "standard"
+    compact: bool = True
+    mode: str = "precision"
+    tdd: bool = False
+    mcp_hint: str = ""
+
 
 class WorkerProtocol:
     """Protocol handler for ZERG workers.

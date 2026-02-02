@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.table import Table
 
 from zerg.backlog import update_backlog_task_status
+from zerg.capability_resolver import CapabilityResolver
 from zerg.config import ZergConfig
 from zerg.logging import get_logger, setup_logging
 from zerg.orchestrator import Orchestrator
@@ -154,8 +155,17 @@ def rush(
             console.print("[yellow]Aborted[/yellow]")
             return
 
+        # Resolve cross-cutting capabilities from CLI flags + config + task graph
+        resolver = CapabilityResolver()
+        capabilities = resolver.resolve(
+            cli_flags=ctx.obj,
+            config=config,
+            task_graph=task_data,
+            command="rush",
+        )
+
         # Create orchestrator and start
-        orchestrator = Orchestrator(feature, config, launcher_mode=mode)
+        orchestrator = Orchestrator(feature, config, launcher_mode=mode, capabilities=capabilities)
         launcher_name = type(orchestrator.launcher).__name__
         mode_label = "container (Docker)" if "Container" in launcher_name else "subprocess"
         console.print(f"Launcher mode: [bold]{mode_label}[/bold]")

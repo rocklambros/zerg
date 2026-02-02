@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from zerg.assign import WorkerAssignment
+from zerg.capability_resolver import ResolvedCapabilities
 from zerg.config import ZergConfig
 from zerg.constants import (
     PluginHookEvent,
@@ -59,6 +60,7 @@ class WorkerManager:
         on_task_failure: Callable[[str, int, str], bool] | None = None,
         structured_writer: StructuredLogWriter | None = None,
         circuit_breaker: CircuitBreaker | None = None,
+        capabilities: ResolvedCapabilities | None = None,
     ) -> None:
         """Initialize WorkerManager.
 
@@ -78,6 +80,7 @@ class WorkerManager:
             on_task_failure: Callback for task failure/retry (from TaskRetryManager)
             structured_writer: Optional structured log writer
             circuit_breaker: Optional circuit breaker for worker failure management
+            capabilities: Resolved cross-cutting capabilities for env injection
         """
         self.feature = feature
         self.config = config
@@ -94,6 +97,7 @@ class WorkerManager:
         self._on_task_failure = on_task_failure
         self._structured_writer = structured_writer
         self._circuit_breaker = circuit_breaker
+        self._capabilities = capabilities
         self._running = False
 
     def spawn_worker(self, worker_id: int) -> WorkerState:
@@ -127,12 +131,16 @@ class WorkerManager:
         # Create worktree
         wt_info = self.worktrees.create(self.feature, worker_id)
 
+        # Build capability env vars if resolved capabilities are available
+        capability_env = self._capabilities.to_env_vars() if self._capabilities else None
+
         # Use the unified launcher interface (works for both subprocess and container)
         result = self.launcher.spawn(
             worker_id=worker_id,
             feature=self.feature,
             worktree_path=wt_info.path,
             branch=wt_info.branch,
+            env=capability_env,
         )
 
         if not result.success:

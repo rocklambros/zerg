@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Cross-cutting capability wiring: CLI flags now flow through to worker processes via `CapabilityResolver` (#78)
+- `--no-compact` flag (compact output is now ON by default)
+- `--no-loop` flag (improvement loops are now ON by default)
+- `--iterations N` flag to override max loop iterations
+- Context plugin capability sections: depth, mode, TDD, and efficiency guidance injected into worker prompts
+- `WorkerContext` capability fields for cross-cutting capability awareness
+- Unit and integration tests for capability resolver and wiring
 - Integration wiring enforcement across the ZERG pipeline (#78, #79, #80, #81):
   - **Module wiring validator** (`validate_module_wiring()` in `validate_commands.py`): Detects orphaned Python modules with zero production imports; allowlists `__init__.py`, `__main__.py`, entry points; `--strict-wiring` CLI flag
   - **CI pytest workflow** (`.github/workflows/pytest.yml`): Runs unit tests, integration tests, and `validate_commands` on every PR
@@ -51,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `--uc`/`--compact` deprecated (compact is now default behavior)
+- `--loop` deprecated (loops are now default behavior)
+- Context plugin budget rebalanced: rules 10%, security 10%, spec 25%, MCP 10%, depth 10%, mode 10%, TDD 10%, efficiency 5%, buffer 10%
 - `zerg/git_ops.py` converted to backward-compatible shim re-exporting from `zerg/git/ops.py`
 - `zerg/commands/git_cmd.py` expanded from 6 to 11 actions with engine delegation
 - Context engineering guardrails: automated drift detection and command validation (`python -m zerg.validate_commands`)
@@ -61,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow to enforce CHANGELOG.md updates on PRs (skippable with `skip-changelog` label)
 - Claude Code instruction in CLAUDE.md to proactively update changelog when creating PRs
 - Updated README, `docs/commands.md`, wiki `Command-git.md`, and `Command-Reference.md` to document all 11 `/zerg:git` actions
+
+### Deprecated
+
+- `--uc`, `--compact` flags (use `--no-compact` to disable instead)
+- `--loop` flag (use `--no-loop` to disable instead)
 
 ### Fixed
 

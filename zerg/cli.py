@@ -40,10 +40,14 @@ console = Console()
 @click.option("--think", is_flag=True, help="Structured multi-step analysis")
 @click.option("--think-hard", is_flag=True, help="Deep architectural analysis")
 @click.option("--ultrathink", is_flag=True, help="Maximum depth analysis")
-@click.option("--uc", "--compact", "compact", is_flag=True, help="Ultra-compressed token-efficient output")
+@click.option("--no-compact", is_flag=True, default=False, help="Disable compact output (compact is ON by default)")
+@click.option("--uc", "--compact", "compact_legacy", is_flag=True, hidden=True, help="[Deprecated] Compact is now default")
 @click.option("--mode", type=click.Choice(["precision", "speed", "exploration", "refactor", "debug"]), default=None, help="Behavioral execution mode")
 @click.option("--mcp/--no-mcp", default=None, help="Enable/disable MCP auto-routing")
 @click.option("--tdd", is_flag=True, help="Enable TDD enforcement mode")
+@click.option("--no-loop", is_flag=True, default=False, help="Disable improvement loops (loops are ON by default)")
+@click.option("--loop", "loop_legacy", is_flag=True, hidden=True, help="[Deprecated] Loops are now default")
+@click.option("--iterations", type=int, default=None, help="Override max loop iterations")
 @click.pass_context
 def cli(
     ctx: click.Context,
@@ -53,10 +57,14 @@ def cli(
     think: bool,
     think_hard: bool,
     ultrathink: bool,
-    compact: bool,
+    no_compact: bool,
+    compact_legacy: bool,
     mode: str | None,
     mcp: bool | None,
     tdd: bool,
+    no_loop: bool,
+    loop_legacy: bool,
+    iterations: int | None,
 ) -> None:
     """ZERG - Parallel Claude Code execution system.
 
@@ -79,10 +87,24 @@ def cli(
             "Depth flags are mutually exclusive: --quick, --think, --think-hard, --ultrathink"
         )
     ctx.obj["depth"] = active[0] if active else "standard"
-    ctx.obj["compact"] = compact
+
+    # Compact: ON by default, --no-compact to disable
+    # Legacy --uc/--compact are no-ops (already default behavior)
+    if compact_legacy:
+        import warnings
+        warnings.warn("--uc/--compact is deprecated: compact is now default. Use --no-compact to disable.", DeprecationWarning, stacklevel=2)
+    ctx.obj["compact"] = not no_compact
+
     ctx.obj["mode"] = mode
     ctx.obj["mcp"] = mcp
     ctx.obj["tdd"] = tdd
+
+    # Loops: ON by default, --no-loop to disable
+    if loop_legacy:
+        import warnings
+        warnings.warn("--loop is deprecated: loops are now default. Use --no-loop to disable.", DeprecationWarning, stacklevel=2)
+    ctx.obj["loop"] = not no_loop
+    ctx.obj["iterations"] = iterations
 
 
 # Register implemented commands
