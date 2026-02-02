@@ -321,12 +321,22 @@ Non-interactive by default. Uses `mode=auto` for commit generation.
 **Pipeline steps:**
 
 1. **Commit** — Stage all changes, auto-generate conventional commit message, commit
-2. **Push** — Push branch to remote with `--set-upstream`
-3. **Create PR** — Create pull request via `gh pr create` with full context
-4. **Merge** — Merge PR via `gh pr merge --squash` (falls back to `--admin` if blocked)
-5. **Cleanup** — Switch to base, pull latest, delete feature branch (local + remote)
+2. **CHANGELOG check** — Run `git diff {base}...HEAD -- CHANGELOG.md`. If no changes found, use AskUserQuestion to warn:
+   - question: "CHANGELOG.md has no changes. PRs without CHANGELOG updates will fail CI."
+   - header: "CHANGELOG"
+   - options:
+     - label: "Add CHANGELOG entry now (Recommended)"
+       description: "Stop and add an entry under [Unreleased] before pushing"
+     - label: "Continue without CHANGELOG"
+       description: "Push anyway — use skip-changelog label on the PR if intentional"
+   - If user picks "Add CHANGELOG entry now", stop the pipeline and instruct them to edit CHANGELOG.md, then re-run `/zerg:git --action ship`
+   - If user picks "Continue without CHANGELOG", proceed to step 3
+3. **Push** — Push branch to remote with `--set-upstream`
+4. **Create PR** — Create pull request via `gh pr create` with full context
+5. **Merge** — Merge PR via `gh pr merge --squash` (falls back to `--admin` if blocked)
+6. **Cleanup** — Switch to base, pull latest, delete feature branch (local + remote)
 
-If `--no-merge` is set, stops after step 3. If any step fails, the pipeline stops and reports the failure point.
+If `--no-merge` is set, stops after step 4. If any step fails, the pipeline stops and reports the failure point.
 
 ---
 

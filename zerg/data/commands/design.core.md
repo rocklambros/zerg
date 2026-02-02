@@ -120,6 +120,7 @@ Depends on Integration.
 ### Phase 5: Quality (Level 5)
 Final polish.
 - Documentation
+- CHANGELOG.md update (required — add entries under [Unreleased])
 - Type coverage
 - Lint fixes
 ```
@@ -588,6 +589,7 @@ Reply with:
 - User has explicitly approved
 - Claude Tasks created for all tasks with correct dependencies
 - Consumer matrix populated for all tasks with created files
+- Task graph includes a CHANGELOG.md update task in the final quality level
 
 ## Help
 

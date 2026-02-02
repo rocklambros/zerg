@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- CHANGELOG enforcement: `/zerg:design` always includes a CHANGELOG.md update task in the quality level
+- CHANGELOG enforcement: `/zerg:git --action ship` validates CHANGELOG.md changes before pushing, warns if missing
 - Post-approval handoff prompt in `/zerg:plan` — AskUserQuestion with 3 next-step options after requirements approval (#94)
 - Documentation section (Section 10) added to requirements.md template referencing `/zerg:document` (#94)
 - Missing `/zerg:git` flags added to `docs/commands.md`: `--no-docker`, `--include-stashes`, `--limit`, `--priority` (#94)
