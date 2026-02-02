@@ -85,6 +85,10 @@ Without Task ecosystem integration, parallel workers can't coordinate, sessions 
 
 5. **New commands get Task integration on creation.** If you create a new `/zerg:*` command file, it MUST include the minimum Task tracking pattern before it is considered complete.
 
+6. **Every new module must have a production caller.** If a PR creates a new `.py` file in `zerg/`, at least one other production file must import it. Test-only imports don't count. Standalone entry points (`__main__.py`, files with `if __name__`) are exempt. Run `python -m zerg.validate_commands` to check.
+
+7. **Every new module must have an integration test.** Unit tests prove the module works in isolation. Integration tests prove it works with its callers. A module with unit tests but no integration test is incomplete. Design-phase `consumers` field tracks who calls what.
+
 ### Drift Detection Checklist
 
 Run this check when modifying any ZERG command file. If any check fails, fix it before committing.
@@ -115,6 +119,17 @@ grep -q "CLAUDE_CODE_TASK_LIST_ID" zerg/launcher.py || echo "DRIFT: missing from
 # 5. All spawn methods conditionally inject CLAUDE_CODE_TASK_LIST_ID
 count=$(grep -c "CLAUDE_CODE_TASK_LIST_ID" zerg/launcher.py)
 echo "launcher.py — $count CLAUDE_CODE_TASK_LIST_ID refs (expect ≥4)"
+
+# 6. No orphaned modules (zero production imports)
+python -m zerg.validate_commands  # includes module wiring check
+
+# 7. New modules have integration tests
+for f in $(git diff --name-only --diff-filter=A HEAD~1 -- 'zerg/*.py'); do
+  stem=$(basename "$f" .py)
+  if ! find tests/integration -name "*${stem}*" 2>/dev/null | grep -q .; then
+    echo "DRIFT: $f has no integration test"
+  fi
+done
 ```
 
 **Automated:** Run `python -m zerg.validate_commands` to execute all drift checks programmatically. Use `--auto-split` to fix oversized files automatically. This runs in CI and pre-commit.
@@ -129,6 +144,7 @@ Watch for these patterns — they are symptoms of drift:
 - **Workers not claiming tasks** — If workers execute tasks without calling TaskUpdate(in_progress), other workers and the orchestrator have no visibility.
 - **New commands without tracking** — A new `/zerg:*` command that lacks TaskCreate/TaskUpdate is incomplete, even if it "works."
 - **TaskCreate without lifecycle** — Creating a task but never updating it to in_progress or completed is worse than not creating it (it pollutes the task list with stale entries).
+- **Unwired modules** — A PR delivers new `.py` files with unit tests but no production callers. The module "works" in isolation but is never called. Classic symptom: CLI flags parsed but never consumed, config sections defined but never read. Run `python -m zerg.validate_commands` to detect.
 
 **If you are modifying any ZERG command file and it lacks Task tool calls, add them.** Do not create or modify ZERG commands without Task ecosystem integration.
 

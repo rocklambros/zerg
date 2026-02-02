@@ -140,6 +140,19 @@ Critical for parallel execution: each file is owned by ONE task.
 | src/auth/service.test.ts | TASK-005 | testing |
 ```
 
+### Consumer Matrix
+
+Every task that creates a module must declare who calls its output. Tasks with no consumers are leaf tasks (CLI entry points, test files). See Consumer Matrix in design.md for full wiring requirements.
+
+| Task | Creates | Consumed By | Integration Test |
+|------|---------|-------------|-----------------|
+| {task} | {file} | {consumer task IDs or "leaf"} | {test file path or "—"} |
+
+Rules:
+- If a task has consumers, it MUST have an `integration_test` field
+- If a task is a leaf (no consumers), `integration_test` is optional
+- Consumer references must point to real task IDs in the graph
+
 ## Phase 2.5: Context Engineering
 
 For each task in the task graph, populate the optional `context` field with scoped context to minimize worker token usage.
@@ -206,13 +219,15 @@ Generate `task-graph.json` for the orchestrator:
         "timeout_seconds": 60
       },
       "estimate_minutes": 15,
-      "skills_required": ["typescript"]
+      "skills_required": ["typescript"],
+      "consumers": ["TASK-003"],
+      "integration_test": "tests/integration/test_types_wiring.py"
     },
     {
       "id": "TASK-002",
       "title": "Create user database schema",
       "description": "Define Drizzle schema for users table",
-      "phase": "foundation", 
+      "phase": "foundation",
       "level": 1,
       "dependencies": [],
       "files": {
@@ -225,7 +240,9 @@ Generate `task-graph.json` for the orchestrator:
         "timeout_seconds": 60
       },
       "estimate_minutes": 20,
-      "skills_required": ["drizzle", "postgres"]
+      "skills_required": ["drizzle", "postgres"],
+      "consumers": ["TASK-003"],
+      "integration_test": "tests/integration/test_schema_wiring.py"
     },
     {
       "id": "TASK-003",
@@ -244,7 +261,9 @@ Generate `task-graph.json` for the orchestrator:
         "timeout_seconds": 120
       },
       "estimate_minutes": 45,
-      "skills_required": ["typescript", "testing"]
+      "skills_required": ["typescript", "testing"],
+      "consumers": [],
+      "integration_test": null
     }
   ],
   
@@ -522,6 +541,9 @@ Check for issues:
 # Verify file ownership is exclusive
 # Verify all files exist or are created
 # Verify verification commands are valid
+# Verify every task with non-empty consumers has an integration_test
+# Verify consumer references point to real task IDs
+# Verify integration_test files are owned by a task
 ```
 
 ## Phase 6: User Approval
@@ -565,6 +587,7 @@ Reply with:
 - File ownership is exclusive (no conflicts)
 - User has explicitly approved
 - Claude Tasks created for all tasks with correct dependencies
+- Consumer matrix populated for all tasks with created files
 
 ## Help
 

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Integration wiring enforcement across the ZERG pipeline (#78, #79, #80, #81):
+  - **Module wiring validator** (`validate_module_wiring()` in `validate_commands.py`): Detects orphaned Python modules with zero production imports; allowlists `__init__.py`, `__main__.py`, entry points; `--strict-wiring` CLI flag
+  - **CI pytest workflow** (`.github/workflows/pytest.yml`): Runs unit tests, integration tests, and `validate_commands` on every PR
+  - **Consumer matrix** in `design.md`/`design.core.md`: Tasks declare `consumers` and `integration_test` fields at design time
+  - **Integration verification step** in `worker.core.md`: Workers run both isolation AND integration tests before commit
+  - **Wiring quality gate** in `merge.core.md`: Detects new orphaned modules at merge time
+  - **Anti-drift rules** #6 and #7 in `CLAUDE.md`: Every new module needs a production caller and an integration test
+- 58 new tests (10 unit + 13 integration) for wiring enforcement
 - Cross-cutting capabilities framework with 8 new subsystems (#76):
   - **Engineering Rules Framework** (`zerg/rules/`): YAML-based rule engine with loader, validator, and injector; ships with 25 rules across safety, quality, and efficiency rulesets
   - **Analysis Depth Tiers** (`zerg/depth_tiers.py`): 5-tier depth system (QUICK → ULTRATHINK) with `--quick`, `--think`, `--think-hard`, `--ultrathink` CLI flags; auto-detection from task descriptions
