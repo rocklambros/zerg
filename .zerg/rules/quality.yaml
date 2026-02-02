@@ -1,0 +1,74 @@
+name: quality
+description: Important quality rules for maintainable code
+version: "1.0"
+rules:
+  - id: quality-001
+    title: Complete implementations
+    description: Never leave TODO comments for core functionality or stub implementations
+    priority: important
+    category: completeness
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: quality-002
+    title: Error handling
+    description: Handle errors at appropriate boundaries with meaningful messages
+    priority: important
+    category: reliability
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: quality-003
+    title: Type annotations
+    description: Use type annotations for function signatures and class attributes
+    priority: important
+    category: readability
+    applies_to: ["*.py"]
+    enabled: true
+  - id: quality-004
+    title: Test coverage
+    description: Write tests for new functionality and bug fixes
+    priority: important
+    category: testing
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: quality-005
+    title: Consistent naming
+    description: Follow language conventions (snake_case for Python, camelCase for JS/TS)
+    priority: important
+    category: readability
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: quality-006
+    title: Single responsibility
+    description: Each function/class should have one clear purpose
+    priority: important
+    category: design
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: quality-007
+    title: DRY principle
+    description: Abstract common patterns, avoid code duplication
+    priority: important
+    category: design
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: quality-008
+    title: Clean workspace
+    description: Remove temporary files, debug scripts, and build artifacts
+    priority: important
+    category: workflow
+    applies_to: ["*"]
+    enabled: true
+  - id: quality-009
+    title: Descriptive commit messages
+    description: Write meaningful commit messages explaining why, not just what
+    priority: important
+    category: workflow
+    applies_to: ["*"]
+    enabled: true
+  - id: quality-010
+    title: Validate before commit
+    description: Run lint and type checks before marking tasks complete
+    priority: important
+    category: workflow
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true

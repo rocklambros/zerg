@@ -114,6 +114,12 @@ WORKTREES_DIR = ".zerg-worktrees"
 GSD_DIR = ".gsd"
 SPECS_DIR = ".gsd/specs"
 
+# Analysis depth environment variable
+ZERG_ANALYSIS_DEPTH = "ZERG_ANALYSIS_DEPTH"
+
+# Compact mode environment variable
+ZERG_COMPACT_MODE = "ZERG_COMPACT_MODE"
+
 
 class LogPhase(Enum):
     """Execution phases for structured logging."""

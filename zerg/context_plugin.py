@@ -19,11 +19,13 @@ DEFAULT_RULES_DIR = Path(".claude/rules/security")
 
 
 class ContextEngineeringPlugin(ContextPlugin):
-    """Concrete context plugin that combines security rules, spec context, and command splitting.
+    """Concrete context plugin that combines engineering rules, security rules, spec context, and command splitting.
 
     Budget allocation strategy for ``build_task_context``:
-        - Security rules summary:  ~30% of task_context_budget_tokens
-        - Spec context (relevant sections): ~50%
+        - Engineering rules: ~15% of task_context_budget_tokens
+        - Security rules summary:  ~15% of task_context_budget_tokens
+        - Spec context (relevant sections): ~35%
+        - MCP routing hints: ~15%
         - Remaining ~20% is reserved as buffer / overhead
     """
 
@@ -119,19 +121,55 @@ class ContextEngineeringPlugin(ContextPlugin):
 
         sections: list[str] = []
 
-        # -- Security rules (~30% of budget) --------------------------------
-        security_budget = int(budget * 0.30)
+        # -- Engineering rules (~15% of budget) -----------------------------
+        rules_budget = int(budget * 0.15)
+        rules_section = self._build_rules_section(file_paths, rules_budget)
+        if rules_section:
+            sections.append(rules_section)
+
+        # -- Security rules (~15% of budget) --------------------------------
+        security_budget = int(budget * 0.15)
         security_section = self._build_security_section(file_paths, security_budget)
         if security_section:
             sections.append(security_section)
 
-        # -- Spec context (~50% of budget) ----------------------------------
-        spec_budget = int(budget * 0.50)
+        # -- Spec context (~35% of budget) ----------------------------------
+        spec_budget = int(budget * 0.35)
         spec_section = self._build_spec_section(task, feature, spec_budget)
         if spec_section:
             sections.append(spec_section)
 
+        # -- MCP routing hints (~15% of budget) -----------------------------
+        mcp_budget = int(budget * 0.15)
+        mcp_section = self._build_mcp_section(task, mcp_budget)
+        if mcp_section:
+            sections.append(mcp_section)
+
         return "\n\n".join(sections)
+
+    def _build_rules_section(self, file_paths: list[str], max_tokens: int) -> str:
+        """Inject engineering rules relevant to the task files.
+
+        Args:
+            file_paths: List of file paths the task will touch.
+            max_tokens: Token budget for the rules section.
+
+        Returns:
+            Markdown section string, or empty string on failure.
+        """
+        try:
+            from zerg.rules import RuleInjector
+
+            injector = RuleInjector()
+            task: dict = {"files": {"create": file_paths, "modify": []}}
+            section = injector.inject_rules(task, max_tokens=max_tokens)
+            if section:
+                return f"## Engineering Rules (task-scoped)\n\n{section}"
+        except Exception:
+            logger.debug(
+                "Engineering rules injection failed; skipping section", exc_info=True
+            )
+        return ""
 
     def _build_security_section(
         self, file_paths: list[str], max_tokens: int
@@ -174,3 +212,34 @@ class ContextEngineeringPlugin(ContextPlugin):
                 "Spec context loading failed; skipping section", exc_info=True
             )
             return ""
+
+    def _build_mcp_section(self, task: dict, max_tokens: int) -> str:
+        """Inject MCP routing hints for the task.
+
+        Args:
+            task: Task dict from task-graph.json.
+            max_tokens: Token budget for the MCP section.
+
+        Returns:
+            Markdown section string, or empty string if routing not applicable.
+        """
+        try:
+            from zerg.mcp_router import MCPRouter
+
+            router = MCPRouter()
+            file_paths = self._collect_task_files(task)
+            extensions = list(
+                {Path(f).suffix for f in file_paths if Path(f).suffix}
+            )
+
+            decision = router.route(
+                task_description=task.get("description", ""),
+                file_extensions=extensions,
+            )
+
+            if decision.recommended_servers:
+                servers = ", ".join(decision.server_names)
+                return f"## MCP Servers (task-scoped)\n\nRecommended: {servers}"
+        except Exception:
+            logger.debug("MCP routing failed; skipping section", exc_info=True)
+        return ""

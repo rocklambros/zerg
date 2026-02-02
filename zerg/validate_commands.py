@@ -261,6 +261,42 @@ def validate_state_json_without_tasks(commands_dir: Path) -> tuple[bool, list[st
     return not errors, errors
 
 
+def validate_rules(rules_dir: Path | None = None) -> tuple[bool, list[str]]:
+    """Validate engineering rule files in rules directory.
+
+    Args:
+        rules_dir: Path to rules directory. Defaults to .zerg/rules/
+
+    Returns:
+        Tuple of (all_valid, list of error messages).
+    """
+    if rules_dir is None:
+        rules_dir = Path(".zerg/rules")
+
+    if not rules_dir.exists():
+        return True, ["No rules directory found (optional)"]
+
+    errors: list[str] = []
+
+    try:
+        from zerg.rules import RuleLoader, RuleValidator
+
+        loader = RuleLoader(rules_dir)
+        validator = RuleValidator()
+        rulesets = loader.load_all()
+
+        for ruleset in rulesets:
+            result = validator.validate_ruleset(ruleset)
+            if not result.valid:
+                errors.extend(result.errors)
+    except ImportError:
+        return True, ["Rules module not available"]
+    except Exception as e:
+        errors.append(f"Rules validation error: {e}")
+
+    return not errors, errors
+
+
 def validate_all(
     commands_dir: Path | None = None, auto_split: bool = False
 ) -> tuple[bool, list[str]]:
@@ -288,6 +324,7 @@ def validate_all(
             validate_split_threshold(commands_dir, auto_split=auto_split),
         ),
         ("State JSON", validate_state_json_without_tasks(commands_dir)),
+        ("Engineering rules", validate_rules()),
     ]
 
     base_count = len(_get_base_command_files(commands_dir))
@@ -302,6 +339,7 @@ def validate_all(
         "Split pairs": f"all {core_count} pairs consistent",
         "Split threshold": "no oversized unsplit files",
         "State JSON": "no files reference state without TaskList/TaskGet",
+        "Engineering rules": "all rule files valid",
     }
 
     fail_count = 0

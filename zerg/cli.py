@@ -36,8 +36,28 @@ console = Console()
 @click.version_option(version=__version__, prog_name="zerg")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-essential output")
+@click.option("--quick", is_flag=True, help="Quick surface-level analysis")
+@click.option("--think", is_flag=True, help="Structured multi-step analysis")
+@click.option("--think-hard", is_flag=True, help="Deep architectural analysis")
+@click.option("--ultrathink", is_flag=True, help="Maximum depth analysis")
+@click.option("--uc", "--compact", "compact", is_flag=True, help="Ultra-compressed token-efficient output")
+@click.option("--mode", type=click.Choice(["precision", "speed", "exploration", "refactor", "debug"]), default=None, help="Behavioral execution mode")
+@click.option("--mcp/--no-mcp", default=None, help="Enable/disable MCP auto-routing")
+@click.option("--tdd", is_flag=True, help="Enable TDD enforcement mode")
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
+def cli(
+    ctx: click.Context,
+    verbose: bool,
+    quiet: bool,
+    quick: bool,
+    think: bool,
+    think_hard: bool,
+    ultrathink: bool,
+    compact: bool,
+    mode: str | None,
+    mcp: bool | None,
+    tdd: bool,
+) -> None:
     """ZERG - Parallel Claude Code execution system.
 
     Overwhelm features with coordinated worker instances.
@@ -45,6 +65,24 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose
     ctx.obj["quiet"] = quiet
+
+    # Determine analysis depth (mutually exclusive flags)
+    depth_flags = {
+        "quick": quick,
+        "think": think,
+        "think_hard": think_hard,
+        "ultrathink": ultrathink,
+    }
+    active = [k for k, v in depth_flags.items() if v]
+    if len(active) > 1:
+        raise click.UsageError(
+            "Depth flags are mutually exclusive: --quick, --think, --think-hard, --ultrathink"
+        )
+    ctx.obj["depth"] = active[0] if active else "standard"
+    ctx.obj["compact"] = compact
+    ctx.obj["mode"] = mode
+    ctx.obj["mcp"] = mcp
+    ctx.obj["tdd"] = tdd
 
 
 # Register implemented commands

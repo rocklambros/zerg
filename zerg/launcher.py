@@ -33,6 +33,9 @@ ALLOWED_ENV_VARS = {
     "ZERG_REPO_PATH",
     "ZERG_LOG_LEVEL",
     "ZERG_DEBUG",
+    "ZERG_ANALYSIS_DEPTH",
+    "ZERG_COMPACT_MODE",
+    "ZERG_MCP_HINT",
     # Claude Code cross-session coordination
     "CLAUDE_CODE_TASK_LIST_ID",
     # Common development env vars

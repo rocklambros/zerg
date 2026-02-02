@@ -97,6 +97,24 @@ class SecurityConfig(BaseModel):
     container_readonly: bool = True
 
 
+class EfficiencyConfig(BaseModel):
+    """Token efficiency configuration."""
+
+    auto_compact_threshold: float = Field(default=0.75, ge=0.5, le=1.0)
+    symbol_system: bool = True
+    abbreviations: bool = True
+
+
+class RulesConfig(BaseModel):
+    """Engineering rules configuration."""
+
+    enabled: bool = True
+    base_rules: bool = True
+    custom_rules: bool = True
+    disabled_rules: list[str] = Field(default_factory=list)
+    inject_into_workers: bool = True
+
+
 class CircuitBreakerConfig(BaseModel):
     """Circuit breaker configuration."""
 
@@ -120,6 +138,61 @@ class ErrorRecoveryConfig(BaseModel):
     backpressure: BackpressureConfig = Field(default_factory=BackpressureConfig)
 
 
+class LoopConfig(BaseModel):
+    """Iterative improvement loop configuration."""
+
+    max_iterations: int = Field(default=5, ge=1, le=10)
+    plateau_threshold: int = Field(default=2, ge=1, le=5)
+    rollback_on_regression: bool = True
+    convergence_threshold: float = Field(default=0.02, ge=0.001, le=0.5)
+
+
+class VerificationConfig(BaseModel):
+    """Verification gate configuration."""
+
+    require_before_completion: bool = True
+    staleness_threshold_seconds: int = Field(default=300, ge=10, le=3600)
+    store_artifacts: bool = True
+    artifact_dir: str = ".zerg/artifacts"
+
+
+class ModeConfig(BaseModel):
+    """Behavioral mode configuration."""
+
+    auto_detect: bool = True
+    default_mode: str = Field(default="precision", pattern="^(precision|speed|exploration|refactor|debug)$")
+    log_transitions: bool = True
+
+
+class MCPRoutingConfig(BaseModel):
+    """MCP auto-routing configuration."""
+
+    auto_detect: bool = True
+    available_servers: list[str] = Field(
+        default_factory=lambda: [
+            "sequential",
+            "context7",
+            "playwright",
+            "morphllm",
+            "magic",
+            "serena",
+        ]
+    )
+    cost_aware: bool = True
+    telemetry: bool = True
+    max_servers: int = Field(default=3, ge=1, le=6)
+
+
+class TDDConfig(BaseModel):
+    """TDD enforcement configuration."""
+
+    enabled: bool = False
+    enforce_red_green: bool = True
+    anti_patterns: list[str] = Field(
+        default_factory=lambda: ["mock_heavy", "testing_impl", "no_assertions"]
+    )
+
+
 class ZergConfig(BaseModel):
     """Complete ZERG configuration."""
 
@@ -132,8 +205,15 @@ class ZergConfig(BaseModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     plugins: PluginsConfig = Field(default_factory=PluginsConfig)
+    efficiency: EfficiencyConfig = Field(default_factory=EfficiencyConfig)
+    rules: RulesConfig = Field(default_factory=RulesConfig)
     error_recovery: ErrorRecoveryConfig = Field(default_factory=ErrorRecoveryConfig)
     git: GitConfig = Field(default_factory=GitConfig)
+    improvement_loops: LoopConfig = Field(default_factory=LoopConfig)
+    behavioral_modes: ModeConfig = Field(default_factory=ModeConfig)
+    verification: VerificationConfig = Field(default_factory=VerificationConfig)
+    mcp_routing: MCPRoutingConfig = Field(default_factory=MCPRoutingConfig)
+    tdd: TDDConfig = Field(default_factory=TDDConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "ZergConfig":

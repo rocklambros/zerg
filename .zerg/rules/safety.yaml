@@ -1,0 +1,74 @@
+name: safety
+description: Critical safety rules that must never be compromised
+version: "1.0"
+rules:
+  - id: safety-001
+    title: Validate inputs at system boundaries
+    description: Always validate user inputs, API responses, and external data before processing
+    priority: critical
+    category: security
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: safety-002
+    title: No hardcoded secrets
+    description: Never hardcode API keys, passwords, tokens, or credentials in source code
+    priority: critical
+    category: security
+    applies_to: ["*"]
+    enabled: true
+  - id: safety-003
+    title: Use parameterized queries
+    description: Always use parameterized queries for database operations, never string interpolation
+    priority: critical
+    category: security
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: safety-004
+    title: Fail closed on errors
+    description: Security-sensitive operations must deny access when errors occur, not grant it
+    priority: critical
+    category: security
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: safety-005
+    title: No eval or exec with user input
+    description: Never use eval(), exec(), or similar dynamic code execution with untrusted input
+    priority: critical
+    category: security
+    applies_to: ["*.py", "*.js"]
+    enabled: true
+  - id: safety-006
+    title: Prevent path traversal
+    description: Validate and sanitize file paths, ensure they stay within intended directories
+    priority: critical
+    category: security
+    applies_to: ["*.py", "*.js", "*.ts"]
+    enabled: true
+  - id: safety-007
+    title: Use secure deserialization
+    description: Never use pickle.loads or yaml.load with untrusted data
+    priority: critical
+    category: security
+    applies_to: ["*.py"]
+    enabled: true
+  - id: safety-008
+    title: Subprocess safety
+    description: Use subprocess with argument lists, never shell=True with user input
+    priority: critical
+    category: security
+    applies_to: ["*.py"]
+    enabled: true
+  - id: safety-009
+    title: Non-destructive git operations
+    description: Never use force push, reset --hard, or clean -f without explicit user request
+    priority: critical
+    category: workflow
+    applies_to: ["*.sh", "*.py", "*.md"]
+    enabled: true
+  - id: safety-010
+    title: Feature branch workflow
+    description: Never commit directly to main/master, always use feature branches
+    priority: critical
+    category: workflow
+    applies_to: ["*"]
+    enabled: true

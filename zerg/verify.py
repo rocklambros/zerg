@@ -280,6 +280,48 @@ class VerificationExecutor:
         """Clear stored results."""
         self._results.clear()
 
+    def store_artifact(
+        self,
+        result: VerificationExecutionResult,
+        artifact_dir: Path | None = None,
+    ) -> Path:
+        """Store verification result as artifact.
+
+        Args:
+            result: Verification result to store
+            artifact_dir: Base directory for artifacts
+
+        Returns:
+            Path to stored artifact
+        """
+        from zerg.verification_gates import ArtifactStore
+
+        store = ArtifactStore(base_dir=artifact_dir)
+        return store.store("verification", result.task_id, result)
+
+    def check_freshness(
+        self,
+        task_id: str,
+        gate_name: str = "verification",
+        max_age_seconds: int = 300,
+        artifact_dir: Path | None = None,
+    ) -> bool:
+        """Check if latest verification result is still fresh.
+
+        Args:
+            task_id: Task ID to check
+            gate_name: Gate name for lookup
+            max_age_seconds: Maximum age in seconds
+            artifact_dir: Base directory for artifacts
+
+        Returns:
+            True if latest result is fresh
+        """
+        from zerg.verification_gates import ArtifactStore
+
+        store = ArtifactStore(base_dir=artifact_dir)
+        return store.is_fresh(gate_name, task_id, max_age_seconds)
+
     def get_summary(self) -> dict[str, Any]:
         """Get summary of verification results.
 

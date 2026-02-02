@@ -228,6 +228,19 @@ class ContextTracker:
             "avg_per_task": round(avg, 1),
         }
 
+    def get_zone(self) -> str:
+        """Get current efficiency zone based on context usage.
+
+        Returns:
+            Zone name: 'green', 'yellow', or 'red'.
+        """
+        from zerg.efficiency import ZoneDetector
+
+        detector = ZoneDetector()
+        usage = self.get_usage()
+        zone = detector.detect(usage.usage_percent)
+        return zone.value
+
     def reset(self) -> None:
         """Reset tracking state for new session."""
         self._files_read.clear()

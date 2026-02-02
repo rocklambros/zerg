@@ -1,0 +1,39 @@
+name: efficiency
+description: Recommended efficiency rules for optimized workflows
+version: "1.0"
+rules:
+  - id: efficiency-001
+    title: Parallel tool calls
+    description: Execute independent operations in parallel, never sequentially
+    priority: recommended
+    category: performance
+    applies_to: ["*"]
+    enabled: true
+  - id: efficiency-002
+    title: Batch operations
+    description: Use MultiEdit over multiple Edits, batch Read calls
+    priority: recommended
+    category: performance
+    applies_to: ["*"]
+    enabled: true
+  - id: efficiency-003
+    title: Read before write
+    description: Always read and understand existing code before making modifications
+    priority: recommended
+    category: workflow
+    applies_to: ["*"]
+    enabled: true
+  - id: efficiency-004
+    title: Use specialized tools
+    description: Use Grep over bash grep, Glob over find, specialized search tools
+    priority: recommended
+    category: performance
+    applies_to: ["*"]
+    enabled: true
+  - id: efficiency-005
+    title: Agent delegation
+    description: Use Task agents for complex multi-step operations (>3 steps)
+    priority: recommended
+    category: performance
+    applies_to: ["*"]
+    enabled: true
