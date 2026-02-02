@@ -303,6 +303,15 @@ After completing the rounds, generate a transcript section:
 |------|------|------|-----------|
 | Product | | | PENDING |
 | Engineering | | | PENDING |
+
+---
+
+## 10. Documentation
+
+After implementation, execute `/zerg:document` to update all documentation surfaces:
+- Ensure all ZERG commands and flags are accounted for in documentation
+- Wiki command pages must follow the `zerg-*.md` naming convention (non-command pages unaffected)
+- Before executing documentation updates, plan the work via `/zerg:design` and estimate via `/zerg:estimate`
 ```
 
 ---

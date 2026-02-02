@@ -100,6 +100,32 @@ Present requirements for approval. User replies with:
 
 ---
 
+### Phase 5.5: Post-Approval Handoff
+
+After the user replies "APPROVED":
+
+1. First, call TaskUpdate to mark the plan task `completed`
+2. Update requirements.md with `Status: APPROVED`
+3. Then use AskUserQuestion to prompt the user for next steps:
+
+Call AskUserQuestion:
+  - question: "Requirements approved! How would you like to proceed?"
+  - header: "Next step"
+  - options:
+    - label: "Clear context, then /z:design (Recommended)"
+      description: "Run /compact to free token budget, then start /z:design in a fresh context"
+    - label: "Run /z:design now"
+      description: "Continue in the current context — may have reduced token budget"
+    - label: "Stop here"
+      description: "I'll run /z:design later in a new session"
+
+Based on user response:
+- **"Clear context, then /z:design"**: Output: "Run `/compact` to clear context, then run `/z:design` to begin architecture."
+- **"Run /z:design now"**: Output: "Run `/z:design` now to begin architecture."
+- **"Stop here"**: Command completes normally with no further output.
+
+---
+
 ## Status Markers
 
 - **Status: DRAFT** - Initial creation, still gathering requirements
