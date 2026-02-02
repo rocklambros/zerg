@@ -526,6 +526,17 @@ Status mismatches between Task system and state JSON are flagged with warnings.
 | 🟠 | Checkpoint | Saving context for restart |
 | ⬜ | Stopped | Gracefully stopped |
 | 🔴 | Crashed | Exited unexpectedly |
+| ⚠️ | Stalled | Heartbeat timeout exceeded (auto-restart pending) |
+
+#### Worker Intelligence Panel
+
+When worker intelligence is active, `/zerg:status` displays additional sections:
+
+**Heartbeats**: Per-worker heartbeat age and status (alive/stalled). Stall threshold is configurable via `config.heartbeat.stall_timeout_seconds` (default: 120s).
+
+**Escalations**: Unresolved escalations from workers, showing task ID, category (`ambiguous_spec`, `dependency_missing`, `verification_unclear`), and message.
+
+**Progress**: Per-worker progress bars with tasks completed/total and current step. Includes tier-level verification results for the current task.
 
 ---
 
@@ -1335,13 +1346,37 @@ Internal zergling execution protocol. You do not invoke this directly — the or
 
 #### What Workers Do
 
-1. **Load context** — Read requirements.md, design.md, task-graph.json, worker-assignments.json
-2. **Claim task** — Atomically claim the next pending task at the current level via TaskUpdate
-3. **Implement** — Create/modify files as specified, following design patterns
-4. **Verify** — Run the task's verification command
-5. **Commit** — Stage owned files, commit with task metadata
-6. **Report** — Update task status in Claude Task system
-7. **Repeat** — Pick next task, or wait for level merge, or checkpoint
+1. **Initialize health monitoring** — Start heartbeat writer (15s interval), progress reporter, escalation writer
+2. **Load context** — Read requirements.md, design.md, task-graph.json, worker-assignments.json
+3. **Claim task** — Atomically claim the next pending task at the current level via TaskUpdate
+4. **Implement** — Create/modify files as specified, following design patterns
+5. **Verify (Three-Tier)** — Run tiered verification: Tier 1 (syntax, blocking) → Tier 2 (correctness, blocking) → Tier 3 (quality, non-blocking)
+6. **Escalate or retry** — If failure is ambiguous (unclear spec, missing dependency), escalate to orchestrator instead of retrying blindly
+7. **Commit** — Stage owned files, commit with task metadata
+8. **Report** — Update task status and progress in Claude Task system
+9. **Repeat** — Pick next task, or wait for level merge, or checkpoint
+
+#### Worker Intelligence
+
+Workers include three health subsystems:
+
+**Heartbeat Monitoring**: Workers write a heartbeat file (`.zerg/state/heartbeat-{id}.json`) every 15 seconds with current task, step, and progress percentage. The orchestrator detects stalled workers (no heartbeat for 120s) and auto-restarts them.
+
+**Progress Reporting**: Structured progress per worker (`.zerg/state/progress-{id}.json`) with tasks completed/total, current step, and per-tier verification results.
+
+**Escalation Protocol**: When a failure is ambiguous (unclear spec, missing dependency, unclear verification criteria), workers write to `.zerg/state/escalations.json` instead of retrying blindly. The orchestrator alerts the terminal with escalation details.
+
+**Three-Tier Verification**:
+
+| Tier | Name | Blocking | What It Checks |
+|------|------|----------|----------------|
+| 1 | Syntax | Yes | Lint, type check, compilation |
+| 2 | Correctness | Yes | Task verification command + integration tests |
+| 3 | Quality | No | Code quality, style, best practices |
+
+If a blocking tier fails, the worker stops and either retries or escalates. Non-blocking tier failures are logged but don't prevent task completion.
+
+**Repository Symbol Map**: At rush start, ZERG builds a symbol graph of the codebase (Python AST + JS/TS regex extraction). Per-task context includes relevant symbols from the repo map, giving workers awareness of nearby functions, classes, and imports without reading full source files.
 
 #### Quality Standards
 
@@ -1349,7 +1384,7 @@ Every task must:
 - Follow the design document exactly
 - Match existing code patterns
 - Be complete (no TODOs, no placeholders)
-- Pass the verification command
+- Pass all blocking verification tiers
 - Include inline comments for complex logic
 - Handle errors (not just the happy path)
 
@@ -1361,6 +1396,7 @@ Every task must:
 | 1 | Unrecoverable error |
 | 2 | Context limit reached (70%), needs restart |
 | 3 | All remaining tasks blocked |
+| 4 | Worker escalated an ambiguous failure |
 | 130 | Stop signal received, graceful shutdown |
 
 ---
@@ -1644,3 +1680,4 @@ All ZERG commands follow a consistent exit code convention:
 | 0 | Success |
 | 1 | Failure (check output for details) |
 | 2 | Configuration error or special state (checkpoint for workers) |
+| 4 | Worker escalated an ambiguous failure (escalation protocol) |

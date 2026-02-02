@@ -60,9 +60,75 @@ else:
     continue  # Another worker claimed it
 ```
 
+### Worker Intelligence
+
+Workers include three health subsystems introduced in the worker-intelligence feature:
+
+#### Heartbeat Health Monitoring
+
+Workers write a heartbeat file (`.zerg/state/heartbeat-{id}.json`) every 15 seconds containing:
+
+```json
+{
+  "worker_id": 1,
+  "timestamp": "2026-02-02T10:30:00Z",
+  "task_id": "TASK-003",
+  "step": "verifying_tier2",
+  "progress_pct": 65
+}
+```
+
+The orchestrator detects stalled workers (no heartbeat for 120s) and auto-restarts them. After `max_restarts` (default: 2) consecutive stalls, the worker's tasks are reassigned to a fresh worker.
+
+#### Three-Tier Verification
+
+Instead of a single verification command, workers execute three tiers:
+
+| Tier | Name | Blocking | What It Checks |
+|------|------|----------|----------------|
+| 1 | Syntax | Yes | Lint, type check, compilation |
+| 2 | Correctness | Yes | Task verification command + integration tests |
+| 3 | Quality | No | Code quality, style, best practices |
+
+Blocking tiers must pass. Non-blocking tiers are logged but don't prevent task completion.
+
+#### Escalation Protocol
+
+When a failure is ambiguous, workers escalate instead of retrying blindly. Escalation categories:
+
+| Category | When |
+|----------|------|
+| `ambiguous_spec` | Spec is unclear or contradictory |
+| `dependency_missing` | Required dependency not available |
+| `verification_unclear` | Can't determine if verification passed |
+
+Escalations are written to `.zerg/state/escalations.json`. The orchestrator alerts the terminal with escalation details.
+
+#### Structured Progress Reporting
+
+Workers write structured progress to `.zerg/state/progress-{id}.json`:
+
+```json
+{
+  "worker_id": 1,
+  "tasks_completed": 2,
+  "tasks_total": 5,
+  "current_task": "TASK-003",
+  "current_step": "implementing",
+  "tier_results": [
+    {"tier": 1, "name": "syntax", "success": true, "retry": 0},
+    {"tier": 2, "name": "correctness", "success": false, "retry": 1}
+  ]
+}
+```
+
+#### Repository Symbol Map
+
+At rush start, ZERG builds a symbol graph using Python AST and JS/TS regex extraction. Per-task context includes relevant symbols (functions, classes, imports), giving workers awareness of nearby code without reading full source files.
+
 ### Failure Handling
 
-If a task verification fails, the worker retries up to 3 times. After 3 failures, the task is marked as blocked and the worker moves on to the next assigned task. Error details are appended to the Claude Task description.
+If a task verification fails, the worker retries up to 3 times. After 3 failures, the task is marked as blocked and the worker moves on to the next assigned task. If the failure is ambiguous, the worker escalates instead of retrying. Error details are appended to the Claude Task description.
 
 ### Context Checkpoints
 
@@ -100,6 +166,8 @@ STARTING --> RUNNING --> STOPPED
                 |
             CHECKPOINT --> STOPPED
                 |
+            STALLED --> RUNNING (auto-restart)
+                |          \-> STOPPED (max restarts exceeded)
              CRASHED (on error)
 ```
 
@@ -108,6 +176,9 @@ STARTING --> RUNNING --> STOPPED
 | Channel | Path | Purpose |
 |---------|------|---------|
 | State file | `.zerg/state/{feature}.json` | Shared task state |
+| Heartbeat | `.zerg/state/heartbeat-{id}.json` | Worker liveness signal (15s interval) |
+| Progress | `.zerg/state/progress-{id}.json` | Structured per-worker progress |
+| Escalations | `.zerg/state/escalations.json` | Shared escalation file for ambiguous failures |
 | Progress log | `.gsd/specs/{feature}/progress.md` | Human-readable activity log |
 | Worker log | `.zerg/logs/worker-{id}.log` | Detailed worker output |
 | Event stream | State manager | Append-only events for orchestrator |
@@ -140,6 +211,7 @@ Context-Usage: {percentage}%
 | 1 | `ERROR` | Unrecoverable error; check logs. |
 | 2 | `CHECKPOINT` | Context limit reached (70%); needs restart. |
 | 3 | `BLOCKED` | All remaining tasks blocked; intervention needed. |
+| 4 | `ESCALATION` | Worker escalated an ambiguous failure. |
 | 130 | `INTERRUPTED` | Received stop signal; graceful shutdown. |
 
 ## Task Tracking

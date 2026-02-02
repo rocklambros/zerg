@@ -43,6 +43,7 @@ The goal was simple: stop repeating myself and start shipping faster. ZERG is th
   - [Quick Start](#quick-start)
   - [How It Works](#how-it-works)
 - **Key Features**
+  - [Worker Intelligence](#worker-intelligence)
   - [Cross-Cutting Capabilities](#cross-cutting-capabilities)
   - [Context Engineering](#context-engineering)
   - [Security Rules](#security-rules)
@@ -202,6 +203,43 @@ ZERG supports three execution modes for zerglings:
 | `task` | Claude Code Task sub-agents | Running from slash commands inside Claude Code |
 
 Auto-detection: If `--mode` is not set, ZERG picks the best option based on your environment.
+
+---
+
+## Worker Intelligence
+
+ZERG workers include three health and monitoring subsystems that enable self-healing, structured progress tracking, and intelligent failure handling.
+
+### Heartbeat Health Monitoring
+
+Workers write a heartbeat file every 15 seconds with their current task, step, and progress percentage. The orchestrator continuously monitors heartbeats and detects stalled workers (no heartbeat for 120s by default). Stalled workers are auto-restarted — first stall resumes the same task, second stall reassigns to a fresh worker.
+
+```yaml
+heartbeat:
+  interval_seconds: 15
+  stall_timeout_seconds: 120
+  max_restarts: 2
+```
+
+### Three-Tier Verification with Escalation
+
+Instead of a single pass/fail verification, workers execute three tiers:
+
+| Tier | Name | Blocking | Purpose |
+|------|------|----------|---------|
+| 1 | Syntax | Yes | Lint, type check, compilation errors |
+| 2 | Correctness | Yes | Task verification command + integration tests |
+| 3 | Quality | No | Code quality, style, best practices |
+
+When a failure is ambiguous (unclear spec, missing dependency, unclear verification criteria), workers **escalate** to the orchestrator instead of retrying blindly. The orchestrator alerts the terminal with escalation details so users can intervene.
+
+### Repository Symbol Map
+
+At rush start, ZERG builds a symbol graph of the codebase using Python AST for `.py` files and regex extraction for `.js`/`.ts` files. Per-task context includes relevant symbols (functions, classes, imports) from the repo map, giving workers awareness of nearby code without reading full source files. Zero external dependencies — no tree-sitter required.
+
+### Structured Progress Reporting
+
+Each worker writes structured progress to `.zerg/state/progress-{id}.json` with tasks completed/total, current step, and per-tier verification results. `/zerg:status` aggregates this into a Worker Intelligence panel showing heartbeat status, escalations, and per-worker progress bars.
 
 ---
 

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Structured progress reporting per worker with tier-level granularity (#67)
 - Repository symbol map: Python AST + JS/TS regex extractor injected into worker context prompts (#67)
 - New config sections: `heartbeat`, `escalation`, `verification_tiers`, `repo_map` in ZergConfig (#67)
+- Documentation updates for worker intelligence: `docs/commands.md`, `docs/configuration.md`, `README.md`, wiki pages (#67)
 - `STALLED` worker status and `ESCALATION` exit code (4) for worker state machine (#67)
 - Automated PyPI release workflow with trusted publishing (OIDC), TestPyPI pre-release support, and SLSA provenance attestation (#23)
 - `cleanup` action for `/zerg:git`: prune merged branches, stale remote refs, orphaned worktrees, Docker containers/images

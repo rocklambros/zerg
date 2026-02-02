@@ -473,6 +473,56 @@ tdd:
     - no_assertions
 ```
 
+### Heartbeat Monitoring
+
+```yaml
+heartbeat:
+  interval_seconds: 15        # How often workers write heartbeat (5-300)
+  stall_timeout_seconds: 120  # Seconds before declaring a worker stalled (30-600)
+  max_restarts: 2             # Auto-restarts before reassigning tasks (0-5)
+```
+
+The orchestrator reads heartbeat files from `.zerg/state/heartbeat-{worker_id}.json`. When a worker's heartbeat is older than `stall_timeout_seconds`, the orchestrator marks it as `STALLED` and triggers auto-restart. After `max_restarts` consecutive stalls, the worker's tasks are reassigned to a fresh worker.
+
+### Escalation Handling
+
+```yaml
+escalation:
+  auto_interrupt: true         # Alert terminal on new escalations
+  poll_interval_seconds: 5     # How often orchestrator checks for escalations (1-60)
+```
+
+Workers escalate ambiguous failures (unclear spec, missing dependency, unclear verification criteria) to `.zerg/state/escalations.json`. When `auto_interrupt` is enabled, the orchestrator prints escalation alerts to stderr.
+
+### Three-Tier Verification
+
+```yaml
+verification_tiers:
+  tier1_blocking: true         # Tier 1 (syntax) blocks on failure
+  tier1_command: null           # Override: custom lint/typecheck command
+  tier2_blocking: true         # Tier 2 (correctness) blocks on failure
+  tier2_command: null           # Override: custom test command (defaults to task verification)
+  tier3_blocking: false        # Tier 3 (quality) does not block by default
+  tier3_command: null           # Override: custom quality check command
+```
+
+Workers execute verification in three tiers. Blocking tiers must pass for the task to complete. Non-blocking tiers are logged but don't prevent progress. If no custom command is set, Tier 2 uses the task's `verification.command` from the task graph.
+
+### Repository Symbol Map
+
+```yaml
+repo_map:
+  enabled: true                # Build symbol graph at rush start
+  languages:                   # Languages to extract symbols from
+    - python
+    - javascript
+    - typescript
+  max_tokens_per_module: 3000  # Max tokens for symbol output per module (500-10000)
+  context_budget_percent: 15   # % of task context budget for repo map (5-30)
+```
+
+At rush start, ZERG builds a symbol graph using Python AST for `.py` files and regex extraction for `.js`/`.ts`/`.jsx`/`.tsx` files. The context plugin queries the graph per-task to inject relevant symbols (functions, classes, imports) into worker prompts, giving workers awareness of nearby code without reading full source files.
+
 ### Error Recovery
 
 ```yaml
@@ -637,7 +687,10 @@ quality_gates:
 ├── hooks/
 │   └── pre-commit           # Pre-commit hook script
 ├── state/
-│   └── {feature}.json       # Runtime state per feature
+│   ├── {feature}.json       # Runtime state per feature
+│   ├── heartbeat-{id}.json  # Per-worker heartbeat (worker intelligence)
+│   ├── progress-{id}.json   # Per-worker progress (worker intelligence)
+│   └── escalations.json     # Shared escalation file (worker intelligence)
 └── logs/
     ├── workers/
     │   └── worker-{id}.jsonl  # Structured per-worker logs

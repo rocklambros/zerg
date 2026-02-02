@@ -99,6 +99,48 @@ Commands:
 ======================================================================
 ```
 
+## Worker Intelligence Panel
+
+When worker intelligence is active (workers are running with heartbeat monitoring), the status output includes an additional section:
+
+```
+----------------------------------------------------------------------
+                        WORKER INTELLIGENCE
+----------------------------------------------------------------------
+
+Heartbeats:
+  Worker 0: ✅ alive (3s ago) — TASK-003 verifying_tier2 65%
+  Worker 1: ✅ alive (1s ago) — TASK-004 implementing 30%
+  Worker 2: ⚠️ stalled (145s ago) — TASK-005 implementing 10%
+
+Escalations:
+  ⚠ Worker 1 | TASK-004 | ambiguous_spec
+    "Spec says 'handle auth errors' but doesn't define error types"
+
+Progress:
+  Worker 0: 2/5 tasks ████░░░░░░ 40%  [tier1 ✅ tier2 🔄]
+  Worker 1: 1/5 tasks ██░░░░░░░░ 20%  [tier1 ✅]
+  Worker 2: 0/5 tasks ░░░░░░░░░░  0%  [stalled]
+```
+
+### Data Sources
+
+The Worker Intelligence panel reads from:
+
+| File | Content |
+|------|---------|
+| `.zerg/state/heartbeat-{id}.json` | Per-worker heartbeat with task, step, and progress |
+| `.zerg/state/progress-{id}.json` | Tasks completed/total, current step, tier results |
+| `.zerg/state/escalations.json` | Unresolved escalations from workers |
+
+### Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `heartbeat.stall_timeout_seconds` | 120 | Seconds before a worker is marked stalled |
+| `escalation.auto_interrupt` | true | Print escalation alerts to terminal |
+| `escalation.poll_interval_seconds` | 5 | How often the orchestrator checks for escalations |
+
 ## See Also
 
 - [[zerg-rush]] -- Starts the execution that status monitors
