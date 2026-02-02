@@ -14,6 +14,9 @@ from pathlib import Path
 
 from zerg.command_splitter import MIN_LINES_TO_SPLIT, CommandSplitter
 
+# Files exempt from wiring check
+WIRING_EXEMPT_NAMES: set[str] = {"__init__.py", "__main__.py", "conftest.py"}
+
 # Backbone commands require deeper Task integration
 BACKBONE_COMMANDS: set[str] = {"worker", "status", "merge", "stop", "retry"}
 
@@ -297,14 +300,126 @@ def validate_rules(rules_dir: Path | None = None) -> tuple[bool, list[str]]:
     return not errors, errors
 
 
+def validate_module_wiring(
+    package_dir: Path | None = None,
+    tests_dir: Path | None = None,
+    strict: bool = False,
+) -> tuple[bool, list[str]]:
+    """Detect orphaned Python modules with zero production imports.
+
+    Walks all .py files in the package directory and checks whether each module
+    is imported by at least one other production (non-test) module. Modules that
+    are only imported by tests — or not imported at all — are flagged.
+
+    Args:
+        package_dir: Path to the package directory. Defaults to zerg/ (this package).
+        tests_dir: Path to the tests directory. Defaults to tests/ at project root.
+        strict: If True, orphaned modules cause a failure. Otherwise warnings only.
+
+    Returns:
+        Tuple of (passed, list of warning/error messages).
+    """
+    if package_dir is None:
+        package_dir = Path(__file__).parent
+    if tests_dir is None:
+        tests_dir = package_dir.parent / "tests"
+
+    package_dir = package_dir.resolve()
+    tests_dir = tests_dir.resolve()
+
+    # Collect all .py files in the package
+    all_py_files = sorted(package_dir.rglob("*.py"))
+
+    # Separate production files from test files
+    production_files: list[Path] = []
+    for py_file in all_py_files:
+        try:
+            py_file.resolve().relative_to(tests_dir)
+            continue  # Inside tests dir, skip
+        except ValueError:
+            pass
+        production_files.append(py_file)
+
+    # Read production file contents once for import scanning
+    production_contents: list[tuple[Path, str]] = []
+    for py_file in production_files:
+        try:
+            production_contents.append((py_file, py_file.read_text()))
+        except OSError:
+            continue
+
+    # Build candidate modules to check (excluding exempt files)
+    candidates: list[Path] = []
+    for py_file in production_files:
+        if py_file.name in WIRING_EXEMPT_NAMES:
+            continue
+        # Check for standalone entry point pattern
+        try:
+            content = py_file.read_text()
+            if "if __name__" in content:
+                continue
+        except OSError:
+            continue
+        candidates.append(py_file)
+
+    messages: list[str] = []
+
+    for candidate in candidates:
+        # Derive the dotted module path from filesystem path
+        relative = candidate.relative_to(package_dir)
+        parts = list(relative.with_suffix("").parts)  # e.g. ["foo", "bar"]
+
+        # Top-level package name (e.g. "zerg")
+        pkg_name = package_dir.name
+
+        # Build import patterns to search for
+        # Full dotted path: zerg.foo.bar
+        full_dotted = f"{pkg_name}.{'.'.join(parts)}"
+        # Module name (last component)
+        module_name = parts[-1]
+        # Parent dotted path: zerg.foo (for "from zerg.foo import bar")
+        if len(parts) > 1:
+            parent_dotted = f"{pkg_name}.{'.'.join(parts[:-1])}"
+        else:
+            parent_dotted = pkg_name
+
+        patterns: list[str] = [
+            f"from {full_dotted} import",
+            f"import {full_dotted}",
+            f"from {parent_dotted} import {module_name}",
+            f"from .{module_name} import",
+        ]
+
+        found = False
+        for other_file, other_content in production_contents:
+            if other_file.resolve() == candidate.resolve():
+                continue
+            if any(pattern in other_content for pattern in patterns):
+                found = True
+                break
+
+        if not found:
+            messages.append(
+                f"{candidate.relative_to(package_dir)}: orphaned module — "
+                f"no production imports found"
+            )
+
+    if strict:
+        return not messages, messages
+    return True, messages
+
+
 def validate_all(
-    commands_dir: Path | None = None, auto_split: bool = False
+    commands_dir: Path | None = None,
+    auto_split: bool = False,
+    strict_wiring: bool = False,
 ) -> tuple[bool, list[str]]:
     """Run all command validation checks and aggregate results.
 
     Args:
         commands_dir: Path to the commands directory. Defaults to package location.
         auto_split: If True, auto-split oversized files during threshold check.
+        strict_wiring: If True, orphaned modules cause a failure.
 
     Returns:
         Tuple of (all_passed, list of all error messages across checks).
@@ -325,6 +440,7 @@ def validate_all(
         ),
         ("State JSON", validate_state_json_without_tasks(commands_dir)),
         ("Engineering rules", validate_rules()),
+        ("Module wiring", validate_module_wiring(strict=strict_wiring)),
     ]
 
     base_count = len(_get_base_command_files(commands_dir))
@@ -340,6 +456,7 @@ def validate_all(
         "Split threshold": "no oversized unsplit files",
         "State JSON": "no files reference state without TaskList/TaskGet",
         "Engineering rules": "all rule files valid",
+        "Module wiring": "no orphaned modules without production imports",
     }
 
     fail_count = 0
@@ -382,9 +499,16 @@ if __name__ == "__main__":
         default=None,
         help="Path to commands directory. Defaults to zerg/data/commands/.",
     )
+    parser.add_argument(
+        "--strict-wiring",
+        action="store_true",
+        help="Treat orphaned modules (zero production imports) as errors.",
+    )
 
     args = parser.parse_args()
     passed, _ = validate_all(
-        commands_dir=args.commands_dir, auto_split=args.auto_split
+        commands_dir=args.commands_dir,
+        auto_split=args.auto_split,
+        strict_wiring=args.strict_wiring,
     )
     sys.exit(0 if passed else 1)

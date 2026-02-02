@@ -53,7 +53,44 @@ if [ ${#GATE_FAILURES[@]} -gt 0 ]; then
 fi
 ```
 
-### Step 5.5: Update Task System After Merge
+### Step 5.5: Wiring Verification
+
+After quality gates pass, verify new modules are connected:
+
+```bash
+echo "Checking module wiring..."
+
+# Find all .py files created in this level's commits
+MERGE_BASE=$(git merge-base HEAD zerg/$FEATURE/base)
+NEW_FILES=$(git diff --name-only --diff-filter=A "$MERGE_BASE" HEAD -- '*.py' | grep -v 'tests/' | grep -v '__init__.py')
+
+WIRING_WARNINGS=()
+for FILE in $NEW_FILES; do
+  # Convert path to module pattern (zerg/foo.py -> zerg.foo)
+  MODULE=$(echo "$FILE" | sed 's|/|.|g' | sed 's|\.py$||')
+  MODULE_NAME=$(basename "$FILE" .py)
+  PKG=$(dirname "$FILE" | sed 's|/|.|g')
+
+  # Search for production imports (exclude tests/ and the file itself)
+  IMPORTERS=$(grep -rl "from ${MODULE} import\|import ${MODULE}\|from ${PKG} import ${MODULE_NAME}" --include="*.py" . 2>/dev/null | grep -v "tests/" | grep -v "$FILE" | head -1)
+
+  if [ -z "$IMPORTERS" ]; then
+    WIRING_WARNINGS+=("$FILE")
+  fi
+done
+
+if [ ${#WIRING_WARNINGS[@]} -gt 0 ]; then
+  echo "⚠️  Wiring warnings: ${#WIRING_WARNINGS[@]} new module(s) have no production callers:"
+  for W in "${WIRING_WARNINGS[@]}"; do
+    echo "  - $W"
+  done
+  echo "  These modules may be orphaned. Verify they have consumers."
+fi
+```
+
+Wiring verification is advisory (warning only). Use `python -m zerg.validate_commands --strict-wiring` to enforce.
+
+### Step 5.6: Update Task System After Merge
 
 After quality gates pass, update Claude Code Tasks for this level:
 

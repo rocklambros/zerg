@@ -1,0 +1,188 @@
+{
+  "feature": "integration-wiring-enforcement",
+  "version": "2.0",
+  "generated": "2026-02-02",
+  "total_tasks": 7,
+  "max_parallelization": 2,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create CI pytest workflow",
+      "description": "Create .github/workflows/pytest.yml that runs pytest on push/PR. Include unit tests, integration tests, and validate_commands check. Use Python 3.12, install dev deps, run with -v --tb=short.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".github/workflows/pytest.yml"],
+        "modify": [],
+        "read": [".github/workflows/command-validation.yml"]
+      },
+      "verification": {
+        "command": "python -c \"import yaml; yaml.safe_load(open('.github/workflows/pytest.yml'))\"",
+        "timeout_seconds": 30
+      },
+      "consumers": [],
+      "integration_test": null,
+      "estimate_minutes": 10,
+      "skills_required": ["github-actions"]
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add validate_module_wiring() to validate_commands.py",
+      "description": "Add a new validation function that scans zerg/ for .py modules with zero production imports (test-only imports don't count). Allowlist: __init__.py, __main__.py, conftest.py, files with 'if __name__'. Add to validate_all() as a new check. Default to warning mode. Add --strict-wiring CLI flag for fail mode.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/validate_commands.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.validate_commands import validate_module_wiring; print('import ok')\"",
+        "timeout_seconds": 30
+      },
+      "consumers": ["TASK-005", "TASK-007"],
+      "integration_test": "tests/integration/test_wiring_enforcement.py",
+      "estimate_minutes": 30,
+      "skills_required": ["python", "ast"]
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add consumer matrix to design.md command",
+      "description": "Modify design.md and design.core.md to: (1) Add 'consumers' and 'integration_test' fields to task-graph.json schema in Phase 3. (2) Add Consumer Matrix table to Phase 2 after File Ownership Matrix. (3) Add validation rules to Phase 5 for consumer/integration_test consistency. The consumer matrix maps each task's output to its callers.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/design.md", "zerg/data/commands/design.core.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'consumers' zerg/data/commands/design.md && grep -q 'integration_test' zerg/data/commands/design.md",
+        "timeout_seconds": 10
+      },
+      "consumers": [],
+      "integration_test": null,
+      "estimate_minutes": 20,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add integration verification step to worker.core.md",
+      "description": "Modify worker.core.md to add Step 4.3.5 (Integration Verification) between implementation and verification. Worker must: (1) Check if task has integration_test field. (2) If yes, create the integration test file. (3) Run both isolation verification AND integration test. (4) Both must pass before commit. Update Step 4.4 to include integration test execution.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/worker.core.md"],
+        "read": ["zerg/data/commands/worker.details.md"]
+      },
+      "verification": {
+        "command": "grep -q 'integration_test\\|integration_verification\\|Integration Verification' zerg/data/commands/worker.core.md",
+        "timeout_seconds": 10
+      },
+      "consumers": [],
+      "integration_test": null,
+      "estimate_minutes": 20,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-005",
+      "title": "Add wiring quality gate to merge.core.md",
+      "description": "Modify merge.core.md to add Step 5.5 (Wiring Verification) after quality gates. The step: (1) Finds all new .py files in this level's commits. (2) Checks each for production imports (excluding tests/). (3) Reports orphaned modules as warnings. (4) In strict mode, fails the merge.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/merge.core.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'Wiring Verification\\|wiring' zerg/data/commands/merge.core.md",
+        "timeout_seconds": 10
+      },
+      "consumers": [],
+      "integration_test": null,
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "bash"]
+    },
+    {
+      "id": "TASK-006",
+      "title": "Add wiring anti-drift rules to CLAUDE.md",
+      "description": "Add two new rules to CLAUDE.md Anti-Drift Rules section: (1) Every new module must have a production caller. (2) Every new module must have an integration test. Add corresponding entries to the drift detection checklist bash script. Also update the 'What Drift Looks Like' section with a new pattern for unwired modules.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["CLAUDE.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'production caller\\|integration test' CLAUDE.md",
+        "timeout_seconds": 10
+      },
+      "consumers": [],
+      "integration_test": null,
+      "estimate_minutes": 15,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-007",
+      "title": "Write unit and integration tests for wiring enforcement",
+      "description": "Add tests for validate_module_wiring(): (1) Unit tests in test_validate_commands.py — module with production imports passes, module with only test imports warns, allowlisted files exempt. (2) Integration test in test_wiring_enforcement.py — end-to-end test running validate_module_wiring() against actual zerg/ package, verifying it detects known orphaned modules. Also validate the task-graph schema changes parse correctly.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-005", "TASK-006"],
+      "files": {
+        "create": ["tests/integration/test_wiring_enforcement.py"],
+        "modify": ["tests/unit/test_validate_commands.py"],
+        "read": ["zerg/validate_commands.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_validate_commands.py tests/integration/test_wiring_enforcement.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "consumers": [],
+      "integration_test": null,
+      "estimate_minutes": 30,
+      "skills_required": ["python", "pytest"]
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-003", "TASK-004"],
+      "parallel": true,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-005", "TASK-006"],
+      "parallel": true,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["TASK-007"],
+      "parallel": false,
+      "depends_on_levels": [3]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No file ownership conflicts. Each task modifies distinct files.",
+    "conflicts": []
+  }
+}

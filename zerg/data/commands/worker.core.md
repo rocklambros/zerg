@@ -80,11 +80,40 @@ This signals to other workers and the orchestrator that this task is actively be
 - Follow the design document exactly, match existing patterns
 - No TODOs, no placeholders, complete and working code
 
+#### 4.3.5 Integration Verification
+
+If the task has an `integration_test` field in task-graph.json:
+
+1. Create the integration test file at the specified path
+2. The integration test MUST:
+   - Import the module/class/function created by this task
+   - Verify it is instantiable/callable in its intended context
+   - Prove the public API matches what consumers expect
+3. Run the integration test alongside isolation verification (Step 4.4)
+
+If no `integration_test` field exists, skip this step.
+
 #### 4.4 Verify Task
 
 ```bash
+# Isolation verification
 eval "$VERIFICATION"
-if [ $? -eq 0 ]; then echo "Verification passed"; else echo "Verification failed"; fi
+ISOLATION_RESULT=$?
+
+# Integration verification (if applicable)
+INTEGRATION_TEST=$(echo $TASK | jq -r '.integration_test // empty')
+INTEGRATION_RESULT=0
+if [ -n "$INTEGRATION_TEST" ]; then
+  pytest "$INTEGRATION_TEST" -v
+  INTEGRATION_RESULT=$?
+fi
+
+# Both must pass
+if [ $ISOLATION_RESULT -eq 0 ] && [ $INTEGRATION_RESULT -eq 0 ]; then
+  echo "All verification passed"
+else
+  echo "Verification failed (isolation=$ISOLATION_RESULT, integration=$INTEGRATION_RESULT)"
+fi
 ```
 
 #### 4.5 Commit on Success
@@ -96,6 +125,7 @@ git commit -m "feat($FEATURE): $TITLE
 Task-ID: $TASK_ID
 Worker: $WORKER_ID
 Verified: $VERIFICATION
+Integration-Test: $INTEGRATION_TEST
 Level: $LEVEL
 "
 ```
