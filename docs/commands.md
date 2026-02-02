@@ -162,9 +162,13 @@ Open-ended feature discovery through competitive research, Socratic questioning,
 
 ```
 .gsd/specs/brainstorm-{timestamp}/
-  research.md     # Competitive analysis findings
-  brainstorm.md   # Session summary with all Q&A
-  issues.json     # Machine-readable issue manifest
+  research.md         # Competitive analysis findings
+  transcript.md       # Full Q&A transcript from discovery
+  tradeoffs.md        # Trade-off decisions and reasoning
+  validated-design.md # User-confirmed scope from Design Validation
+  deferred.md         # Features deferred by YAGNI Gate
+  brainstorm.md       # Session summary with recommendations
+  issues.json         # Machine-readable issue manifest
 ```
 
 #### Context Management

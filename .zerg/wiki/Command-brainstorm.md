@@ -16,11 +16,11 @@ The command follows a multi-phase workflow:
 
 1. **Research** -- Uses WebSearch to analyze competitors, market gaps, and user pain points (3-5 queries). Findings are cached in the session directory.
 
-2. **Socratic Discovery** -- Conducts multiple rounds of structured questions using AskUserQuestion. Operates in two modes:
-   - **Guided mode** (default): Domain-aware question trees drive discovery through problem space, constraints, and solution ideation.
-   - **Open mode** (`--socratic open`): Free-form exploration without domain scaffolding, useful for novel or cross-cutting topics.
+2. **Socratic Discovery** -- Conducts structured questions using AskUserQuestion. Operates in two modes:
+   - **Batch mode** (default): Multiple questions per round, 3 rounds by default (override with `--rounds N`).
+   - **Socratic mode** (`--socratic`): Single-question interactive mode with 6 domain-specific question trees (Auth, API, Data Pipeline, UI/Frontend, Infrastructure, General). Domain is auto-detected from topic keywords.
 
-   Saturation detection automatically stops questioning when 2 consecutive answers introduce no new entities (concepts, constraints, or requirements).
+   Saturation detection automatically stops questioning when 2 consecutive answers introduce no new entities (concepts, constraints, or requirements). Minimum 3 questions before checking.
 
 2.5. **Trade-off Exploration** -- Surfaces competing concerns (e.g., consistency vs. availability, simplicity vs. extensibility) and asks the user to rank or choose between them. Results are captured in `tradeoffs.md`.
 
@@ -64,7 +64,7 @@ The command uses ZERG's context engineering system:
 |--------|-------------|
 | `[domain-or-topic]` | Optional. Domain or topic to brainstorm about |
 | `--rounds N` | Number of Socratic discovery rounds (default: 3, max: 5) |
-| `--socratic [guided\|open]` | Socratic mode. `guided` (default) uses domain question trees; `open` uses free-form exploration |
+| `--socratic` | Enable single-question Socratic mode with domain question trees (default: off, uses batch mode) |
 | `--skip-research` | Skip the web research phase |
 | `--skip-issues` | Ideate only, don't create GitHub issues |
 | `--dry-run` | Preview issues without creating them |
@@ -82,14 +82,11 @@ The command uses ZERG's context engineering system:
 # Extended discovery with 5 rounds, preview only
 /zerg:brainstorm api-improvements --rounds 5 --dry-run
 
-# Use guided Socratic mode with domain-aware question trees
-/zerg:brainstorm authentication --socratic guided
-
-# Use open Socratic mode for free-form exploration
-/zerg:brainstorm "cross-service data flow" --socratic open
+# Use Socratic mode with domain-aware question trees
+/zerg:brainstorm authentication --socratic
 
 # Combine socratic mode with dry-run for pure discovery
-/zerg:brainstorm infrastructure --socratic guided --skip-issues
+/zerg:brainstorm infrastructure --socratic --skip-issues
 ```
 
 ## Output
