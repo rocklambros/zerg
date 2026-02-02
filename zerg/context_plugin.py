@@ -26,13 +26,14 @@ class ContextEngineeringPlugin(ContextPlugin):
     Budget allocation strategy for ``build_task_context``:
         - Engineering rules: ~10% of task_context_budget_tokens
         - Security rules summary: ~10%
-        - Spec context (relevant sections): ~25%
+        - Spec context (relevant sections): ~20%
         - MCP routing hints: ~10%
         - Analysis depth guidance: ~10%
         - Behavioral mode: ~10%
         - TDD enforcement: ~10%
         - Token efficiency hints: ~5%
-        - Remaining ~10% is reserved as buffer / overhead
+        - Repo map context: ~10%
+        - Remaining ~5% is reserved as buffer / overhead
     """
 
     def __init__(self, config: ContextEngineeringConfig | None = None) -> None:
@@ -148,8 +149,8 @@ class ContextEngineeringPlugin(ContextPlugin):
         if security_section:
             sections.append(security_section)
 
-        # -- Spec context (~25% of budget) ----------------------------------
-        spec_budget = int(budget * 0.25)
+        # -- Spec context (~20% of budget) ----------------------------------
+        spec_budget = int(budget * 0.20)
         spec_section = self._build_spec_section(task, feature, spec_budget)
         if spec_section:
             sections.append(spec_section)
@@ -182,6 +183,12 @@ class ContextEngineeringPlugin(ContextPlugin):
         efficiency_section = self._build_efficiency_section()
         if efficiency_section:
             sections.append(efficiency_section)
+
+        # -- Repo map context (~10% of budget) ----------------------------
+        repo_map_budget = int(budget * 0.10)
+        repo_map_section = self._build_repo_map_section(task, repo_map_budget)
+        if repo_map_section:
+            sections.append(repo_map_section)
 
         assembled = "\n\n".join(sections)
 
@@ -333,6 +340,33 @@ class ContextEngineeringPlugin(ContextPlugin):
             logger.debug(
                 "Spec context loading failed; skipping section", exc_info=True
             )
+            return ""
+
+    def _build_repo_map_section(self, task: dict, max_tokens: int) -> str:
+        """Inject repo symbol map context relevant to the task.
+
+        Args:
+            task: Task dict from task-graph.json.
+            max_tokens: Token budget for the repo map section.
+
+        Returns:
+            Markdown section string, or empty string if not available.
+        """
+        try:
+            from zerg.repo_map import build_map
+
+            file_paths = self._collect_task_files(task)
+            if not file_paths:
+                return ""
+
+            description = task.get("description", "")
+            keywords = [w for w in description.split() if len(w) > 3][:10]
+
+            graph = build_map(".", languages=["python", "javascript", "typescript"])
+            context = graph.query(file_paths, keywords, max_tokens=max_tokens)
+            return context
+        except Exception:
+            logger.debug("Repo map context failed; skipping section", exc_info=True)
             return ""
 
     def _build_mcp_section(self, task: dict, max_tokens: int) -> str:

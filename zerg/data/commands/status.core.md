@@ -72,6 +72,37 @@ zerg status --dashboard -i 2      # Custom refresh interval
 zerg status --watch               # Lighter text-based refresh
 ```
 
+## Worker Intelligence
+
+Show worker health and escalation data when available:
+
+```
+WORKER INTELLIGENCE
+──────────────────────────────────────────────
+Heartbeats:
+  Worker 1:  ✅ alive (task TASK-003, verifying_tier2, 65%)
+  Worker 2:  ✅ alive (task TASK-005, implementing, 30%)
+  Worker 3:  ⚠️ stalled (last heartbeat 145s ago)
+
+Escalations:
+  🚨 TASK-003 (Worker 1): ambiguous_spec
+     "Spec says 'handle auth errors' but doesn't define error types"
+  Total: 1 unresolved, 0 resolved
+
+Progress:
+  Worker 1:  2/5 tasks ████░░░░░░ 40%
+  Worker 2:  3/5 tasks ██████░░░░ 60%
+  Worker 3:  0/5 tasks ░░░░░░░░░░  0%
+──────────────────────────────────────────────
+```
+
+### Worker Intelligence Data Sources
+
+- Heartbeats: read `.zerg/state/heartbeat-{id}.json` for each active worker
+- Escalations: read `.zerg/state/escalations.json`
+- Progress: read `.zerg/state/progress-{id}.json` for each active worker
+- Stall threshold: `config.heartbeat.stall_timeout_seconds` (default: 120s)
+
 ## Context Budget
 
 Show context engineering stats when available:

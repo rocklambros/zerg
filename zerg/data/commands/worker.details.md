@@ -164,6 +164,78 @@ Worker shutting down.
 ═══════════════════════════════════════════════════════════════
 ```
 
+## Heartbeat Protocol
+
+Workers write heartbeat files every 15 seconds to `.zerg/state/heartbeat-{WORKER_ID}.json`:
+
+```json
+{
+  "worker_id": 1,
+  "timestamp": "2026-02-02T10:30:00Z",
+  "task_id": "TASK-003",
+  "step": "verifying_tier2",
+  "progress_pct": 65
+}
+```
+
+**Step values**: `initializing`, `loading_context`, `implementing`, `verifying_tier1`, `verifying_tier2`, `verifying_tier3`, `committing`, `idle`
+
+The orchestrator detects stalled workers via heartbeat staleness (default: 120s timeout). Stalled workers are auto-restarted up to 2 times before task reassignment.
+
+## Progress Reporting
+
+Workers write progress to `.zerg/state/progress-{WORKER_ID}.json`:
+
+```json
+{
+  "worker_id": 1,
+  "tasks_completed": 2,
+  "tasks_total": 5,
+  "current_task": "TASK-003",
+  "current_step": "implementing",
+  "tier_results": [
+    {"tier": 1, "name": "syntax", "success": true, "retry": 0},
+    {"tier": 2, "name": "correctness", "success": false, "retry": 1}
+  ]
+}
+```
+
+## Escalation Protocol
+
+When a failure is ambiguous (unclear spec, missing dependency, unclear verification), workers escalate instead of silently blocking. Write to `.zerg/state/escalations.json`:
+
+```json
+{
+  "escalations": [
+    {
+      "worker_id": 1,
+      "task_id": "TASK-003",
+      "timestamp": "2026-02-02T10:32:00Z",
+      "category": "ambiguous_spec",
+      "message": "Spec says 'handle auth errors' but doesn't define error types",
+      "context": {"attempted": ["TypeError catch", "generic Exception"], "verification_output": "..."},
+      "resolved": false
+    }
+  ]
+}
+```
+
+**Categories**: `ambiguous_spec`, `dependency_missing`, `verification_unclear`
+
+The orchestrator auto-detects new escalations and alerts the terminal.
+
+## Three-Tier Verification
+
+Verification runs in three tiers, stopping on blocking failure:
+
+| Tier | Name | Blocking | Purpose |
+|------|------|----------|---------|
+| 1 | syntax | Yes (default) | Linting, type checking, import validation |
+| 2 | correctness | Yes (default) | Unit tests, task verification command |
+| 3 | quality | No (default) | Code quality, coverage, style |
+
+Tier commands are configured in `.zerg/config.yaml` under `verification_tiers`. If no tier 2 command is configured, the task's own `verification.command` is used.
+
 ## Exit Codes
 
 Workers use specific exit codes to signal state to the orchestrator:
@@ -174,6 +246,7 @@ Workers use specific exit codes to signal state to the orchestrator:
 | 1 | ERROR | Unrecoverable error, check logs |
 | 2 | CHECKPOINT | Context limit reached (70%), needs restart |
 | 3 | BLOCKED | All remaining tasks blocked, intervention needed |
+| 4 | ESCALATION | Worker escalated ambiguous failure |
 | 130 | INTERRUPTED | Received stop signal, graceful shutdown |
 
 ## Task Claiming Protocol
@@ -233,6 +306,8 @@ STARTING → RUNNING → STOPPED
               ↓         ↑
           CHECKPOINT ────┘
               ↓
+           STALLED → auto-restart (up to 2x) → RUNNING
+              ↓
            CRASHED (on error)
 ```
 
@@ -240,6 +315,9 @@ STARTING → RUNNING → STOPPED
 
 1. **Task System**: TaskList/TaskGet — authoritative task status
 2. **State File**: `.zerg/state/{feature}.json` - supplementary shared state
-2. **Progress Log**: `.gsd/specs/{feature}/progress.md` - human-readable log
-3. **Worker Log**: `.zerg/logs/worker-{id}.log` - detailed worker output
-4. **Event Stream**: State manager appends events for orchestrator
+3. **Progress Log**: `.gsd/specs/{feature}/progress.md` - human-readable log
+4. **Worker Log**: `.zerg/logs/worker-{id}.log` - detailed worker output
+5. **Event Stream**: State manager appends events for orchestrator
+6. **Heartbeat**: `.zerg/state/heartbeat-{id}.json` - health monitoring
+7. **Progress**: `.zerg/state/progress-{id}.json` - structured progress
+8. **Escalations**: `.zerg/state/escalations.json` - shared escalation queue

@@ -564,6 +564,14 @@ class SubprocessLauncher(WorkerLauncher):
             # Still running
             if handle.status == WorkerStatus.INITIALIZING:
                 handle.status = WorkerStatus.RUNNING
+            # Check heartbeat for stall detection
+            if handle.status == WorkerStatus.RUNNING:
+                from zerg.heartbeat import HeartbeatMonitor
+
+                hb_monitor = HeartbeatMonitor()
+                hb = hb_monitor.read(worker_id)
+                if hb and hb.is_stale(120):  # default stall timeout
+                    handle.status = WorkerStatus.STALLED
             return handle.status
 
         # Process has exited
@@ -575,6 +583,8 @@ class SubprocessLauncher(WorkerLauncher):
             handle.status = WorkerStatus.CHECKPOINTING
         elif poll_result == 3:  # BLOCKED exit code
             handle.status = WorkerStatus.BLOCKED
+        elif poll_result == 4:  # ESCALATION exit code
+            handle.status = WorkerStatus.STOPPED
         else:
             handle.status = WorkerStatus.CRASHED
 

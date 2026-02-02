@@ -193,6 +193,43 @@ class TDDConfig(BaseModel):
     )
 
 
+class HeartbeatConfig(BaseModel):
+    """Heartbeat health monitoring configuration."""
+
+    interval_seconds: int = Field(default=15, ge=5, le=300)
+    stall_timeout_seconds: int = Field(default=120, ge=30, le=600)
+    max_restarts: int = Field(default=2, ge=0, le=5)
+
+
+class EscalationConfig(BaseModel):
+    """Escalation handling configuration."""
+
+    auto_interrupt: bool = Field(default=True)
+    poll_interval_seconds: int = Field(default=5, ge=1, le=60)
+
+
+class VerificationTiersConfig(BaseModel):
+    """Three-tier verification configuration."""
+
+    tier1_blocking: bool = Field(default=True)
+    tier1_command: str | None = Field(default=None)
+    tier2_blocking: bool = Field(default=True)
+    tier2_command: str | None = Field(default=None)
+    tier3_blocking: bool = Field(default=False)
+    tier3_command: str | None = Field(default=None)
+
+
+class RepoMapConfig(BaseModel):
+    """Repository symbol map configuration."""
+
+    enabled: bool = Field(default=True)
+    languages: list[str] = Field(
+        default_factory=lambda: ["python", "javascript", "typescript"]
+    )
+    max_tokens_per_module: int = Field(default=3000, ge=500, le=10000)
+    context_budget_percent: int = Field(default=15, ge=5, le=30)
+
+
 class ZergConfig(BaseModel):
     """Complete ZERG configuration."""
 
@@ -214,6 +251,12 @@ class ZergConfig(BaseModel):
     verification: VerificationConfig = Field(default_factory=VerificationConfig)
     mcp_routing: MCPRoutingConfig = Field(default_factory=MCPRoutingConfig)
     tdd: TDDConfig = Field(default_factory=TDDConfig)
+    heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
+    escalation: EscalationConfig = Field(default_factory=EscalationConfig)
+    verification_tiers: VerificationTiersConfig = Field(
+        default_factory=VerificationTiersConfig
+    )
+    repo_map: RepoMapConfig = Field(default_factory=RepoMapConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "ZergConfig":

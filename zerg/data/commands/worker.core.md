@@ -19,6 +19,17 @@ Execute assigned tasks, commit completed work, coordinate via the shared task li
 
 ## Execution Protocol
 
+### Step 0: Initialize Health Monitoring
+
+Write an initial heartbeat immediately on startup:
+
+```bash
+# Write heartbeat JSON to .zerg/state/heartbeat-$WORKER_ID.json
+# Fields: worker_id, timestamp (ISO 8601), task_id (null), step ("initializing"), progress_pct (0)
+```
+
+Continue writing heartbeats every 15 seconds throughout execution. Update `task_id`, `step`, and `progress_pct` as work progresses.
+
 ### Step 1: Load Context
 
 ```bash
@@ -93,13 +104,20 @@ If the task has an `integration_test` field in task-graph.json:
 
 If no `integration_test` field exists, skip this step.
 
-#### 4.4 Verify Task
+#### 4.4 Verify Task (Three-Tier)
+
+Run verification in three tiers. Stop on blocking tier failure:
 
 ```bash
-# Isolation verification
+# Update heartbeat: step="verifying_tier1"
+
+# Tier 1 (syntax) — BLOCKING: Lint/type check
+# Uses tier1_command from config, or skip if not configured
+# Write progress: tier_results += {tier: 1, name: "syntax", success: true/false}
+
+# Tier 2 (correctness) — BLOCKING: Task verification command
 eval "$VERIFICATION"
 ISOLATION_RESULT=$?
-
 # Integration verification (if applicable)
 INTEGRATION_TEST=$(echo $TASK | jq -r '.integration_test // empty')
 INTEGRATION_RESULT=0
@@ -107,10 +125,15 @@ if [ -n "$INTEGRATION_TEST" ]; then
   pytest "$INTEGRATION_TEST" -v
   INTEGRATION_RESULT=$?
 fi
+# Write progress: tier_results += {tier: 2, name: "correctness", success: true/false}
 
-# Both must pass
+# Tier 3 (quality) — NON-BLOCKING: Code quality checks
+# Uses tier3_command from config, or skip if not configured
+# Write progress: tier_results += {tier: 3, name: "quality", success: true/false}
+
+# Both tier 1 and tier 2 must pass (blocking)
 if [ $ISOLATION_RESULT -eq 0 ] && [ $INTEGRATION_RESULT -eq 0 ]; then
-  echo "All verification passed"
+  echo "All blocking verification passed"
 else
   echo "Verification failed (isolation=$ISOLATION_RESULT, integration=$INTEGRATION_RESULT)"
 fi
@@ -151,7 +174,22 @@ If exiting due to checkpoint (context limit):
 
 #### 4.7 Handle Failure
 
-If verification fails, retry up to 3 times with different approaches. After 3 failures, mark task as blocked and move on. See `worker.details.md` for retry logic.
+If verification fails, retry up to 3 times with different approaches. After 3 failures:
+
+1. **Determine if ambiguous**: If the failure is due to unclear spec, missing dependency, or unclear verification criteria, **escalate** instead of blocking.
+2. **Escalate**: Write to `.zerg/state/escalations.json`:
+   ```json
+   {
+     "worker_id": $WORKER_ID,
+     "task_id": "$TASK_ID",
+     "timestamp": "ISO 8601",
+     "category": "ambiguous_spec|dependency_missing|verification_unclear",
+     "message": "Human-readable explanation of what's unclear",
+     "context": {"attempted": [...], "verification_output": "..."},
+     "resolved": false
+   }
+   ```
+3. **Block**: Mark task as blocked and move on. See `worker.details.md` for retry logic.
 
 ### Step 5: Context Management
 

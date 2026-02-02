@@ -322,6 +322,51 @@ class VerificationExecutor:
         store = ArtifactStore(base_dir=artifact_dir)
         return store.is_fresh(gate_name, task_id, max_age_seconds)
 
+    def verify_task_tiered(
+        self,
+        task: Task,
+        config: Any = None,
+        cwd: str | Path | None = None,
+        env: dict[str, str] | None = None,
+    ) -> Any:
+        """Verify a task using three-tier verification.
+
+        Falls back to standard verify_task() if no tiers are configured.
+
+        Args:
+            task: Task with verification spec
+            config: VerificationTiersConfig (optional)
+            cwd: Working directory
+            env: Environment variables
+
+        Returns:
+            TieredVerificationResult
+        """
+        from zerg.verification_tiers import TieredVerificationResult, VerificationTiers
+
+        if config is None:
+            from zerg.config import VerificationTiersConfig
+
+            config = VerificationTiersConfig()
+
+        tiered = VerificationTiers(config=config, default_timeout=self.default_timeout)
+        result = tiered.execute(task, cwd=str(cwd) if cwd else None, env=env)
+
+        # Record tier results as standard verification results for compatibility
+        for tier in result.tiers:
+            exec_result = VerificationExecutionResult(
+                task_id=result.task_id,
+                success=tier.success,
+                exit_code=0 if tier.success else 1,
+                stdout=tier.stdout,
+                stderr=tier.stderr,
+                duration_ms=tier.duration_ms,
+                command=tier.command,
+            )
+            self._results.append(exec_result)
+
+        return result
+
     def get_summary(self) -> dict[str, Any]:
         """Get summary of verification results.
 

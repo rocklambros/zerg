@@ -49,6 +49,7 @@ class WorkerStatus(Enum):
     STOPPED = "stopped"
     CRASHED = "crashed"
     BLOCKED = "blocked"
+    STALLED = "stalled"
 
 
 class MergeStatus(Enum):
@@ -85,6 +86,7 @@ class ExitCode(IntEnum):
     ERROR = 1
     CHECKPOINT = 2
     BLOCKED = 3
+    ESCALATION = 4
 
 
 # Default configuration values
@@ -144,6 +146,13 @@ class LogEvent(Enum):
     LEVEL_COMPLETE = "level_complete"
     MERGE_STARTED = "merge_started"
     MERGE_COMPLETE = "merge_complete"
+    HEARTBEAT_STALE = "heartbeat_stale"
+    ESCALATION_CREATED = "escalation_created"
+    ESCALATION_RESOLVED = "escalation_resolved"
+    WORKER_AUTO_RESTARTED = "worker_auto_restarted"
+    WORKER_REASSIGNED = "worker_reassigned"
+    VERIFICATION_TIER_PASSED = "verification_tier_passed"
+    VERIFICATION_TIER_FAILED = "verification_tier_failed"
 
 
 class PluginHookEvent(Enum):

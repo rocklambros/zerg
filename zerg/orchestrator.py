@@ -180,6 +180,7 @@ class Orchestrator:
         self._on_level_complete: list[Callable[[int], None]] = []
         self._poll_interval = 5  # seconds
         self._max_retry_attempts = self.config.workers.retry_attempts
+        self._restart_counts: dict[int, int] = {}  # worker_id -> restart count
 
         # Wire extracted components
         self._retry_manager = TaskRetryManager(
@@ -777,11 +778,30 @@ class Orchestrator:
         self.task_sync.sync_state()
         self.launcher.sync_state()
 
+        # Check escalations (auto-interrupt)
+        self._check_escalations()
+        # Aggregate progress for status
+        self._aggregate_progress()
+
         for worker_id, worker in list(self._workers.items()):
             if worker.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
                 continue
             status = self.launcher.monitor(worker_id)
-            if status == WorkerStatus.CRASHED:
+            if status == WorkerStatus.STALLED:
+                logger.warning(f"Worker {worker_id} stalled (heartbeat timeout)")
+                worker.status = WorkerStatus.STALLED
+                self.state.set_worker_state(worker)
+                restart_count = self._restart_counts.get(worker_id, 0)
+                if restart_count < self.config.heartbeat.max_restarts:
+                    self._restart_counts[worker_id] = restart_count + 1
+                    logger.info(f"Auto-restarting stalled worker {worker_id} (attempt {restart_count + 1})")
+                    self._handle_worker_exit(worker_id)
+                else:
+                    logger.warning(f"Worker {worker_id} exceeded max restarts, reassigning tasks")
+                    if worker.current_task:
+                        self._handle_task_failure(worker.current_task, worker_id, "Worker stalled repeatedly")
+                    self._handle_worker_exit(worker_id)
+            elif status == WorkerStatus.CRASHED:
                 logger.error(f"Worker {worker_id} crashed")
                 worker.status = WorkerStatus.CRASHED
                 self.state.set_worker_state(worker)
@@ -798,6 +818,40 @@ class Orchestrator:
                 self.state.set_worker_state(worker)
                 self._handle_worker_exit(worker_id)
             worker.health_check_at = _now()
+
+    def _check_escalations(self) -> None:
+        """Check for unresolved worker escalations and alert if configured."""
+        if not self.config.escalation.auto_interrupt:
+            return
+        try:
+            from zerg.escalation import EscalationMonitor
+
+            monitor = EscalationMonitor()
+            unresolved = monitor.get_unresolved()
+            for esc in unresolved:
+                monitor.alert_terminal(esc)
+        except Exception:
+            logger.debug("Escalation check failed", exc_info=True)
+
+    def _aggregate_progress(self) -> None:
+        """Read worker progress files for status aggregation."""
+        try:
+            from zerg.progress_reporter import ProgressReporter
+
+            all_progress = ProgressReporter.read_all()
+            # Store on state for status command consumption
+            progress_summary = {}
+            for wid, wp in all_progress.items():
+                progress_summary[str(wid)] = {
+                    "tasks_completed": wp.tasks_completed,
+                    "tasks_total": wp.tasks_total,
+                    "current_task": wp.current_task,
+                    "current_step": wp.current_step,
+                }
+            # Update state with progress data
+            self.state._state.setdefault("worker_progress", {}).update(progress_summary)
+        except Exception:
+            logger.debug("Progress aggregation failed", exc_info=True)
 
     # ------------------------------------------------------------------
     # Async lifecycle methods
