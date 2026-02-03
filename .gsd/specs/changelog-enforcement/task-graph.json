@@ -1,0 +1,57 @@
+{
+  "feature": "changelog-enforcement",
+  "version": "2.0",
+  "generated": "2026-02-02T00:00:00Z",
+  "total_tasks": 2,
+  "max_parallelization": 2,
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add CHANGELOG task requirement to design phase",
+      "description": "In design.core.md: (1) Add 'CHANGELOG.md update (required — add entries under [Unreleased])' to the Quality (Level 5) bullet list in the Phase Structure template, (2) Add 'Task graph includes a CHANGELOG.md update task in the final quality level' to the Completion Criteria section.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/design.core.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'CHANGELOG' zerg/data/commands/design.core.md && echo PASS",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add CHANGELOG validation to ship action",
+      "description": "In git.details.md: Insert a CHANGELOG validation step in the ship action pipeline between step 1 (Commit) and step 2 (Push). The step checks 'git diff {base}...HEAD -- CHANGELOG.md' for changes. If no changes found, use AskUserQuestion to warn the user with options: 'Add CHANGELOG entry now (Recommended)' or 'Continue without CHANGELOG'. Update the pipeline steps list to include step 1.5.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/git.details.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'CHANGELOG' zerg/data/commands/git.details.md && grep -q 'AskUserQuestion' zerg/data/commands/git.details.md && echo PASS",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5
+    }
+  ],
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 5
+    }
+  },
+  "conflict_matrix": {
+    "description": "No conflicts — tasks modify different files",
+    "conflicts": []
+  }
+}

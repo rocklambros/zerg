@@ -538,6 +538,41 @@ When worker intelligence is active, `/zerg:status` displays additional sections:
 
 **Progress**: Per-worker progress bars with tasks completed/total and current step. Includes tier-level verification results for the current task.
 
+#### Worker Health Dashboard
+
+When worker observability data is available, `/zerg:status` displays three additional sections:
+
+**WORKER HEALTH**: Per-worker table with columns for Worker, Status, Task, Step, Progress, and Restarts. Data is sourced from heartbeat (`heartbeat-{id}.json`), escalation (`escalations.json`), and progress (`progress-{id}.json`) files in `.zerg/state/`.
+
+```
+WORKER HEALTH
+Worker   Status    Task        Step              Progress   Restarts
+W-0      ACTIVE    FEAT-L2-003 implementing      65%        0
+W-1      ACTIVE    FEAT-L2-004 verifying-tier-2   80%        1
+W-2      STALLED   FEAT-L2-005 implementing       30%        0
+```
+
+**REPOSITORY MAP**: File tracking statistics showing total files in the project, number indexed in the symbol map, stale entries pending re-parse, and last update timestamp. Data from `.zerg/state/repo-index.json`. The index uses MD5-based staleness detection to selectively re-parse only changed files.
+
+```
+REPOSITORY MAP
+Total Files    Indexed    Stale    Last Updated
+142            138        4        2026-02-01T14:32:00Z
+```
+
+**TOKEN USAGE**: Per-worker token consumption table with columns for Worker, Tasks, Tokens/Task, Total, and Mode. Mode indicates whether counts are `(estimated)` via heuristic or `(exact)` via the Anthropic SDK. A savings breakdown row shows total tokens saved by context engineering with percentages.
+
+```
+TOKEN USAGE
+Worker   Tasks   Tokens/Task   Total      Mode
+W-0      3       4,200         12,600     (estimated)
+W-1      2       3,800         7,600      (estimated)
+─────────────────────────────────────────────────
+Total    5       4,040         20,200     Savings: 8,400 (29%)
+```
+
+Install `zerg[metrics]` for exact token counting via the Anthropic SDK (`pip install zerg[metrics]`). Without it, all counts use heuristic estimation.
+
 ---
 
 ### /zerg:logs

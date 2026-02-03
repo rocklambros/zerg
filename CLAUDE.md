@@ -67,7 +67,7 @@ Without Task ecosystem integration, parallel workers can't coordinate, sessions 
 
 1. **Never remove Task tool calls from command files.** If a command file references TaskCreate, TaskUpdate, TaskList, or TaskGet, those references are load-bearing. Do not remove, comment out, or "simplify" them.
 
-2. **Every command file MUST contain Task tool calls.** All 19 command files in `zerg/data/commands/` are required to have Task ecosystem integration. There are zero exceptions. The minimum pattern for any command is:
+2. **Every command file MUST contain Task tool calls.** All command files in `zerg/data/commands/` are required to have Task ecosystem integration. There are zero exceptions. The minimum pattern for any command is:
    ```
    On invocation:  TaskCreate (subject with bracketed prefix)
    Immediately:    TaskUpdate status "in_progress"
@@ -94,7 +94,7 @@ Without Task ecosystem integration, parallel workers can't coordinate, sessions 
 Run this check when modifying any ZERG command file. If any check fails, fix it before committing.
 
 ```bash
-# 1. All 19 command files must reference Task tools (exclude .core.md/.details.md)
+# 1. All  command files must reference Task tools (exclude .core.md/.details.md)
 grep -rL "TaskCreate\|TaskUpdate\|TaskList\|TaskGet" zerg/data/commands/*.md | grep -v '\.core\.md\|\.details\.md'
 # Expected output: (empty — no files missing Task references)
 
@@ -159,7 +159,7 @@ Container workers authenticate via two methods:
 - **OAuth**: Mount `~/.claude` into container (Claude Pro/Team accounts)
 - **API Key**: Pass `ANTHROPIC_API_KEY` env var into container
 
-Both are implemented in `zerg/launcher.py:684-819`. This is settled infrastructure — do not reimplement or bypass.
+Both are implemented in `zerg/launcher.py:684-8`. This is settled infrastructure — do not reimplement or bypass.
 
 ## Cross-Cutting Capabilities
 

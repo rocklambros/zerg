@@ -241,6 +241,14 @@ At rush start, ZERG builds a symbol graph of the codebase using Python AST for `
 
 Each worker writes structured progress to `.zerg/state/progress-{id}.json` with tasks completed/total, current step, and per-tier verification results. `/zerg:status` aggregates this into a Worker Intelligence panel showing heartbeat status, escalations, and per-worker progress bars.
 
+### Token Usage Metrics
+
+ZERG tracks token consumption per worker and per task. By default, counts use a heuristic estimator (zero dependencies). Install `zerg[metrics]` for exact counting via the Anthropic SDK. `/zerg:status` displays a TOKEN USAGE section with per-worker totals and context engineering savings.
+
+### Incremental Repo Map Indexing
+
+The repository symbol map uses MD5-based staleness detection to re-parse only files that changed since the last index. `/zerg:status` shows a REPOSITORY MAP section with indexed file counts and stale entry tracking.
+
 ---
 
 ## Cross-Cutting Capabilities

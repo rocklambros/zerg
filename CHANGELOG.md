@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New config sections: `heartbeat`, `escalation`, `verification_tiers`, `repo_map` in ZergConfig (#67)
 - Documentation updates for worker intelligence: `docs/commands.md`, `docs/configuration.md`, `README.md`, wiki pages (#67)
 - `STALLED` worker status and `ESCALATION` exit code (4) for worker state machine (#67)
+- Worker health dashboard in `/zerg:status` with per-worker HEALTH table showing status, task, step, progress, restarts (#27)
+- Incremental repo map indexing with MD5-based staleness detection and selective re-parse (#30)
+- Token usage metrics subsystem: TokenCounter (API + heuristic), TokenTracker (per-worker), TokenAggregator (cumulative) (#24)
+- REPOSITORY MAP and TOKEN USAGE sections in `/zerg:status` dashboard
+- Optional `anthropic` dependency for exact token counting (`pip install zerg[metrics]`)
+- `TokenMetricsConfig` with configurable api_counting (off by default), caching, and heuristic fallback
+- StatusFormatter module for ASCII table formatting across all dashboard sections
 - Automated PyPI release workflow with trusted publishing (OIDC), TestPyPI pre-release support, and SLSA provenance attestation (#23)
 - `cleanup` action for `/zerg:git`: prune merged branches, stale remote refs, orphaned worktrees, Docker containers/images
 - `issue` action for `/zerg:git`: create AI-optimized GitHub issues from codebase scan or user description with strict 8-section template

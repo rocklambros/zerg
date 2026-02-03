@@ -1,0 +1,81 @@
+{
+  "feature": "issue-94",
+  "version": "2.0",
+  "generated": "2026-02-02T00:00:00Z",
+  "total_tasks": 3,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add post-approval AskUserQuestion prompt to plan command",
+      "description": "After user replies APPROVED in Phase 5, add a Phase 5.5 section that: (1) calls TaskUpdate to mark plan task completed, (2) updates requirements.md status, (3) uses AskUserQuestion with 3 options: 'Clear context then /z:design' (recommended), 'Run /z:design now', 'Stop here'. Based on response, output appropriate instruction text. Insert this section after Phase 5 (User Approval) and before Status Markers. Both plan.md and plan.core.md must receive identical changes to stay in sync.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.md", "zerg/data/commands/plan.core.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'AskUserQuestion' zerg/data/commands/plan.md && grep -q 'AskUserQuestion' zerg/data/commands/plan.core.md && echo PASS",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add Documentation section to requirements.md template",
+      "description": "In plan.details.md, add a new Section 10 (Documentation) to the requirements.md template (Phase 3 template). The section should instruct: execute /zerg:document after implementation, ensure all commands and flags accounted for, wiki command pages follow zerg-*.md naming (non-command pages unaffected), plan via /zerg:design and estimate via /zerg:estimate before executing documentation updates. Insert after the existing Section 9 (Approval) in the template.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.details.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'Documentation' zerg/data/commands/plan.details.md && grep -q 'zerg:document' zerg/data/commands/plan.details.md && echo PASS",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add missing git flags to docs/commands.md",
+      "description": "Add 4 missing flags to the /zerg:git flag table in docs/commands.md: (1) --no-docker: Skip Docker cleanup (for cleanup action), (2) --include-stashes: Clear git stashes during cleanup (off by default), (3) --limit N: Max issues to create (for issue action, default: 10), (4) --priority P: Filter by priority P0/P1/P2 (for issue action). Insert these in the existing flag table after the --assignee row.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["docs/commands.md"],
+        "read": ["zerg/data/commands/git.details.md"]
+      },
+      "verification": {
+        "command": "grep -q 'no-docker' docs/commands.md && grep -q 'include-stashes' docs/commands.md && grep -q 'limit N' docs/commands.md && grep -q 'priority P' docs/commands.md && echo PASS",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"]
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 10
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — all tasks modify different files",
+    "conflicts": []
+  }
+}

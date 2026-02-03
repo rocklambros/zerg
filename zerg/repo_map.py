@@ -7,8 +7,13 @@ for .js/.ts/.jsx/.tsx files. Zero new dependencies.
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 import logging
+import os
+import tempfile
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -365,3 +370,179 @@ def build_map(
                     ]
 
     return graph
+
+
+# ---------------------------------------------------------------------------
+# Incremental indexing — MD5-based staleness detection
+# ---------------------------------------------------------------------------
+
+# Language extension mapping (mirrors build_map logic)
+_LANG_EXTENSIONS: dict[str, list[str]] = {
+    "python": [".py"],
+    "javascript": [".js", ".jsx"],
+    "typescript": [".ts", ".tsx"],
+}
+
+# Directories to always skip during file collection
+_SKIP_DIRS = frozenset({
+    "node_modules", "__pycache__", "venv", ".venv", "dist", "build",
+})
+
+
+def _md5_file(filepath: Path) -> str:
+    """Return hex MD5 digest of a file's contents."""
+    h = hashlib.md5()  # noqa: S324 — used for staleness check, not security
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _collect_files(root: Path, languages: list[str]) -> list[Path]:
+    """Collect source files matching *languages* under *root*."""
+    exts: set[str] = set()
+    for lang in languages:
+        exts.update(_LANG_EXTENSIONS.get(lang, []))
+
+    result: list[Path] = []
+    for ext in exts:
+        for fp in root.rglob(f"*{ext}"):
+            parts = fp.relative_to(root).parts
+            if any(p.startswith(".") or p in _SKIP_DIRS for p in parts):
+                continue
+            result.append(fp)
+    return result
+
+
+def _extract_symbol_names(filepath: Path, root: Path) -> list[str]:
+    """Extract symbol names from a single source file.
+
+    Returns a flat list of symbol name strings (used for the index cache).
+    """
+    module_name = _path_to_module(filepath, root)
+    ext = filepath.suffix
+
+    if ext == ".py":
+        syms, _edges = _extract_python_symbols(filepath, module_name)
+        return [s.name for s in syms]
+
+    # JS/TS
+    js_syms = extract_js_file(filepath)
+    return [s.name for s in js_syms]
+
+
+class IncrementalIndex:
+    """File-level incremental index with MD5 staleness detection.
+
+    Stores ``{file_path: {hash: md5hex, symbols: [...]}}`` in
+    ``.zerg/state/repo-index.json`` and only re-extracts symbols for files
+    whose content hash has changed.
+    """
+
+    def __init__(self, state_dir: str | Path | None = None) -> None:
+        from zerg.constants import STATE_DIR  # avoid circular at module level
+
+        self._state_dir = Path(state_dir) if state_dir else Path(STATE_DIR)
+        self._index_path = self._state_dir / "repo-index.json"
+        self._data: dict[str, dict[str, Any]] = {}
+        self._last_updated: str | None = None
+        self._stale_count: int = 0
+
+    # -- persistence ---------------------------------------------------------
+
+    def _load(self) -> dict[str, dict[str, Any]]:
+        """Load the on-disk index (returns empty dict on missing/corrupt)."""
+        if not self._index_path.exists():
+            return {}
+        try:
+            raw = self._index_path.read_text(encoding="utf-8")
+            payload = json.loads(raw)
+            self._last_updated = payload.get("_meta", {}).get("last_updated")
+            return payload.get("files", {})
+        except (json.JSONDecodeError, OSError, KeyError):
+            logger.warning("Corrupt repo index at %s — rebuilding", self._index_path)
+            return {}
+
+    def _save(self, data: dict[str, dict[str, Any]]) -> None:
+        """Atomically persist the index via tempfile + os.replace."""
+        self._state_dir.mkdir(parents=True, exist_ok=True)
+        now = datetime.now(timezone.utc).isoformat()
+        payload = {
+            "_meta": {"last_updated": now},
+            "files": data,
+        }
+        fd, tmp_path = tempfile.mkstemp(
+            dir=str(self._state_dir), suffix=".tmp",
+        )
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(payload, f, indent=1)
+            os.replace(tmp_path, str(self._index_path))
+        except OSError:
+            logger.warning("Failed to write repo index to %s", self._index_path)
+            # Clean up temp file on failure
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+        self._last_updated = now
+
+    # -- public API ----------------------------------------------------------
+
+    def update_incremental(
+        self,
+        root: str | Path,
+        languages: list[str] | None = None,
+    ) -> SymbolGraph:
+        """Re-index only changed files and return a full SymbolGraph.
+
+        Args:
+            root: Repository root path.
+            languages: Languages to include (default: python, javascript, typescript).
+
+        Returns:
+            SymbolGraph reflecting the current state of all tracked files.
+        """
+        root = Path(root).resolve()
+        languages = languages or ["python", "javascript", "typescript"]
+
+        existing = self._load()
+        files = _collect_files(root, languages)
+        current_paths = {str(fp) for fp in files}
+
+        updated: dict[str, dict[str, Any]] = {}
+        self._stale_count = 0
+
+        for fp in files:
+            key = str(fp)
+            file_hash = _md5_file(fp)
+
+            prev = existing.get(key)
+            if prev and prev.get("hash") == file_hash:
+                # Unchanged — carry forward
+                updated[key] = prev
+            else:
+                # New or changed — re-extract
+                self._stale_count += 1
+                symbol_names = _extract_symbol_names(fp, root)
+                updated[key] = {"hash": file_hash, "symbols": symbol_names}
+
+        # Drop entries for files that no longer exist
+        self._data = updated
+        self._save(updated)
+
+        # Build a full SymbolGraph from the current file set
+        return build_map(root, languages)
+
+    def get_stats(self) -> dict[str, Any]:
+        """Return index statistics.
+
+        Returns:
+            Dict with total_files, indexed_files, stale_files, last_updated.
+        """
+        return {
+            "total_files": len(self._data),
+            "indexed_files": len(self._data),
+            "stale_files": self._stale_count,
+            "last_updated": self._last_updated,
+        }

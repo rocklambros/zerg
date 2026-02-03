@@ -523,6 +523,19 @@ repo_map:
 
 At rush start, ZERG builds a symbol graph using Python AST for `.py` files and regex extraction for `.js`/`.ts`/`.jsx`/`.tsx` files. The context plugin queries the graph per-task to inject relevant symbols (functions, classes, imports) into worker prompts, giving workers awareness of nearby code without reading full source files.
 
+### Token Metrics
+
+```yaml
+token_metrics:
+  enabled: true                    # Master switch for token usage tracking
+  api_counting: false              # Use Anthropic API for exact counts (requires API key)
+  cache_enabled: true              # Cache token counts to avoid re-counting
+  cache_ttl_seconds: 3600          # Cache time-to-live in seconds (60-86400)
+  fallback_chars_per_token: 4.0    # Heuristic ratio when API counting is off (1.0-10.0)
+```
+
+Each worker writes token usage to `.zerg/state/tokens-{worker_id}.json` with per-task breakdowns (command template, task context, repo map, security rules, spec excerpt). Use `/zerg:status` to view aggregate token consumption across workers. When `api_counting` is enabled, the Anthropic `count_tokens` API provides exact counts; otherwise a character-based heuristic (`len(text) / fallback_chars_per_token`) is used.
+
 ### Error Recovery
 
 ```yaml
