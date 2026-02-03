@@ -7,10 +7,12 @@ avoid interfering with real ZERG containers.
 
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
-PROJECT_ROOT = "/Users/klambros/PycharmProjects/ZERG"
+# Compute project root dynamically from this file's location
+PROJECT_ROOT = str(Path(__file__).resolve().parent.parent.parent)
 TEST_IMAGE = "zerg-worker-test"
 DOCKERFILE_PATH = ".devcontainer/Dockerfile"
 

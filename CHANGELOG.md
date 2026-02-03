@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `/zerg:status` missing documented flags `--tasks`, `--workers`, `--commits` (#103)
+- Flaky CI tests: hardcoded path in `test_container_e2e_live.py`, missing schema assertion in `test_full_rush_cycle.py` (#113)
+- `pip-audit` failure on local package by using `--skip-editable` flag (#113)
 
 ### Added
 
