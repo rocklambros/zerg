@@ -84,9 +84,7 @@ class TokenAggregator:
                     for key in BREAKDOWN_KEYS:
                         breakdown_totals[key] += int(bd.get(key, 0))
 
-            tokens_per_task = (
-                total_tokens / total_tasks if total_tasks > 0 else 0.0
-            )
+            tokens_per_task = total_tokens / total_tasks if total_tasks > 0 else 0.0
 
             return AggregateResult(
                 total_tokens=total_tokens,
@@ -99,9 +97,7 @@ class TokenAggregator:
             logger.warning("Failed to aggregate token data", exc_info=True)
             return AggregateResult()
 
-    def calculate_savings(
-        self, full_spec_tokens: int = 0
-    ) -> SavingsResult:
+    def calculate_savings(self, full_spec_tokens: int = 0) -> SavingsResult:
         """Compare injected context tokens against a full-spec baseline.
 
         Args:
@@ -143,9 +139,7 @@ class TokenAggregator:
                 breakdown=component_breakdown,
             )
         except Exception:
-            logger.warning(
-                "Failed to calculate token savings", exc_info=True
-            )
+            logger.warning("Failed to calculate token savings", exc_info=True)
             return SavingsResult()
 
     def efficiency_ratio(self) -> float:
@@ -154,7 +148,5 @@ class TokenAggregator:
             agg = self.aggregate()
             return agg.tokens_per_task
         except Exception:
-            logger.warning(
-                "Failed to compute efficiency ratio", exc_info=True
-            )
+            logger.warning("Failed to compute efficiency ratio", exc_info=True)
             return 0.0

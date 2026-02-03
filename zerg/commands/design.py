@@ -87,10 +87,7 @@ def design(
 
         # Check approval status - look for Status line containing APPROVED
         requirements_content = requirements_path.read_text()
-        is_approved = any(
-            "APPROVED" in line and "Status" in line
-            for line in requirements_content.splitlines()
-        )
+        is_approved = any("APPROVED" in line and "Status" in line for line in requirements_content.splitlines())
         if not is_approved:
             console.print("[yellow]Warning:[/yellow] Requirements not marked as APPROVED")
             if not click.confirm("Continue anyway?", default=True):
@@ -378,7 +375,6 @@ def create_task_graph_template(
         "estimated_duration_minutes": 105,
         "max_parallelization": 3,
         "critical_path_minutes": 60,
-
         "tasks": [
             {
                 "id": f"{feature.upper()[:4]}-L1-001",
@@ -397,7 +393,7 @@ def create_task_graph_template(
                     "Type hints complete",
                 ],
                 "verification": {
-                    "command": f"python -c \"from src.{feature}.types import *\"",
+                    "command": f'python -c "from src.{feature}.types import *"',
                     "timeout_seconds": 60,
                 },
                 "estimate_minutes": 15,
@@ -420,7 +416,7 @@ def create_task_graph_template(
                     "Environment variables documented",
                 ],
                 "verification": {
-                    "command": f"python -c \"from src.{feature}.config import *\"",
+                    "command": f'python -c "from src.{feature}.config import *"',
                     "timeout_seconds": 60,
                 },
                 "estimate_minutes": 10,
@@ -520,7 +516,6 @@ def create_task_graph_template(
                 "estimate_minutes": 15,
             },
         ],
-
         "levels": {
             "1": {
                 "name": "foundation",
@@ -644,15 +639,10 @@ def validate_task_graph(path: Path) -> None:
     # Check for mandatory L5 final analysis task
     l5_tasks = [t for t in tasks if t.get("level") == 5]
     has_analysis = any(
-        "analysis" in t.get("title", "").lower()
-        or "quality" in t.get("title", "").lower()
-        for t in l5_tasks
+        "analysis" in t.get("title", "").lower() or "quality" in t.get("title", "").lower() for t in l5_tasks
     )
     if not has_analysis:
-        warnings.append(
-            "Missing mandatory L5 final analysis task "
-            "(must include 'analysis' or 'quality' in title)"
-        )
+        warnings.append("Missing mandatory L5 final analysis task (must include 'analysis' or 'quality' in title)")
 
     # Report results
     if errors:
@@ -714,6 +704,7 @@ def show_design_summary(spec_dir: Path, feature: str) -> None:
 def _load_task_graph(path: Path) -> dict[str, Any]:
     """Load task graph JSON data."""
     import json
+
     with open(path) as f:
         result: dict[str, Any] = json.load(f)
         return result

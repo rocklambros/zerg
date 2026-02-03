@@ -100,9 +100,7 @@ class TaskParser:
                     self._dependents[dep] = []
                 self._dependents[dep].append(task_id)
 
-        logger.info(
-            f"Parsed task graph: {data.get('feature')} with {len(self._tasks)} tasks"
-        )
+        logger.info(f"Parsed task graph: {data.get('feature')} with {len(self._tasks)} tasks")
 
         assert self._graph is not None
         return self._graph
@@ -262,10 +260,7 @@ class TaskParser:
         # Find the end of critical path (max distance)
         end_task = max(
             topo_order,
-            key=lambda tid: (
-                dist[tid]
-                + self._tasks[tid].get("estimate_minutes", 0)
-            ),
+            key=lambda tid: (dist[tid] + self._tasks[tid].get("estimate_minutes", 0)),
         )
 
         # Reconstruct path

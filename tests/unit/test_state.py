@@ -710,9 +710,7 @@ class TestStateMdGeneration:
 
         assert gsd_dir.exists()
 
-    def test_generate_state_md_uses_default_gsd_dir(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_generate_state_md_uses_default_gsd_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test generate_state_md uses default GSD_DIR when not specified."""
         monkeypatch.setattr("zerg.state.GSD_DIR", str(tmp_path / "default_gsd"))
 

@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from zerg.constants import STATE_DIR
@@ -59,13 +59,11 @@ class TokenTracker:
                 "breakdown": breakdown,
                 "total": total,
                 "mode": mode,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             # Recompute cumulative from all tasks
-            cumulative_total = sum(
-                t.get("total", 0) for t in data["tasks"].values()
-            )
+            cumulative_total = sum(t.get("total", 0) for t in data["tasks"].values())
             data["cumulative"] = {
                 "total_tokens": cumulative_total,
                 "tasks_completed": len(data["tasks"]),
@@ -115,9 +113,7 @@ class TokenTracker:
     def _atomic_write(self, worker_id: str, data: dict) -> None:
         """Write worker token file atomically via tempfile + os.replace."""
         target = self._worker_path(worker_id)
-        fd, tmp_path = tempfile.mkstemp(
-            dir=str(self._state_dir), suffix=".tmp"
-        )
+        fd, tmp_path = tempfile.mkstemp(dir=str(self._state_dir), suffix=".tmp")
         try:
             with os.fdopen(fd, "w") as f:
                 json.dump(data, f, indent=2)

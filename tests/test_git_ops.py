@@ -1,7 +1,6 @@
 """Tests for zerg.git_ops module."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 

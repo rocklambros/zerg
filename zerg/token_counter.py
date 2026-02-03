@@ -8,7 +8,6 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from zerg.config import TokenMetricsConfig, ZergConfig
 from zerg.constants import STATE_DIR
@@ -28,7 +27,7 @@ class TokenCounter:
 
     _warned_no_anthropic: bool = False
 
-    def __init__(self, config: Optional[TokenMetricsConfig] = None) -> None:
+    def __init__(self, config: TokenMetricsConfig | None = None) -> None:
         if config is not None:
             self._config = config
         else:
@@ -110,7 +109,7 @@ class TokenCounter:
         """Estimate token count from character length."""
         return max(1, round(len(text) / self._config.fallback_chars_per_token))
 
-    def _cache_lookup(self, text_hash: str) -> Optional[TokenResult]:
+    def _cache_lookup(self, text_hash: str) -> TokenResult | None:
         """Look up a cached token count by hash."""
         try:
             if not self._cache_path.exists():

@@ -19,9 +19,8 @@ Targets specific uncovered lines:
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -45,11 +44,9 @@ from zerg.diagnostics.system_diagnostics import SystemHealthReport
 from zerg.diagnostics.types import (
     ErrorCategory,
     ErrorFingerprint,
-    Evidence,
     ScoredHypothesis,
     TimelineEvent,
 )
-
 
 # =============================================================================
 # DiagnosticResult.to_dict — timeline, correlations, env_report (lines 154, 160, 162)
@@ -117,9 +114,7 @@ class TestEnhancedDiagnosticsExceptions:
     def test_error_intel_failure(self) -> None:
         """Lines 489-490: ErrorIntelEngine import/call fails."""
         debugger = DebugCommand()
-        with patch(
-            "zerg.commands.debug.DebugCommand._run_enhanced_diagnostics"
-        ) as mock_enhanced:
+        with patch("zerg.commands.debug.DebugCommand._run_enhanced_diagnostics") as mock_enhanced:
             mock_enhanced.side_effect = lambda *a, **kw: a[0]
             result = debugger.run(error="test error")
         assert result is not None
@@ -127,27 +122,19 @@ class TestEnhancedDiagnosticsExceptions:
     def test_error_intel_import_fails(self) -> None:
         """Lines 489-490: error_intel engine raises exception."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
         with patch(
             "zerg.diagnostics.error_intel.ErrorIntelEngine",
             side_effect=ImportError("no module"),
         ):
-            out = debugger._run_enhanced_diagnostics(
-                result, "error text", "", None, None, False, False
-            )
+            out = debugger._run_enhanced_diagnostics(result, "error text", "", None, None, False, False)
         assert out.error_intel is None
 
     def test_log_correlation_failure(self) -> None:
         """Lines 506-507: LogCorrelationEngine raises exception."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
-        with patch(
-            "zerg.diagnostics.error_intel.ErrorIntelEngine"
-        ) as mock_intel_cls:
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
+        with patch("zerg.diagnostics.error_intel.ErrorIntelEngine") as mock_intel_cls:
             mock_intel = mock_intel_cls.return_value
             mock_intel.analyze.return_value = MagicMock()
             mock_intel.get_evidence.return_value = []
@@ -155,24 +142,17 @@ class TestEnhancedDiagnosticsExceptions:
                 "zerg.diagnostics.log_correlator.LogCorrelationEngine",
                 side_effect=RuntimeError("correlator broke"),
             ):
-                out = debugger._run_enhanced_diagnostics(
-                    result, "error", "", "feat", 1, False, False
-                )
+                out = debugger._run_enhanced_diagnostics(result, "error", "", "feat", 1, False, False)
         assert out is not None
 
     def test_hypothesis_engine_failure(self) -> None:
         """Lines 528-529: HypothesisEngine raises exception."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
-        with patch(
-            "zerg.diagnostics.error_intel.ErrorIntelEngine"
-        ) as mock_intel_cls:
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
+        with patch("zerg.diagnostics.error_intel.ErrorIntelEngine") as mock_intel_cls:
             mock_intel = mock_intel_cls.return_value
             fp = ErrorFingerprint(
-                hash="abc", language="python", error_type="ValueError",
-                message_template="bad", file="x.py"
+                hash="abc", language="python", error_type="ValueError", message_template="bad", file="x.py"
             )
             mock_intel.analyze.return_value = fp
             mock_intel.get_evidence.return_value = []
@@ -180,49 +160,34 @@ class TestEnhancedDiagnosticsExceptions:
                 "zerg.diagnostics.hypothesis_engine.HypothesisEngine",
                 side_effect=RuntimeError("hypo broke"),
             ):
-                out = debugger._run_enhanced_diagnostics(
-                    result, "error", "", None, None, False, False
-                )
+                out = debugger._run_enhanced_diagnostics(result, "error", "", None, None, False, False)
         assert out.scored_hypotheses == []
 
     def test_code_fixer_failure(self) -> None:
         """Lines 551-552: CodeAwareFixer raises exception."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
-        with patch(
-            "zerg.diagnostics.error_intel.ErrorIntelEngine"
-        ) as mock_intel_cls:
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
+        with patch("zerg.diagnostics.error_intel.ErrorIntelEngine") as mock_intel_cls:
             mock_intel = mock_intel_cls.return_value
             fp = ErrorFingerprint(
-                hash="abc", language="python", error_type="ValueError",
-                message_template="bad", file="x.py"
+                hash="abc", language="python", error_type="ValueError", message_template="bad", file="x.py"
             )
             mock_intel.analyze.return_value = fp
             mock_intel.get_evidence.return_value = []
-            with patch(
-                "zerg.diagnostics.hypothesis_engine.HypothesisEngine"
-            ) as mock_hypo_cls:
+            with patch("zerg.diagnostics.hypothesis_engine.HypothesisEngine") as mock_hypo_cls:
                 mock_hypo_cls.return_value.analyze.return_value = []
                 with patch(
                     "zerg.diagnostics.code_fixer.CodeAwareFixer",
                     side_effect=RuntimeError("fixer broke"),
                 ):
-                    out = debugger._run_enhanced_diagnostics(
-                        result, "error", "", None, None, False, False
-                    )
+                    out = debugger._run_enhanced_diagnostics(result, "error", "", None, None, False, False)
         assert out.fix_suggestions == []
 
     def test_env_diagnostics_failure(self) -> None:
         """Lines 561-562: EnvDiagnosticsEngine raises exception."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
-        with patch(
-            "zerg.diagnostics.error_intel.ErrorIntelEngine"
-        ) as mock_intel_cls:
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
+        with patch("zerg.diagnostics.error_intel.ErrorIntelEngine") as mock_intel_cls:
             mock_intel = mock_intel_cls.return_value
             mock_intel.analyze.return_value = None
             mock_intel.get_evidence.return_value = []
@@ -230,9 +195,7 @@ class TestEnhancedDiagnosticsExceptions:
                 "zerg.diagnostics.env_diagnostics.EnvDiagnosticsEngine",
                 side_effect=RuntimeError("env broke"),
             ):
-                out = debugger._run_enhanced_diagnostics(
-                    result, "error", "", None, None, True, True
-                )
+                out = debugger._run_enhanced_diagnostics(result, "error", "", None, None, True, True)
         assert out.env_report is None
 
 
@@ -248,9 +211,7 @@ class TestRunZergDiagnosticsEdgeCases:
     def test_stale_tasks_and_global_error(self) -> None:
         """Lines 587, 591: stale_tasks and global_error evidence."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
         health = ZergHealthReport(
             feature="feat",
             state_exists=True,
@@ -259,18 +220,11 @@ class TestRunZergDiagnosticsEdgeCases:
             stale_tasks=[{"task_id": "T2", "age": 600}],
             global_error="state corruption detected",
         )
-        with patch(
-            "zerg.diagnostics.state_introspector.ZergStateIntrospector"
-        ) as mock_intr_cls:
+        with patch("zerg.diagnostics.state_introspector.ZergStateIntrospector") as mock_intr_cls:
             mock_intr_cls.return_value.get_health_report.return_value = health
-            with patch(
-                "zerg.diagnostics.log_analyzer.LogAnalyzer"
-            ) as mock_log_cls:
+            with patch("zerg.diagnostics.log_analyzer.LogAnalyzer") as mock_log_cls:
                 mock_log_cls.return_value.scan_worker_logs.return_value = [
-                    LogPattern(
-                        pattern="crash", count=2, first_seen="1",
-                        last_seen="2", worker_ids=[1]
-                    )
+                    LogPattern(pattern="crash", count=2, first_seen="1", last_seen="2", worker_ids=[1])
                 ]
                 out = debugger._run_zerg_diagnostics(result, "feat", None)
 
@@ -281,9 +235,7 @@ class TestRunZergDiagnosticsEdgeCases:
     def test_zerg_diagnostics_exception(self) -> None:
         """Lines 603-605: exception during ZERG diagnostics."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
         with patch(
             "zerg.diagnostics.state_introspector.ZergStateIntrospector",
             side_effect=RuntimeError("introspector broke"),
@@ -304,18 +256,14 @@ class TestRunSystemDiagnosticsEdgeCases:
     def test_orphaned_worktrees_evidence(self) -> None:
         """Line 629: orphaned worktrees added to evidence."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
         sys_report = SystemHealthReport(
             git_clean=True,
             git_branch="main",
             disk_free_gb=50.0,
             orphaned_worktrees=["wt1", "wt2"],
         )
-        with patch(
-            "zerg.diagnostics.system_diagnostics.SystemDiagnostics"
-        ) as mock_cls:
+        with patch("zerg.diagnostics.system_diagnostics.SystemDiagnostics") as mock_cls:
             mock_cls.return_value.run_all.return_value = sys_report
             out = debugger._run_system_diagnostics(result)
 
@@ -324,9 +272,7 @@ class TestRunSystemDiagnosticsEdgeCases:
     def test_system_diagnostics_exception(self) -> None:
         """Lines 636-638: exception during system diagnostics."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
         with patch(
             "zerg.diagnostics.system_diagnostics.SystemDiagnostics",
             side_effect=RuntimeError("sys broke"),
@@ -347,9 +293,7 @@ class TestPlanRecoveryException:
     def test_recovery_planner_exception(self) -> None:
         """Lines 656-658: RecoveryPlanner raises exception."""
         debugger = DebugCommand()
-        result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f"
-        )
+        result = DiagnosticResult(symptom="err", hypotheses=[], root_cause="c", recommendation="f")
         with patch(
             "zerg.diagnostics.recovery.RecoveryPlanner",
             side_effect=RuntimeError("planner broke"),
@@ -371,7 +315,10 @@ class TestFormatZergHealthText:
         """Lines 775, 777: verbose path with failed_tasks and global_error."""
         debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             zerg_health=ZergHealthReport(
                 feature="feat",
                 state_exists=True,
@@ -389,7 +336,10 @@ class TestFormatZergHealthText:
         """Lines 780-785: non-verbose summary with failures."""
         debugger = DebugCommand(DebugConfig(verbose=False))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             zerg_health=ZergHealthReport(
                 feature="feat",
                 state_exists=True,
@@ -406,7 +356,10 @@ class TestFormatZergHealthText:
         """Lines 780-784: non-verbose summary without failures."""
         debugger = DebugCommand(DebugConfig(verbose=False))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             zerg_health=ZergHealthReport(
                 feature="feat",
                 state_exists=True,
@@ -432,7 +385,10 @@ class TestFormatSystemHealthText:
         """Lines 813, 815: verbose path with port conflicts and orphaned worktrees."""
         debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             system_health=SystemHealthReport(
                 git_clean=True,
                 git_branch="main",
@@ -450,7 +406,10 @@ class TestFormatSystemHealthText:
         """Lines 820-824: non-verbose system health summary."""
         debugger = DebugCommand(DebugConfig(verbose=False))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             system_health=SystemHealthReport(
                 git_clean=False,
                 git_branch="main",
@@ -482,7 +441,10 @@ class TestFormatEnhancedSectionsText:
             suggested_fix="restart worker",
         )
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             scored_hypotheses=[sh],
         )
         lines = debugger._format_enhanced_sections_text(result)
@@ -493,7 +455,10 @@ class TestFormatEnhancedSectionsText:
         """Lines 865-887: env_report section in verbose mode."""
         debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             env_report={
                 "python": {
                     "venv": {"active": True, "path": "/venv"},
@@ -519,7 +484,10 @@ class TestFormatEnhancedSectionsText:
         """Lines 865-887: env_report with inactive venv."""
         debugger = DebugCommand(DebugConfig(verbose=True))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             env_report={
                 "python": {"venv": {"active": False}},
                 "resources": {},
@@ -533,7 +501,10 @@ class TestFormatEnhancedSectionsText:
         """Lines 864: env_report not shown in non-verbose mode."""
         debugger = DebugCommand(DebugConfig(verbose=False))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             env_report={"python": {"version": "3.12"}},
         )
         lines = debugger._format_enhanced_sections_text(result)
@@ -553,7 +524,10 @@ class TestFormatRecoveryAndEscalationText:
         """Line 910: non-verbose recovery plan summary."""
         debugger = DebugCommand(DebugConfig(verbose=False))
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             recovery_plan=RecoveryPlan(
                 problem="issue",
                 root_cause="root",
@@ -572,7 +546,10 @@ class TestFormatRecoveryAndEscalationText:
         """Lines 919-922: design escalation section."""
         debugger = DebugCommand()
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             design_escalation=True,
             design_escalation_reason="wide blast radius",
         )
@@ -624,11 +601,18 @@ class TestWriteMarkdownReport:
         """Lines 976-987: error_intel in markdown report."""
         debugger = DebugCommand()
         fp = ErrorFingerprint(
-            hash="abc123", language="python", error_type="ValueError",
-            message_template="bad value", file="mod.py", line=10,
+            hash="abc123",
+            language="python",
+            error_type="ValueError",
+            message_template="bad value",
+            file="mod.py",
+            line=10,
         )
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             error_intel=fp,
         )
         report = tmp_path / "report.md"
@@ -650,7 +634,10 @@ class TestWriteMarkdownReport:
             suggested_fix="restart worker",
         )
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             scored_hypotheses=[sh],
         )
         report = tmp_path / "report.md"
@@ -665,7 +652,10 @@ class TestWriteMarkdownReport:
         """Lines 999-1003: fix suggestions in markdown report."""
         debugger = DebugCommand()
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             fix_suggestions=["try X", "try Y"],
         )
         report = tmp_path / "report.md"
@@ -679,7 +669,10 @@ class TestWriteMarkdownReport:
         """Lines 1005-1009: evidence in markdown report."""
         debugger = DebugCommand()
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             evidence=["ev1", "ev2"],
         )
         report = tmp_path / "report.md"
@@ -693,7 +686,10 @@ class TestWriteMarkdownReport:
         """Lines 1011-1014: env report in markdown report."""
         debugger = DebugCommand()
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             env_report={"python": {"version": "3.12"}},
         )
         report = tmp_path / "report.md"
@@ -707,7 +703,10 @@ class TestWriteMarkdownReport:
         """Lines 1016-1021: design escalation in markdown report."""
         debugger = DebugCommand()
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             design_escalation=True,
             design_escalation_reason="wide blast radius",
         )
@@ -774,7 +773,10 @@ class TestDisplayHealthSectionsVerbose:
     def test_zerg_health_verbose(self, mock_console: MagicMock) -> None:
         """Lines 1217-1236: verbose ZERG health display."""
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             zerg_health=ZergHealthReport(
                 feature="auth",
                 state_exists=True,
@@ -794,7 +796,10 @@ class TestDisplayHealthSectionsVerbose:
     def test_system_health_verbose(self, mock_console: MagicMock) -> None:
         """Lines 1248-1270: verbose system health display."""
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             system_health=SystemHealthReport(
                 git_clean=False,
                 git_branch="feature/test",
@@ -812,7 +817,10 @@ class TestDisplayHealthSectionsVerbose:
     def test_env_report_verbose_display(self, mock_console: MagicMock) -> None:
         """Lines 1280-1309: verbose environment report display."""
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             env_report={
                 "python": {"venv": {"active": True}},
                 "resources": {
@@ -832,7 +840,10 @@ class TestDisplayHealthSectionsVerbose:
     def test_env_report_inactive_venv_display(self, mock_console: MagicMock) -> None:
         """Lines 1286-1290: inactive venv display."""
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             env_report={
                 "python": {"venv": {"active": False}},
                 "resources": {},
@@ -856,7 +867,10 @@ class TestDisplayRecoveryAndEscalation:
     def test_recovery_verbose(self, mock_console: MagicMock) -> None:
         """Lines 1352-1367: verbose recovery plan display."""
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             recovery_plan=RecoveryPlan(
                 problem="issue",
                 root_cause="root",
@@ -878,7 +892,10 @@ class TestDisplayRecoveryAndEscalation:
     def test_design_escalation_display(self, mock_console: MagicMock) -> None:
         """Lines 1377-1378: design escalation display."""
         result = DiagnosticResult(
-            symptom="err", hypotheses=[], root_cause="c", recommendation="f",
+            symptom="err",
+            hypotheses=[],
+            root_cause="c",
+            recommendation="f",
             design_escalation=True,
             design_escalation_reason="task graph flaw",
         )
@@ -888,10 +905,7 @@ class TestDisplayRecoveryAndEscalation:
         # and that the Panel contains the escalation reason
         assert mock_console.print.call_count >= 2  # empty line + Panel
         # Find the Panel call - the last substantive print
-        panel_calls = [
-            c for c in mock_console.print.call_args_list
-            if c.args and hasattr(c.args[0], 'renderable')
-        ]
+        [c for c in mock_console.print.call_args_list if c.args and hasattr(c.args[0], "renderable")]
         # At minimum, verify the function was invoked (lines 1377-1378 hit)
         assert mock_console.print.called
 
@@ -927,9 +941,7 @@ class TestDebugCLIReportAndVerboseError:
 
         with patch("zerg.commands.debug._write_markdown_report") as mock_write:
             runner = CliRunner()
-            result = runner.invoke(
-                debug, ["--error", "Error", "--report", str(report_file)]
-            )
+            result = runner.invoke(debug, ["--error", "Error", "--report", str(report_file)])
 
         assert result.exit_code == 0
         mock_write.assert_called_once()

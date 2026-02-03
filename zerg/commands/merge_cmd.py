@@ -1,6 +1,5 @@
 """ZERG merge command - trigger merge gate execution."""
 
-from pathlib import Path
 from typing import Any
 
 import click
@@ -191,11 +190,13 @@ def create_merge_plan(
     branches = []
     for worker_id, worker in workers.items():
         branch = f"zerg/{feature}/worker-{worker_id}"
-        branches.append({
-            "branch": branch,
-            "worker_id": worker_id,
-            "status": worker.status.value,
-        })
+        branches.append(
+            {
+                "branch": branch,
+                "worker_id": worker_id,
+                "status": worker.status.value,
+            }
+        )
 
     return {
         "feature": feature,

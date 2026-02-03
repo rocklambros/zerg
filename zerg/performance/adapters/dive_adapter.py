@@ -99,10 +99,7 @@ class DiveAdapter(BaseToolAdapter):
                     line=1,
                     tool=self.name,
                     rule_id="dive-no-multistage",
-                    suggestion=(
-                        "Use multi-stage builds to separate build dependencies "
-                        "from the final runtime image"
-                    ),
+                    suggestion=("Use multi-stage builds to separate build dependencies from the final runtime image"),
                 )
             )
 
@@ -115,18 +112,12 @@ class DiveAdapter(BaseToolAdapter):
                     factor_name="Layer efficiency",
                     category="Container Image",
                     severity=Severity.LOW,
-                    message=(
-                        f"Found {len(mergeable_lines)} RUN instructions that "
-                        f"could be combined to reduce layers"
-                    ),
+                    message=(f"Found {len(mergeable_lines)} RUN instructions that could be combined to reduce layers"),
                     file=rel_path,
                     line=mergeable_lines[0] if mergeable_lines else 0,
                     tool=self.name,
                     rule_id="dive-mergeable-runs",
-                    suggestion=(
-                        "Combine consecutive RUN instructions using '&&' to "
-                        "reduce the number of image layers"
-                    ),
+                    suggestion=("Combine consecutive RUN instructions using '&&' to reduce the number of image layers"),
                 )
             )
 
@@ -163,11 +154,7 @@ class DiveAdapter(BaseToolAdapter):
     @staticmethod
     def _has_multi_stage(content: str) -> bool:
         """Return True if the Dockerfile contains more than one FROM instruction."""
-        from_count = sum(
-            1
-            for line in content.splitlines()
-            if re.match(r"^\s*FROM\s+", line, re.IGNORECASE)
-        )
+        from_count = sum(1 for line in content.splitlines() if re.match(r"^\s*FROM\s+", line, re.IGNORECASE))
         return from_count >= 2
 
     @staticmethod

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import subprocess
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -21,10 +19,10 @@ from zerg.git.rescue import (
 )
 from zerg.git.types import RescueSnapshot
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _run_git(*args: str, cwd: Path) -> str:
     """Run a git command and return stdout."""
@@ -49,6 +47,7 @@ def _make_commit(repo: Path, filename: str = "file.txt", msg: str = "commit") ->
 # ---------------------------------------------------------------------------
 # Validation helpers
 # ---------------------------------------------------------------------------
+
 
 class TestValidation:
     """Tests for name and path validation helpers."""
@@ -85,6 +84,7 @@ class TestValidation:
 # ---------------------------------------------------------------------------
 # OperationLogger
 # ---------------------------------------------------------------------------
+
 
 class TestOperationLogger:
     """Tests for OperationLogger JSON-lines logging."""
@@ -137,6 +137,7 @@ class TestOperationLogger:
 # ---------------------------------------------------------------------------
 # SnapshotManager
 # ---------------------------------------------------------------------------
+
 
 class TestSnapshotManager:
     """Tests for SnapshotManager tag-based snapshots."""
@@ -237,6 +238,7 @@ class TestSnapshotManager:
 # RescueEngine
 # ---------------------------------------------------------------------------
 
+
 class TestRescueEngine:
     """Tests for RescueEngine high-level operations."""
 
@@ -281,7 +283,7 @@ class TestRescueEngine:
         assert engine.undo_last() is False
 
     def test_recover_branch(self, tmp_repo: Path) -> None:
-        runner = GitRunner(tmp_repo)
+        GitRunner(tmp_repo)
         engine = self._make_engine(tmp_repo)
 
         # Create and delete a branch

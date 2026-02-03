@@ -34,7 +34,8 @@ logger = get_logger("rush")
 @click.option("--timeout", default=3600, type=int, help="Max execution time (seconds)")
 @click.option("--task-graph", "-g", help="Path to task-graph.json")
 @click.option(
-    "--mode", "-m",
+    "--mode",
+    "-m",
     type=click.Choice(["subprocess", "container", "auto"]),
     default="auto",
     help="Worker execution mode (default: auto-detect)",
@@ -190,11 +191,7 @@ def rush(
                     update_backlog_task_status(backlog_path, tid, "COMPLETE")
 
         orchestrator.on_task_complete(_on_task_done)
-        orchestrator.on_level_complete(
-            lambda lvl: console.print(
-                f"\n[bold green]Level {lvl} complete![/bold green]\n"
-            )
-        )
+        orchestrator.on_level_complete(lambda lvl: console.print(f"\n[bold green]Level {lvl} complete![/bold green]\n"))
 
         # Start execution
         console.print(f"\n[bold]Starting {workers} workers...[/bold]\n")
@@ -221,9 +218,7 @@ def rush(
                     pass  # Non-critical cleanup
         else:
             pct = status["progress"]["percent"]
-            console.print(
-                f"\n[yellow]Execution stopped at {pct:.0f}%[/yellow]"
-            )
+            console.print(f"\n[yellow]Execution stopped at {pct:.0f}%[/yellow]")
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted[/yellow]")
@@ -381,9 +376,7 @@ def show_dry_run(task_data: dict[str, Any], workers: int, feature: str) -> None:
     for level_num in sorted(level_tasks.keys()):
         level_info = levels.get(str(level_num), {})
         level_name = level_info.get("name", "unnamed")
-        console.print(
-            f"[bold cyan]Level {level_num}[/bold cyan] - {level_name}"
-        )
+        console.print(f"[bold cyan]Level {level_num}[/bold cyan] - {level_name}")
 
         table = Table(show_header=True)
         table.add_column("Task", style="cyan", width=15)

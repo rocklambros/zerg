@@ -2,13 +2,14 @@
 
 import os
 import subprocess
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from zerg.worker_protocol import WorkerProtocol
-from zerg.spec_loader import SpecLoader
+import pytest
+
 from zerg.config import ZergConfig
+from zerg.spec_loader import SpecLoader
+from zerg.worker_protocol import WorkerProtocol
 
 
 class TestSpecInjection:
@@ -27,14 +28,8 @@ class TestSpecInjection:
 
         # Initialize git repo
         subprocess.run(["git", "init"], cwd=workspace, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=workspace, capture_output=True
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=workspace, capture_output=True
-        )
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=workspace, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=workspace, capture_output=True)
 
         # Create GSD structure
         gsd = workspace / ".gsd"
@@ -82,9 +77,7 @@ class TestSpecInjection:
 
         return feature_dir
 
-    def test_spec_loader_loads_feature_specs(
-        self, temp_workspace: Path, feature_specs: Path
-    ) -> None:
+    def test_spec_loader_loads_feature_specs(self, temp_workspace: Path, feature_specs: Path) -> None:
         """Test that SpecLoader correctly loads feature specs."""
         loader = SpecLoader(gsd_dir=temp_workspace / ".gsd")
 
@@ -94,9 +87,7 @@ class TestSpecInjection:
         assert "JWT tokens" in specs.design
         assert specs.feature == "test-feature"
 
-    def test_spec_loader_formats_context(
-        self, temp_workspace: Path, feature_specs: Path
-    ) -> None:
+    def test_spec_loader_formats_context(self, temp_workspace: Path, feature_specs: Path) -> None:
         """Test that SpecLoader formats context correctly."""
         loader = SpecLoader(gsd_dir=temp_workspace / ".gsd")
 
@@ -179,14 +170,8 @@ class TestSpecInjection:
 
         # Initialize git repo
         subprocess.run(["git", "init"], cwd=workspace, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=workspace, capture_output=True
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=workspace, capture_output=True
-        )
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=workspace, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=workspace, capture_output=True)
 
         (workspace / ".gsd").mkdir()
         # Create .zerg/state directory
@@ -317,7 +302,6 @@ class TestLauncherSpecDirEnv:
 
     def test_subprocess_launcher_spawn_env(self) -> None:
         """Verify spawn builds correct ZERG_SPEC_DIR path."""
-        from zerg.launcher import SubprocessLauncher, LauncherConfig
         from pathlib import Path
 
         # We can't actually spawn, but we can verify the env building logic

@@ -768,9 +768,7 @@ class PatternMatcher:
         self._patterns = KNOWN_PATTERNS
         self._compiled: dict[str, list[re.Pattern[str]]] = {}
         for pattern in self._patterns:
-            self._compiled[pattern.name] = [
-                re.compile(s, re.IGNORECASE) for s in pattern.symptoms
-            ]
+            self._compiled[pattern.name] = [re.compile(s, re.IGNORECASE) for s in pattern.symptoms]
 
     def match(self, error_text: str) -> list[tuple[KnownPattern, float]]:
         """Return matched patterns with match scores (0-1).
@@ -792,9 +790,7 @@ class PatternMatcher:
 
     def get_prior(self, category: str) -> float:
         """Return average prior probability for all patterns in *category*."""
-        priors = [
-            p.prior_probability for p in self._patterns if p.category == category
-        ]
+        priors = [p.prior_probability for p in self._patterns if p.category == category]
         if not priors:
             return 0.0
         return sum(priors) / len(priors)

@@ -24,16 +24,12 @@ class TestSetupStructuredLogging:
         )
         try:
             root = logging.getLogger("zerg")
-            structured_handlers = [
-                h for h in root.handlers if isinstance(h, StructuredFileHandler)
-            ]
+            structured_handlers = [h for h in root.handlers if isinstance(h, StructuredFileHandler)]
             assert len(structured_handlers) >= 1
         finally:
             # Clean up: remove the handler and close the writer
             root = logging.getLogger("zerg")
-            root.handlers = [
-                h for h in root.handlers if not isinstance(h, StructuredFileHandler)
-            ]
+            root.handlers = [h for h in root.handlers if not isinstance(h, StructuredFileHandler)]
             writer.close()
             clear_worker_context()
 
@@ -74,9 +70,7 @@ class TestSetupStructuredLogging:
             assert entry["worker_id"] == 1
             assert entry["feature"] == "my-feature"
         finally:
-            root.handlers = [
-                h for h in root.handlers if not isinstance(h, StructuredFileHandler)
-            ]
+            root.handlers = [h for h in root.handlers if not isinstance(h, StructuredFileHandler)]
             root.setLevel(original_level)
             clear_worker_context()
 
@@ -103,9 +97,7 @@ class TestSetupStructuredLogging:
             assert entry["worker_id"] == 3
             assert entry["feature"] == "context-test"
         finally:
-            root.handlers = [
-                h for h in root.handlers if not isinstance(h, StructuredFileHandler)
-            ]
+            root.handlers = [h for h in root.handlers if not isinstance(h, StructuredFileHandler)]
             root.setLevel(original_level)
             clear_worker_context()
 
@@ -122,9 +114,7 @@ class TestSetupStructuredLogging:
             assert isinstance(writer, StructuredLogWriter)
         finally:
             root = logging.getLogger("zerg")
-            root.handlers = [
-                h for h in root.handlers if not isinstance(h, StructuredFileHandler)
-            ]
+            root.handlers = [h for h in root.handlers if not isinstance(h, StructuredFileHandler)]
             writer.close()
             clear_worker_context()
 

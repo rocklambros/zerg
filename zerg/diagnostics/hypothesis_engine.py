@@ -47,13 +47,9 @@ class BayesianScorer:
             posterior *= 1.0 - ev.confidence * 0.5
         return max(0.01, min(0.99, posterior))
 
-    def rank(
-        self, hypotheses: list[ScoredHypothesis]
-    ) -> list[ScoredHypothesis]:
+    def rank(self, hypotheses: list[ScoredHypothesis]) -> list[ScoredHypothesis]:
         """Return hypotheses sorted by posterior_probability descending."""
-        return sorted(
-            hypotheses, key=lambda h: h.posterior_probability, reverse=True
-        )
+        return sorted(hypotheses, key=lambda h: h.posterior_probability, reverse=True)
 
 
 class HypothesisGenerator:
@@ -81,25 +77,16 @@ class HypothesisGenerator:
 
         # a) Fingerprint location hypothesis
         if fingerprint.file and fingerprint.line > 0:
-            desc = (
-                f"Error at {fingerprint.file}:{fingerprint.line}"
-                f" ({fingerprint.error_type})"
-            )
+            desc = f"Error at {fingerprint.file}:{fingerprint.line} ({fingerprint.error_type})"
             if desc not in seen_descriptions:
                 seen_descriptions.add(desc)
                 hypotheses.append(
                     ScoredHypothesis(
                         description=desc,
-                        category=self._category_from_error_type(
-                            fingerprint.error_type
-                        ),
+                        category=self._category_from_error_type(fingerprint.error_type),
                         prior_probability=0.3,
-                        evidence_for=[
-                            e for e in evidence if e.confidence >= 0.5
-                        ],
-                        evidence_against=[
-                            e for e in evidence if e.confidence < 0.3
-                        ],
+                        evidence_for=[e for e in evidence if e.confidence >= 0.5],
+                        evidence_against=[e for e in evidence if e.confidence < 0.3],
                     )
                 )
 
@@ -114,13 +101,9 @@ class HypothesisGenerator:
                     hypotheses.append(
                         ScoredHypothesis(
                             description=desc,
-                            category=self._category_from_pattern(
-                                pattern.category
-                            ),
+                            category=self._category_from_pattern(pattern.category),
                             prior_probability=min(score, 0.99),
-                            evidence_for=[
-                                e for e in evidence if e.confidence >= 0.5
-                            ],
+                            evidence_for=[e for e in evidence if e.confidence >= 0.5],
                             evidence_against=[],
                             suggested_fix=fix,
                         )
@@ -196,9 +179,7 @@ class HypothesisTestRunner:
             return False
         return any(cmd.startswith(prefix) for prefix in self.SAFE_PREFIXES)
 
-    def test(
-        self, hypothesis: ScoredHypothesis, timeout: int = 30
-    ) -> ScoredHypothesis:
+    def test(self, hypothesis: ScoredHypothesis, timeout: int = 30) -> ScoredHypothesis:
         """Run the hypothesis test command and update scoring.
 
         On success (rc=0): test_result='PASSED', posterior boosted 1.5x.
@@ -219,22 +200,16 @@ class HypothesisTestRunner:
             )
             if result.returncode == 0:
                 hypothesis.test_result = "PASSED"
-                hypothesis.posterior_probability = min(
-                    0.99, hypothesis.posterior_probability * 1.5
-                )
+                hypothesis.posterior_probability = min(0.99, hypothesis.posterior_probability * 1.5)
             else:
                 hypothesis.test_result = "FAILED"
-                hypothesis.posterior_probability = max(
-                    0.01, hypothesis.posterior_probability * 0.5
-                )
+                hypothesis.posterior_probability = max(0.01, hypothesis.posterior_probability * 0.5)
         except subprocess.TimeoutExpired:
             hypothesis.test_result = f"ERROR: timeout after {timeout}s"
         except Exception as exc:  # noqa: BLE001
             hypothesis.test_result = f"ERROR: {exc}"
 
-        hypothesis.posterior_probability = max(
-            0.01, min(0.99, hypothesis.posterior_probability)
-        )
+        hypothesis.posterior_probability = max(0.01, min(0.99, hypothesis.posterior_probability))
         return hypothesis
 
 
@@ -267,19 +242,13 @@ class HypothesisChainer:
             if h is confirmed:
                 continue
             if h.category == confirmed.category:
-                h.posterior_probability = min(
-                    0.99, h.posterior_probability * 1.2
-                )
+                h.posterior_probability = min(0.99, h.posterior_probability * 1.2)
             elif h.category in contradictory_categories:
-                h.posterior_probability = max(
-                    0.01, h.posterior_probability * 0.7
-                )
+                h.posterior_probability = max(0.01, h.posterior_probability * 0.7)
 
         return candidates
 
-    def _get_contradictory(
-        self, category: ErrorCategory
-    ) -> set[ErrorCategory]:
+    def _get_contradictory(self, category: ErrorCategory) -> set[ErrorCategory]:
         """Return categories that contradict the given category."""
         result: set[ErrorCategory] = set()
         for a, b in self._CONTRADICTORY_PAIRS:
@@ -329,9 +298,7 @@ class HypothesisEngine:
                 tested += 1
         return self._scorer.rank(hypotheses)
 
-    def get_top_hypothesis(
-        self, hypotheses: list[ScoredHypothesis]
-    ) -> ScoredHypothesis | None:
+    def get_top_hypothesis(self, hypotheses: list[ScoredHypothesis]) -> ScoredHypothesis | None:
         """Return the hypothesis with the highest posterior, or None."""
         if not hypotheses:
             return None

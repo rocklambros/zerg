@@ -94,11 +94,13 @@ class TestImportFromGitHubIssue:
         """Test successful GitHub issue import."""
         mock_result = MagicMock()
         mock_result.returncode = 0
-        mock_result.stdout = json.dumps({
-            "title": "Add User Authentication",
-            "body": "Implement user auth system",
-            "labels": [{"name": "feature"}],
-        })
+        mock_result.stdout = json.dumps(
+            {
+                "title": "Add User Authentication",
+                "body": "Implement user auth system",
+                "labels": [{"name": "feature"}],
+            }
+        )
 
         with patch("subprocess.run", return_value=mock_result):
             result = import_from_github_issue("https://github.com/org/repo/issues/123")
@@ -141,11 +143,13 @@ class TestImportFromGitHubIssue:
         """Test that issue titles are properly sanitized."""
         mock_result = MagicMock()
         mock_result.returncode = 0
-        mock_result.stdout = json.dumps({
-            "title": "[Feature] User Auth (v2)!",
-            "body": "",
-            "labels": [],
-        })
+        mock_result.stdout = json.dumps(
+            {
+                "title": "[Feature] User Auth (v2)!",
+                "body": "",
+                "labels": [],
+            }
+        )
 
         with patch("subprocess.run", return_value=mock_result):
             result = import_from_github_issue("https://github.com/org/repo/issues/123")
@@ -592,9 +596,7 @@ class TestPlanCommand:
         assert "--interactive" in result.output
         assert "--socratic" in result.output
 
-    def test_plan_non_interactive_creates_requirements(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_plan_non_interactive_creates_requirements(self, tmp_path: Path, monkeypatch) -> None:
         """Test non-interactive plan creates requirements file."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".gsd" / "specs").mkdir(parents=True)
@@ -653,9 +655,7 @@ class TestPlanCommand:
         assert result.exit_code == 0
         assert (tmp_path / ".gsd" / "specs" / "my-feature").exists()
 
-    def test_plan_requires_feature_non_interactive(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_plan_requires_feature_non_interactive(self, tmp_path: Path, monkeypatch) -> None:
         """Test plan requires feature name in non-interactive mode."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".gsd" / "specs").mkdir(parents=True)
@@ -691,9 +691,7 @@ class TestPlanCommand:
         assert "Risk Assessment" in content
         assert "Technical Constraints" in content
 
-    def test_plan_existing_requirements_overwrite_declined(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_plan_existing_requirements_overwrite_declined(self, tmp_path: Path, monkeypatch) -> None:
         """Test plan with existing requirements and overwrite declined."""
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / "test"
@@ -721,8 +719,7 @@ class TestPlanCommand:
             runner = CliRunner()
             result = runner.invoke(
                 cli,
-                ["plan", "--from-issue", "https://github.com/org/repo/issues/1",
-                 "--no-interactive"],
+                ["plan", "--from-issue", "https://github.com/org/repo/issues/1", "--no-interactive"],
             )
 
         assert result.exit_code == 0
@@ -735,9 +732,7 @@ class TestPlanCommand:
 
         with patch("subprocess.run", side_effect=FileNotFoundError()):
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["plan", "--from-issue", "https://github.com/org/repo/issues/1"]
-            )
+            result = runner.invoke(cli, ["plan", "--from-issue", "https://github.com/org/repo/issues/1"])
 
         assert result.exit_code == 1
 
@@ -759,9 +754,7 @@ class TestPlanCommand:
 class TestPlanInteractiveMode:
     """Tests for plan command interactive mode."""
 
-    def test_plan_interactive_prompts_feature_name_when_missing(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_plan_interactive_prompts_feature_name_when_missing(self, tmp_path: Path, monkeypatch) -> None:
         """Test interactive mode prompts for feature name when not provided.
 
         This tests line 57: feature = Prompt.ask("Feature name")
@@ -794,9 +787,7 @@ class TestPlanInteractiveMode:
             mock_prompt.assert_called_with("Feature name")
             assert result.exit_code == 0
 
-    def test_plan_interactive_no_feature_non_interactive_fails(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_plan_interactive_no_feature_non_interactive_fails(self, tmp_path: Path, monkeypatch) -> None:
         """Test non-interactive mode fails without feature name."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".gsd" / "specs").mkdir(parents=True)
@@ -880,9 +871,7 @@ class TestPlanErrorHandling:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".gsd" / "specs").mkdir(parents=True)
 
-        with patch(
-            "zerg.commands.plan.run_interactive_discovery", side_effect=KeyboardInterrupt()
-        ):
+        with patch("zerg.commands.plan.run_interactive_discovery", side_effect=KeyboardInterrupt()):
             runner = CliRunner()
             result = runner.invoke(cli, ["plan", "test"])
 
@@ -992,9 +981,7 @@ class TestPlanOverwriteFlow:
         # The new template should be created (check for default template content)
         assert "Feature Requirements" in content
 
-    def test_existing_requirements_no_interactive_skip(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_existing_requirements_no_interactive_skip(self, tmp_path: Path, monkeypatch) -> None:
         """Test existing requirements with non-interactive mode."""
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / "test"

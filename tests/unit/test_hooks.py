@@ -17,8 +17,6 @@ import subprocess
 from pathlib import Path
 from typing import ClassVar
 
-import pytest
-
 # =============================================================================
 # Pattern Definitions (mirroring hook patterns for testability)
 # =============================================================================
@@ -28,35 +26,26 @@ PATTERNS = {
     # AWS Access Key
     "aws_key": re.compile(r"AKIA[0-9A-Z]{16}"),
     # GitHub PAT (classic and fine-grained)
-    "github_pat": re.compile(
-        r"(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{20,}_[a-zA-Z0-9]{40,})"
-    ),
+    "github_pat": re.compile(r"(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{20,}_[a-zA-Z0-9]{40,})"),
     # OpenAI API Key
     "openai_key": re.compile(r"sk-[a-zA-Z0-9]{48}"),
     # Anthropic API Key
     "anthropic_key": re.compile(r"sk-ant-[a-zA-Z0-9\-]{90,}"),
     # Private Key Headers
-    "private_key": re.compile(
-        r"-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----"
-    ),
+    "private_key": re.compile(r"-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----"),
     # Generic secrets (password=, secret=, etc.)
     "generic_secret": re.compile(
-        r"(password|secret|api_key|apikey|access_token|auth_token)"
-        r"\s*[=:]\s*['\"][^'\"]{8,}['\"]",
+        r"(password|secret|api_key|apikey|access_token|auth_token)" r"\s*[=:]\s*['\"][^'\"]{8,}['\"]",
         re.IGNORECASE,
     ),
     # Shell Injection
-    "shell_injection": re.compile(
-        r"(shell\s*=\s*True|os\.system\s*\(|os\.popen\s*\()"
-    ),
+    "shell_injection": re.compile(r"(shell\s*=\s*True|os\.system\s*\(|os\.popen\s*\()"),
     # Code Injection (eval/exec not in comments)
     "code_injection": re.compile(r"^[^#]*\b(eval|exec)\s*\("),
     # Pickle (unsafe deserialization)
     "pickle_load": re.compile(r"pickle\.(load|loads)\s*\("),
     # Debugger statements
-    "debugger": re.compile(
-        r"(breakpoint\s*\(\)|pdb\.set_trace\s*\(\)|import\s+i?pdb)"
-    ),
+    "debugger": re.compile(r"(breakpoint\s*\(\)|pdb\.set_trace\s*\(\)|import\s+i?pdb)"),
     # Merge conflict markers
     "merge_conflict": re.compile(r"^(<{7}|={7}|>{7})"),
     # Print statements (not in comments)
@@ -78,9 +67,7 @@ class TestHooksBase:
     """Base class for hook tests with common utilities."""
 
     # Path to fixtures directory
-    FIXTURES_DIR: ClassVar[Path] = (
-        Path(__file__).parent.parent / "fixtures" / "hook_samples"
-    )
+    FIXTURES_DIR: ClassVar[Path] = Path(__file__).parent.parent / "fixtures" / "hook_samples"
 
     @classmethod
     def read_fixture(cls, subdir: str, filename: str) -> str:

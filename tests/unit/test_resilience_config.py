@@ -346,9 +346,7 @@ class TestResilienceConfigFromYAML:
 
     def test_load_auto_respawn_from_yaml(self, tmp_path: Path) -> None:
         """Test loading auto-respawn config from YAML."""
-        config_data = {
-            "workers": {"auto_respawn": False, "max_respawn_attempts": 10}
-        }
+        config_data = {"workers": {"auto_respawn": False, "max_respawn_attempts": 10}}
         config_file = tmp_path / "config.yaml"
         with open(config_file, "w") as f:
             yaml.dump(config_data, f)

@@ -1,13 +1,11 @@
 """Integration tests for Orchestrator launcher mode selection."""
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import pytest
-
-from zerg.orchestrator import Orchestrator
-from zerg.launcher import SubprocessLauncher, ContainerLauncher, LauncherType
 from zerg.config import ZergConfig
+from zerg.launcher import SubprocessLauncher
+from zerg.orchestrator import Orchestrator
 
 
 class TestOrchestratorModeSelection:
@@ -53,8 +51,7 @@ class TestOrchestratorModeSelection:
         )
 
         # Should use SubprocessLauncher when devcontainer is missing
-        assert isinstance(orch.launcher, SubprocessLauncher), \
-            f"Expected SubprocessLauncher, got {type(orch.launcher)}"
+        assert isinstance(orch.launcher, SubprocessLauncher), f"Expected SubprocessLauncher, got {type(orch.launcher)}"
 
     @patch("zerg.orchestrator.TaskParser")
     @patch("zerg.orchestrator.StateManager")
@@ -99,5 +96,4 @@ class TestOrchestratorModeSelection:
         )
 
         # Should use SubprocessLauncher when explicitly requested
-        assert isinstance(orch.launcher, SubprocessLauncher), \
-            f"Expected SubprocessLauncher, got {type(orch.launcher)}"
+        assert isinstance(orch.launcher, SubprocessLauncher), f"Expected SubprocessLauncher, got {type(orch.launcher)}"

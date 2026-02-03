@@ -60,11 +60,11 @@ class ClocAdapter(BaseToolAdapter):
         comment_lines = summary.get("comment", 0)
         n_files = summary.get("nFiles", 0)
 
-        if not isinstance(code_lines, (int, float)):
+        if not isinstance(code_lines, int | float):
             code_lines = 0
-        if not isinstance(comment_lines, (int, float)):
+        if not isinstance(comment_lines, int | float):
             comment_lines = 0
-        if not isinstance(n_files, (int, float)):
+        if not isinstance(n_files, int | float):
             n_files = 0
 
         findings: list[PerformanceFinding] = []
@@ -86,10 +86,7 @@ class ClocAdapter(BaseToolAdapter):
                         ),
                         tool=self.name,
                         rule_id="low-comment-ratio",
-                        suggestion=(
-                            "Increase inline documentation,"
-                            " especially for public APIs and complex logic"
-                        ),
+                        suggestion=("Increase inline documentation, especially for public APIs and complex logic"),
                     )
                 )
 
@@ -101,10 +98,7 @@ class ClocAdapter(BaseToolAdapter):
                     factor_name="Code volume metrics",
                     category="Architecture",
                     severity=Severity.INFO,
-                    message=(
-                        f"Large codebase: {int(code_lines):,} lines of code "
-                        f"across {int(n_files):,} files"
-                    ),
+                    message=(f"Large codebase: {int(code_lines):,} lines of code across {int(n_files):,} files"),
                     tool=self.name,
                     rule_id="large-codebase",
                     suggestion="Consider modularization if the codebase continues to grow",

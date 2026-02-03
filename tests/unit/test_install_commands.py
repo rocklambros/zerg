@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +11,6 @@ from click.testing import CliRunner
 from zerg.commands.install_commands import (
     CANONICAL_PREFIX,
     COMMAND_GLOB,
-    LEGACY_PATTERNS,
     SHORTCUT_PREFIX,
     _get_source_dir,
     _get_target_dir,
@@ -26,10 +24,10 @@ from zerg.commands.install_commands import (
     uninstall_commands,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _create_md_files(directory: Path, names: list[str] | None = None) -> list[Path]:
     """Create .md command files in the given directory."""
@@ -47,6 +45,7 @@ def _create_md_files(directory: Path, names: list[str] | None = None) -> list[Pa
 # _get_source_dir
 # ---------------------------------------------------------------------------
 
+
 class TestGetSourceDir:
     """Tests for _get_source_dir()."""
 
@@ -56,10 +55,7 @@ class TestGetSourceDir:
         fake_pkg.mkdir(parents=True)
 
         mock_files = MagicMock()
-        mock_files.__truediv__ = lambda self, key: (
-            tmp_path / "zerg" / "data" if key == "data"
-            else self
-        )
+        mock_files.__truediv__ = lambda self, key: (tmp_path / "zerg" / "data" if key == "data" else self)
 
         # Patch files() to return a Path-like that resolves to our tmp dir
         with patch(
@@ -76,9 +72,7 @@ class TestGetSourceDir:
             chain.__str__ = MagicMock(return_value=str(fake_pkg))
             mock_ir_files.return_value = MagicMock()
             mock_ir_files.return_value.__truediv__ = MagicMock(return_value=MagicMock())
-            mock_ir_files.return_value.__truediv__.return_value.__truediv__ = MagicMock(
-                return_value=chain
-            )
+            mock_ir_files.return_value.__truediv__.return_value.__truediv__ = MagicMock(return_value=chain)
             result = _get_source_dir()
             assert result.is_dir()
 
@@ -107,6 +101,7 @@ class TestGetSourceDir:
 # _get_target_dir
 # ---------------------------------------------------------------------------
 
+
 class TestGetTargetDir:
     """Tests for _get_target_dir()."""
 
@@ -130,6 +125,7 @@ class TestGetTargetDir:
 # ---------------------------------------------------------------------------
 # _install_to_subdir
 # ---------------------------------------------------------------------------
+
 
 class TestInstallToSubdir:
     """Tests for _install_to_subdir()."""
@@ -260,6 +256,7 @@ class TestInstallToSubdir:
 # _install_shortcut_redirects
 # ---------------------------------------------------------------------------
 
+
 class TestInstallShortcutRedirects:
     """Tests for _install_shortcut_redirects()."""
 
@@ -283,9 +280,7 @@ class TestInstallShortcutRedirects:
         target.mkdir(parents=True)
 
         # Pre-create correct redirect
-        (target / "rush.md").write_text(
-            "Shortcut: run /zerg:rush with the same arguments.\n"
-        )
+        (target / "rush.md").write_text("Shortcut: run /zerg:rush with the same arguments.\n")
 
         count = _install_shortcut_redirects(target, source)
         assert count == 0
@@ -369,6 +364,7 @@ class TestInstallShortcutRedirects:
 # _install (orchestrator)
 # ---------------------------------------------------------------------------
 
+
 class TestInstall:
     """Tests for _install()."""
 
@@ -400,6 +396,7 @@ class TestInstall:
 # ---------------------------------------------------------------------------
 # _remove_legacy
 # ---------------------------------------------------------------------------
+
 
 class TestRemoveLegacy:
     """Tests for _remove_legacy()."""
@@ -433,6 +430,7 @@ class TestRemoveLegacy:
 # ---------------------------------------------------------------------------
 # _uninstall
 # ---------------------------------------------------------------------------
+
 
 class TestUninstall:
     """Tests for _uninstall()."""
@@ -492,6 +490,7 @@ class TestUninstall:
 # CLI: install_commands
 # ---------------------------------------------------------------------------
 
+
 class TestInstallCommandsCLI:
     """Tests for the install-commands Click command."""
 
@@ -506,9 +505,7 @@ class TestInstallCommandsCLI:
             "zerg.commands.install_commands._get_source_dir",
             return_value=source,
         ):
-            result = runner.invoke(
-                install_commands, ["--target", str(target), "--copy"]
-            )
+            result = runner.invoke(install_commands, ["--target", str(target), "--copy"])
 
         assert result.exit_code == 0
         assert "Installed" in result.output
@@ -527,9 +524,7 @@ class TestInstallCommandsCLI:
             _install(_get_target_dir(str(target)), source, copy=True)
 
             runner = CliRunner()
-            result = runner.invoke(
-                install_commands, ["--target", str(target), "--copy"]
-            )
+            result = runner.invoke(install_commands, ["--target", str(target), "--copy"])
 
         assert result.exit_code == 0
         assert "already installed" in result.output
@@ -548,9 +543,7 @@ class TestInstallCommandsCLI:
             # First install
             runner.invoke(install_commands, ["--target", str(target), "--copy"])
             # Force reinstall
-            result = runner.invoke(
-                install_commands, ["--target", str(target), "--copy", "--force"]
-            )
+            result = runner.invoke(install_commands, ["--target", str(target), "--copy", "--force"])
 
         assert result.exit_code == 0
         assert "Installed" in result.output
@@ -579,9 +572,7 @@ class TestInstallCommandsCLI:
             "zerg.commands.install_commands._get_source_dir",
             return_value=source,
         ):
-            result = runner.invoke(
-                install_commands, ["--target", str(target), "--copy"]
-            )
+            result = runner.invoke(install_commands, ["--target", str(target), "--copy"])
 
         assert result.exit_code == 0
         assert "legacy" in result.output.lower() or "Installed" in result.output
@@ -600,9 +591,7 @@ class TestInstallCommandsCLI:
             ),
             patch("zerg.commands.install_commands.os.name", "posix"),
         ):
-            result = runner.invoke(
-                install_commands, ["--target", str(target)]
-            )
+            result = runner.invoke(install_commands, ["--target", str(target)])
 
         assert result.exit_code == 0
         assert "symlinked" in result.output
@@ -611,6 +600,7 @@ class TestInstallCommandsCLI:
 # ---------------------------------------------------------------------------
 # CLI: uninstall_commands
 # ---------------------------------------------------------------------------
+
 
 class TestUninstallCommandsCLI:
     """Tests for the uninstall-commands Click command."""
@@ -654,6 +644,7 @@ class TestUninstallCommandsCLI:
 # ---------------------------------------------------------------------------
 # auto_install_commands
 # ---------------------------------------------------------------------------
+
 
 class TestAutoInstallCommands:
     """Tests for auto_install_commands()."""

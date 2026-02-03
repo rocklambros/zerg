@@ -13,7 +13,6 @@ from zerg.constants import WorkerStatus
 from zerg.containers import ContainerManager
 from zerg.launcher import ContainerLauncher
 
-
 pytestmark = pytest.mark.docker
 
 
@@ -60,9 +59,7 @@ class TestContainerLifecycle:
         status = container_manager_real.get_status(worker_id=0)
         assert status == WorkerStatus.RUNNING
 
-    def test_get_status_after_stop(
-        self, container_manager_real: ContainerManager
-    ) -> None:
+    def test_get_status_after_stop(self, container_manager_real: ContainerManager) -> None:
         """get_status() returns STOPPED after the container is stopped."""
         info = container_manager_real._containers[0]
         subprocess.run(
@@ -73,9 +70,7 @@ class TestContainerLifecycle:
         status = container_manager_real.get_status(worker_id=0)
         assert status == WorkerStatus.STOPPED
 
-    def test_stop_worker_removes(
-        self, docker_container: tuple[str, str]
-    ) -> None:
+    def test_stop_worker_removes(self, docker_container: tuple[str, str]) -> None:
         """stop_worker() removes the container from docker ps -a."""
         from zerg.containers import ContainerInfo, ContainerManager
 
@@ -117,19 +112,13 @@ class TestContainerExec:
 
     def test_exec_echo(self, container_manager_real: ContainerManager) -> None:
         """exec_in_worker with 'echo hello' returns exit 0 and stdout 'hello'."""
-        exit_code, stdout, stderr = container_manager_real.exec_in_worker(
-            worker_id=0, command="echo hello"
-        )
+        exit_code, stdout, stderr = container_manager_real.exec_in_worker(worker_id=0, command="echo hello")
         assert exit_code == 0
         assert stdout.strip() == "hello"
 
-    def test_exec_blocked_command(
-        self, container_manager_real: ContainerManager
-    ) -> None:
+    def test_exec_blocked_command(self, container_manager_real: ContainerManager) -> None:
         """exec_in_worker rejects commands not in the allowlist."""
-        exit_code, stdout, stderr = container_manager_real.exec_in_worker(
-            worker_id=0, command="rm -rf /"
-        )
+        exit_code, stdout, stderr = container_manager_real.exec_in_worker(worker_id=0, command="rm -rf /")
         assert exit_code == -1
         assert "validation failed" in stderr.lower() or "not in allowlist" in stderr.lower()
 
@@ -142,9 +131,7 @@ class TestContainerExec:
 class TestContainerVolumeMounts:
     """Tests for volume mounts inside containers."""
 
-    def test_volume_mount_visible(
-        self, docker_image: str, tmp_path: Path
-    ) -> None:
+    def test_volume_mount_visible(self, docker_image: str, tmp_path: Path) -> None:
         """A host directory mounted into a container is readable inside."""
         marker = tmp_path / "marker.txt"
         marker.write_text("zerg-volume-ok")
@@ -152,12 +139,18 @@ class TestContainerVolumeMounts:
         name = "zerg-test-vol"
         result = subprocess.run(
             [
-                "docker", "run", "--rm",
-                "--name", name,
-                "--label", "zerg-test=true",
-                "-v", f"{tmp_path.absolute()}:/workspace",
+                "docker",
+                "run",
+                "--rm",
+                "--name",
+                name,
+                "--label",
+                "zerg-test=true",
+                "-v",
+                f"{tmp_path.absolute()}:/workspace",
                 docker_image,
-                "cat", "/workspace/marker.txt",
+                "cat",
+                "/workspace/marker.txt",
             ],
             capture_output=True,
             text=True,
@@ -177,9 +170,7 @@ class TestContainerLauncherSpawn:
 
     @pytest.mark.e2e
     @pytest.mark.timeout(120)
-    def test_launcher_spawn_creates_container(
-        self, docker_image: str, tmp_worktree: Path
-    ) -> None:
+    def test_launcher_spawn_creates_container(self, docker_image: str, tmp_worktree: Path) -> None:
         """spawn() creates a running container and returns success."""
         launcher = ContainerLauncher(
             image_name=docker_image,

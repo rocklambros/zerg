@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -42,11 +41,13 @@ class CommandSplitter:
             content = md_file.read_text()
             line_count = content.count("\n") + 1
             if line_count >= MIN_LINES_TO_SPLIT:
-                results.append({
-                    "path": md_file,
-                    "lines": line_count,
-                    "tokens": self.estimate_tokens(content),
-                })
+                results.append(
+                    {
+                        "path": md_file,
+                        "lines": line_count,
+                        "tokens": self.estimate_tokens(content),
+                    }
+                )
         return results
 
     def analyze_file(self, filepath: Path) -> dict:
@@ -67,23 +68,27 @@ class CommandSplitter:
         for i, line in enumerate(lines):
             if line.startswith("## ") or line.startswith("# "):
                 if current_header is not None:
-                    sections.append({
-                        "header": current_header,
-                        "start_line": current_start,
-                        "end_line": i - 1,
-                        "lines": i - current_start,
-                    })
+                    sections.append(
+                        {
+                            "header": current_header,
+                            "start_line": current_start,
+                            "end_line": i - 1,
+                            "lines": i - current_start,
+                        }
+                    )
                 current_header = line.strip("# ").strip()
                 current_start = i
 
         # Last section
         if current_header is not None:
-            sections.append({
-                "header": current_header,
-                "start_line": current_start,
-                "end_line": total_lines - 1,
-                "lines": total_lines - current_start,
-            })
+            sections.append(
+                {
+                    "header": current_header,
+                    "start_line": current_start,
+                    "end_line": total_lines - 1,
+                    "lines": total_lines - current_start,
+                }
+            )
 
         # Find ~30% split point on section boundary
         target_line = int(total_lines * 0.30)
@@ -96,10 +101,7 @@ class CommandSplitter:
                 break
 
         # Check for Task tracking markers
-        has_task_tracking = any(
-            marker in content
-            for marker in ["TaskCreate", "TaskUpdate", "TaskList", "TaskGet"]
-        )
+        has_task_tracking = any(marker in content for marker in ["TaskCreate", "TaskUpdate", "TaskList", "TaskGet"])
 
         return {
             "total_lines": total_lines,
@@ -108,9 +110,7 @@ class CommandSplitter:
             "has_task_tracking": has_task_tracking,
         }
 
-    def split_file(
-        self, filepath: Path, split_line: int | None = None
-    ) -> tuple[Path, Path]:
+    def split_file(self, filepath: Path, split_line: int | None = None) -> tuple[Path, Path]:
         """Split a command file into .core.md and .details.md.
 
         Args:
@@ -129,10 +129,7 @@ class CommandSplitter:
         total_lines = len(lines)
 
         if total_lines < MIN_LINES_TO_SPLIT:
-            logger.info(
-                f"File {filepath.name} has {total_lines} lines, "
-                f"below threshold. Skipping."
-            )
+            logger.info(f"File {filepath.name} has {total_lines} lines, below threshold. Skipping.")
             return filepath, filepath
 
         if split_line is None:
@@ -158,27 +155,18 @@ class CommandSplitter:
         # Write details file with header
         details_header = f"<!-- SPLIT: details, parent: {filepath.name} -->\n"
         details_header += f"# {stem} — Detailed Reference\n\n"
-        details_header += (
-            "This file contains extended examples, templates, and edge cases.\n"
-        )
+        details_header += "This file contains extended examples, templates, and edge cases.\n"
         details_header += f"Core instructions are in `{core_path.name}`.\n\n"
         details_content = details_header + "\n".join(details_lines)
         details_path.write_text(details_content + "\n")
 
         # Update original file: keep core content + reference to details
-        reference = (
-            f"\n\n<!-- SPLIT: core={core_path.name} details={details_path.name} -->\n"
-        )
-        reference += (
-            f"<!-- For detailed examples and templates, see {details_path.name} -->\n"
-        )
+        reference = f"\n\n<!-- SPLIT: core={core_path.name} details={details_path.name} -->\n"
+        reference += f"<!-- For detailed examples and templates, see {details_path.name} -->\n"
         original_content = "\n".join(core_lines) + reference
         filepath.write_text(original_content + "\n")
 
-        logger.info(
-            f"Split {filepath.name}: core={len(core_lines)} lines, "
-            f"details={len(details_lines)} lines"
-        )
+        logger.info(f"Split {filepath.name}: core={len(core_lines)} lines, details={len(details_lines)} lines")
 
         return core_path, details_path
 

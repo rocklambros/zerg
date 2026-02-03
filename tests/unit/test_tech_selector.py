@@ -2,11 +2,8 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from zerg.charter import ProjectCharter
 from zerg.tech_selector import (
-    DEFAULT_FRAMEWORKS,
     FRAMEWORK_RECOMMENDATIONS,
     SUPPORTED_LANGUAGES,
     TechStack,
@@ -306,7 +303,7 @@ class TestSelectTechnology:
             target_platforms=["api"],
         )
 
-        stack = select_technology(charter)
+        select_technology(charter)
 
         # Charter should be updated
         assert charter.primary_language == "go"

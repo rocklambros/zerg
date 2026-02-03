@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from zerg.exceptions import GitError, MergeConflictError
 
@@ -378,11 +377,13 @@ class MockGitOps:
         result = []
         for name, commit in self._branches.items():
             if pattern is None or name.startswith(pattern.replace("*", "")):
-                result.append(BranchInfo(
-                    name=name,
-                    commit=commit,
-                    is_current=(name == self._current_branch),
-                ))
+                result.append(
+                    BranchInfo(
+                        name=name,
+                        commit=commit,
+                        is_current=(name == self._current_branch),
+                    )
+                )
         return result
 
     def list_worker_branches(self, feature: str) -> list[str]:

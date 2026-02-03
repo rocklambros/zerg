@@ -173,12 +173,14 @@ class GateRunner:
 
         # Run plugin gates if registry is available
         if self._plugin_registry:
-            plugin_results = self.run_plugin_gates(GateContext(
-                feature=feature,
-                level=level,
-                cwd=Path(cwd) if cwd else Path.cwd(),
-                config=self.config,
-            ))
+            plugin_results = self.run_plugin_gates(
+                GateContext(
+                    feature=feature,
+                    level=level,
+                    cwd=Path(cwd) if cwd else Path.cwd(),
+                    config=self.config,
+                )
+            )
             for result in plugin_results:
                 results.append(result)
                 if result.result not in (GateResult.PASS, GateResult.SKIP):
@@ -187,16 +189,10 @@ class GateRunner:
                     if is_required:
                         all_passed = False
                         if stop_on_failure:
-                            logger.error(
-                                f"Stopping: required plugin gate "
-                                f"{result.gate_name} failed"
-                            )
+                            logger.error(f"Stopping: required plugin gate {result.gate_name} failed")
                             break
                     else:
-                        logger.warning(
-                            f"Optional plugin gate "
-                            f"{result.gate_name} failed (continuing)"
-                        )
+                        logger.warning(f"Optional plugin gate {result.gate_name} failed (continuing)")
 
         return all_passed, results
 

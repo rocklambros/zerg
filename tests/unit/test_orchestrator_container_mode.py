@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.config import ZergConfig, WorkersConfig, LoggingConfig, PortsConfig, ResourcesConfig, ErrorRecoveryConfig
+from zerg.config import ErrorRecoveryConfig, LoggingConfig, PortsConfig, ResourcesConfig, WorkersConfig, ZergConfig
 from zerg.launcher import ContainerLauncher, LauncherConfig, LauncherType, SubprocessLauncher
 from zerg.orchestrator import Orchestrator
 
@@ -183,7 +183,7 @@ class TestLauncherTypeSelection:
         mock_container_launcher_class.return_value = mock_launcher_instance
 
         config = ZergConfig()
-        orchestrator = Orchestrator(
+        Orchestrator(
             feature="test-feature",
             config=config,
             repo_path=tmp_path,
@@ -223,7 +223,7 @@ class TestLauncherTypeSelection:
         mock_subprocess_launcher_class.return_value = mock_launcher_instance
 
         config = ZergConfig()
-        orchestrator = Orchestrator(
+        Orchestrator(
             feature="test-feature",
             config=config,
             repo_path=tmp_path,
@@ -275,7 +275,7 @@ class TestContainerLauncherConfiguration:
         mock_config.error_recovery = ErrorRecoveryConfig()
         mock_config.plugins = MagicMock(enabled=False)
 
-        orchestrator = Orchestrator(
+        Orchestrator(
             feature="test-feature",
             config=mock_config,
             repo_path=tmp_path,
@@ -323,7 +323,7 @@ class TestContainerLauncherConfiguration:
         mock_config.error_recovery = ErrorRecoveryConfig()
         mock_config.plugins = MagicMock(enabled=False)
 
-        orchestrator = Orchestrator(
+        Orchestrator(
             feature="test-feature",
             config=mock_config,
             repo_path=tmp_path,
@@ -372,7 +372,7 @@ class TestContainerLauncherConfiguration:
         mock_config.error_recovery = ErrorRecoveryConfig()
         mock_config.plugins = MagicMock(enabled=False)
 
-        orchestrator = Orchestrator(
+        Orchestrator(
             feature="test-feature",
             config=mock_config,
             repo_path=tmp_path,
@@ -412,7 +412,7 @@ class TestContainerLauncherConfiguration:
         mock_container_launcher_class.return_value = mock_launcher_instance
 
         config = ZergConfig()
-        orchestrator = Orchestrator(
+        Orchestrator(
             feature="test-feature",
             config=config,
             repo_path=tmp_path,

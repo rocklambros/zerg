@@ -48,9 +48,7 @@ class TestRecoveryPlan:
         plan = RecoveryPlan(
             problem="Workers crashed",
             root_cause="OOM",
-            steps=[
-                RecoveryStep(description="Restart", command="zerg rush")
-            ],
+            steps=[RecoveryStep(description="Restart", command="zerg rush")],
             verification_command="zerg status",
             prevention="Increase memory",
         )
@@ -64,9 +62,7 @@ class TestRecoveryPlan:
 class TestRecoveryPlanner:
     """Tests for RecoveryPlanner."""
 
-    def _make_result(
-        self, symptom: str = "Error", root_cause: str = "Unknown"
-    ) -> DiagnosticResult:
+    def _make_result(self, symptom: str = "Error", root_cause: str = "Unknown") -> DiagnosticResult:
         return DiagnosticResult(
             symptom=symptom,
             hypotheses=[],
@@ -99,41 +95,31 @@ class TestRecoveryPlanner:
 
     def test_classify_worker_crash(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="Worker crashed", root_cause="Worker failure"
-        )
+        result = self._make_result(symptom="Worker crashed", root_cause="Worker failure")
         category = planner._classify_error(result, None)
         assert category == "worker_crash"
 
     def test_classify_state_corruption(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="JSON parse error", root_cause="Corrupt state"
-        )
+        result = self._make_result(symptom="JSON parse error", root_cause="Corrupt state")
         category = planner._classify_error(result, None)
         assert category == "state_corruption"
 
     def test_classify_git_conflict(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="Merge conflict", root_cause="Git conflict"
-        )
+        result = self._make_result(symptom="Merge conflict", root_cause="Git conflict")
         category = planner._classify_error(result, None)
         assert category == "git_conflict"
 
     def test_classify_port_conflict(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="Address already in use", root_cause="Port conflict"
-        )
+        result = self._make_result(symptom="Address already in use", root_cause="Port conflict")
         category = planner._classify_error(result, None)
         assert category == "port_conflict"
 
     def test_classify_disk_space(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="No space left", root_cause="Disk full"
-        )
+        result = self._make_result(symptom="No space left", root_cause="Disk full")
         category = planner._classify_error(result, None)
         assert category == "disk_space"
 
@@ -149,9 +135,7 @@ class TestRecoveryPlanner:
     def test_classify_task_failure_from_health(self) -> None:
         planner = RecoveryPlanner()
         result = self._make_result()
-        health = self._make_health(
-            failed=[{"task_id": "T1", "error": "fail"}]
-        )
+        health = self._make_health(failed=[{"task_id": "T1", "error": "fail"}])
         category = planner._classify_error(result, health)
         assert category == "task_failure"
 
@@ -164,9 +148,7 @@ class TestRecoveryPlanner:
 
     def test_plan_with_health(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="Task failed", root_cause="Build error"
-        )
+        result = self._make_result(symptom="Task failed", root_cause="Build error")
         health = self._make_health(
             feature="auth",
             failed=[{"task_id": "T1", "error": "err", "worker_id": 2}],
@@ -180,9 +162,7 @@ class TestRecoveryPlanner:
 
     def test_plan_substitutes_feature(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="JSON corrupt", root_cause="Corrupt state"
-        )
+        result = self._make_result(symptom="JSON corrupt", root_cause="Corrupt state")
         health = self._make_health(feature="my-feat")
         plan = planner.plan(result, health=health)
 
@@ -192,12 +172,8 @@ class TestRecoveryPlanner:
 
     def test_plan_substitutes_worker_id(self) -> None:
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="Task failed", root_cause="Error"
-        )
-        health = self._make_health(
-            failed=[{"task_id": "T1", "error": "err", "worker_id": 3}]
-        )
+        result = self._make_result(symptom="Task failed", root_cause="Error")
+        health = self._make_health(failed=[{"task_id": "T1", "error": "err", "worker_id": 3}])
         plan = planner.plan(result, health=health)
 
         # Not all categories use worker_id, so just verify plan generated
@@ -229,9 +205,7 @@ class TestRecoveryPlanner:
 
     def test_execute_step_success(self) -> None:
         planner = RecoveryPlanner()
-        step = RecoveryStep(
-            description="Test", command="echo success"
-        )
+        step = RecoveryStep(description="Test", command="echo success")
         result = planner.execute_step(step)
         assert result["success"] is True
         assert "success" in result["output"]
@@ -239,9 +213,7 @@ class TestRecoveryPlanner:
 
     def test_execute_step_failure(self) -> None:
         planner = RecoveryPlanner()
-        step = RecoveryStep(
-            description="Test", command="false"
-        )
+        step = RecoveryStep(description="Test", command="false")
         result = planner.execute_step(step)
         assert result["success"] is False
 
@@ -278,7 +250,9 @@ class TestDesignEscalation:
     """Tests for design escalation detection in RecoveryPlanner."""
 
     def _make_result(
-        self, symptom: str = "Error", root_cause: str = "Unknown",
+        self,
+        symptom: str = "Error",
+        root_cause: str = "Unknown",
         recommendation: str = "Fix it",
     ) -> DiagnosticResult:
         return DiagnosticResult(
@@ -312,10 +286,9 @@ class TestDesignEscalation:
         """3+ tasks failed at the same level triggers design escalation."""
         planner = RecoveryPlanner()
         result = self._make_result(symptom="Tasks failing")
-        health = self._make_health(failed=[
-            {"task_id": f"T{i}", "error": "fail", "level": 2}
-            for i in range(DESIGN_ESCALATION_TASK_THRESHOLD)
-        ])
+        health = self._make_health(
+            failed=[{"task_id": f"T{i}", "error": "fail", "level": 2} for i in range(DESIGN_ESCALATION_TASK_THRESHOLD)]
+        )
         plan = planner.plan(result, health=health)
         assert plan.needs_design is True
         assert "level 2" in plan.design_reason
@@ -323,9 +296,7 @@ class TestDesignEscalation:
     def test_git_conflict_with_health_triggers_escalation(self) -> None:
         """git_conflict category with health data triggers escalation."""
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="Merge conflict", root_cause="Git conflict"
-        )
+        result = self._make_result(symptom="Merge conflict", root_cause="Git conflict")
         health = self._make_health()
         plan = planner.plan(result, health=health)
         assert plan.needs_design is True
@@ -346,10 +317,12 @@ class TestDesignEscalation:
         """Failures spanning 3+ files triggers escalation."""
         planner = RecoveryPlanner()
         result = self._make_result(symptom="Tasks failing")
-        health = self._make_health(failed=[
-            {"task_id": "T1", "error": "fail", "owned_files": ["a.py", "b.py"]},
-            {"task_id": "T2", "error": "fail", "owned_files": ["c.py"]},
-        ])
+        health = self._make_health(
+            failed=[
+                {"task_id": "T1", "error": "fail", "owned_files": ["a.py", "b.py"]},
+                {"task_id": "T2", "error": "fail", "owned_files": ["c.py"]},
+            ]
+        )
         plan = planner.plan(result, health=health)
         assert plan.needs_design is True
         assert "3 files" in plan.design_reason
@@ -357,12 +330,8 @@ class TestDesignEscalation:
     def test_simple_failure_does_not_trigger(self) -> None:
         """A simple single-task failure does not trigger escalation."""
         planner = RecoveryPlanner()
-        result = self._make_result(
-            symptom="Task failed", root_cause="Build error"
-        )
-        health = self._make_health(failed=[
-            {"task_id": "T1", "error": "compile error", "level": 1}
-        ])
+        result = self._make_result(symptom="Task failed", root_cause="Build error")
+        health = self._make_health(failed=[{"task_id": "T1", "error": "compile error", "level": 1}])
         plan = planner.plan(result, health=health)
         assert plan.needs_design is False
         assert plan.design_reason == ""
@@ -370,8 +339,10 @@ class TestDesignEscalation:
     def test_to_dict_serializes_design_fields(self) -> None:
         """RecoveryPlan.to_dict() includes needs_design and design_reason."""
         plan = RecoveryPlan(
-            problem="p", root_cause="c",
-            needs_design=True, design_reason="task graph flaw",
+            problem="p",
+            root_cause="c",
+            needs_design=True,
+            design_reason="task graph flaw",
         )
         d = plan.to_dict()
         assert d["needs_design"] is True

@@ -57,36 +57,26 @@ class RuleValidator:
             # Check required fields are non-empty
             if not rule.id.strip():
                 result.valid = False
-                result.errors.append(
-                    f"Rule at index {idx} in '{ruleset.name}' has empty ID"
-                )
+                result.errors.append(f"Rule at index {idx} in '{ruleset.name}' has empty ID")
 
             if not rule.title.strip():
                 result.valid = False
-                result.errors.append(
-                    f"Rule '{rule.id}' in '{ruleset.name}' has empty title"
-                )
+                result.errors.append(f"Rule '{rule.id}' in '{ruleset.name}' has empty title")
 
             # Check priority is a valid enum member
             if not isinstance(rule.priority, RulePriority):
                 result.valid = False
-                result.errors.append(
-                    f"Rule '{rule.id}' in '{ruleset.name}' has invalid priority: "
-                    f"{rule.priority}"
-                )
+                result.errors.append(f"Rule '{rule.id}' in '{ruleset.name}' has invalid priority: {rule.priority}")
 
             # Warn on empty applies_to
             if not rule.applies_to:
                 result.warnings.append(
-                    f"Rule '{rule.id}' in '{ruleset.name}' has empty applies_to; "
-                    f"it will match no files"
+                    f"Rule '{rule.id}' in '{ruleset.name}' has empty applies_to; it will match no files"
                 )
 
             # Warn on empty description
             if not rule.description:
-                result.warnings.append(
-                    f"Rule '{rule.id}' in '{ruleset.name}' has no description"
-                )
+                result.warnings.append(f"Rule '{rule.id}' in '{ruleset.name}' has no description")
 
         return result
 
@@ -174,9 +164,7 @@ class RuleValidator:
         return False
 
     @staticmethod
-    def _check_cross_ruleset_duplicates(
-        rulesets: list[RuleSet], result: ValidationResult
-    ) -> None:
+    def _check_cross_ruleset_duplicates(rulesets: list[RuleSet], result: ValidationResult) -> None:
         """Check for duplicate rule IDs across different rule sets."""
         seen: dict[str, str] = {}  # rule_id -> ruleset name
         for ruleset in rulesets:
@@ -184,8 +172,7 @@ class RuleValidator:
                 if rule.id in seen and seen[rule.id] != ruleset.name:
                     result.valid = False
                     result.errors.append(
-                        f"Rule ID '{rule.id}' duplicated across rulesets: "
-                        f"'{seen[rule.id]}' and '{ruleset.name}'"
+                        f"Rule ID '{rule.id}' duplicated across rulesets: '{seen[rule.id]}' and '{ruleset.name}'"
                     )
                 else:
                     seen[rule.id] = ruleset.name

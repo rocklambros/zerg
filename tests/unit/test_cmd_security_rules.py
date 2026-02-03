@@ -82,11 +82,11 @@ class TestSecurityRulesIntegrate:
         (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["security-rules", "integrate", "--force"])
+        runner.invoke(cli, ["security-rules", "integrate", "--force"])
 
         # Should integrate rules
         # Check CLAUDE.md was updated
-        content = (tmp_path / "CLAUDE.md").read_text()
+        (tmp_path / "CLAUDE.md").read_text()
         # May or may not have security section depending on implementation
 
 

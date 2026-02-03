@@ -28,10 +28,7 @@ logger = get_logger("git.history_engine")
 _BRANCH_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._/-]*$")
 
 # Conventional commit prefix pattern
-_CONVENTIONAL_RE = re.compile(
-    r"^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)"
-    r"(\(.+\))?:\s+.+"
-)
+_CONVENTIONAL_RE = re.compile(r"^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)" r"(\(.+\))?:\s+.+")
 
 # Small commit threshold (lines changed)
 _SMALL_COMMIT_LINES = 5
@@ -50,10 +47,7 @@ def _validate_branch_name(name: str) -> None:
         ValueError: If the branch name is invalid.
     """
     if not name or not _BRANCH_NAME_RE.match(name):
-        raise ValueError(
-            f"Invalid branch name: {name!r}. "
-            "Must match ^[a-zA-Z0-9][a-zA-Z0-9._/-]*$"
-        )
+        raise ValueError(f"Invalid branch name: {name!r}. Must match ^[a-zA-Z0-9][a-zA-Z0-9._/-]*$")
 
 
 def _parse_date(date_str: str) -> datetime:
@@ -108,9 +102,7 @@ def _get_lines_changed(runner: GitRunner, sha: str) -> int:
         Total lines added + deleted.
     """
     try:
-        result = runner._run(
-            "show", "--format=", "--numstat", sha, check=False
-        )
+        result = runner._run("show", "--format=", "--numstat", sha, check=False)
         total = 0
         for line in (result.stdout or "").strip().splitlines():
             parts = line.split("\t", 2)
@@ -227,9 +219,7 @@ class HistoryAnalyzer:
         commits.reverse()
         return commits
 
-    def find_squash_candidates(
-        self, commits: list[CommitInfo]
-    ) -> list[list[CommitInfo]]:
+    def find_squash_candidates(self, commits: list[CommitInfo]) -> list[list[CommitInfo]]:
         """Find groups of commits that should be squashed together.
 
         Groups by:
@@ -343,9 +333,7 @@ class HistoryAnalyzer:
 
         return groups
 
-    def find_reorder_groups(
-        self, commits: list[CommitInfo]
-    ) -> dict[str, list[CommitInfo]]:
+    def find_reorder_groups(self, commits: list[CommitInfo]) -> dict[str, list[CommitInfo]]:
         """Group commits by primary directory, then by type.
 
         Args:
@@ -398,11 +386,13 @@ class RewritePlanner:
 
             shas = [c.sha for c in group]
             message = self._generate_squash_message(group)
-            plans.append({
-                "action": "squash",
-                "commits": shas,
-                "message": message,
-            })
+            plans.append(
+                {
+                    "action": "squash",
+                    "commits": shas,
+                    "message": message,
+                }
+            )
 
         return plans
 
@@ -425,9 +415,7 @@ class RewritePlanner:
 
         return ordered
 
-    def plan_rewrite_messages(
-        self, commits: list[CommitInfo]
-    ) -> list[dict]:
+    def plan_rewrite_messages(self, commits: list[CommitInfo]) -> list[dict]:
         """Plan message rewrites for non-conventional commits.
 
         Args:
@@ -453,11 +441,13 @@ class RewritePlanner:
                     break
 
             new_msg = f"{detected_type.value}: {clean_msg}" if clean_msg else f"{detected_type.value}: update"
-            rewrites.append({
-                "sha": c.sha,
-                "old": c.message,
-                "new": new_msg,
-            })
+            rewrites.append(
+                {
+                    "sha": c.sha,
+                    "old": c.message,
+                    "new": new_msg,
+                }
+            )
 
         return rewrites
 
@@ -572,12 +562,8 @@ class SafeRewriter:
                 script_file.write(f"squash_shas = {squash_shas!r}\n")
                 script_file.write("for line in lines:\n")
                 script_file.write("    parts = line.split()\n")
-                script_file.write(
-                    "    if len(parts) >= 2 and parts[0] == 'pick' and parts[1] in squash_shas:\n"
-                )
-                script_file.write(
-                    "        new_lines.append('squash ' + ' '.join(parts[1:]) + '\\n')\n"
-                )
+                script_file.write("    if len(parts) >= 2 and parts[0] == 'pick' and parts[1] in squash_shas:\n")
+                script_file.write("        new_lines.append('squash ' + ' '.join(parts[1:]) + '\\n')\n")
                 script_file.write("    else:\n")
                 script_file.write("        new_lines.append(line)\n")
                 script_file.write("with open(todo_file, 'w') as f:\n")
@@ -592,8 +578,12 @@ class SafeRewriter:
             import subprocess
 
             cmd = [
-                "git", "-C", str(self.runner.repo_path),
-                "rebase", "-i", base,
+                "git",
+                "-C",
+                str(self.runner.repo_path),
+                "rebase",
+                "-i",
+                base,
             ]
             result = subprocess.run(
                 cmd,
@@ -659,9 +649,7 @@ class SafeRewriter:
                 script_file.write("other_lines = []\n")
                 script_file.write("for line in lines:\n")
                 script_file.write("    parts = line.split()\n")
-                script_file.write(
-                    "    if len(parts) >= 2 and parts[0] == 'pick' and parts[1] in order:\n"
-                )
+                script_file.write("    if len(parts) >= 2 and parts[0] == 'pick' and parts[1] in order:\n")
                 script_file.write("        pick_lines[parts[1]] = line\n")
                 script_file.write("    else:\n")
                 script_file.write("        other_lines.append(line)\n")
@@ -681,8 +669,12 @@ class SafeRewriter:
             import subprocess
 
             cmd = [
-                "git", "-C", str(self.runner.repo_path),
-                "rebase", "-i", base,
+                "git",
+                "-C",
+                str(self.runner.repo_path),
+                "rebase",
+                "-i",
+                base,
             ]
             result = subprocess.run(
                 cmd,

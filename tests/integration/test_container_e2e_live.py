@@ -61,17 +61,18 @@ class TestImageBuilds:
         try:
             result = _run(
                 [
-                    "docker", "build",
-                    "-t", TEST_IMAGE,
-                    "-f", DOCKERFILE_PATH,
+                    "docker",
+                    "build",
+                    "-t",
+                    TEST_IMAGE,
+                    "-f",
+                    DOCKERFILE_PATH,
                     ".",
                 ],
                 cwd=PROJECT_ROOT,
                 timeout=300,
             )
-            assert result.returncode == 0, (
-                f"Docker build failed.\nstdout: {result.stdout}\nstderr: {result.stderr}"
-            )
+            assert result.returncode == 0, f"Docker build failed.\nstdout: {result.stdout}\nstderr: {result.stderr}"
         finally:
             _remove_image(TEST_IMAGE)
 
@@ -87,39 +88,46 @@ class TestContainerSpawnsWithResourceLimits:
             # Build the image first
             build = _run(
                 [
-                    "docker", "build",
-                    "-t", TEST_IMAGE,
-                    "-f", DOCKERFILE_PATH,
+                    "docker",
+                    "build",
+                    "-t",
+                    TEST_IMAGE,
+                    "-f",
+                    DOCKERFILE_PATH,
                     ".",
                 ],
                 cwd=PROJECT_ROOT,
                 timeout=300,
             )
-            assert build.returncode == 0, (
-                f"Docker build failed.\nstderr: {build.stderr}"
-            )
+            assert build.returncode == 0, f"Docker build failed.\nstderr: {build.stderr}"
 
             # Run container with resource limits
             run_result = _run(
                 [
-                    "docker", "run", "-d",
-                    "--name", self.CONTAINER_NAME,
-                    "--memory", "256m",
-                    "--cpus", "1.0",
+                    "docker",
+                    "run",
+                    "-d",
+                    "--name",
+                    self.CONTAINER_NAME,
+                    "--memory",
+                    "256m",
+                    "--cpus",
+                    "1.0",
                     TEST_IMAGE,
-                    "sleep", "30",
+                    "sleep",
+                    "30",
                 ],
                 timeout=30,
             )
-            assert run_result.returncode == 0, (
-                f"Container start failed.\nstderr: {run_result.stderr}"
-            )
+            assert run_result.returncode == 0, f"Container start failed.\nstderr: {run_result.stderr}"
 
             # Inspect the container for resource limits
             inspect_result = _run(
                 [
-                    "docker", "inspect",
-                    "--format", "{{json .HostConfig}}",
+                    "docker",
+                    "inspect",
+                    "--format",
+                    "{{json .HostConfig}}",
                     self.CONTAINER_NAME,
                 ],
                 timeout=10,
@@ -130,15 +138,15 @@ class TestContainerSpawnsWithResourceLimits:
 
             # 256 MB in bytes
             expected_memory = 256 * 1024 * 1024
-            assert host_config["Memory"] == expected_memory, (
-                f"Expected Memory={expected_memory}, got {host_config['Memory']}"
-            )
+            assert (
+                host_config["Memory"] == expected_memory
+            ), f"Expected Memory={expected_memory}, got {host_config['Memory']}"
 
             # 1.0 CPU = 1_000_000_000 NanoCpus
             expected_nano_cpus = 1_000_000_000
-            assert host_config["NanoCpus"] == expected_nano_cpus, (
-                f"Expected NanoCpus={expected_nano_cpus}, got {host_config['NanoCpus']}"
-            )
+            assert (
+                host_config["NanoCpus"] == expected_nano_cpus
+            ), f"Expected NanoCpus={expected_nano_cpus}, got {host_config['NanoCpus']}"
         finally:
             _remove_container(self.CONTAINER_NAME)
             _remove_image(TEST_IMAGE)
@@ -155,36 +163,43 @@ class TestOrphanCleanup:
             # Create a stopped container to simulate an orphan
             create_result = _run(
                 [
-                    "docker", "create",
-                    "--name", self.CONTAINER_NAME,
+                    "docker",
+                    "create",
+                    "--name",
+                    self.CONTAINER_NAME,
                     "ubuntu:latest",
-                    "echo", "orphan",
+                    "echo",
+                    "orphan",
                 ],
                 timeout=60,
             )
-            assert create_result.returncode == 0, (
-                f"Failed to create orphan container.\nstderr: {create_result.stderr}"
-            )
+            assert create_result.returncode == 0, f"Failed to create orphan container.\nstderr: {create_result.stderr}"
 
             # Verify the container exists
             ps_result = _run(
                 [
-                    "docker", "ps", "-a",
-                    "--filter", f"name={self.CONTAINER_NAME}",
-                    "--format", "{{.Names}}",
+                    "docker",
+                    "ps",
+                    "-a",
+                    "--filter",
+                    f"name={self.CONTAINER_NAME}",
+                    "--format",
+                    "{{.Names}}",
                 ],
                 timeout=10,
             )
-            assert self.CONTAINER_NAME in ps_result.stdout, (
-                f"Orphan container not found. Output: {ps_result.stdout}"
-            )
+            assert self.CONTAINER_NAME in ps_result.stdout, f"Orphan container not found. Output: {ps_result.stdout}"
 
             # Run cleanup logic: find containers matching the filter and remove them
             find_result = _run(
                 [
-                    "docker", "ps", "-a",
-                    "--filter", f"name={self.CONTAINER_NAME}",
-                    "--format", "{{.Names}}",
+                    "docker",
+                    "ps",
+                    "-a",
+                    "--filter",
+                    f"name={self.CONTAINER_NAME}",
+                    "--format",
+                    "{{.Names}}",
                 ],
                 timeout=10,
             )
@@ -196,22 +211,24 @@ class TestOrphanCleanup:
                     ["docker", "rm", "-f", container.strip()],
                     timeout=10,
                 )
-                assert rm_result.returncode == 0, (
-                    f"Failed to remove container {container}.\nstderr: {rm_result.stderr}"
-                )
+                assert rm_result.returncode == 0, f"Failed to remove container {container}.\nstderr: {rm_result.stderr}"
 
             # Verify the container no longer exists
             verify_result = _run(
                 [
-                    "docker", "ps", "-a",
-                    "--filter", f"name={self.CONTAINER_NAME}",
-                    "--format", "{{.Names}}",
+                    "docker",
+                    "ps",
+                    "-a",
+                    "--filter",
+                    f"name={self.CONTAINER_NAME}",
+                    "--format",
+                    "{{.Names}}",
                 ],
                 timeout=10,
             )
-            assert self.CONTAINER_NAME not in verify_result.stdout, (
-                f"Orphan container still exists after cleanup. Output: {verify_result.stdout}"
-            )
+            assert (
+                self.CONTAINER_NAME not in verify_result.stdout
+            ), f"Orphan container still exists after cleanup. Output: {verify_result.stdout}"
         finally:
             _remove_container(self.CONTAINER_NAME)
 
@@ -227,28 +244,25 @@ class TestContainerLogsAccessible:
             # Run a container that echoes a known string
             run_result = _run(
                 [
-                    "docker", "run",
-                    "--name", self.CONTAINER_NAME,
+                    "docker",
+                    "run",
+                    "--name",
+                    self.CONTAINER_NAME,
                     "ubuntu:latest",
-                    "echo", "hello zerg",
+                    "echo",
+                    "hello zerg",
                 ],
                 timeout=30,
             )
-            assert run_result.returncode == 0, (
-                f"Container run failed.\nstderr: {run_result.stderr}"
-            )
+            assert run_result.returncode == 0, f"Container run failed.\nstderr: {run_result.stderr}"
 
             # Fetch logs
             logs_result = _run(
                 ["docker", "logs", self.CONTAINER_NAME],
                 timeout=10,
             )
-            assert logs_result.returncode == 0, (
-                f"Failed to fetch logs.\nstderr: {logs_result.stderr}"
-            )
-            assert "hello zerg" in logs_result.stdout, (
-                f"Expected 'hello zerg' in logs. Got: {logs_result.stdout}"
-            )
+            assert logs_result.returncode == 0, f"Failed to fetch logs.\nstderr: {logs_result.stderr}"
+            assert "hello zerg" in logs_result.stdout, f"Expected 'hello zerg' in logs. Got: {logs_result.stdout}"
         finally:
             _remove_container(self.CONTAINER_NAME)
 
@@ -264,41 +278,44 @@ class TestHealthcheckMarker:
             # Start a container in detached mode
             run_result = _run(
                 [
-                    "docker", "run", "-d",
-                    "--name", self.CONTAINER_NAME,
+                    "docker",
+                    "run",
+                    "-d",
+                    "--name",
+                    self.CONTAINER_NAME,
                     "ubuntu:latest",
-                    "sleep", "30",
+                    "sleep",
+                    "30",
                 ],
                 timeout=30,
             )
-            assert run_result.returncode == 0, (
-                f"Container start failed.\nstderr: {run_result.stderr}"
-            )
+            assert run_result.returncode == 0, f"Container start failed.\nstderr: {run_result.stderr}"
 
             # Create the healthcheck marker file
             exec_touch = _run(
                 [
-                    "docker", "exec",
+                    "docker",
+                    "exec",
                     self.CONTAINER_NAME,
-                    "touch", "/tmp/.zerg-alive",
+                    "touch",
+                    "/tmp/.zerg-alive",
                 ],
                 timeout=10,
             )
-            assert exec_touch.returncode == 0, (
-                f"Failed to create marker file.\nstderr: {exec_touch.stderr}"
-            )
+            assert exec_touch.returncode == 0, f"Failed to create marker file.\nstderr: {exec_touch.stderr}"
 
             # Verify the marker file exists
             exec_test = _run(
                 [
-                    "docker", "exec",
+                    "docker",
+                    "exec",
                     self.CONTAINER_NAME,
-                    "test", "-f", "/tmp/.zerg-alive",
+                    "test",
+                    "-f",
+                    "/tmp/.zerg-alive",
                 ],
                 timeout=10,
             )
-            assert exec_test.returncode == 0, (
-                "Healthcheck marker file /tmp/.zerg-alive does not exist in container"
-            )
+            assert exec_test.returncode == 0, "Healthcheck marker file /tmp/.zerg-alive does not exist in container"
         finally:
             _remove_container(self.CONTAINER_NAME)

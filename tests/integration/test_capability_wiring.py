@@ -14,7 +14,6 @@ from zerg.capability_resolver import ResolvedCapabilities
 from zerg.context_plugin import ContextEngineeringPlugin
 from zerg.plugin_config import ContextEngineeringConfig
 
-
 # ---------------------------------------------------------------------------
 # Orchestrator -> WorkerManager wiring
 # ---------------------------------------------------------------------------
@@ -26,19 +25,20 @@ class TestOrchestratorCapabilityWiring:
     @pytest.fixture
     def mock_orchestrator_deps(self):
         """Mock all Orchestrator dependencies so __init__ completes."""
-        with patch("zerg.orchestrator.StateManager") as state_mock, \
-             patch("zerg.orchestrator.LevelController") as levels_mock, \
-             patch("zerg.orchestrator.TaskParser") as parser_mock, \
-             patch("zerg.orchestrator.GateRunner") as gates_mock, \
-             patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-             patch("zerg.orchestrator.ContainerManager") as container_mock, \
-             patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-             patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-             patch("zerg.orchestrator.TaskSyncBridge") as task_sync_mock, \
-             patch("zerg.orchestrator.SubprocessLauncher") as subprocess_launcher_mock, \
-             patch("zerg.orchestrator.ContainerLauncher") as container_launcher_mock, \
-             patch("zerg.orchestrator.setup_structured_logging") as log_mock:
-
+        with (
+            patch("zerg.orchestrator.StateManager") as state_mock,
+            patch("zerg.orchestrator.LevelController") as levels_mock,
+            patch("zerg.orchestrator.TaskParser") as parser_mock,
+            patch("zerg.orchestrator.GateRunner") as gates_mock,
+            patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+            patch("zerg.orchestrator.ContainerManager") as container_mock,
+            patch("zerg.orchestrator.PortAllocator") as ports_mock,
+            patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+            patch("zerg.orchestrator.TaskSyncBridge") as task_sync_mock,
+            patch("zerg.orchestrator.SubprocessLauncher") as subprocess_launcher_mock,
+            patch("zerg.orchestrator.ContainerLauncher") as container_launcher_mock,
+            patch("zerg.orchestrator.setup_structured_logging") as log_mock,
+        ):
             state = MagicMock()
             state.load.return_value = {}
             state.get_task_status.return_value = None
@@ -72,9 +72,7 @@ class TestOrchestratorCapabilityWiring:
                 "subprocess_launcher": subprocess_launcher_mock,
             }
 
-    def test_orchestrator_passes_capabilities_to_worker_manager(
-        self, mock_orchestrator_deps
-    ):
+    def test_orchestrator_passes_capabilities_to_worker_manager(self, mock_orchestrator_deps):
         """Orchestrator(capabilities=...) flows through to _worker_manager._capabilities."""
         from zerg.orchestrator import Orchestrator
 

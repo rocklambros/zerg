@@ -221,7 +221,7 @@ class SemgrepAdapter(BaseToolAdapter):
         56,  # Repeated parsing elimination
         57,  # Cache key construction
         # CPU and Compute
-        9,   # Compiler optimization flags
+        9,  # Compiler optimization flags
         12,  # NUMA awareness
         # Abstraction and Structure
         74,  # Over-abstraction
@@ -259,11 +259,7 @@ class SemgrepAdapter(BaseToolAdapter):
             logger.warning("No semgrep configs determined for stack: %s", stack.languages)
             return []
 
-        cmd = (
-            ["semgrep", "--json", "--quiet"]
-            + [f"--config={c}" for c in configs]
-            + [project_path]
-        )
+        cmd = ["semgrep", "--json", "--quiet"] + [f"--config={c}" for c in configs] + [project_path]
 
         try:
             result = subprocess.run(  # noqa: S603

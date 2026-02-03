@@ -4,8 +4,6 @@ import textwrap
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from zerg.repo_map import SymbolGraph, build_map
 
 
@@ -14,21 +12,25 @@ class TestRepoMapBuildAndQuery:
 
     def test_build_and_query_python(self, tmp_path: Path) -> None:
         # Create a small Python project
-        (tmp_path / "app.py").write_text(textwrap.dedent("""\
+        (tmp_path / "app.py").write_text(
+            textwrap.dedent("""\
             from utils import helper
 
             class App:
                 \"\"\"Main application.\"\"\"
                 def run(self) -> None:
                     helper()
-        """))
-        (tmp_path / "utils.py").write_text(textwrap.dedent("""\
+        """)
+        )
+        (tmp_path / "utils.py").write_text(
+            textwrap.dedent("""\
             def helper() -> str:
                 \"\"\"Help with things.\"\"\"
                 return "helped"
 
             MAX_RETRIES = 3
-        """))
+        """)
+        )
 
         graph = build_map(tmp_path, languages=["python"])
         assert "app" in graph.modules or any("app" in k for k in graph.modules)
@@ -39,7 +41,8 @@ class TestRepoMapBuildAndQuery:
         assert "App" in result or "helper" in result
 
     def test_build_and_query_js(self, tmp_path: Path) -> None:
-        (tmp_path / "server.js").write_text(textwrap.dedent("""\
+        (tmp_path / "server.js").write_text(
+            textwrap.dedent("""\
             import express from 'express';
 
             export class Server {
@@ -51,7 +54,8 @@ class TestRepoMapBuildAndQuery:
             export function createServer(config) {
               return new Server(config.port);
             }
-        """))
+        """)
+        )
 
         graph = build_map(tmp_path, languages=["javascript"])
         assert len(graph.modules) >= 1
@@ -75,9 +79,7 @@ class TestRepoMapBuildAndQuery:
 
     def test_query_with_edges(self, tmp_path: Path) -> None:
         (tmp_path / "base.py").write_text("class Base:\n    pass\n")
-        (tmp_path / "child.py").write_text(
-            "from base import Base\nclass Child(Base):\n    pass\n"
-        )
+        (tmp_path / "child.py").write_text("from base import Base\nclass Child(Base):\n    pass\n")
 
         graph = build_map(tmp_path, languages=["python"])
         result = graph.query(["child.py"], [])

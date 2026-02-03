@@ -9,16 +9,12 @@ Orchestrator._on_level_complete_handler, including:
 - Timeout configuration from config
 """
 
-import concurrent.futures
 import time
 from datetime import datetime
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.config import ErrorRecoveryConfig
-from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
+from zerg.constants import LevelMergeStatus, WorkerStatus
 from zerg.merge import MergeFlowResult
 from zerg.orchestrator import Orchestrator
 from zerg.types import WorkerState
@@ -449,10 +445,7 @@ class TestMaxRetriesReachedPausesOrchestrator:
         orch._on_level_complete_handler(1)
 
         # Check recoverable_error event was recorded
-        event_calls = [
-            call for call in mock_state.append_event.call_args_list
-            if call[0][0] == "recoverable_error"
-        ]
+        event_calls = [call for call in mock_state.append_event.call_args_list if call[0][0] == "recoverable_error"]
         assert len(event_calls) == 1
 
     @patch("zerg.level_coordinator.time.sleep")
@@ -523,9 +516,7 @@ class TestMaxRetriesReachedPausesOrchestrator:
         orch._on_level_complete_handler(1)
 
         # Verify level merge status was set to FAILED
-        mock_state.set_level_merge_status.assert_any_call(
-            1, LevelMergeStatus.FAILED
-        )
+        mock_state.set_level_merge_status.assert_any_call(1, LevelMergeStatus.FAILED)
 
 
 class TestSuccessfulMergeAfterRetry:
@@ -706,9 +697,7 @@ class TestSuccessfulMergeAfterRetry:
         # Should not be paused
         assert orch._paused is False
         # Level status should be COMPLETE
-        mock_state.set_level_merge_status.assert_any_call(
-            1, LevelMergeStatus.COMPLETE
-        )
+        mock_state.set_level_merge_status.assert_any_call(1, LevelMergeStatus.COMPLETE)
 
     @patch("zerg.level_coordinator.time.sleep")
     @patch("zerg.orchestrator.MergeCoordinator")
@@ -792,10 +781,7 @@ class TestSuccessfulMergeAfterRetry:
         orch._on_level_complete_handler(1)
 
         # Check merge_retry event was recorded
-        retry_events = [
-            call for call in mock_state.append_event.call_args_list
-            if call[0][0] == "merge_retry"
-        ]
+        retry_events = [call for call in mock_state.append_event.call_args_list if call[0][0] == "merge_retry"]
         assert len(retry_events) == 1
         # Verify retry event has expected data
         retry_data = retry_events[0][0][1]

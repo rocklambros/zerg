@@ -15,7 +15,6 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -504,14 +503,10 @@ class TestLevelAdvancement:
         fixture.state.set_current_level(1)
 
         # Check if level can advance
-        level_1_tasks = [
-            tid for tid, t in fixture.state._state["tasks"].items()
-            if t.get("level") == 1
-        ]
+        level_1_tasks = [tid for tid, t in fixture.state._state["tasks"].items() if t.get("level") == 1]
 
         all_complete = all(
-            fixture.state._state["tasks"][tid]["status"] == TaskStatus.COMPLETE.value
-            for tid in level_1_tasks
+            fixture.state._state["tasks"][tid]["status"] == TaskStatus.COMPLETE.value for tid in level_1_tasks
         )
 
         # Level should NOT advance - one task still running
@@ -523,8 +518,7 @@ class TestLevelAdvancement:
 
         # Now check again
         all_complete = all(
-            fixture.state._state["tasks"][tid]["status"] == TaskStatus.COMPLETE.value
-            for tid in level_1_tasks
+            fixture.state._state["tasks"][tid]["status"] == TaskStatus.COMPLETE.value for tid in level_1_tasks
         )
 
         # Level CAN advance now
@@ -557,14 +551,10 @@ class TestLevelAdvancement:
         fixture.state.set_current_level(1)
 
         # Check for failures
-        level_1_tasks = [
-            tid for tid, t in fixture.state._state["tasks"].items()
-            if t.get("level") == 1
-        ]
+        level_1_tasks = [tid for tid, t in fixture.state._state["tasks"].items() if t.get("level") == 1]
 
         has_failures = any(
-            fixture.state._state["tasks"][tid]["status"] == TaskStatus.FAILED.value
-            for tid in level_1_tasks
+            fixture.state._state["tasks"][tid]["status"] == TaskStatus.FAILED.value for tid in level_1_tasks
         )
 
         # Level should NOT advance due to failure
@@ -611,14 +601,10 @@ class TestLevelAdvancement:
         fixture.merger.merge_level = mock_merge_level
 
         # Simulate level completion check
-        level_1_tasks = [
-            tid for tid, t in fixture.state._state["tasks"].items()
-            if t.get("level") == 1
-        ]
+        level_1_tasks = [tid for tid, t in fixture.state._state["tasks"].items() if t.get("level") == 1]
 
         all_complete = all(
-            fixture.state._state["tasks"][tid]["status"] == TaskStatus.COMPLETE.value
-            for tid in level_1_tasks
+            fixture.state._state["tasks"][tid]["status"] == TaskStatus.COMPLETE.value for tid in level_1_tasks
         )
 
         if all_complete:
@@ -652,17 +638,16 @@ class TestStateReconciliation:
 
         for task_id, task_state in fixture.state._state["tasks"].items():
             worker_id = task_state.get("worker_id")
-            if (
-                worker_id is not None
-                and task_state["status"] == TaskStatus.IN_PROGRESS.value
-            ):
+            if worker_id is not None and task_state["status"] == TaskStatus.IN_PROGRESS.value:
                 # Check if worker exists
                 if str(worker_id) not in fixture.state._state.get("workers", {}):
-                    inconsistencies.append({
-                        "type": "orphaned_task",
-                        "task_id": task_id,
-                        "worker_id": worker_id,
-                    })
+                    inconsistencies.append(
+                        {
+                            "type": "orphaned_task",
+                            "task_id": task_id,
+                            "worker_id": worker_id,
+                        }
+                    )
                     # Fix: release the task
                     fixture.state.set_task_status(task_id, TaskStatus.PENDING)
                     task_state["worker_id"] = None
@@ -751,11 +736,13 @@ class TestStateReconciliation:
                     worker_key = str(worker_id)
                     if worker_key not in fixture.state._state.get("workers", {}):
                         # Stale reference - worker was cleaned up
-                        fixed_issues.append({
-                            "type": "stale_worker_reference",
-                            "task_id": task_id,
-                            "worker_id": worker_id,
-                        })
+                        fixed_issues.append(
+                            {
+                                "type": "stale_worker_reference",
+                                "task_id": task_id,
+                                "worker_id": worker_id,
+                            }
+                        )
                         # Clear stale reference (task already complete, no action needed)
 
         # Verify issue was detected

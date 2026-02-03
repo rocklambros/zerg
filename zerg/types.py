@@ -132,9 +132,7 @@ class WorkerState:
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "ready_at": self.ready_at.isoformat() if self.ready_at else None,
             "last_task_completed_at": (
-                self.last_task_completed_at.isoformat()
-                if self.last_task_completed_at
-                else None
+                self.last_task_completed_at.isoformat() if self.last_task_completed_at else None
             ),
             "tasks_completed": self.tasks_completed,
             "context_usage": self.context_usage,
@@ -151,21 +149,11 @@ class WorkerState:
             container_id=data.get("container_id"),
             worktree_path=data.get("worktree_path"),
             branch=data.get("branch"),
-            health_check_at=(
-                datetime.fromisoformat(data["health_check_at"])
-                if data.get("health_check_at")
-                else None
-            ),
-            started_at=(
-                datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None
-            ),
-            ready_at=(
-                datetime.fromisoformat(data["ready_at"]) if data.get("ready_at") else None
-            ),
+            health_check_at=(datetime.fromisoformat(data["health_check_at"]) if data.get("health_check_at") else None),
+            started_at=(datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None),
+            ready_at=(datetime.fromisoformat(data["ready_at"]) if data.get("ready_at") else None),
             last_task_completed_at=(
-                datetime.fromisoformat(data["last_task_completed_at"])
-                if data.get("last_task_completed_at")
-                else None
+                datetime.fromisoformat(data["last_task_completed_at"]) if data.get("last_task_completed_at") else None
             ),
             tasks_completed=data.get("tasks_completed", 0),
             context_usage=data.get("context_usage", 0.0),
@@ -236,12 +224,8 @@ class LevelStatus:
             failed_tasks=data.get("failed_tasks", 0),
             in_progress_tasks=data.get("in_progress_tasks", 0),
             status=data.get("status", "pending"),
-            started_at=(
-                datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None
-            ),
-            completed_at=(
-                datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None
-            ),
+            started_at=(datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None),
+            completed_at=(datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None),
             merge_commit=data.get("merge_commit"),
         )
 
@@ -577,10 +561,6 @@ class FeatureMetrics:
             tasks_completed=data.get("tasks_completed", 0),
             tasks_failed=data.get("tasks_failed", 0),
             levels_completed=data.get("levels_completed", 0),
-            worker_metrics=[
-                WorkerMetrics.from_dict(wm) for wm in data.get("worker_metrics", [])
-            ],
-            level_metrics=[
-                LevelMetrics.from_dict(lm) for lm in data.get("level_metrics", [])
-            ],
+            worker_metrics=[WorkerMetrics.from_dict(wm) for wm in data.get("worker_metrics", [])],
+            level_metrics=[LevelMetrics.from_dict(lm) for lm in data.get("level_metrics", [])],
         )

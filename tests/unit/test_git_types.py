@@ -16,8 +16,17 @@ class TestCommitType:
 
     def test_all_conventional_types_present(self) -> None:
         expected = {
-            "feat", "fix", "docs", "style", "refactor",
-            "test", "chore", "perf", "ci", "build", "revert",
+            "feat",
+            "fix",
+            "docs",
+            "style",
+            "refactor",
+            "test",
+            "chore",
+            "perf",
+            "ci",
+            "build",
+            "revert",
         }
         actual = {ct.value for ct in CommitType}
         assert actual == expected

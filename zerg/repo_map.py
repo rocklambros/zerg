@@ -13,7 +13,7 @@ import logging
 import os
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -71,9 +71,7 @@ class SymbolGraph:
         relevant_modules = self._filter_modules(files, keywords)
         return self._format(relevant_modules, max_chars)
 
-    def _filter_modules(
-        self, files: list[str], keywords: list[str]
-    ) -> dict[str, list[Symbol]]:
+    def _filter_modules(self, files: list[str], keywords: list[str]) -> dict[str, list[Symbol]]:
         """Filter modules by file list and keyword relevance."""
         result: dict[str, list[Symbol]] = {}
         kw_lower = {kw.lower() for kw in keywords if kw}
@@ -87,8 +85,7 @@ class SymbolGraph:
             # Keyword match on symbol names/signatures
             if kw_lower:
                 matched = [
-                    s for s in symbols
-                    if any(kw in s.name.lower() or kw in s.signature.lower() for kw in kw_lower)
+                    s for s in symbols if any(kw in s.name.lower() or kw in s.signature.lower() for kw in kw_lower)
                 ]
                 if matched:
                     result[mod_key] = matched
@@ -173,14 +170,16 @@ def _extract_python_symbols(filepath: Path, module_name: str) -> tuple[list[Symb
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             sig = _format_func_signature(node)
             doc = ast.get_docstring(node)
-            symbols.append(Symbol(
-                name=node.name,
-                kind="function",
-                signature=sig,
-                docstring=doc.split("\n")[0] if doc else None,
-                line=node.lineno,
-                module=module_name,
-            ))
+            symbols.append(
+                Symbol(
+                    name=node.name,
+                    kind="function",
+                    signature=sig,
+                    docstring=doc.split("\n")[0] if doc else None,
+                    line=node.lineno,
+                    module=module_name,
+                )
+            )
 
         elif isinstance(node, ast.ClassDef):
             bases = [_format_expr(b) for b in node.bases]
@@ -188,83 +187,99 @@ def _extract_python_symbols(filepath: Path, module_name: str) -> tuple[list[Symb
             if bases:
                 sig += f"({', '.join(bases)})"
             doc = ast.get_docstring(node)
-            symbols.append(Symbol(
-                name=node.name,
-                kind="class",
-                signature=sig,
-                docstring=doc.split("\n")[0] if doc else None,
-                line=node.lineno,
-                module=module_name,
-            ))
+            symbols.append(
+                Symbol(
+                    name=node.name,
+                    kind="class",
+                    signature=sig,
+                    docstring=doc.split("\n")[0] if doc else None,
+                    line=node.lineno,
+                    module=module_name,
+                )
+            )
 
             # Record inheritance edges
             for base_name in bases:
                 if base_name and base_name not in ("object", "ABC"):
-                    edges.append(SymbolEdge(
-                        source=f"{module_name}.{node.name}",
-                        target=base_name,
-                        kind="inherits",
-                    ))
+                    edges.append(
+                        SymbolEdge(
+                            source=f"{module_name}.{node.name}",
+                            target=base_name,
+                            kind="inherits",
+                        )
+                    )
 
             # Extract methods
             for item in node.body:
                 if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
                     msig = _format_func_signature(item)
                     mdoc = ast.get_docstring(item)
-                    symbols.append(Symbol(
-                        name=f"{node.name}.{item.name}",
-                        kind="method",
-                        signature=msig,
-                        docstring=mdoc.split("\n")[0] if mdoc else None,
-                        line=item.lineno,
-                        module=module_name,
-                    ))
+                    symbols.append(
+                        Symbol(
+                            name=f"{node.name}.{item.name}",
+                            kind="method",
+                            signature=msig,
+                            docstring=mdoc.split("\n")[0] if mdoc else None,
+                            line=item.lineno,
+                            module=module_name,
+                        )
+                    )
 
         elif isinstance(node, ast.Import):
             for alias in node.names:
-                symbols.append(Symbol(
-                    name=alias.asname or alias.name,
-                    kind="import",
-                    signature=f"import {alias.name}",
-                    docstring=None,
-                    line=node.lineno,
-                    module=module_name,
-                ))
-                edges.append(SymbolEdge(
-                    source=module_name,
-                    target=alias.name,
-                    kind="imports",
-                ))
+                symbols.append(
+                    Symbol(
+                        name=alias.asname or alias.name,
+                        kind="import",
+                        signature=f"import {alias.name}",
+                        docstring=None,
+                        line=node.lineno,
+                        module=module_name,
+                    )
+                )
+                edges.append(
+                    SymbolEdge(
+                        source=module_name,
+                        target=alias.name,
+                        kind="imports",
+                    )
+                )
 
         elif isinstance(node, ast.ImportFrom):
             from_mod = node.module or ""
             for alias in node.names:
-                symbols.append(Symbol(
-                    name=alias.asname or alias.name,
-                    kind="import",
-                    signature=f"from {from_mod} import {alias.name}",
-                    docstring=None,
-                    line=node.lineno,
-                    module=module_name,
-                ))
+                symbols.append(
+                    Symbol(
+                        name=alias.asname or alias.name,
+                        kind="import",
+                        signature=f"from {from_mod} import {alias.name}",
+                        docstring=None,
+                        line=node.lineno,
+                        module=module_name,
+                    )
+                )
             if from_mod:
-                edges.append(SymbolEdge(
-                    source=module_name,
-                    target=from_mod,
-                    kind="imports",
-                ))
+                edges.append(
+                    SymbolEdge(
+                        source=module_name,
+                        target=from_mod,
+                        kind="imports",
+                    )
+                )
 
         elif isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id.isupper():
-                    symbols.append(Symbol(
-                        name=target.id,
-                        kind="variable",
-                        signature=f"{target.id} = ...",
-                        docstring=None,
-                        line=node.lineno,
-                        module=module_name,
-                    ))
+                    symbols.append(
+                        Symbol(
+                            name=target.id,
+                            kind="variable",
+                            signature=f"{target.id} = ...",
+                            docstring=None,
+                            line=node.lineno,
+                            module=module_name,
+                        )
+                    )
 
     return symbols, edges
 
@@ -349,8 +364,7 @@ def build_map(
             # Skip common non-source directories
             parts = filepath.relative_to(root).parts
             if any(
-                p.startswith(".")
-                or p in ("node_modules", "__pycache__", "venv", ".venv", "dist", "build")
+                p.startswith(".") or p in ("node_modules", "__pycache__", "venv", ".venv", "dist", "build")
                 for p in parts
             ):
                 continue
@@ -365,9 +379,7 @@ def build_map(
             else:
                 js_syms = extract_js_file(filepath)
                 if js_syms:
-                    graph.modules[module_name] = [
-                        _convert_js_symbol(s, module_name) for s in js_syms
-                    ]
+                    graph.modules[module_name] = [_convert_js_symbol(s, module_name) for s in js_syms]
 
     return graph
 
@@ -384,9 +396,16 @@ _LANG_EXTENSIONS: dict[str, list[str]] = {
 }
 
 # Directories to always skip during file collection
-_SKIP_DIRS = frozenset({
-    "node_modules", "__pycache__", "venv", ".venv", "dist", "build",
-})
+_SKIP_DIRS = frozenset(
+    {
+        "node_modules",
+        "__pycache__",
+        "venv",
+        ".venv",
+        "dist",
+        "build",
+    }
+)
 
 
 def _md5_file(filepath: Path) -> str:
@@ -466,13 +485,14 @@ class IncrementalIndex:
     def _save(self, data: dict[str, dict[str, Any]]) -> None:
         """Atomically persist the index via tempfile + os.replace."""
         self._state_dir.mkdir(parents=True, exist_ok=True)
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         payload = {
             "_meta": {"last_updated": now},
             "files": data,
         }
         fd, tmp_path = tempfile.mkstemp(
-            dir=str(self._state_dir), suffix=".tmp",
+            dir=str(self._state_dir),
+            suffix=".tmp",
         )
         try:
             with os.fdopen(fd, "w") as f:
@@ -508,7 +528,7 @@ class IncrementalIndex:
 
         existing = self._load()
         files = _collect_files(root, languages)
-        current_paths = {str(fp) for fp in files}
+        {str(fp) for fp in files}
 
         updated: dict[str, dict[str, Any]] = {}
         self._stale_count = 0

@@ -260,9 +260,7 @@ class ContextTracker:
             "threshold_percent": self.threshold_percent,
             "max_tokens": self.max_tokens,
             "should_checkpoint": self.should_checkpoint(),
-            "session_duration_minutes": round(
-                (datetime.now() - self._started_at).total_seconds() / 60, 1
-            ),
+            "session_duration_minutes": round((datetime.now() - self._started_at).total_seconds() / 60, 1),
         }
 
 

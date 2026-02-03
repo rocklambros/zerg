@@ -9,9 +9,7 @@ from zerg.commands.analyze import AnalysisResult, AnalyzeCommand, CheckType
 def _stub_performance_checker(cmd: AnalyzeCommand) -> None:
     """Replace the performance checker with a fast stub to avoid tool timeouts."""
     cmd.checkers["performance"].check = MagicMock(
-        return_value=AnalysisResult(
-            check_type=CheckType.PERFORMANCE, passed=True, issues=[], score=80.0
-        )
+        return_value=AnalysisResult(check_type=CheckType.PERFORMANCE, passed=True, issues=[], score=80.0)
     )
 
 

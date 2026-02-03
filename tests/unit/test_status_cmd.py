@@ -142,11 +142,7 @@ def create_mock_state_manager(
     # Setup get_tasks_by_status to return appropriate lists
     def get_tasks_by_status(status):
         status_str = status.value if hasattr(status, "value") else status
-        return [
-            tid
-            for tid, task in (tasks or {}).items()
-            if task.get("status") == status_str
-        ]
+        return [tid for tid, task in (tasks or {}).items() if task.get("status") == status_str]
 
     mock.get_tasks_by_status.side_effect = get_tasks_by_status
 
@@ -401,9 +397,7 @@ class TestStatusCommand:
             mock_watch.side_effect = KeyboardInterrupt()
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["status", "--feature", "test-feature", "--watch", "--interval", "1"]
-            )
+            result = runner.invoke(cli, ["status", "--feature", "test-feature", "--watch", "--interval", "1"])
 
             # show_watch_status should have been called
             mock_watch.assert_called_once()
@@ -1406,9 +1400,21 @@ class TestDashboardRenderer:
         """Test all event types are rendered correctly."""
         mock_state = create_mock_state_manager(
             events=[
-                {"timestamp": "2025-01-26T10:00:00", "event": "task_complete", "data": {"task_id": "L1-001", "worker_id": 0}},
-                {"timestamp": "2025-01-26T10:01:00", "event": "task_claimed", "data": {"task_id": "L1-002", "worker_id": 1}},
-                {"timestamp": "2025-01-26T10:02:00", "event": "task_failed", "data": {"task_id": "L1-003", "error": "Test error"}},
+                {
+                    "timestamp": "2025-01-26T10:00:00",
+                    "event": "task_complete",
+                    "data": {"task_id": "L1-001", "worker_id": 0},
+                },
+                {
+                    "timestamp": "2025-01-26T10:01:00",
+                    "event": "task_claimed",
+                    "data": {"task_id": "L1-002", "worker_id": 1},
+                },
+                {
+                    "timestamp": "2025-01-26T10:02:00",
+                    "event": "task_failed",
+                    "data": {"task_id": "L1-003", "error": "Test error"},
+                },
                 {"timestamp": "2025-01-26T10:03:00", "event": "level_started", "data": {"level": 2, "tasks": 5}},
                 {"timestamp": "2025-01-26T10:04:00", "event": "level_complete", "data": {"level": 1}},
                 {"timestamp": "2025-01-26T10:05:00", "event": "worker_started", "data": {"worker_id": 0}},

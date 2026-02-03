@@ -170,10 +170,13 @@ class MockOrchestrator:
         """
         self.state.running = True
         self.state.current_level = start_level
-        self._append_event("rush_started", {
-            "workers": self.worker_count,
-            "total_tasks": sum(len(t) for t in self._task_graph.values()),
-        })
+        self._append_event(
+            "rush_started",
+            {
+                "workers": self.worker_count,
+                "total_tasks": sum(len(t) for t in self._task_graph.values()),
+            },
+        )
 
     def stop(self, force: bool = False) -> None:
         """Stop orchestration.
@@ -201,10 +204,13 @@ class MockOrchestrator:
         level_exec.started_at = datetime.now()
         self.state.current_level = level
 
-        self._append_event("level_started", {
-            "level": level,
-            "tasks": len(level_exec.tasks),
-        })
+        self._append_event(
+            "level_started",
+            {
+                "level": level,
+                "tasks": len(level_exec.tasks),
+            },
+        )
 
         return level_exec.tasks
 
@@ -250,10 +256,13 @@ class MockOrchestrator:
         level_exec.merge_commit = merge_commit
         level_exec.merge_status = LevelMergeStatus.COMPLETE
 
-        self._append_event("level_complete", {
-            "level": level,
-            "merge_commit": merge_commit,
-        })
+        self._append_event(
+            "level_complete",
+            {
+                "level": level,
+                "merge_commit": merge_commit,
+            },
+        )
 
         for callback in self._level_callbacks:
             callback(level)
@@ -296,10 +305,7 @@ class MockOrchestrator:
             Status dictionary matching Orchestrator.status() format
         """
         total_tasks = sum(len(lvl.tasks) for lvl in self.state.levels.values())
-        completed_tasks = sum(
-            len(lvl.tasks) for lvl in self.state.levels.values()
-            if lvl.status == "complete"
-        )
+        completed_tasks = sum(len(lvl.tasks) for lvl in self.state.levels.values() if lvl.status == "complete")
 
         return {
             "feature": self.feature,
@@ -328,9 +334,7 @@ class MockOrchestrator:
                 }
                 for lvl, exec_ in self.state.levels.items()
             },
-            "is_complete": all(
-                lvl.status == "complete" for lvl in self.state.levels.values()
-            ),
+            "is_complete": all(lvl.status == "complete" for lvl in self.state.levels.values()),
         }
 
     def on_level_complete(self, callback: Callable[[int], None]) -> None:
@@ -356,11 +360,13 @@ class MockOrchestrator:
             event: Event type
             data: Event data
         """
-        self.state.events.append({
-            "timestamp": datetime.now().isoformat(),
-            "event": event,
-            "data": data,
-        })
+        self.state.events.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "event": event,
+                "data": data,
+            }
+        )
 
     def get_events(self, event_type: str | None = None) -> list[dict[str, Any]]:
         """Get events from log.
@@ -804,6 +810,7 @@ class MockGitOps:
 
         if self._has_conflicts:
             from zerg.exceptions import MergeConflictError
+
             raise MergeConflictError(
                 f"Merge conflict: {branch}",
                 source_branch=branch,
@@ -826,6 +833,7 @@ class MockGitOps:
         """
         if self._has_conflicts:
             from zerg.exceptions import MergeConflictError
+
             raise MergeConflictError(
                 f"Rebase conflict onto {onto}",
                 source_branch=self._current_branch,
@@ -863,11 +871,13 @@ class MockGitOps:
         result = []
         for name, commit in self._branches.items():
             if pattern is None or name.startswith(pattern.replace("*", "")):
-                result.append(MockBranchInfo(
-                    name=name,
-                    commit=commit,
-                    is_current=(name == self._current_branch),
-                ))
+                result.append(
+                    MockBranchInfo(
+                        name=name,
+                        commit=commit,
+                        is_current=(name == self._current_branch),
+                    )
+                )
         return result
 
     def list_worker_branches(self, feature: str) -> list[str]:
@@ -1106,7 +1116,7 @@ class MockFilesystem:
 
         for f in self._files:
             if f.startswith(prefix):
-                rel = f[len(prefix):]
+                rel = f[len(prefix) :]
                 if "/" in rel:
                     names.add(rel.split("/")[0])
                 else:
@@ -1114,7 +1124,7 @@ class MockFilesystem:
 
         for d in self._directories:
             if d.startswith(prefix):
-                rel = d[len(prefix):]
+                rel = d[len(prefix) :]
                 if "/" in rel:
                     names.add(rel.split("/")[0])
                 elif rel:
@@ -1306,7 +1316,7 @@ class MockSubprocess:
         """
         # Try exact matches first, then prefix matches
         for key in sorted(self._outputs.keys(), key=len, reverse=True):
-            if args[:len(key)] == list(key):
+            if args[: len(key)] == list(key):
                 return self._outputs[key]
 
         return {
@@ -1345,10 +1355,7 @@ class MockSubprocess:
             True if matching command was executed
         """
         args_list = list(args)
-        return any(
-            cmd.args[:len(args_list)] == args_list
-            for cmd in self._commands
-        )
+        return any(cmd.args[: len(args_list)] == args_list for cmd in self._commands)
 
     def call_count(self, cmd: str | None = None) -> int:
         """Get number of command executions.
@@ -1383,12 +1390,14 @@ def mock_orchestrator() -> Callable[..., MockOrchestrator]:
             orch.configure(fail_at_level=2)
             ...
     """
+
     def factory(
         feature: str = "test-feature",
         worker_count: int = 5,
         task_graph: dict[int, list[str]] | None = None,
     ) -> MockOrchestrator:
         return MockOrchestrator(feature, worker_count, task_graph)
+
     return factory
 
 
@@ -1402,8 +1411,10 @@ def mock_launcher() -> Callable[..., MockLauncher]:
             launcher.configure(fail_spawn_ids={2})
             ...
     """
+
     def factory(use_containers: bool = False) -> MockLauncher:
         return MockLauncher(use_containers)
+
     return factory
 
 
@@ -1417,8 +1428,10 @@ def mock_git_ops() -> Callable[..., MockGitOps]:
             git.configure(has_conflicts=True, conflicting_files=["src/file.py"])
             ...
     """
+
     def factory(repo_path: str | Path = ".") -> MockGitOps:
         return MockGitOps(repo_path)
+
     return factory
 
 
@@ -1432,8 +1445,10 @@ def mock_filesystem() -> Callable[..., MockFilesystem]:
             fs.write("config.yaml", "key: value")
             ...
     """
+
     def factory(base_path: Path | None = None) -> MockFilesystem:
         return MockFilesystem(base_path)
+
     return factory
 
 
@@ -1670,10 +1685,7 @@ def assert_events_contain(
     matching = [e for e in events if e.get("event") == event_type]
 
     if not matching:
-        raise AssertionError(
-            f"Event '{event_type}' not found in events: "
-            f"{[e.get('event') for e in events]}"
-        )
+        raise AssertionError(f"Event '{event_type}' not found in events: {[e.get('event') for e in events]}")
 
     if data_match:
         for event in matching:

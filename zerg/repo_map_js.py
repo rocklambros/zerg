@@ -84,13 +84,15 @@ def extract_js_symbols(source: str, filepath: str = "") -> list[JSSymbol]:
     for m in _FUNCTION_DECL.finditer(source):
         name = m.group(1)
         params = m.group(2)
-        symbols.append(JSSymbol(
-            name=name,
-            kind="function",
-            signature=f"function {name}{params}",
-            line=_line_number(m),
-            docstring=_get_preceding_comment(lines, _line_number(m) - 1),
-        ))
+        symbols.append(
+            JSSymbol(
+                name=name,
+                kind="function",
+                signature=f"function {name}{params}",
+                line=_line_number(m),
+                docstring=_get_preceding_comment(lines, _line_number(m) - 1),
+            )
+        )
 
     # Arrow function exports
     for m in _ARROW_EXPORT.finditer(source):
@@ -98,12 +100,14 @@ def extract_js_symbols(source: str, filepath: str = "") -> list[JSSymbol]:
         # Skip if already captured as a function
         if any(s.name == name and s.kind == "function" for s in symbols):
             continue
-        symbols.append(JSSymbol(
-            name=name,
-            kind="function",
-            signature=f"const {name} = (...) => ...",
-            line=_line_number(m),
-        ))
+        symbols.append(
+            JSSymbol(
+                name=name,
+                kind="function",
+                signature=f"const {name} = (...) => ...",
+                line=_line_number(m),
+            )
+        )
 
     # Classes
     for m in _CLASS_DECL.finditer(source):
@@ -112,33 +116,39 @@ def extract_js_symbols(source: str, filepath: str = "") -> list[JSSymbol]:
         sig = f"class {name}"
         if extends:
             sig += f" extends {extends}"
-        symbols.append(JSSymbol(
-            name=name,
-            kind="class",
-            signature=sig,
-            line=_line_number(m),
-            docstring=_get_preceding_comment(lines, _line_number(m) - 1),
-        ))
+        symbols.append(
+            JSSymbol(
+                name=name,
+                kind="class",
+                signature=sig,
+                line=_line_number(m),
+                docstring=_get_preceding_comment(lines, _line_number(m) - 1),
+            )
+        )
 
     # Interfaces (TS)
     for m in _INTERFACE_DECL.finditer(source):
         name = m.group(1)
-        symbols.append(JSSymbol(
-            name=name,
-            kind="class",
-            signature=f"interface {name}",
-            line=_line_number(m),
-        ))
+        symbols.append(
+            JSSymbol(
+                name=name,
+                kind="class",
+                signature=f"interface {name}",
+                line=_line_number(m),
+            )
+        )
 
     # Type aliases (TS)
     for m in _TYPE_ALIAS.finditer(source):
         name = m.group(1)
-        symbols.append(JSSymbol(
-            name=name,
-            kind="variable",
-            signature=f"type {name} = ...",
-            line=_line_number(m),
-        ))
+        symbols.append(
+            JSSymbol(
+                name=name,
+                kind="variable",
+                signature=f"type {name} = ...",
+                line=_line_number(m),
+            )
+        )
 
     # Imports
     for m in _IMPORT_STMT.finditer(source):
@@ -149,19 +159,23 @@ def extract_js_symbols(source: str, filepath: str = "") -> list[JSSymbol]:
             for item in named.split(","):
                 item = item.strip().split(" as ")[0].strip()
                 if item and item != "type":
-                    symbols.append(JSSymbol(
-                        name=item,
-                        kind="import",
-                        signature=f"import {{ {item} }} from '{module}'",
-                        line=_line_number(m),
-                    ))
+                    symbols.append(
+                        JSSymbol(
+                            name=item,
+                            kind="import",
+                            signature=f"import {{ {item} }} from '{module}'",
+                            line=_line_number(m),
+                        )
+                    )
         elif default:
-            symbols.append(JSSymbol(
-                name=default,
-                kind="import",
-                signature=f"import {default} from '{module}'",
-                line=_line_number(m),
-            ))
+            symbols.append(
+                JSSymbol(
+                    name=default,
+                    kind="import",
+                    signature=f"import {default} from '{module}'",
+                    line=_line_number(m),
+                )
+            )
 
     # Variable exports (not already captured)
     for m in _VARIABLE_EXPORT.finditer(source):
@@ -172,12 +186,14 @@ def extract_js_symbols(source: str, filepath: str = "") -> list[JSSymbol]:
         sig = f"export const {name}"
         if type_ann:
             sig += f": {type_ann.strip()}"
-        symbols.append(JSSymbol(
-            name=name,
-            kind="variable",
-            signature=sig,
-            line=_line_number(m),
-        ))
+        symbols.append(
+            JSSymbol(
+                name=name,
+                kind="variable",
+                signature=sig,
+                line=_line_number(m),
+            )
+        )
 
     return symbols
 

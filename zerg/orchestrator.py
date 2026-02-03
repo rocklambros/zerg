@@ -23,17 +23,16 @@ from zerg.backpressure import BackpressureController
 from zerg.capability_resolver import ResolvedCapabilities
 from zerg.circuit_breaker import CircuitBreaker
 from zerg.config import ZergConfig
-from zerg.context_plugin import ContextEngineeringPlugin
-from zerg.plugin_config import ContextEngineeringConfig
 from zerg.constants import (
-    GateResult,
     LOGS_TASKS_DIR,
     LOGS_WORKERS_DIR,
+    GateResult,
     PluginHookEvent,
     TaskStatus,
     WorkerStatus,
 )
 from zerg.containers import ContainerManager
+from zerg.context_plugin import ContextEngineeringPlugin
 from zerg.gates import GateRunner
 from zerg.launcher import (
     ContainerLauncher,
@@ -46,13 +45,14 @@ from zerg.launcher import (
 from zerg.launcher_configurator import LauncherConfigurator
 from zerg.level_coordinator import GatePipeline, LevelCoordinator
 from zerg.levels import LevelController
-from zerg.loops import LoopController
-from zerg.modes import BehavioralMode, ModeContext, ModeDetector
 from zerg.log_writer import StructuredLogWriter
 from zerg.logging import get_logger, setup_structured_logging
+from zerg.loops import LoopController
 from zerg.merge import MergeCoordinator, MergeFlowResult
 from zerg.metrics import MetricsCollector
+from zerg.modes import BehavioralMode, ModeContext, ModeDetector
 from zerg.parser import TaskParser
+from zerg.plugin_config import ContextEngineeringConfig
 from zerg.plugins import LifecycleEvent, PluginRegistry
 from zerg.ports import PortAllocator
 from zerg.state import StateManager
@@ -104,11 +104,9 @@ class Orchestrator:
 
         # Initialize plugin registry first (needed by other components)
         self._plugin_registry = PluginRegistry()
-        if hasattr(self.config, 'plugins') and self.config.plugins.enabled:
+        if hasattr(self.config, "plugins") and self.config.plugins.enabled:
             try:
-                self._plugin_registry.load_yaml_hooks(
-                    [h.model_dump() for h in self.config.plugins.hooks]
-                )
+                self._plugin_registry.load_yaml_hooks([h.model_dump() for h in self.config.plugins.hooks])
                 self._plugin_registry.load_entry_points()
             except Exception as e:
                 logger.warning(f"Failed to load plugins: {e}")
@@ -116,7 +114,7 @@ class Orchestrator:
         # Register context engineering plugin
         try:
             ctx_config = ContextEngineeringConfig()
-            if hasattr(self.config, 'plugins') and hasattr(self.config.plugins, 'context_engineering'):
+            if hasattr(self.config, "plugins") and hasattr(self.config.plugins, "context_engineering"):
                 ctx_config = self.config.plugins.context_engineering
             if ctx_config.enabled:
                 ctx_plugin = ContextEngineeringPlugin(ctx_config)
@@ -139,14 +137,13 @@ class Orchestrator:
         self.assigner: WorkerAssignment | None = None
         self.merger = MergeCoordinator(feature, self.config, repo_path)
         self.task_sync = TaskSyncBridge(
-            feature, self.state,
+            feature,
+            self.state,
             task_list_id=os.environ.get("CLAUDE_CODE_TASK_LIST_ID", feature),
         )
 
         # Create extracted components
-        self._launcher_config = LauncherConfigurator(
-            self.config, self.repo_path, self._plugin_registry
-        )
+        self._launcher_config = LauncherConfigurator(self.config, self.repo_path, self._plugin_registry)
         # Launcher creation stays inline so test patches on zerg.orchestrator work
         self.launcher: WorkerLauncher = self._create_launcher(mode=launcher_mode)
 
@@ -251,9 +248,7 @@ class Orchestrator:
                 convergence_threshold=loop_config.convergence_threshold,
                 plateau_threshold=loop_config.plateau_threshold,
             )
-            logger.info(
-                f"Loop controller enabled: max_iterations={self._capabilities.loop_iterations}"
-            )
+            logger.info(f"Loop controller enabled: max_iterations={self._capabilities.loop_iterations}")
 
         # Create gate pipeline if capabilities enable it
         self._gate_pipeline: GatePipeline | None = None
@@ -264,9 +259,7 @@ class Orchestrator:
                 artifacts_dir=artifacts_dir,
                 staleness_threshold_seconds=self._capabilities.staleness_threshold,
             )
-            logger.info(
-                f"Gate pipeline enabled: staleness_threshold={self._capabilities.staleness_threshold}s"
-            )
+            logger.info(f"Gate pipeline enabled: staleness_threshold={self._capabilities.staleness_threshold}s")
 
         # Create mode context from resolved capabilities
         self._mode_context: ModeContext | None = None
@@ -316,10 +309,7 @@ class Orchestrator:
             if plugin_launcher is not None:
                 logger.info(f"Using plugin launcher: {mode}")
                 return plugin_launcher
-            raise ValueError(
-                f"Unsupported launcher mode: '{mode}'. "
-                f"Valid modes: subprocess, container, auto"
-            )
+            raise ValueError(f"Unsupported launcher mode: '{mode}'. Valid modes: subprocess, container, auto")
 
         logger.info(f"Launcher mode resolved: {mode!r} → {launcher_type.value}")
 
@@ -356,16 +346,11 @@ class Orchestrator:
 
     def _check_container_health(self) -> None:
         # Snapshot statuses before health check to detect newly crashed workers
-        pre_statuses = {
-            wid: w.status for wid, w in self._workers.items()
-        }
+        pre_statuses = {wid: w.status for wid, w in self._workers.items()}
         self._launcher_config._check_container_health(self._workers, self.launcher)
         # Persist state for workers that were marked CRASHED by health check
         for wid, worker in self._workers.items():
-            if (
-                worker.status == WorkerStatus.CRASHED
-                and pre_statuses.get(wid) != WorkerStatus.CRASHED
-            ):
+            if worker.status == WorkerStatus.CRASHED and pre_statuses.get(wid) != WorkerStatus.CRASHED:
                 self.state.set_worker_state(worker)
 
     def _auto_detect_launcher_type(self) -> LauncherType:
@@ -388,18 +373,19 @@ class Orchestrator:
         This is the task timeout watchdog integration.
         """
         # Use default timeout from config if available, otherwise use reasonable default
-        timeout_seconds = getattr(
-            self.config.workers, 'task_stale_timeout_seconds', 600
-        )
+        timeout_seconds = getattr(self.config.workers, "task_stale_timeout_seconds", 600)
         try:
             # check_stale_tasks is added by RES-L2-002
             stale_tasks = self._retry_manager.check_stale_tasks(timeout_seconds)
             if stale_tasks:
                 logger.warning(f"Detected {len(stale_tasks)} stale tasks: {stale_tasks}")
-                self.state.append_event("stale_tasks_detected", {
-                    "task_ids": stale_tasks,
-                    "timeout_seconds": timeout_seconds,
-                })
+                self.state.append_event(
+                    "stale_tasks_detected",
+                    {
+                        "task_ids": stale_tasks,
+                        "timeout_seconds": timeout_seconds,
+                    },
+                )
         except AttributeError:
             # check_stale_tasks not yet implemented (dependency not merged)
             pass
@@ -425,12 +411,15 @@ class Orchestrator:
         )
 
         # Record failure reason for analytics
-        self.state.append_event("task_crash_reassign", {
-            "task_id": task_id,
-            "worker_id": worker_id,
-            "failure_reason": "worker_crash",
-            "retry_count_incremented": False,
-        })
+        self.state.append_event(
+            "task_crash_reassign",
+            {
+                "task_id": task_id,
+                "worker_id": worker_id,
+                "failure_reason": "worker_crash",
+                "retry_count_incremented": False,
+            },
+        )
 
         # Reset task to pending for reassignment (no retry count change)
         self.levels.reset_task(task_id)
@@ -449,13 +438,11 @@ class Orchestrator:
             remaining_task_count: Number of tasks still needing completion
         """
         # Get max respawn attempts from config (default 5 if not set)
-        max_respawn = getattr(self.config.workers, 'max_respawn_attempts', 5)
-        auto_respawn_enabled = getattr(self.config.workers, 'auto_respawn', True)
+        max_respawn = getattr(self.config.workers, "max_respawn_attempts", 5)
+        auto_respawn_enabled = getattr(self.config.workers, "auto_respawn", True)
 
         if not auto_respawn_enabled:
-            logger.warning(
-                f"Auto-respawn disabled, {remaining_task_count} tasks remain at level {level}"
-            )
+            logger.warning(f"Auto-respawn disabled, {remaining_task_count} tasks remain at level {level}")
             return
 
         # Determine how many workers to spawn (min of remaining tasks and target count)
@@ -466,27 +453,27 @@ class Orchestrator:
             respawn_count = self._respawn_counts.get(worker_id, 0)
 
             if respawn_count >= max_respawn:
-                logger.warning(
-                    f"Worker {worker_id} exceeded max respawns ({max_respawn}), skipping"
-                )
+                logger.warning(f"Worker {worker_id} exceeded max respawns ({max_respawn}), skipping")
                 continue
 
             try:
                 self._respawn_counts[worker_id] = respawn_count + 1
                 logger.info(
-                    f"Auto-respawning worker {worker_id} "
-                    f"(respawn {respawn_count + 1}/{max_respawn}) for level {level}"
+                    f"Auto-respawning worker {worker_id} (respawn {respawn_count + 1}/{max_respawn}) for level {level}"
                 )
                 self._spawn_worker(worker_id)
                 spawned += 1
 
                 # Record respawn event
-                self.state.append_event("worker_auto_respawn", {
-                    "worker_id": worker_id,
-                    "level": level,
-                    "respawn_count": respawn_count + 1,
-                    "max_respawn": max_respawn,
-                })
+                self.state.append_event(
+                    "worker_auto_respawn",
+                    {
+                        "worker_id": worker_id,
+                        "level": level,
+                        "respawn_count": respawn_count + 1,
+                        "max_respawn": max_respawn,
+                    },
+                )
             except Exception as e:
                 logger.error(f"Failed to auto-respawn worker {worker_id}: {e}")
 
@@ -495,11 +482,14 @@ class Orchestrator:
                 f"Could not spawn any workers for {remaining_task_count} remaining tasks - "
                 f"all workers have exceeded max respawn limit ({max_respawn})"
             )
-            self.state.append_event("auto_respawn_exhausted", {
-                "level": level,
-                "remaining_tasks": remaining_task_count,
-                "max_respawn": max_respawn,
-            })
+            self.state.append_event(
+                "auto_respawn_exhausted",
+                {
+                    "level": level,
+                    "remaining_tasks": remaining_task_count,
+                    "max_respawn": max_respawn,
+                },
+            )
         else:
             logger.info(f"Auto-respawned {spawned} workers for level {level}")
 
@@ -576,9 +566,7 @@ class Orchestrator:
             verification_level = self._mode_context.mode.verification_level
 
         if verification_level == "none":
-            logger.info(
-                f"Skipping gates for level {level} (verification_level=none)"
-            )
+            logger.info(f"Skipping gates for level {level} (verification_level=none)")
             return
 
         required_only = verification_level == "minimal"
@@ -592,13 +580,12 @@ class Orchestrator:
                     if required_only:
                         gates_to_run = [g for g in gates_to_run if g.required]
                     gate_results = self._gate_pipeline.run_gates_for_level(
-                        level=level, gates=gates_to_run,
+                        level=level,
+                        gates=gates_to_run,
                     )
                     if not gate_results:
                         return 1.0
-                    passed = sum(
-                        1 for r in gate_results if r.result == GateResult.PASS
-                    )
+                    passed = sum(1 for r in gate_results if r.result == GateResult.PASS)
                     return passed / len(gate_results)
                 else:
                     # Fallback to direct GateRunner
@@ -609,14 +596,10 @@ class Orchestrator:
                     )
                     if not gate_results:
                         return 1.0
-                    passed = sum(
-                        1 for r in gate_results if r.result == GateResult.PASS
-                    )
+                    passed = sum(1 for r in gate_results if r.result == GateResult.PASS)
                     return passed / len(gate_results)
             except Exception as e:
-                logger.warning(
-                    f"Gate scoring failed in loop iteration {iteration}: {e}"
-                )
+                logger.warning(f"Gate scoring failed in loop iteration {iteration}: {e}")
                 return 0.0
 
         # Get initial score
@@ -625,23 +608,23 @@ class Orchestrator:
             logger.info(f"Level {level} already at perfect score, skipping loop")
             return
 
-        logger.info(
-            f"Running improvement loop for level {level} "
-            f"(initial score: {initial_score:.2f})"
-        )
+        logger.info(f"Running improvement loop for level {level} (initial score: {initial_score:.2f})")
         summary = self._loop_controller.run(score_level, initial_score=initial_score)
         logger.info(
             f"Loop completed: status={summary.status.value}, "
             f"best_score={summary.best_score:.2f}, "
             f"iterations={len(summary.iterations)}"
         )
-        self.state.append_event("loop_completed", {
-            "level": level,
-            "status": summary.status.value,
-            "best_score": summary.best_score,
-            "iterations": len(summary.iterations),
-            "improvement": summary.improvement,
-        })
+        self.state.append_event(
+            "loop_completed",
+            {
+                "level": level,
+                "status": summary.status.value,
+                "best_score": summary.best_score,
+                "iterations": len(summary.iterations),
+                "improvement": summary.improvement,
+            },
+        )
 
     def _merge_level(self, level: int) -> MergeFlowResult:
         return self._level_coord.merge_level(level)
@@ -700,10 +683,13 @@ class Orchestrator:
         # Initialize state
         self.state.load()
         self.state.save()  # Persist initial state to disk immediately
-        self.state.append_event("rush_started", {
-            "workers": worker_count,
-            "total_tasks": len(tasks),
-        })
+        self.state.append_event(
+            "rush_started",
+            {
+                "workers": worker_count,
+                "total_tasks": len(tasks),
+            },
+        )
 
         if dry_run:
             logger.info("Dry run - not spawning workers")
@@ -715,21 +701,20 @@ class Orchestrator:
         self._worker_manager.running = True
         spawned = self._spawn_workers(worker_count)
         if spawned == 0:
-            self.state.append_event("rush_failed", {
-                "reason": "No workers spawned",
-                "requested": worker_count,
-                "mode": self._launcher_mode,
-            })
+            self.state.append_event(
+                "rush_failed",
+                {
+                    "reason": "No workers spawned",
+                    "requested": worker_count,
+                    "mode": self._launcher_mode,
+                },
+            )
             self.state.save()
             raise RuntimeError(
-                f"All {worker_count} workers failed to spawn"
-                f" (mode={self._launcher_mode}). Cannot proceed."
+                f"All {worker_count} workers failed to spawn (mode={self._launcher_mode}). Cannot proceed."
             )
         if spawned < worker_count:
-            logger.warning(
-                f"Only {spawned}/{worker_count} workers spawned."
-                " Continuing with reduced capacity."
-            )
+            logger.warning(f"Only {spawned}/{worker_count} workers spawned. Continuing with reduced capacity.")
 
         # Wait for workers to initialize before starting level
         self._wait_for_initialization(timeout=600)
@@ -746,10 +731,7 @@ class Orchestrator:
                     for _tid, task in self.levels._tasks.items():
                         if task.get("level") == prev:
                             task["status"] = TaskStatus.COMPLETE.value
-                    logger.info(
-                        f"Pre-marked level {prev} as complete "
-                        f"(resuming from {effective_start})"
-                    )
+                    logger.info(f"Pre-marked level {prev} as complete (resuming from {effective_start})")
 
         self._start_level(effective_start)
         self._main_loop()
@@ -838,11 +820,7 @@ class Orchestrator:
 
                 # Check level completion (guard: only handle each level once)
                 current = self.levels.current_level
-                if (
-                    current > 0
-                    and current not in _handled_levels
-                    and self.levels.is_level_resolved(current)
-                ):
+                if current > 0 and current not in _handled_levels and self.levels.is_level_resolved(current):
                     _handled_levels.add(current)
                     merge_ok = self._on_level_complete_handler(current)
 
@@ -864,8 +842,7 @@ class Orchestrator:
 
                 # Check if all workers are gone but tasks remain (FR-6: Auto-respawn)
                 active_workers = [
-                    w for w in self._workers.values()
-                    if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
+                    w for w in self._workers.values() if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
                 ]
                 if not active_workers and self._running:
                     remaining = self._get_remaining_tasks_for_level(current)
@@ -887,10 +864,12 @@ class Orchestrator:
 
         # Emit rush finished event
         with contextlib.suppress(Exception):
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.RUSH_FINISHED.value,
-                data={"feature": self.feature},
-            ))
+            self._plugin_registry.emit_event(
+                LifecycleEvent(
+                    event_type=PluginHookEvent.RUSH_FINISHED.value,
+                    data={"feature": self.feature},
+                )
+            )
 
         logger.info("Main loop ended")
 
@@ -1029,10 +1008,13 @@ class Orchestrator:
 
         # Initialize state (async)
         await self.state.load_async()
-        self.state.append_event("rush_started", {
-            "workers": worker_count,
-            "total_tasks": len(tasks),
-        })
+        self.state.append_event(
+            "rush_started",
+            {
+                "workers": worker_count,
+                "total_tasks": len(tasks),
+            },
+        )
 
         if dry_run:
             logger.info("Dry run - not spawning workers")
@@ -1044,21 +1026,20 @@ class Orchestrator:
         self._worker_manager.running = True
         spawned = self._spawn_workers(worker_count)
         if spawned == 0:
-            self.state.append_event("rush_failed", {
-                "reason": "No workers spawned",
-                "requested": worker_count,
-                "mode": self._launcher_mode,
-            })
+            self.state.append_event(
+                "rush_failed",
+                {
+                    "reason": "No workers spawned",
+                    "requested": worker_count,
+                    "mode": self._launcher_mode,
+                },
+            )
             await self.state.save_async()
             raise RuntimeError(
-                f"All {worker_count} workers failed to spawn"
-                f" (mode={self._launcher_mode}). Cannot proceed."
+                f"All {worker_count} workers failed to spawn (mode={self._launcher_mode}). Cannot proceed."
             )
         if spawned < worker_count:
-            logger.warning(
-                f"Only {spawned}/{worker_count} workers spawned."
-                " Continuing with reduced capacity."
-            )
+            logger.warning(f"Only {spawned}/{worker_count} workers spawned. Continuing with reduced capacity.")
 
         # Wait for workers to initialize before starting level
         self._wait_for_initialization(timeout=600)
@@ -1075,10 +1056,7 @@ class Orchestrator:
                     for _tid, task in self.levels._tasks.items():
                         if task.get("level") == prev:
                             task["status"] = TaskStatus.COMPLETE.value
-                    logger.info(
-                        f"Pre-marked level {prev} as complete "
-                        f"(resuming from {effective_start})"
-                    )
+                    logger.info(f"Pre-marked level {prev} as complete (resuming from {effective_start})")
 
         self._start_level(effective_start)
         await self._main_loop_async()
@@ -1098,12 +1076,14 @@ class Orchestrator:
             start_level: Starting level (default: 1)
             dry_run: If True, don't actually spawn workers
         """
-        asyncio.run(self.start_async(
-            task_graph_path,
-            worker_count=worker_count,
-            start_level=start_level,
-            dry_run=dry_run,
-        ))
+        asyncio.run(
+            self.start_async(
+                task_graph_path,
+                worker_count=worker_count,
+                start_level=start_level,
+                dry_run=dry_run,
+            )
+        )
 
     async def stop_async(self, force: bool = False) -> None:
         """Async stop orchestration.
@@ -1149,11 +1129,7 @@ class Orchestrator:
 
                 # Check level completion (guard: only handle each level once)
                 current = self.levels.current_level
-                if (
-                    current > 0
-                    and current not in _handled_levels
-                    and self.levels.is_level_resolved(current)
-                ):
+                if current > 0 and current not in _handled_levels and self.levels.is_level_resolved(current):
                     _handled_levels.add(current)
                     merge_ok = self._on_level_complete_handler(current)
 
@@ -1175,8 +1151,7 @@ class Orchestrator:
 
                 # Check if all workers are gone but tasks remain (FR-6: Auto-respawn)
                 active_workers = [
-                    w for w in self._workers.values()
-                    if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
+                    w for w in self._workers.values() if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
                 ]
                 if not active_workers and self._running:
                     remaining = self._get_remaining_tasks_for_level(current)
@@ -1198,10 +1173,12 @@ class Orchestrator:
 
         # Emit rush finished event
         with contextlib.suppress(Exception):
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.RUSH_FINISHED.value,
-                data={"feature": self.feature},
-            ))
+            self._plugin_registry.emit_event(
+                LifecycleEvent(
+                    event_type=PluginHookEvent.RUSH_FINISHED.value,
+                    data={"feature": self.feature},
+                )
+            )
 
         logger.info("Async main loop ended")
 
@@ -1314,9 +1291,7 @@ class Orchestrator:
         max_retries: int | None = None,
     ) -> bool:
         """Verify a task with retry logic."""
-        return self._retry_manager.verify_with_retry(
-            task_id, command, timeout, max_retries
-        )
+        return self._retry_manager.verify_with_retry(task_id, command, timeout, max_retries)
 
     def generate_task_contexts(self, task_graph: dict) -> dict:
         """Populate task['context'] for tasks missing it.

@@ -9,7 +9,6 @@ import pytest
 from click.testing import CliRunner
 
 from zerg.commands.logs import logs
-from zerg.log_aggregator import LogAggregator
 
 
 @pytest.fixture()
@@ -22,29 +21,69 @@ def log_dir(tmp_path: Path) -> Path:
 
     # Worker 0 logs
     with open(workers_dir / "worker-0.jsonl", "w") as f:
-        f.write(json.dumps({
-            "ts": "2026-01-01T10:00:00Z", "level": "info", "worker_id": 0,
-            "message": "Task T1.1 started", "task_id": "T1.1", "phase": "execute",
-            "event": "task_started", "feature": "test",
-        }) + "\n")
-        f.write(json.dumps({
-            "ts": "2026-01-01T10:00:05Z", "level": "info", "worker_id": 0,
-            "message": "Task T1.1 completed", "task_id": "T1.1", "phase": "execute",
-            "event": "task_completed", "feature": "test",
-        }) + "\n")
+        f.write(
+            json.dumps(
+                {
+                    "ts": "2026-01-01T10:00:00Z",
+                    "level": "info",
+                    "worker_id": 0,
+                    "message": "Task T1.1 started",
+                    "task_id": "T1.1",
+                    "phase": "execute",
+                    "event": "task_started",
+                    "feature": "test",
+                }
+            )
+            + "\n"
+        )
+        f.write(
+            json.dumps(
+                {
+                    "ts": "2026-01-01T10:00:05Z",
+                    "level": "info",
+                    "worker_id": 0,
+                    "message": "Task T1.1 completed",
+                    "task_id": "T1.1",
+                    "phase": "execute",
+                    "event": "task_completed",
+                    "feature": "test",
+                }
+            )
+            + "\n"
+        )
 
     # Worker 1 logs
     with open(workers_dir / "worker-1.jsonl", "w") as f:
-        f.write(json.dumps({
-            "ts": "2026-01-01T10:00:01Z", "level": "info", "worker_id": 1,
-            "message": "Task T1.2 started", "task_id": "T1.2", "phase": "execute",
-            "event": "task_started", "feature": "test",
-        }) + "\n")
-        f.write(json.dumps({
-            "ts": "2026-01-01T10:00:10Z", "level": "error", "worker_id": 1,
-            "message": "Verification failed for T1.2", "task_id": "T1.2",
-            "phase": "verify", "event": "verification_failed", "feature": "test",
-        }) + "\n")
+        f.write(
+            json.dumps(
+                {
+                    "ts": "2026-01-01T10:00:01Z",
+                    "level": "info",
+                    "worker_id": 1,
+                    "message": "Task T1.2 started",
+                    "task_id": "T1.2",
+                    "phase": "execute",
+                    "event": "task_started",
+                    "feature": "test",
+                }
+            )
+            + "\n"
+        )
+        f.write(
+            json.dumps(
+                {
+                    "ts": "2026-01-01T10:00:10Z",
+                    "level": "error",
+                    "worker_id": 1,
+                    "message": "Verification failed for T1.2",
+                    "task_id": "T1.2",
+                    "phase": "verify",
+                    "event": "verification_failed",
+                    "feature": "test",
+                }
+            )
+            + "\n"
+        )
 
     # Task artifacts
     t1_dir = tasks_dir / "T1.1"
@@ -65,16 +104,22 @@ class TestAggregateMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--aggregate", "--json",
-                    "--tail", "100",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--aggregate",
+                        "--json",
+                        "--tail",
+                        "100",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().split("\n") if l.strip()]
-        entries = [json.loads(l) for l in lines]
+        lines = [ln for ln in result.output.strip().split("\n") if ln.strip()]
+        entries = [json.loads(ln) for ln in lines]
 
         assert len(entries) == 4
         # Should be sorted by timestamp
@@ -88,15 +133,21 @@ class TestAggregateMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--task", "T1.1", "--json",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--task",
+                        "T1.1",
+                        "--json",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().split("\n") if l.strip()]
-        entries = [json.loads(l) for l in lines]
+        lines = [ln for ln in result.output.strip().split("\n") if ln.strip()]
+        entries = [json.loads(ln) for ln in lines]
 
         assert len(entries) == 2
         assert all(e.get("task_id") == "T1.1" for e in entries)
@@ -108,15 +159,21 @@ class TestAggregateMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--phase", "verify", "--json",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--phase",
+                        "verify",
+                        "--json",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().split("\n") if l.strip()]
-        entries = [json.loads(l) for l in lines]
+        lines = [ln for ln in result.output.strip().split("\n") if ln.strip()]
+        entries = [json.loads(ln) for ln in lines]
 
         assert len(entries) == 1
         assert entries[0]["phase"] == "verify"
@@ -128,15 +185,21 @@ class TestAggregateMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--event", "task_started", "--json",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--event",
+                        "task_started",
+                        "--json",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().split("\n") if l.strip()]
-        entries = [json.loads(l) for l in lines]
+        lines = [ln for ln in result.output.strip().split("\n") if ln.strip()]
+        entries = [json.loads(ln) for ln in lines]
 
         assert all(e.get("event") == "task_started" for e in entries)
         assert len(entries) == 2
@@ -148,17 +211,23 @@ class TestAggregateMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--since", "2026-01-01T10:00:02Z",
-                    "--until", "2026-01-01T10:00:06Z",
-                    "--json",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--since",
+                        "2026-01-01T10:00:02Z",
+                        "--until",
+                        "2026-01-01T10:00:06Z",
+                        "--json",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().split("\n") if l.strip()]
-        entries = [json.loads(l) for l in lines]
+        lines = [ln for ln in result.output.strip().split("\n") if ln.strip()]
+        entries = [json.loads(ln) for ln in lines]
 
         assert len(entries) == 1
         assert entries[0]["ts"] == "2026-01-01T10:00:05Z"
@@ -170,15 +239,21 @@ class TestAggregateMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--search", "Verification", "--json",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--search",
+                        "Verification",
+                        "--json",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().split("\n") if l.strip()]
-        entries = [json.loads(l) for l in lines]
+        lines = [ln for ln in result.output.strip().split("\n") if ln.strip()]
+        entries = [json.loads(ln) for ln in lines]
 
         assert len(entries) == 1
         assert "Verification" in entries[0]["message"]
@@ -194,9 +269,14 @@ class TestArtifactsMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--artifacts", "T1.1",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--artifacts",
+                        "T1.1",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 
@@ -212,9 +292,14 @@ class TestArtifactsMode:
         try:
             os.chdir(log_dir)
             with patch("zerg.commands.logs.detect_feature", return_value="test"):
-                result = runner.invoke(logs, [
-                    "--artifacts", "NONEXISTENT",
-                ], catch_exceptions=False)
+                result = runner.invoke(
+                    logs,
+                    [
+                        "--artifacts",
+                        "NONEXISTENT",
+                    ],
+                    catch_exceptions=False,
+                )
         finally:
             os.chdir(orig_cwd)
 

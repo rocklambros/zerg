@@ -12,7 +12,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -26,11 +26,9 @@ from zerg.launcher import (
     SpawnResult,
     SubprocessLauncher,
     WorkerHandle,
-    WorkerLauncher,
     get_plugin_launcher,
     validate_env_vars,
 )
-
 
 # =============================================================================
 # validate_env_vars Tests
@@ -329,9 +327,7 @@ class TestSubprocessLauncherSpawn:
         assert env["ZERG_FEATURE"] == "test-feature"
 
     @patch("subprocess.Popen")
-    def test_spawn_with_config_env_vars(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_with_config_env_vars(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test spawn applies config env vars."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -351,9 +347,7 @@ class TestSubprocessLauncherSpawn:
         assert env["ZERG_DEBUG"] == "true"
 
     @patch("subprocess.Popen")
-    def test_spawn_with_additional_env(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_with_additional_env(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test spawn applies additional env vars."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -394,9 +388,7 @@ class TestSubprocessLauncherSpawn:
         assert log_dir.exists()
 
     @patch("subprocess.Popen")
-    def test_spawn_invalid_worker_id(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_invalid_worker_id(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test spawn with invalid worker ID."""
         log_dir = tmp_path / "logs"
         config = LauncherConfig(log_dir=log_dir)
@@ -429,9 +421,7 @@ class TestSubprocessLauncherSpawn:
         assert "Failed to spawn" in result.error
 
     @patch("subprocess.Popen")
-    def test_spawn_uses_working_dir(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_uses_working_dir(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test spawn uses config working_dir."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -463,9 +453,7 @@ class TestSubprocessLauncherMonitor:
         assert status == WorkerStatus.STOPPED
 
     @patch("subprocess.Popen")
-    def test_monitor_running_worker(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_monitor_running_worker(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test monitoring running worker."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -484,9 +472,7 @@ class TestSubprocessLauncherMonitor:
         assert status == WorkerStatus.RUNNING
 
     @patch("subprocess.Popen")
-    def test_monitor_exited_success(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_monitor_exited_success(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test monitoring worker that exited with code 0."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -505,9 +491,7 @@ class TestSubprocessLauncherMonitor:
         assert status == WorkerStatus.STOPPED
 
     @patch("subprocess.Popen")
-    def test_monitor_checkpoint_exit(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_monitor_checkpoint_exit(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test monitoring worker that exited with checkpoint code (2)."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -617,9 +601,7 @@ class TestSubprocessLauncherTerminate:
         mock_process.kill.assert_called_once()
 
     @patch("subprocess.Popen")
-    def test_terminate_timeout_then_kill(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_terminate_timeout_then_kill(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test termination with timeout triggers kill."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -705,9 +687,7 @@ class TestSubprocessLauncherWaitForReady:
 
     @patch("subprocess.Popen")
     @patch("time.sleep")
-    def test_wait_for_ready_becomes_running(
-        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_wait_for_ready_becomes_running(self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test wait_for_ready returns True when worker becomes running."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -729,9 +709,7 @@ class TestSubprocessLauncherWaitForReady:
 
     @patch("subprocess.Popen")
     @patch("time.sleep")
-    def test_wait_for_ready_crashes(
-        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_wait_for_ready_crashes(self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test wait_for_ready returns False when worker crashes."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -771,9 +749,9 @@ class TestSubprocessLauncherWaitForReady:
         launcher._processes[0] = mock_process
 
         # Override monitor to always return BLOCKED
-        original_monitor = launcher.monitor
         def fake_monitor(worker_id: int) -> WorkerStatus:
             return WorkerStatus.BLOCKED
+
         launcher.monitor = fake_monitor  # type: ignore[method-assign]
 
         # Use a very short timeout
@@ -788,9 +766,7 @@ class TestSubprocessLauncherWaitAll:
 
     @patch("subprocess.Popen")
     @patch("time.sleep")
-    def test_wait_all_all_stopped(
-        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_wait_all_all_stopped(self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test wait_all returns when all workers stopped."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -1014,9 +990,7 @@ class TestContainerLauncherSpawn:
 
     @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_start_container")
-    def test_spawn_container_start_fails(
-        self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_container_start_fails(self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn failure when container start fails."""
         mock_start.return_value = None
         mock_run.return_value = MagicMock(returncode=0)
@@ -1056,9 +1030,7 @@ class TestContainerLauncherSpawn:
 
     @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_start_container")
-    def test_spawn_invalid_worker_id(
-        self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_invalid_worker_id(self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn with invalid worker ID."""
         mock_run.return_value = MagicMock(returncode=0)
         launcher = ContainerLauncher()
@@ -1168,9 +1140,7 @@ class TestContainerLauncherSpawn:
 
     @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_start_container")
-    def test_spawn_exception_handling(
-        self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_exception_handling(self, mock_start: MagicMock, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn handles exceptions."""
         mock_start.side_effect = Exception("Docker error")
         mock_run.return_value = MagicMock(returncode=0)
@@ -1191,13 +1161,9 @@ class TestContainerLauncherStartContainer:
     """Tests for ContainerLauncher._start_container method."""
 
     @patch("subprocess.run")
-    def test_start_container_success(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_success(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test successful container start."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="container-id-abc123\n", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="container-id-abc123\n", stderr="")
 
         launcher = ContainerLauncher()
         result = launcher._start_container(
@@ -1210,13 +1176,9 @@ class TestContainerLauncherStartContainer:
         mock_run.assert_called_once()
 
     @patch("subprocess.run")
-    def test_start_container_failure(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_failure(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test container start failure."""
-        mock_run.return_value = MagicMock(
-            returncode=1, stdout="", stderr="Error starting container"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Error starting container")
 
         launcher = ContainerLauncher()
         result = launcher._start_container(
@@ -1228,9 +1190,7 @@ class TestContainerLauncherStartContainer:
         assert result is None
 
     @patch("subprocess.run")
-    def test_start_container_timeout(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_timeout(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test container start timeout."""
         mock_run.side_effect = subprocess.TimeoutExpired("docker", 60)
 
@@ -1244,9 +1204,7 @@ class TestContainerLauncherStartContainer:
         assert result is None
 
     @patch("subprocess.run")
-    def test_start_container_exception(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_exception(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test container start exception."""
         mock_run.side_effect = Exception("Docker error")
 
@@ -1265,9 +1223,7 @@ class TestContainerLauncherWaitReady:
 
     @patch("subprocess.run")
     @patch("time.sleep")
-    def test_wait_ready_success(
-        self, mock_sleep: MagicMock, mock_run: MagicMock
-    ) -> None:
+    def test_wait_ready_success(self, mock_sleep: MagicMock, mock_run: MagicMock) -> None:
         """Test wait_ready returns True when container running."""
         mock_run.return_value = MagicMock(returncode=0, stdout="true\n", stderr="")
 
@@ -1279,9 +1235,7 @@ class TestContainerLauncherWaitReady:
     @patch("subprocess.run")
     @patch("time.time")
     @patch("time.sleep")
-    def test_wait_ready_timeout(
-        self, mock_sleep: MagicMock, mock_time: MagicMock, mock_run: MagicMock
-    ) -> None:
+    def test_wait_ready_timeout(self, mock_sleep: MagicMock, mock_time: MagicMock, mock_run: MagicMock) -> None:
         """Test wait_ready returns False on timeout."""
         mock_run.return_value = MagicMock(returncode=0, stdout="false\n", stderr="")
         mock_time.side_effect = [0, 0, 35]  # Exceeds timeout
@@ -1441,9 +1395,7 @@ class TestContainerLauncherMonitor:
         mock_run.side_effect = Exception("Docker error")
 
         launcher = ContainerLauncher()
-        handle = WorkerHandle(
-            worker_id=0, container_id="container-abc", status=WorkerStatus.RUNNING
-        )
+        handle = WorkerHandle(worker_id=0, container_id="container-abc", status=WorkerStatus.RUNNING)
         launcher._workers[0] = handle
         launcher._container_ids[0] = "container-abc"
 
@@ -1500,9 +1452,7 @@ class TestContainerLauncherTerminate:
     @patch("subprocess.run")
     def test_terminate_failure(self, mock_run: MagicMock) -> None:
         """Test terminate failure."""
-        mock_run.return_value = MagicMock(
-            returncode=1, stdout="", stderr="Container not found"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Container not found")
 
         launcher = ContainerLauncher()
         handle = WorkerHandle(worker_id=0, container_id="container-abc")
@@ -1567,9 +1517,7 @@ class TestContainerLauncherGetOutput:
     @patch("subprocess.run")
     def test_get_output_success(self, mock_run: MagicMock) -> None:
         """Test getting container output."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="line1\nline2\n", stderr="error line\n"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="line1\nline2\n", stderr="error line\n")
 
         launcher = ContainerLauncher()
         launcher._container_ids[0] = "container-abc"
@@ -1696,16 +1644,14 @@ class TestLauncherEdgeCases:
     """Edge case tests for launcher components."""
 
     @patch("subprocess.Popen")
-    def test_spawn_stores_worker_correctly(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_stores_worker_correctly(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test spawn correctly stores worker references."""
         mock_process = MagicMock()
         mock_process.pid = 12345
         mock_popen.return_value = mock_process
 
         launcher = SubprocessLauncher()
-        result = launcher.spawn(
+        launcher.spawn(
             worker_id=0,
             feature="test",
             worktree_path=tmp_path,
@@ -1717,9 +1663,7 @@ class TestLauncherEdgeCases:
         assert 0 in launcher._output_buffers
 
     @patch("subprocess.Popen")
-    def test_multiple_workers_tracked_independently(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_multiple_workers_tracked_independently(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Test multiple workers are tracked independently."""
         mock_process = MagicMock()
         mock_process.pid = 12345
@@ -1890,9 +1834,7 @@ class TestSpawnWithRetry:
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn_with_retry fails after exhausting all attempts."""
-        mock_spawn.return_value = SpawnResult(
-            success=False, worker_id=0, error="Persistent failure"
-        )
+        mock_spawn.return_value = SpawnResult(success=False, worker_id=0, error="Persistent failure")
 
         launcher = SubprocessLauncher()
         result = launcher.spawn_with_retry(
@@ -1915,9 +1857,7 @@ class TestSpawnWithRetry:
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn_with_retry stops at max_attempts."""
-        mock_spawn.return_value = SpawnResult(
-            success=False, worker_id=0, error="Failure"
-        )
+        mock_spawn.return_value = SpawnResult(success=False, worker_id=0, error="Failure")
 
         launcher = SubprocessLauncher()
         result = launcher.spawn_with_retry(
@@ -1937,9 +1877,7 @@ class TestSpawnWithRetry:
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn_with_retry with max_attempts=1 does not retry."""
-        mock_spawn.return_value = SpawnResult(
-            success=False, worker_id=0, error="Immediate failure"
-        )
+        mock_spawn.return_value = SpawnResult(success=False, worker_id=0, error="Immediate failure")
 
         launcher = SubprocessLauncher()
         result = launcher.spawn_with_retry(
@@ -1960,9 +1898,7 @@ class TestSpawnWithRetry:
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
         """Test spawn_with_retry uses exponential backoff."""
-        mock_spawn.return_value = SpawnResult(
-            success=False, worker_id=0, error="Failure"
-        )
+        mock_spawn.return_value = SpawnResult(success=False, worker_id=0, error="Failure")
 
         launcher = SubprocessLauncher()
         launcher.spawn_with_retry(
@@ -2081,9 +2017,7 @@ class TestSpawnWithRetryAsync:
         self, mock_sleep: MagicMock, mock_spawn_async: MagicMock, tmp_path: Path
     ) -> None:
         """Test async spawn_with_retry fails after all attempts exhausted."""
-        mock_spawn_async.return_value = SpawnResult(
-            success=False, worker_id=0, error="Persistent async failure"
-        )
+        mock_spawn_async.return_value = SpawnResult(success=False, worker_id=0, error="Persistent async failure")
         mock_sleep.return_value = None
 
         launcher = SubprocessLauncher()

@@ -53,8 +53,10 @@ class TestGetAvailable:
                 return f"/usr/bin/{cmd}"
             return None
 
-        with patch("zerg.performance.tool_registry.shutil.which", side_effect=mock_which), \
-             patch("zerg.performance.tool_registry.subprocess.run") as mock_run:
+        with (
+            patch("zerg.performance.tool_registry.shutil.which", side_effect=mock_which),
+            patch("zerg.performance.tool_registry.subprocess.run") as mock_run,
+        ):
             mock_run.return_value = MagicMock(stdout="1.0.0\n", stderr="")
             available = registry.get_available()
 

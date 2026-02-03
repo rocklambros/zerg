@@ -40,8 +40,7 @@ _TYPE_LABEL_MAP: dict[CommitType, str] = {
 
 # Pattern to detect conventional commit type from message
 _CONVENTIONAL_RE = re.compile(
-    r"^(?P<type>feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)"
-    r"(?:\([^)]*\))?:\s*(?P<summary>.+)",
+    r"^(?P<type>feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)" r"(?:\([^)]*\))?:\s*(?P<summary>.+)",
     re.IGNORECASE,
 )
 
@@ -188,11 +187,7 @@ class ContextAssembler:
                 continue
 
             sha, message, author, date = parts
-            files = tuple(
-                line.strip()
-                for line in lines[1:]
-                if line.strip()
-            )
+            files = tuple(line.strip() for line in lines[1:] if line.strip())
             commit_type = _parse_commit_type(message)
 
             commits.append(
@@ -221,9 +216,13 @@ class ContextAssembler:
         try:
             result = subprocess.run(
                 [
-                    "gh", "issue", "list",
-                    "--json", "number,title,state",
-                    "--limit", "20",
+                    "gh",
+                    "issue",
+                    "list",
+                    "--json",
+                    "number,title,state",
+                    "--limit",
+                    "20",
                 ],
                 capture_output=True,
                 text=True,
@@ -413,9 +412,7 @@ class PRGenerator:
 
         return "\n".join(sections)
 
-    def _generate_labels(
-        self, commits: list[CommitInfo], config: GitPRConfig
-    ) -> list[str]:
+    def _generate_labels(self, commits: list[CommitInfo], config: GitPRConfig) -> list[str]:
         """Generate auto-labels from commit types.
 
         Args:
@@ -435,9 +432,7 @@ class PRGenerator:
 
         return sorted(labels)
 
-    def _suggest_reviewers(
-        self, context: PRContext, config: GitPRConfig
-    ) -> list[str]:
+    def _suggest_reviewers(self, context: PRContext, config: GitPRConfig) -> list[str]:
         """Suggest reviewers from CODEOWNERS or commit history.
 
         Args:
@@ -515,9 +510,13 @@ class PRCreator:
         reviewers = pr_data.get("reviewers", [])
 
         cmd: list[str] = [
-            "gh", "pr", "create",
-            "--title", title,
-            "--body", body,
+            "gh",
+            "pr",
+            "create",
+            "--title",
+            title,
+            "--body",
+            body,
         ]
 
         if draft:
@@ -554,9 +553,7 @@ class PRCreator:
             logger.warning("gh pr create timed out")
             return self._save_draft(runner, pr_data)
 
-    def _save_draft(
-        self, runner: GitRunner, pr_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _save_draft(self, runner: GitRunner, pr_data: dict[str, Any]) -> dict[str, Any]:
         """Save PR body to a draft file for manual creation.
 
         Args:

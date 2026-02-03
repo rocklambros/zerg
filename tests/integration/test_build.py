@@ -77,9 +77,7 @@ class TestBuildModes:
     def test_build_combined_options(self) -> None:
         """Test build with multiple options."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["build", "--mode", "prod", "--clean", "--retry", "3"]
-        )
+        result = runner.invoke(cli, ["build", "--mode", "prod", "--clean", "--retry", "3"])
         assert "Invalid value" not in result.output
 
 
@@ -104,11 +102,9 @@ class TestBuildFunctional:
     def test_build_detects_no_build_system(self) -> None:
         """Test build handles missing build system gracefully."""
         runner = CliRunner()
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory():
             # Run in empty directory
-            result = runner.invoke(
-                cli, ["build", "--dry-run"], catch_exceptions=False
-            )
+            result = runner.invoke(cli, ["build", "--dry-run"], catch_exceptions=False)
             # Should handle gracefully
             assert result.exit_code in [0, 1]
 
@@ -155,10 +151,13 @@ class TestBuildFunctional:
             cli,
             [
                 "build",
-                "--mode", "prod",
-                "--target", "all",
+                "--mode",
+                "prod",
+                "--target",
+                "all",
                 "--clean",
-                "--retry", "3",
+                "--retry",
+                "3",
                 "--dry-run",
             ],
         )

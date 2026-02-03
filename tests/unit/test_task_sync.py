@@ -1,14 +1,14 @@
 """Unit tests for TaskSyncBridge."""
 
 import json
-
-import pytest
 from datetime import datetime
 from pathlib import Path
 
-from zerg.task_sync import TaskSyncBridge, ClaudeTask, load_design_manifest
+import pytest
+
 from zerg.constants import TaskStatus
 from zerg.state import StateManager
+from zerg.task_sync import ClaudeTask, TaskSyncBridge, load_design_manifest
 
 
 class TestClaudeTask:
@@ -158,9 +158,7 @@ class TestTaskSyncBridge:
 
         assert created[0].active_form == "Executing Build API"
 
-    def test_sync_state_updates_status(
-        self, bridge: TaskSyncBridge, state_manager: StateManager
-    ) -> None:
+    def test_sync_state_updates_status(self, bridge: TaskSyncBridge, state_manager: StateManager) -> None:
         """Test sync_state updates task statuses from ZERG state."""
         # Create tasks
         bridge.create_level_tasks(0, [{"id": "L0-001", "title": "Task 1"}])
@@ -198,10 +196,13 @@ class TestTaskSyncBridge:
 
     def test_get_task_list(self, bridge: TaskSyncBridge) -> None:
         """Test get_task_list returns all tasks."""
-        bridge.create_level_tasks(0, [
-            {"id": "L0-001", "title": "T1"},
-            {"id": "L0-002", "title": "T2"},
-        ])
+        bridge.create_level_tasks(
+            0,
+            [
+                {"id": "L0-001", "title": "T1"},
+                {"id": "L0-002", "title": "T2"},
+            ],
+        )
 
         task_list = bridge.get_task_list()
 
@@ -213,11 +214,14 @@ class TestTaskSyncBridge:
 
     def test_get_level_summary(self, bridge: TaskSyncBridge) -> None:
         """Test get_level_summary returns correct counts."""
-        bridge.create_level_tasks(0, [
-            {"id": "L0-001", "title": "T1"},
-            {"id": "L0-002", "title": "T2"},
-            {"id": "L0-003", "title": "T3"},
-        ])
+        bridge.create_level_tasks(
+            0,
+            [
+                {"id": "L0-001", "title": "T1"},
+                {"id": "L0-002", "title": "T2"},
+                {"id": "L0-003", "title": "T3"},
+            ],
+        )
         bridge._synced_tasks["L0-002"].status = "in_progress"
         bridge._synced_tasks["L0-003"].status = "completed"
 
@@ -238,10 +242,13 @@ class TestTaskSyncBridge:
 
     def test_is_level_complete_true(self, bridge: TaskSyncBridge) -> None:
         """Test is_level_complete returns True when all done."""
-        bridge.create_level_tasks(0, [
-            {"id": "L0-001", "title": "T1"},
-            {"id": "L0-002", "title": "T2"},
-        ])
+        bridge.create_level_tasks(
+            0,
+            [
+                {"id": "L0-001", "title": "T1"},
+                {"id": "L0-002", "title": "T2"},
+            ],
+        )
         bridge._synced_tasks["L0-001"].status = "completed"
         bridge._synced_tasks["L0-002"].status = "completed"
 
@@ -249,10 +256,13 @@ class TestTaskSyncBridge:
 
     def test_is_level_complete_false(self, bridge: TaskSyncBridge) -> None:
         """Test is_level_complete returns False when tasks pending."""
-        bridge.create_level_tasks(0, [
-            {"id": "L0-001", "title": "T1"},
-            {"id": "L0-002", "title": "T2"},
-        ])
+        bridge.create_level_tasks(
+            0,
+            [
+                {"id": "L0-001", "title": "T1"},
+                {"id": "L0-002", "title": "T2"},
+            ],
+        )
         bridge._synced_tasks["L0-001"].status = "completed"
         # L0-002 still pending
 
@@ -294,10 +304,13 @@ class TestTaskSyncBridge:
 
     def test_clear(self, bridge: TaskSyncBridge) -> None:
         """Test clearing all synced tasks."""
-        bridge.create_level_tasks(0, [
-            {"id": "L0-001", "title": "T1"},
-            {"id": "L0-002", "title": "T2"},
-        ])
+        bridge.create_level_tasks(
+            0,
+            [
+                {"id": "L0-001", "title": "T1"},
+                {"id": "L0-002", "title": "T2"},
+            ],
+        )
 
         bridge.clear()
 

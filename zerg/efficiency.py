@@ -10,9 +10,9 @@ from typing import Any
 class EfficiencyZone(Enum):
     """Context usage zones determining efficiency behavior."""
 
-    GREEN = "green"    # 0-75%: Full capabilities, normal verbosity
+    GREEN = "green"  # 0-75%: Full capabilities, normal verbosity
     YELLOW = "yellow"  # 75-85%: Activate efficiency mode, reduce verbosity
-    RED = "red"        # 85%+: Essential operations only, minimal output
+    RED = "red"  # 85%+: Essential operations only, minimal output
 
     @property
     def threshold(self) -> float:
@@ -195,7 +195,7 @@ class CompactFormatter:
             short_key = self.abbreviate(key) if self.use_abbreviations else key
             if isinstance(value, bool):
                 parts.append(f"{short_key}={'Y' if value else 'N'}")
-            elif isinstance(value, (int, float)):
+            elif isinstance(value, int | float):
                 parts.append(f"{short_key}={value}")
             else:
                 short_val = self.abbreviate(str(value)) if self.use_abbreviations else str(value)

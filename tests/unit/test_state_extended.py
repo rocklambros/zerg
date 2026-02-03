@@ -3,13 +3,8 @@
 Tests worker tracking, merge status, and retry functionality.
 """
 
-import json
 import threading
-import time
-from datetime import datetime
 from pathlib import Path
-
-import pytest
 
 from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
 from zerg.state import StateManager

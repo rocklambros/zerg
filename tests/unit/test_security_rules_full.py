@@ -5,8 +5,6 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.security_rules import (
     FRAMEWORK_DETECTION,
     INFRASTRUCTURE_DETECTION,
@@ -320,7 +318,7 @@ class TestLanguageDetection:
 
     def test_detect_julia(self, tmp_path: Path) -> None:
         """Test detecting Julia."""
-        (tmp_path / "script.jl").write_text("println(\"hello\")")
+        (tmp_path / "script.jl").write_text('println("hello")')
 
         stack = detect_project_stack(tmp_path)
 
@@ -514,9 +512,7 @@ class TestJSFrameworkDetection:
     def test_detect_react(self, tmp_path: Path) -> None:
         """Test detecting React."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"react": "^18.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"react": "^18.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -526,9 +522,7 @@ class TestJSFrameworkDetection:
     def test_detect_nextjs(self, tmp_path: Path) -> None:
         """Test detecting Next.js."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"next": "^14.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"next": "^14.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -538,9 +532,7 @@ class TestJSFrameworkDetection:
     def test_detect_vue(self, tmp_path: Path) -> None:
         """Test detecting Vue."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"vue": "^3.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"vue": "^3.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -550,9 +542,7 @@ class TestJSFrameworkDetection:
     def test_detect_angular(self, tmp_path: Path) -> None:
         """Test detecting Angular."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"@angular/core": "^17.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"@angular/core": "^17.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -562,9 +552,7 @@ class TestJSFrameworkDetection:
     def test_detect_svelte(self, tmp_path: Path) -> None:
         """Test detecting Svelte."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"svelte": "^4.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"svelte": "^4.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -574,9 +562,7 @@ class TestJSFrameworkDetection:
     def test_detect_express(self, tmp_path: Path) -> None:
         """Test detecting Express."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"express": "^4.18.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"express": "^4.18.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -586,9 +572,7 @@ class TestJSFrameworkDetection:
     def test_detect_nestjs(self, tmp_path: Path) -> None:
         """Test detecting NestJS."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"@nestjs/core": "^10.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"@nestjs/core": "^10.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -598,9 +582,7 @@ class TestJSFrameworkDetection:
     def test_detect_fastify(self, tmp_path: Path) -> None:
         """Test detecting Fastify."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"fastify": "^4.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"fastify": "^4.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -610,9 +592,7 @@ class TestJSFrameworkDetection:
     def test_detect_from_devdeps(self, tmp_path: Path) -> None:
         """Test detecting from devDependencies."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "devDependencies": {"@nestjs/core": "^10.0.0"}
-        }))
+        package_json.write_text(json.dumps({"devDependencies": {"@nestjs/core": "^10.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -622,9 +602,7 @@ class TestJSFrameworkDetection:
     def test_detect_database_from_js(self, tmp_path: Path) -> None:
         """Test detecting database client from JS project."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"mongodb": "^6.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"mongodb": "^6.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -651,10 +629,7 @@ class TestJSFrameworkDetection:
     def test_package_json_without_dependencies(self, tmp_path: Path) -> None:
         """Test package.json without dependencies."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "name": "test",
-            "version": "1.0.0"
-        }))
+        package_json.write_text(json.dumps({"name": "test", "version": "1.0.0"}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -763,7 +738,7 @@ class TestInfrastructureDetection:
 
     def test_detect_terraform(self, tmp_path: Path) -> None:
         """Test detecting Terraform."""
-        (tmp_path / "main.tf").write_text("provider \"aws\" {}")
+        (tmp_path / "main.tf").write_text('provider "aws" {}')
 
         stack = detect_project_stack(tmp_path)
 
@@ -979,7 +954,7 @@ class TestFetchRules:
         mock_result.stdout = "# New content"
 
         with patch("subprocess.run", return_value=mock_result):
-            result = fetch_rules(
+            fetch_rules(
                 ["rules/_core/owasp-2025.md"],
                 tmp_path,
                 use_cache=False,
@@ -1032,7 +1007,7 @@ class TestFetchRules:
         mock_result.stdout = "# Content"
 
         with patch("subprocess.run", return_value=mock_result):
-            result = fetch_rules(
+            fetch_rules(
                 ["rules/deep/nested/path.md"],
                 tmp_path,
                 use_cache=True,

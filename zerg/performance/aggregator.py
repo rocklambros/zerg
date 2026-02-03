@@ -113,15 +113,9 @@ class PerformanceAuditor:
         ]
 
         # Filter to applicable + available
-        return [
-            a
-            for a in all_adapters
-            if a.tool_name in available_tools and a.is_applicable(self.stack)
-        ]
+        return [a for a in all_adapters if a.tool_name in available_tools and a.is_applicable(self.stack)]
 
-    def _run_adapters(
-        self, adapters: list[BaseToolAdapter], files: list[str]
-    ) -> list[PerformanceFinding]:
+    def _run_adapters(self, adapters: list[BaseToolAdapter], files: list[str]) -> list[PerformanceFinding]:
         """Run all adapters in parallel."""
         all_findings: list[PerformanceFinding] = []
 
@@ -129,18 +123,13 @@ class PerformanceAuditor:
             return all_findings
 
         with ThreadPoolExecutor(max_workers=min(len(adapters), 8)) as executor:
-            futures = {
-                executor.submit(a.run, files, self.project_path, self.stack): a
-                for a in adapters
-            }
+            futures = {executor.submit(a.run, files, self.project_path, self.stack): a for a in adapters}
             for future in as_completed(futures):
                 adapter = futures[future]
                 try:
                     findings = future.result(timeout=300)
                     all_findings.extend(findings)
-                    logger.info(
-                        "Adapter %s: %d findings", adapter.name, len(findings)
-                    )
+                    logger.info("Adapter %s: %d findings", adapter.name, len(findings))
                 except Exception:
                     logger.warning("Adapter %s failed", adapter.name, exc_info=True)
 
@@ -164,11 +153,7 @@ class PerformanceAuditor:
         categories: list[CategoryScore] = []
         for cat_name, cat_factors in factors_by_cat.items():
             # Count how many factors in this category have static tools
-            static_in_cat = [
-                fac
-                for fac in cat_factors
-                if any(t in static_set for t in fac.cli_tools)
-            ]
+            static_in_cat = [fac for fac in cat_factors if any(t in static_set for t in fac.cli_tools)]
 
             cat_findings = findings_by_cat.get(cat_name, [])
             factors_checked = len(static_in_cat)
@@ -176,12 +161,8 @@ class PerformanceAuditor:
             if factors_checked == 0:
                 score = None
             else:
-                penalty = sum(
-                    SEVERITY_WEIGHTS.get(f.severity, 0) for f in cat_findings
-                )
-                score = max(
-                    0.0, 100.0 - (penalty / max(1, factors_checked)) * 10
-                )
+                penalty = sum(SEVERITY_WEIGHTS.get(f.severity, 0) for f in cat_findings)
+                score = max(0.0, 100.0 - (penalty / max(1, factors_checked)) * 10)
 
             categories.append(
                 CategoryScore(
@@ -203,15 +184,9 @@ class PerformanceAuditor:
 
         return categories
 
-    def _compute_overall_score(
-        self, categories: list[CategoryScore]
-    ) -> float | None:
+    def _compute_overall_score(self, categories: list[CategoryScore]) -> float | None:
         """Compute weighted average overall score."""
-        scored = [
-            (c.score, c.factors_checked)
-            for c in categories
-            if c.score is not None
-        ]
+        scored = [(c.score, c.factors_checked) for c in categories if c.score is not None]
         if not scored:
             return None
         total_weight = sum(w for _, w in scored)

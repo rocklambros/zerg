@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from zerg.commands.init import is_empty_project
 
 

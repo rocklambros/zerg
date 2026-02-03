@@ -3,7 +3,6 @@
 Covers uncovered lines 458-478, 496-521, 529-540, 555-570, 581-598, 609-625, 649-659.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -104,9 +103,7 @@ class TestRunDockerAsync:
         proc.returncode = None
 
         with patch("asyncio.create_subprocess_exec", return_value=proc):
-            returncode, stdout, stderr = await manager._run_docker_async(
-                "pull", "large-image", timeout=5
-            )
+            returncode, stdout, stderr = await manager._run_docker_async("pull", "large-image", timeout=5)
 
         assert returncode == 1
         assert stdout == ""
@@ -143,9 +140,7 @@ class TestRunComposeAsync:
         proc = _make_mock_process(returncode=0, stdout=b"", stderr=b"")
 
         with patch("asyncio.create_subprocess_exec", return_value=proc) as mock_exec:
-            await manager._run_compose_async(
-                "up", "-d", env={"ZERG_WORKER_ID": "1"}
-            )
+            await manager._run_compose_async("up", "-d", env={"ZERG_WORKER_ID": "1"})
 
         call_kwargs = mock_exec.call_args[1]
         assert "ZERG_WORKER_ID" in call_kwargs["env"]
@@ -193,9 +188,7 @@ class TestRunComposeAsync:
         proc.wait = AsyncMock()
 
         with patch("asyncio.create_subprocess_exec", return_value=proc):
-            returncode, stdout, stderr = await manager._run_compose_async(
-                "build", timeout=10
-            )
+            returncode, stdout, stderr = await manager._run_compose_async("build", timeout=10)
 
         assert returncode == 1
         assert "timeout after 10s" in stderr
@@ -211,9 +204,7 @@ class TestBuildAsync:
     @pytest.mark.asyncio
     async def test_build_async_success(self, manager) -> None:
         """Test async build succeeds."""
-        with patch.object(
-            manager, "_run_compose_async", new_callable=AsyncMock
-        ) as mock_compose:
+        with patch.object(manager, "_run_compose_async", new_callable=AsyncMock) as mock_compose:
             mock_compose.return_value = (0, "", "")
             await manager.build_async()
 
@@ -225,9 +216,7 @@ class TestBuildAsync:
     @pytest.mark.asyncio
     async def test_build_async_no_cache(self, manager) -> None:
         """Test async build with no_cache appends --no-cache arg."""
-        with patch.object(
-            manager, "_run_compose_async", new_callable=AsyncMock
-        ) as mock_compose:
+        with patch.object(manager, "_run_compose_async", new_callable=AsyncMock) as mock_compose:
             mock_compose.return_value = (0, "", "")
             await manager.build_async(no_cache=True)
 
@@ -238,9 +227,7 @@ class TestBuildAsync:
     @pytest.mark.asyncio
     async def test_build_async_failure_raises_container_error(self, manager) -> None:
         """Test async build raises ContainerError on non-zero exit."""
-        with patch.object(
-            manager, "_run_compose_async", new_callable=AsyncMock
-        ) as mock_compose:
+        with patch.object(manager, "_run_compose_async", new_callable=AsyncMock) as mock_compose:
             mock_compose.return_value = (1, "", "build error details")
 
             with pytest.raises(ContainerError) as exc_info:
@@ -265,9 +252,7 @@ class TestStopWorkerAsync:
             calls.append(args)
             return (0, "", "")
 
-        with patch.object(
-            manager_with_worker, "_run_docker_async", side_effect=track_calls
-        ):
+        with patch.object(manager_with_worker, "_run_docker_async", side_effect=track_calls):
             await manager_with_worker.stop_worker_async(0, timeout=30)
 
         assert 0 not in manager_with_worker._containers
@@ -286,9 +271,7 @@ class TestStopWorkerAsync:
             calls.append(args)
             return (0, "", "")
 
-        with patch.object(
-            manager_with_worker, "_run_docker_async", side_effect=track_calls
-        ):
+        with patch.object(manager_with_worker, "_run_docker_async", side_effect=track_calls):
             await manager_with_worker.stop_worker_async(0, force=True)
 
         assert 0 not in manager_with_worker._containers
@@ -298,9 +281,7 @@ class TestStopWorkerAsync:
     @pytest.mark.asyncio
     async def test_stop_worker_async_not_found(self, manager) -> None:
         """Test async stop for non-existent worker returns early."""
-        with patch.object(
-            manager, "_run_docker_async", new_callable=AsyncMock
-        ) as mock_docker:
+        with patch.object(manager, "_run_docker_async", new_callable=AsyncMock) as mock_docker:
             await manager.stop_worker_async(99)
 
         # Should not call docker at all
@@ -327,10 +308,9 @@ class TestStopAllAsync:
                 return (0, "orphan123\n", "")
             return (0, "", "")
 
-        with patch.object(
-            manager, "stop_worker_async", new_callable=AsyncMock
-        ) as mock_stop, patch.object(
-            manager, "_run_docker_async", side_effect=mock_run_docker
+        with (
+            patch.object(manager, "stop_worker_async", new_callable=AsyncMock) as mock_stop,
+            patch.object(manager, "_run_docker_async", side_effect=mock_run_docker),
         ):
             count = await manager.stop_all_async()
 
@@ -341,12 +321,11 @@ class TestStopAllAsync:
     @pytest.mark.asyncio
     async def test_stop_all_async_no_workers(self, manager) -> None:
         """Test async stop all with no tracked workers still checks orphans."""
+
         async def mock_run_docker(*args, **kwargs):
             return (0, "", "")
 
-        with patch.object(
-            manager, "_run_docker_async", side_effect=mock_run_docker
-        ):
+        with patch.object(manager, "_run_docker_async", side_effect=mock_run_docker):
             count = await manager.stop_all_async()
 
         assert count == 0
@@ -361,10 +340,9 @@ class TestStopAllAsync:
         async def mock_run_docker(*args, **kwargs):
             return (0, "", "")
 
-        with patch.object(
-            manager, "stop_worker_async", new_callable=AsyncMock
-        ) as mock_stop, patch.object(
-            manager, "_run_docker_async", side_effect=mock_run_docker
+        with (
+            patch.object(manager, "stop_worker_async", new_callable=AsyncMock) as mock_stop,
+            patch.object(manager, "_run_docker_async", side_effect=mock_run_docker),
         ):
             await manager.stop_all_async(force=True)
 
@@ -373,6 +351,7 @@ class TestStopAllAsync:
     @pytest.mark.asyncio
     async def test_stop_all_async_with_orphan_containers(self, manager) -> None:
         """Test async stop all cleans up orphaned containers."""
+
         async def mock_run_docker(*args, **kwargs):
             if "ps" in args:
                 return (0, "orphan1\norphan2\n", "")
@@ -452,9 +431,7 @@ class TestGetStatusAsync:
         assert status == WorkerStatus.CRASHED
 
     @pytest.mark.asyncio
-    async def test_get_status_async_unknown_defaults_stopped(
-        self, manager_with_worker
-    ) -> None:
+    async def test_get_status_async_unknown_defaults_stopped(self, manager_with_worker) -> None:
         """Test async status returns STOPPED for unknown docker status."""
         with patch.object(
             manager_with_worker,
@@ -488,9 +465,7 @@ class TestExecInWorkerAsync:
             new_callable=AsyncMock,
             return_value=(0, "test output\n", ""),
         ):
-            exit_code, stdout, stderr = await manager_with_worker.exec_in_worker_async(
-                0, "pytest tests/"
-            )
+            exit_code, stdout, stderr = await manager_with_worker.exec_in_worker_async(0, "pytest tests/")
 
         assert exit_code == 0
         assert stdout == "test output\n"
@@ -498,9 +473,7 @@ class TestExecInWorkerAsync:
     @pytest.mark.asyncio
     async def test_exec_async_blocked_command(self, manager_with_worker) -> None:
         """Test async exec blocks dangerous commands."""
-        exit_code, stdout, stderr = await manager_with_worker.exec_in_worker_async(
-            0, "rm -rf /; echo pwned"
-        )
+        exit_code, stdout, stderr = await manager_with_worker.exec_in_worker_async(0, "rm -rf /; echo pwned")
 
         assert exit_code == -1
         assert "validation failed" in stderr.lower()
@@ -508,9 +481,7 @@ class TestExecInWorkerAsync:
     @pytest.mark.asyncio
     async def test_exec_async_worker_not_found(self, manager) -> None:
         """Test async exec on non-existent worker returns error."""
-        exit_code, stdout, stderr = await manager.exec_in_worker_async(
-            99, "pytest tests/"
-        )
+        exit_code, stdout, stderr = await manager.exec_in_worker_async(99, "pytest tests/")
 
         assert exit_code == -1
         assert "not found" in stderr.lower()
@@ -540,21 +511,21 @@ class TestExecInWorkerAsync:
             new_callable=AsyncMock,
             return_value=(0, "", ""),
         ) as mock_docker:
-            await manager_with_worker.exec_in_worker_async(
-                0, "pytest tests/", timeout=120
-            )
+            await manager_with_worker.exec_in_worker_async(0, "pytest tests/", timeout=120)
 
         mock_docker.assert_awaited_once_with(
-            "exec", "abc123", "sh", "-c", "pytest tests/",
+            "exec",
+            "abc123",
+            "sh",
+            "-c",
+            "pytest tests/",
             timeout=120,
         )
 
     @pytest.mark.asyncio
     async def test_exec_async_metacharacter_blocked(self, manager_with_worker) -> None:
         """Test async exec blocks shell metacharacters."""
-        exit_code, stdout, stderr = await manager_with_worker.exec_in_worker_async(
-            0, "echo `whoami`"
-        )
+        exit_code, stdout, stderr = await manager_with_worker.exec_in_worker_async(0, "echo `whoami`")
 
         assert exit_code == -1
         assert "metacharacters" in stderr.lower()

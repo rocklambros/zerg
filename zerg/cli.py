@@ -39,7 +39,12 @@ console = Console()
 @click.option("--think-hard", is_flag=True, help="Deep architectural analysis")
 @click.option("--ultrathink", is_flag=True, help="Maximum depth analysis")
 @click.option("--no-compact", is_flag=True, default=False, help="Disable compact output (compact is ON by default)")
-@click.option("--mode", type=click.Choice(["precision", "speed", "exploration", "refactor", "debug"]), default=None, help="Behavioral execution mode")
+@click.option(
+    "--mode",
+    type=click.Choice(["precision", "speed", "exploration", "refactor", "debug"]),
+    default=None,
+    help="Behavioral execution mode",
+)
 @click.option("--mcp/--no-mcp", default=None, help="Enable/disable MCP auto-routing")
 @click.option("--tdd", is_flag=True, help="Enable TDD enforcement mode")
 @click.option("--no-loop", is_flag=True, default=False, help="Disable improvement loops (loops are ON by default)")
@@ -73,9 +78,7 @@ def cli(
     }
     active = [k for k, v in depth_flags.items() if v]
     if len(active) > 1:
-        raise click.UsageError(
-            "Depth flags are mutually exclusive: --quick, --think, --think-hard, --ultrathink"
-        )
+        raise click.UsageError("Depth flags are mutually exclusive: --quick, --think, --think-hard, --ultrathink")
     ctx.obj["depth"] = active[0] if active else "standard"
 
     # Compact: ON by default, --no-compact to disable

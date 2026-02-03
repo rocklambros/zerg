@@ -44,26 +44,20 @@ from zerg.commands.logs import (
 class TestDetectFeature:
     """Tests for feature auto-detection from state files."""
 
-    def test_detect_feature_no_state_dir(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_no_state_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detection when .zerg/state directory does not exist."""
         monkeypatch.chdir(tmp_path)
         result = detect_feature()
         assert result is None
 
-    def test_detect_feature_empty_state_dir(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_empty_state_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detection when state directory exists but is empty."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg" / "state").mkdir(parents=True)
         result = detect_feature()
         assert result is None
 
-    def test_detect_feature_single_state_file(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_single_state_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detection with a single state file."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -73,9 +67,7 @@ class TestDetectFeature:
         result = detect_feature()
         assert result == "my-feature"
 
-    def test_detect_feature_multiple_state_files(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_multiple_state_files(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detection picks most recently modified file."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -93,9 +85,7 @@ class TestDetectFeature:
         result = detect_feature()
         assert result == "newer-feature"
 
-    def test_detect_feature_ignores_non_json(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_ignores_non_json(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detection only considers .json files."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -161,12 +151,14 @@ class TestParseLogLine:
 
     def test_parse_json_log_line(self) -> None:
         """Test parsing valid JSON log line."""
-        log_line = json.dumps({
-            "timestamp": "2025-01-26T10:30:45",
-            "level": "info",
-            "message": "Test message",
-            "worker_id": 1,
-        })
+        log_line = json.dumps(
+            {
+                "timestamp": "2025-01-26T10:30:45",
+                "level": "info",
+                "message": "Test message",
+                "worker_id": 1,
+            }
+        )
 
         result = parse_log_line(log_line)
         assert result is not None
@@ -404,16 +396,20 @@ class TestShowLogs:
         """Test showing logs from a single file."""
         log_file = tmp_path / "worker-0.log"
         log_lines = [
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:00",
-                "level": "info",
-                "message": "Line 1",
-            }),
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:01",
-                "level": "error",
-                "message": "Line 2",
-            }),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:00",
+                    "level": "info",
+                    "message": "Line 1",
+                }
+            ),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:01",
+                    "level": "error",
+                    "message": "Line 2",
+                }
+            ),
         ]
         log_file.write_text("\n".join(log_lines))
 
@@ -446,11 +442,15 @@ class TestShowLogs:
         log_file = tmp_path / "worker-0.log"
         log_lines = []
         for i in range(20):
-            log_lines.append(json.dumps({
-                "timestamp": f"2025-01-26 10:00:{i:02d}",
-                "level": "info",
-                "message": f"Line {i}",
-            }))
+            log_lines.append(
+                json.dumps(
+                    {
+                        "timestamp": f"2025-01-26 10:00:{i:02d}",
+                        "level": "info",
+                        "message": f"Line {i}",
+                    }
+                )
+            )
         log_file.write_text("\n".join(log_lines))
 
         with patch("zerg.commands.logs.console") as mock_console:
@@ -462,21 +462,27 @@ class TestShowLogs:
         """Test level filtering excludes lower priority logs."""
         log_file = tmp_path / "worker-0.log"
         log_lines = [
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:00",
-                "level": "debug",
-                "message": "Debug",
-            }),
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:01",
-                "level": "info",
-                "message": "Info",
-            }),
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:02",
-                "level": "error",
-                "message": "Error",
-            }),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:00",
+                    "level": "debug",
+                    "message": "Debug",
+                }
+            ),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:01",
+                    "level": "info",
+                    "message": "Info",
+                }
+            ),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:02",
+                    "level": "error",
+                    "message": "Error",
+                }
+            ),
         ]
         log_file.write_text("\n".join(log_lines))
 
@@ -491,21 +497,27 @@ class TestShowLogs:
         log_file_1 = tmp_path / "worker-0.log"
         log_file_2 = tmp_path / "worker-1.log"
 
-        log_file_1.write_text(json.dumps({
-            "timestamp": "2025-01-26 10:00:01",
-            "level": "info",
-            "message": "From worker 0",
-        }))
-        log_file_2.write_text(json.dumps({
-            "timestamp": "2025-01-26 10:00:00",
-            "level": "info",
-            "message": "From worker 1",
-        }))
+        log_file_1.write_text(
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:01",
+                    "level": "info",
+                    "message": "From worker 0",
+                }
+            )
+        )
+        log_file_2.write_text(
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:00",
+                    "level": "info",
+                    "message": "From worker 1",
+                }
+            )
+        )
 
         with patch("zerg.commands.logs.console") as mock_console:
-            show_logs(
-                [log_file_1, log_file_2], tail=100, level_priority=0, json_output=False
-            )
+            show_logs([log_file_1, log_file_2], tail=100, level_priority=0, json_output=False)
             assert mock_console.print.call_count == 2
 
     def test_show_logs_file_read_error(self, tmp_path: Path) -> None:
@@ -524,29 +536,37 @@ class TestShowLogs:
         log_file = tmp_path / "worker-0.log"
         # Write out of order
         log_lines = [
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:02",
-                "level": "info",
-                "message": "Third",
-            }),
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:00",
-                "level": "info",
-                "message": "First",
-            }),
-            json.dumps({
-                "timestamp": "2025-01-26 10:00:01",
-                "level": "info",
-                "message": "Second",
-            }),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:02",
+                    "level": "info",
+                    "message": "Third",
+                }
+            ),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:00",
+                    "level": "info",
+                    "message": "First",
+                }
+            ),
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:01",
+                    "level": "info",
+                    "message": "Second",
+                }
+            ),
         ]
         log_file.write_text("\n".join(log_lines))
 
         printed_messages: list[str] = []
         with patch("zerg.commands.logs.console") as mock_console:
+
             def capture_print(entry: Any) -> None:
                 if hasattr(entry, "plain"):
                     printed_messages.append(entry.plain)
+
             mock_console.print.side_effect = capture_print
 
             show_logs([log_file], tail=100, level_priority=0, json_output=False)
@@ -600,11 +620,16 @@ class TestStreamLogs:
             if iteration == 1:
                 # Append new content after first sleep
                 with open(log_file, "a") as f:
-                    f.write(json.dumps({
-                        "timestamp": "2025-01-26 10:00:00",
-                        "level": "info",
-                        "message": "New log entry",
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "timestamp": "2025-01-26 10:00:00",
+                                "level": "info",
+                                "message": "New log entry",
+                            }
+                        )
+                        + "\n"
+                    )
             elif iteration > 2:
                 raise KeyboardInterrupt()
 
@@ -629,15 +654,25 @@ class TestStreamLogs:
             if iteration == 1:
                 with open(log_file, "a") as f:
                     # Write debug (should be filtered at error level)
-                    f.write(json.dumps({
-                        "level": "debug",
-                        "message": "Debug message",
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "level": "debug",
+                                "message": "Debug message",
+                            }
+                        )
+                        + "\n"
+                    )
                     # Write error (should pass)
-                    f.write(json.dumps({
-                        "level": "error",
-                        "message": "Error message",
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "level": "error",
+                                "message": "Error message",
+                            }
+                        )
+                        + "\n"
+                    )
             elif iteration > 2:
                 raise KeyboardInterrupt()
 
@@ -665,10 +700,15 @@ class TestStreamLogs:
             iteration += 1
             if iteration == 1:
                 with open(log_file, "a") as f:
-                    f.write(json.dumps({
-                        "level": "info",
-                        "message": "JSON test",
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "level": "info",
+                                "message": "JSON test",
+                            }
+                        )
+                        + "\n"
+                    )
             elif iteration > 2:
                 raise KeyboardInterrupt()
 
@@ -745,24 +785,32 @@ class TestStreamLogs:
             iteration += 1
             if iteration == 1:
                 with open(log_file_1, "a") as f:
-                    f.write(json.dumps({
-                        "level": "info",
-                        "message": "From file 1",
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "level": "info",
+                                "message": "From file 1",
+                            }
+                        )
+                        + "\n"
+                    )
                 with open(log_file_2, "a") as f:
-                    f.write(json.dumps({
-                        "level": "info",
-                        "message": "From file 2",
-                    }) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "level": "info",
+                                "message": "From file 2",
+                            }
+                        )
+                        + "\n"
+                    )
             elif iteration > 2:
                 raise KeyboardInterrupt()
 
         with patch("time.sleep", side_effect=mock_sleep):
             with patch("zerg.commands.logs.console") as mock_console:
                 with contextlib.suppress(KeyboardInterrupt):
-                    stream_logs(
-                        [log_file_1, log_file_2], level_priority=0, json_output=False
-                    )
+                    stream_logs([log_file_1, log_file_2], level_priority=0, json_output=False)
                 calls = [str(c) for c in mock_console.print.call_args_list]
                 assert any("From file 1" in str(c) for c in calls)
                 assert any("From file 2" in str(c) for c in calls)
@@ -789,9 +837,7 @@ class TestLogsCommand:
         assert "--level" in result.output
         assert "--json" in result.output
 
-    def test_logs_no_feature_no_state_dir(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_no_feature_no_state_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs without feature and no state directory shows error."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -802,9 +848,7 @@ class TestLogsCommand:
         assert result.exit_code != 0
         assert "No active feature" in result.output or "feature" in result.output.lower()
 
-    def test_logs_no_logs_directory(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_no_logs_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs when .zerg/logs directory doesn't exist."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -817,9 +861,7 @@ class TestLogsCommand:
         # Should handle gracefully
         assert "No logs directory" in result.output
 
-    def test_logs_no_log_files(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_no_log_files(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs when logs directory exists but empty."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -833,9 +875,7 @@ class TestLogsCommand:
 
         assert "No log files" in result.output
 
-    def test_logs_worker_id_filter(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_worker_id_filter(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs with specific worker_id argument."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -845,25 +885,23 @@ class TestLogsCommand:
         (state_dir / "test-feature.json").write_text("{}")
 
         # Only create worker-1.log
-        (logs_dir / "worker-1.log").write_text(json.dumps({
-            "timestamp": "2025-01-26 10:00:00",
-            "level": "info",
-            "message": "Worker 1 log",
-        }))
+        (logs_dir / "worker-1.log").write_text(
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:00",
+                    "level": "info",
+                    "message": "Worker 1 log",
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["logs", "1", "--feature", "test-feature"])
 
         # Should show logs from worker 1
-        assert (
-            result.exit_code == 0
-            or "Worker 1" in result.output
-            or "No log files" not in result.output
-        )
+        assert result.exit_code == 0 or "Worker 1" in result.output or "No log files" not in result.output
 
-    def test_logs_worker_id_not_found(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_worker_id_not_found(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs with worker_id that doesn't exist."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -877,18 +915,20 @@ class TestLogsCommand:
 
         assert "No log files" in result.output
 
-    def test_logs_with_feature_option(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_with_feature_option(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs with explicit --feature option."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
         logs_dir.mkdir(parents=True)
-        (logs_dir / "worker-0.log").write_text(json.dumps({
-            "timestamp": "2025-01-26 10:00:00",
-            "level": "info",
-            "message": "Test log entry",
-        }))
+        (logs_dir / "worker-0.log").write_text(
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:00",
+                    "level": "info",
+                    "message": "Test log entry",
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["logs", "--feature", "my-feature"])
@@ -896,9 +936,7 @@ class TestLogsCommand:
         assert result.exit_code == 0
         assert "my-feature" in result.output
 
-    def test_logs_tail_option(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_tail_option(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs with --tail option."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
@@ -907,11 +945,15 @@ class TestLogsCommand:
         # Create many log lines
         log_lines = []
         for i in range(50):
-            log_lines.append(json.dumps({
-                "timestamp": f"2025-01-26 10:00:{i:02d}",
-                "level": "info",
-                "message": f"Log line {i}",
-            }))
+            log_lines.append(
+                json.dumps(
+                    {
+                        "timestamp": f"2025-01-26 10:00:{i:02d}",
+                        "level": "info",
+                        "message": f"Log line {i}",
+                    }
+                )
+            )
         (logs_dir / "worker-0.log").write_text("\n".join(log_lines))
 
         runner = CliRunner()
@@ -920,9 +962,7 @@ class TestLogsCommand:
         # Should limit output
         assert result.exit_code == 0
 
-    def test_logs_level_filter(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_level_filter(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs with --level option."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
@@ -941,19 +981,21 @@ class TestLogsCommand:
         # Should not show debug message
         assert "Debug msg" not in result.output
 
-    def test_logs_json_output(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_json_output(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs with --json option."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
         logs_dir.mkdir(parents=True)
 
-        (logs_dir / "worker-0.log").write_text(json.dumps({
-            "timestamp": "2025-01-26 10:00:00",
-            "level": "info",
-            "message": "JSON output test",
-        }))
+        (logs_dir / "worker-0.log").write_text(
+            json.dumps(
+                {
+                    "timestamp": "2025-01-26 10:00:00",
+                    "level": "info",
+                    "message": "JSON output test",
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["logs", "--feature", "test", "--json"])
@@ -962,9 +1004,7 @@ class TestLogsCommand:
         # Output should be parseable JSON
         # Note: Rich markup may be in output, so just check for JSON-like content
 
-    def test_logs_keyboard_interrupt(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_keyboard_interrupt(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs handles KeyboardInterrupt gracefully."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
@@ -981,9 +1021,7 @@ class TestLogsCommand:
             # Should exit cleanly with "Stopped" message
             assert "Stopped" in result.output or result.exit_code == 0
 
-    def test_logs_generic_exception(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_generic_exception(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs handles generic exceptions."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
@@ -1001,9 +1039,7 @@ class TestLogsCommand:
             assert result.exit_code != 0
             assert "Error" in result.output
 
-    def test_logs_auto_detect_feature(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_auto_detect_feature(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs auto-detects feature from state files."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -1012,10 +1048,14 @@ class TestLogsCommand:
         logs_dir.mkdir(parents=True)
 
         (state_dir / "auto-detected-feature.json").write_text("{}")
-        (logs_dir / "worker-0.log").write_text(json.dumps({
-            "level": "info",
-            "message": "Auto detect test",
-        }))
+        (logs_dir / "worker-0.log").write_text(
+            json.dumps(
+                {
+                    "level": "info",
+                    "message": "Auto detect test",
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["logs"])
@@ -1023,9 +1063,7 @@ class TestLogsCommand:
         assert result.exit_code == 0
         assert "auto-detected-feature" in result.output
 
-    def test_logs_follow_mode(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_follow_mode(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs with --follow flag."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
@@ -1047,17 +1085,19 @@ class TestLogsCommand:
             # stream_logs should have been called
             assert call_count > 0
 
-    def test_logs_shows_header_when_not_json(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_shows_header_when_not_json(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs shows header with feature name when not in JSON mode."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
         logs_dir.mkdir(parents=True)
-        (logs_dir / "worker-0.log").write_text(json.dumps({
-            "level": "info",
-            "message": "Test",
-        }))
+        (logs_dir / "worker-0.log").write_text(
+            json.dumps(
+                {
+                    "level": "info",
+                    "message": "Test",
+                }
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["logs", "--feature", "my-feature"])
@@ -1065,17 +1105,19 @@ class TestLogsCommand:
         # Should show feature name in header
         assert "ZERG Logs" in result.output or "my-feature" in result.output
 
-    def test_logs_no_header_in_json_mode(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_no_header_in_json_mode(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs does not show header in JSON mode."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
         logs_dir.mkdir(parents=True)
-        (logs_dir / "worker-0.log").write_text(json.dumps({
-            "level": "info",
-            "message": "JSON test",
-        }))
+        (logs_dir / "worker-0.log").write_text(
+            json.dumps(
+                {
+                    "level": "info",
+                    "message": "JSON test",
+                }
+            )
+        )
 
         runner = CliRunner()
         runner.invoke(cli, ["logs", "--feature", "my-feature", "--json"])
@@ -1124,11 +1166,13 @@ class TestLogsEdgeCases:
         """Test showing logs with mixed JSON and plain text lines."""
         log_file = tmp_path / "worker-0.log"
         log_lines = [
-            json.dumps({
-                "level": "info",
-                "message": "JSON line",
-                "timestamp": "2025-01-26 10:00:00",
-            }),
+            json.dumps(
+                {
+                    "level": "info",
+                    "message": "JSON line",
+                    "timestamp": "2025-01-26 10:00:00",
+                }
+            ),
             "2025-01-26 10:00:01 [ERROR] - Plain text line",
             "Just a message",
         ]
@@ -1139,22 +1183,16 @@ class TestLogsEdgeCases:
             # Should handle all formats
             assert mock_console.print.call_count == 3
 
-    def test_logs_with_all_level_choices(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_with_all_level_choices(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs command accepts all valid level choices."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
         logs_dir.mkdir(parents=True)
-        (logs_dir / "worker-0.log").write_text(
-            json.dumps({"level": "info", "message": "Test"})
-        )
+        (logs_dir / "worker-0.log").write_text(json.dumps({"level": "info", "message": "Test"}))
 
         runner = CliRunner()
         for level in ["debug", "info", "warn", "error"]:
-            result = runner.invoke(
-                cli, ["logs", "--feature", "test", "--level", level]
-            )
+            result = runner.invoke(cli, ["logs", "--feature", "test", "--level", level])
             assert result.exit_code == 0
 
     def test_level_colors_coverage(self) -> None:
@@ -1163,9 +1201,7 @@ class TestLogsEdgeCases:
         expected_keys = {"debug", "info", "warning", "warn", "error", "critical"}
         assert set(LEVEL_COLORS.keys()) == expected_keys
 
-    def test_logs_files_glob_pattern(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_logs_files_glob_pattern(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test logs finds all .log files via glob."""
         monkeypatch.chdir(tmp_path)
         logs_dir = tmp_path / ".zerg" / "logs"
@@ -1173,10 +1209,14 @@ class TestLogsEdgeCases:
 
         # Create multiple log files
         for i in range(3):
-            (logs_dir / f"worker-{i}.log").write_text(json.dumps({
-                "level": "info",
-                "message": f"Worker {i}",
-            }))
+            (logs_dir / f"worker-{i}.log").write_text(
+                json.dumps(
+                    {
+                        "level": "info",
+                        "message": f"Worker {i}",
+                    }
+                )
+            )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["logs", "--feature", "test"])

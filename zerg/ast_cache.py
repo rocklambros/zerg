@@ -47,10 +47,7 @@ def collect_exports(tree: ast.Module) -> list[str]:
     """
     exports: list[str] = []
     for node in ast.iter_child_nodes(tree):
-        if (
-            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-            and not node.name.startswith("_")
-        ):
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) and not node.name.startswith("_"):
             exports.append(node.name)
     return exports
 

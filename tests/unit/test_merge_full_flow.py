@@ -9,13 +9,12 @@ Tests comprehensive merge workflow including:
 """
 
 from datetime import datetime
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from zerg.config import QualityGate, ZergConfig
-from zerg.constants import GateResult, MergeStatus
+from zerg.constants import GateResult
 from zerg.exceptions import MergeConflictError
 from zerg.merge import MergeCoordinator, MergeFlowResult
 from zerg.types import GateRunResult
@@ -160,9 +159,10 @@ class TestFullMergeFlowSuccess:
         self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
     ):
         """Full merge flow should succeed with explicit worker branches."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -182,15 +182,14 @@ class TestFullMergeFlowSuccess:
             assert result.merge_commit is not None
             assert result.error is None
 
-    def test_full_merge_flow_auto_detects_branches(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_full_merge_flow_auto_detects_branches(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """Full merge flow should auto-detect worker branches when not provided."""
         mock_git_ops.list_worker_branches.return_value = ["auto-worker-0", "auto-worker-1"]
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -207,13 +206,12 @@ class TestFullMergeFlowSuccess:
             assert result.source_branches == ["auto-worker-0", "auto-worker-1"]
             mock_git_ops.list_worker_branches.assert_called_once_with("test-feature")
 
-    def test_full_merge_flow_skips_gates_when_requested(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_full_merge_flow_skips_gates_when_requested(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """Full merge flow should skip gates when skip_gates=True."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -238,9 +236,10 @@ class TestFullMergeFlowSuccess:
         """Full merge flow should fail when no worker branches found."""
         mock_git_ops.list_worker_branches.return_value = []
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -283,9 +282,7 @@ class TestFullMergeFlowGateFailures:
         ]
         return config
 
-    def test_full_merge_flow_fails_on_pre_merge_gate_failure(
-        self, mock_git_ops, sample_config, tmp_path
-    ):
+    def test_full_merge_flow_fails_on_pre_merge_gate_failure(self, mock_git_ops, sample_config, tmp_path):
         """Full merge flow should fail when pre-merge gates fail."""
         mock_gate_runner = MagicMock()
         failed_result = GateRunResult(
@@ -300,9 +297,10 @@ class TestFullMergeFlowGateFailures:
         mock_gate_runner.run_all_gates.return_value = (False, [failed_result])
         mock_gate_runner.get_summary.return_value = {"passed": 0, "failed": 1}
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -322,9 +320,7 @@ class TestFullMergeFlowGateFailures:
             # Should not have attempted merge
             mock_git_ops.merge.assert_not_called()
 
-    def test_full_merge_flow_fails_on_post_merge_gate_failure(
-        self, mock_git_ops, sample_config, tmp_path
-    ):
+    def test_full_merge_flow_fails_on_post_merge_gate_failure(self, mock_git_ops, sample_config, tmp_path):
         """Full merge flow should fail when post-merge gates fail."""
         mock_gate_runner = MagicMock()
 
@@ -355,9 +351,10 @@ class TestFullMergeFlowGateFailures:
         ]
         mock_gate_runner.get_summary.return_value = {"passed": 1, "failed": 1}
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -376,9 +373,7 @@ class TestFullMergeFlowGateFailures:
             # Abort should have been called to clean up
             mock_git_ops.abort_merge.assert_called()
 
-    def test_full_merge_flow_gate_results_accumulate(
-        self, mock_git_ops, sample_config, tmp_path
-    ):
+    def test_full_merge_flow_gate_results_accumulate(self, mock_git_ops, sample_config, tmp_path):
         """Gate results from both pre and post merge should accumulate."""
         mock_gate_runner = MagicMock()
 
@@ -404,9 +399,10 @@ class TestFullMergeFlowGateFailures:
         ]
         mock_gate_runner.get_summary.return_value = {"passed": 2, "failed": 0}
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -476,9 +472,10 @@ class TestFullMergeFlowMergeConflicts:
         self, mock_git_ops_with_conflict, mock_gate_runner, sample_config, tmp_path
     ):
         """Full merge flow should handle merge conflicts gracefully."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops_with_conflict), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops_with_conflict),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -501,9 +498,10 @@ class TestFullMergeFlowMergeConflicts:
         self, mock_git_ops_with_conflict, mock_gate_runner, sample_config, tmp_path
     ):
         """MergeFlowResult should have correct level on conflict."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops_with_conflict), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops_with_conflict),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -520,9 +518,7 @@ class TestFullMergeFlowMergeConflicts:
             assert result.source_branches == ["worker-0", "worker-1"]
             assert result.target_branch == "main"
 
-    def test_full_merge_flow_single_branch_conflict(
-        self, sample_config, tmp_path
-    ):
+    def test_full_merge_flow_single_branch_conflict(self, sample_config, tmp_path):
         """Full merge flow should handle conflict on single branch merge."""
         mock_git_ops = MagicMock()
         mock_git_ops.create_staging_branch.return_value = "zerg/test-feature/staging"
@@ -542,9 +538,10 @@ class TestFullMergeFlowMergeConflicts:
         mock_gate_runner.run_all_gates.return_value = (True, [])
         mock_gate_runner.get_summary.return_value = {"passed": 0, "failed": 0}
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -577,13 +574,9 @@ class TestFinalizeMerge:
         """Create a sample configuration."""
         return ZergConfig()
 
-    def test_finalize_merges_staging_to_target(
-        self, mock_git_ops, sample_config, tmp_path
-    ):
+    def test_finalize_merges_staging_to_target(self, mock_git_ops, sample_config, tmp_path):
         """Finalize should merge staging branch into target branch."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner"):
-
+        with patch("zerg.merge.GitOps", return_value=mock_git_ops), patch("zerg.merge.GateRunner"):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -601,13 +594,9 @@ class TestFinalizeMerge:
             call_args = mock_git_ops.merge.call_args
             assert call_args[0][0] == "zerg/test-feature/staging"
 
-    def test_finalize_uses_correct_commit_message(
-        self, mock_git_ops, sample_config, tmp_path
-    ):
+    def test_finalize_uses_correct_commit_message(self, mock_git_ops, sample_config, tmp_path):
         """Finalize should use ZERG-specific commit message."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner"):
-
+        with patch("zerg.merge.GitOps", return_value=mock_git_ops), patch("zerg.merge.GateRunner"):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -624,13 +613,9 @@ class TestFinalizeMerge:
             assert "ZERG" in message
             assert "staging" in message.lower()
 
-    def test_finalize_to_different_target_branches(
-        self, mock_git_ops, sample_config, tmp_path
-    ):
+    def test_finalize_to_different_target_branches(self, mock_git_ops, sample_config, tmp_path):
         """Finalize should work with different target branches."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner"):
-
+        with patch("zerg.merge.GitOps", return_value=mock_git_ops), patch("zerg.merge.GateRunner"):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -676,13 +661,12 @@ class TestFullMergeFlowWithFinalize:
         config.quality_gates = []
         return config
 
-    def test_full_flow_pushes_to_target_branch(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_full_flow_pushes_to_target_branch(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """Full merge flow should push changes to target branch."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -701,13 +685,12 @@ class TestFullMergeFlowWithFinalize:
             # Last checkout should be to target branch for finalize
             assert any("main" in str(call) for call in checkout_calls)
 
-    def test_full_flow_cleans_up_staging_branch(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_full_flow_cleans_up_staging_branch(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """Full merge flow should clean up staging branch after success."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -724,15 +707,14 @@ class TestFullMergeFlowWithFinalize:
             # Staging branch should be deleted
             mock_git_ops.delete_branch.assert_called()
 
-    def test_full_flow_returns_merge_commit(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_full_flow_returns_merge_commit(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """Full merge flow should return the final merge commit SHA."""
         mock_git_ops.merge.return_value = "final_sha_12345"
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -767,9 +749,10 @@ class TestFullMergeFlowErrorHandling:
 
         mock_gate_runner = MagicMock()
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -799,9 +782,10 @@ class TestFullMergeFlowErrorHandling:
         mock_gate_runner.run_all_gates.return_value = (True, [])
         mock_gate_runner.get_summary.return_value = {"passed": 0, "failed": 0}
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="test-feature",
                 config=sample_config,
@@ -848,15 +832,14 @@ class TestMergeFlowResultValues:
         config.quality_gates = []
         return config
 
-    def test_result_contains_all_source_branches(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_result_contains_all_source_branches(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """MergeFlowResult should contain all source branches."""
         branches = ["worker-0", "worker-1", "worker-2", "worker-3"]
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="feature",
                 config=sample_config,
@@ -872,15 +855,14 @@ class TestMergeFlowResultValues:
             assert result.source_branches == branches
             assert len(result.source_branches) == 4
 
-    def test_result_timestamp_is_recent(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_result_timestamp_is_recent(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """MergeFlowResult timestamp should be recent."""
         before = datetime.now()
 
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="feature",
                 config=sample_config,
@@ -897,13 +879,12 @@ class TestMergeFlowResultValues:
 
         assert before <= result.timestamp <= after
 
-    def test_result_level_matches_input(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_result_level_matches_input(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """MergeFlowResult level should match input level."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="feature",
                 config=sample_config,
@@ -919,13 +900,12 @@ class TestMergeFlowResultValues:
 
                 assert result.level == level
 
-    def test_result_target_branch_matches_input(
-        self, mock_git_ops, mock_gate_runner, sample_config, tmp_path
-    ):
+    def test_result_target_branch_matches_input(self, mock_git_ops, mock_gate_runner, sample_config, tmp_path):
         """MergeFlowResult target_branch should match input."""
-        with patch("zerg.merge.GitOps", return_value=mock_git_ops), \
-             patch("zerg.merge.GateRunner", return_value=mock_gate_runner):
-
+        with (
+            patch("zerg.merge.GitOps", return_value=mock_git_ops),
+            patch("zerg.merge.GateRunner", return_value=mock_gate_runner),
+        ):
             coordinator = MergeCoordinator(
                 feature="feature",
                 config=sample_config,

@@ -277,11 +277,8 @@ class MetricsCollector:
         for level_data in all_levels.values():
             if level_data.get("status") == "complete":
                 lvl_completed = level_data.get("completed_at")
-                if lvl_completed and (
-                    feature_completed_at is None
-                    or lvl_completed > feature_completed_at
-                ):
-                        feature_completed_at = lvl_completed
+                if lvl_completed and (feature_completed_at is None or lvl_completed > feature_completed_at):
+                    feature_completed_at = lvl_completed
 
         end_time = feature_completed_at or now.isoformat()
         total_duration_ms = duration_ms(started_at, end_time)
@@ -293,32 +290,17 @@ class MetricsCollector:
         # Count tasks
         tasks_data = self._state_data.get("tasks", {})
         tasks_total = len(tasks_data)
-        tasks_completed = sum(
-            1 for t in tasks_data.values()
-            if t.get("status") == TaskStatus.COMPLETE.value
-        )
-        tasks_failed = sum(
-            1 for t in tasks_data.values()
-            if t.get("status") == TaskStatus.FAILED.value
-        )
+        tasks_completed = sum(1 for t in tasks_data.values() if t.get("status") == TaskStatus.COMPLETE.value)
+        tasks_failed = sum(1 for t in tasks_data.values() if t.get("status") == TaskStatus.FAILED.value)
 
         # Count completed levels
-        levels_completed = sum(
-            1 for lvl in all_levels.values()
-            if lvl.get("status") == "complete"
-        )
+        levels_completed = sum(1 for lvl in all_levels.values() if lvl.get("status") == "complete")
 
         # Compute per-worker metrics
-        worker_metrics = [
-            self.compute_worker_metrics(int(wid))
-            for wid in workers_data
-        ]
+        worker_metrics = [self.compute_worker_metrics(int(wid)) for wid in workers_data]
 
         # Compute per-level metrics
-        level_metrics = [
-            self.compute_level_metrics(int(lvl))
-            for lvl in all_levels
-        ]
+        level_metrics = [self.compute_level_metrics(int(lvl)) for lvl in all_levels]
 
         return FeatureMetrics(
             computed_at=now,

@@ -99,15 +99,11 @@ class LogAggregator:
                 else:
                     continue
             if since is not None:
-                since_str = (
-                    since.isoformat() if isinstance(since, datetime) else since
-                )
+                since_str = since.isoformat() if isinstance(since, datetime) else since
                 if entry.get("ts", "") < since_str:
                     continue
             if until is not None:
-                until_str = (
-                    until.isoformat() if isinstance(until, datetime) else until
-                )
+                until_str = until.isoformat() if isinstance(until, datetime) else until
                 if entry.get("ts", "") > until_str:
                     continue
             if search is not None:

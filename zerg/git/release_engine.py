@@ -38,11 +38,13 @@ _CONVENTIONAL_RE = re.compile(
 _MINOR_TYPES = frozenset({CommitType.FEAT})
 
 # Commit types that map to patch bumps
-_PATCH_TYPES = frozenset({
-    CommitType.FIX,
-    CommitType.PERF,
-    CommitType.REFACTOR,
-})
+_PATCH_TYPES = frozenset(
+    {
+        CommitType.FIX,
+        CommitType.PERF,
+        CommitType.REFACTOR,
+    }
+)
 
 # Map conventional commit type strings to changelog sections
 _TYPE_TO_SECTION: dict[str, str] = {
@@ -72,14 +74,13 @@ class SemverCalculator:
         prefix = self.config.tag_prefix
         try:
             result = runner._run(
-                "tag", "--list", f"{prefix}*", "--sort=-v:refname",
+                "tag",
+                "--list",
+                f"{prefix}*",
+                "--sort=-v:refname",
                 check=False,
             )
-            tags = [
-                line.strip()
-                for line in (result.stdout or "").strip().splitlines()
-                if line.strip()
-            ]
+            tags = [line.strip() for line in (result.stdout or "").strip().splitlines() if line.strip()]
         except Exception:
             logger.debug("Failed to list tags, defaulting to 0.0.0")
             return "0.0.0"
@@ -130,9 +131,7 @@ class SemverCalculator:
 
         return "minor" if has_minor else "patch"
 
-    def next_version(
-        self, current: str, bump: str, pre: str | None = None
-    ) -> str:
+    def next_version(self, current: str, bump: str, pre: str | None = None) -> str:
         """Calculate the next version string.
 
         Args:
@@ -190,9 +189,7 @@ class SemverCalculator:
 class ChangelogGenerator:
     """Generates changelog entries in Keep a Changelog format."""
 
-    def generate(
-        self, commits: list[CommitInfo], version: str, date: str
-    ) -> str:
+    def generate(self, commits: list[CommitInfo], version: str, date: str) -> str:
         """Generate a changelog entry for a release.
 
         Groups commits by type into sections: Added, Changed, Fixed,
@@ -230,9 +227,7 @@ class ChangelogGenerator:
         lines.append("")
         return "\n".join(lines)
 
-    def update_changelog(
-        self, changelog_path: Path, new_entry: str
-    ) -> None:
+    def update_changelog(self, changelog_path: Path, new_entry: str) -> None:
         """Insert a new entry into an existing changelog file.
 
         Inserts after the ``## [Unreleased]`` line. If no Unreleased section
@@ -316,15 +311,9 @@ class VersionFileUpdater:
 
     # Patterns for version strings in various file formats
     _PATTERNS: dict[str, re.Pattern[str]] = {
-        "pyproject.toml": re.compile(
-            r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE
-        ),
-        "package.json": re.compile(
-            r'^(\s*"version"\s*:\s*")([^"]+)(")', re.MULTILINE
-        ),
-        "Cargo.toml": re.compile(
-            r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE
-        ),
+        "pyproject.toml": re.compile(r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE),
+        "package.json": re.compile(r'^(\s*"version"\s*:\s*")([^"]+)(")', re.MULTILINE),
+        "Cargo.toml": re.compile(r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE),
     }
 
     def detect_version_files(self, runner: GitRunner) -> list[dict[str, str]]:
@@ -377,9 +366,7 @@ class VersionFileUpdater:
             return False
 
         content = resolved.read_text(encoding="utf-8")
-        new_content, count = pattern.subn(
-            rf"\g<1>{new_version}\g<3>", content
-        )
+        new_content, count = pattern.subn(rf"\g<1>{new_version}\g<3>", content)
 
         if count == 0:
             return False
@@ -427,7 +414,11 @@ class ReleaseCreator:
 
         # Create annotated tag
         runner._run(
-            "tag", "-a", tag_name, "-m", f"Release {tag_name}",
+            "tag",
+            "-a",
+            tag_name,
+            "-m",
+            f"Release {tag_name}",
         )
         logger.info("Created tag: %s", tag_name)
 
@@ -441,9 +432,7 @@ class ReleaseCreator:
 
         # Create GitHub release if configured and gh is available
         if config.github_release:
-            result["gh_release"] = self._create_gh_release(
-                tag_name, changelog_entry
-            )
+            result["gh_release"] = self._create_gh_release(tag_name, changelog_entry)
 
         return result
 
@@ -465,10 +454,14 @@ class ReleaseCreator:
         try:
             subprocess.run(
                 [
-                    "gh", "release", "create",
+                    "gh",
+                    "release",
+                    "create",
                     tag_name,
-                    "--title", tag_name,
-                    "--notes", notes,
+                    "--title",
+                    tag_name,
+                    "--notes",
+                    notes,
                 ],
                 capture_output=True,
                 text=True,
@@ -559,9 +552,7 @@ class ReleaseEngine:
         if dry_run:
             logger.info("[DRY RUN] Changelog entry:\n%s", changelog_entry)
             logger.info("[DRY RUN] Would update version files to %s", new_version)
-            self._release.create(
-                self.runner, new_version, changelog_entry, release_cfg, dry_run=True
-            )
+            self._release.create(self.runner, new_version, changelog_entry, release_cfg, dry_run=True)
             return 0
 
         # Step 6: Update changelog file
@@ -571,21 +562,18 @@ class ReleaseEngine:
         # Step 7: Update version files
         version_files = self._version_files.detect_version_files(self.runner)
         for vf in version_files:
-            self._version_files.update_version(
-                Path(vf["path"]), new_version
-            )
+            self._version_files.update_version(Path(vf["path"]), new_version)
 
         # Step 8: Commit changes
         self.runner._run("add", "-A")
         self.runner._run(
-            "commit", "-m",
+            "commit",
+            "-m",
             f"chore(release): {release_cfg.tag_prefix}{new_version}",
         )
 
         # Step 9: Tag and release
-        self._release.create(
-            self.runner, new_version, changelog_entry, release_cfg
-        )
+        self._release.create(self.runner, new_version, changelog_entry, release_cfg)
 
         logger.info("Released %s%s", release_cfg.tag_prefix, new_version)
         return 0
@@ -601,7 +589,10 @@ class ReleaseEngine:
         """
         # Check if tag exists
         tag_check = self.runner._run(
-            "tag", "--list", tag, check=False,
+            "tag",
+            "--list",
+            tag,
+            check=False,
         )
         tag_exists = bool((tag_check.stdout or "").strip())
 
@@ -612,7 +603,10 @@ class ReleaseEngine:
 
         try:
             result = self.runner._run(
-                "log", log_range, "--format=%H%n%s%n%an%n%aI", "--no-merges",
+                "log",
+                log_range,
+                "--format=%H%n%s%n%an%n%aI",
+                "--no-merges",
                 check=False,
             )
         except Exception:
@@ -640,13 +634,15 @@ class ReleaseEngine:
 
             # Detect commit type
             commit_type = self._parse_commit_type(message)
-            commits.append(CommitInfo(
-                sha=sha,
-                message=message,
-                author=author,
-                date=date,
-                commit_type=commit_type,
-            ))
+            commits.append(
+                CommitInfo(
+                    sha=sha,
+                    message=message,
+                    author=author,
+                    date=date,
+                    commit_type=commit_type,
+                )
+            )
 
         return commits
 

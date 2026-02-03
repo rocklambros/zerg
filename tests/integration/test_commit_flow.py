@@ -4,13 +4,9 @@ Tests BF-012: Verifies worker commit verification and task completion
 flow using mocked git operations.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from tests.mocks.mock_git import MockGitOps
-from zerg.constants import TaskStatus
 from zerg.exceptions import GitError
 
 
@@ -54,8 +50,6 @@ class TestCommitAndTaskCompletion:
         git.configure(commit_fails=True)
         git.simulate_changes()
 
-        task = {"id": "TASK-001", "title": "Test task"}
-
         head_before = git.current_commit()
 
         with pytest.raises(GitError):
@@ -98,8 +92,6 @@ class TestNoChangesScenario:
         git = MockGitOps()
         # No changes staged
 
-        task = {"id": "TASK-001", "title": "Test task"}
-
         has_changes = git.has_changes()
         assert not has_changes
 
@@ -132,10 +124,12 @@ class TestMultiTaskCommitFlow:
         for task in tasks:
             git.simulate_changes()
             commit_sha = git.commit(f"ZERG [0]: {task['title']}", add_all=True)
-            commits.append({
-                "task_id": task["id"],
-                "commit_sha": commit_sha,
-            })
+            commits.append(
+                {
+                    "task_id": task["id"],
+                    "commit_sha": commit_sha,
+                }
+            )
 
         # All commits should have unique SHAs
         shas = [c["commit_sha"] for c in commits]
@@ -152,7 +146,7 @@ class TestMultiTaskCommitFlow:
 
         # Commit task 1 successfully
         git.simulate_changes()
-        commit1 = git.commit("ZERG [0]: Task 1", add_all=True)
+        git.commit("ZERG [0]: Task 1", add_all=True)
         head_after_1 = git.current_commit()
 
         # Configure failure for next commit
@@ -271,11 +265,13 @@ class TestBranchOperations:
             git.checkout(branch)
             git.simulate_changes()
             commit = git.commit(f"ZERG [{i}]: Task", add_all=True)
-            workers.append({
-                "worker_id": i,
-                "branch": branch,
-                "commit": commit,
-            })
+            workers.append(
+                {
+                    "worker_id": i,
+                    "branch": branch,
+                    "commit": commit,
+                }
+            )
             git.checkout("main")
 
         # Each worker should have committed on their branch

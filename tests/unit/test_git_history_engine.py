@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -19,7 +18,6 @@ from zerg.git.history_engine import (
     _validate_branch_name,
 )
 from zerg.git.types import CommitInfo, CommitType
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -167,19 +165,13 @@ class TestHistoryAnalyzer:
         with pytest.raises(ValueError, match="Invalid branch name"):
             analyzer.get_commits("; rm -rf /")
 
-    def test_find_squash_candidates_wip(
-        self, sample_commits: list[CommitInfo]
-    ) -> None:
+    def test_find_squash_candidates_wip(self, sample_commits: list[CommitInfo]) -> None:
         """find_squash_candidates groups WIP commits together."""
         analyzer = HistoryAnalyzer(MagicMock())
         groups = analyzer.find_squash_candidates(sample_commits)
 
         # Should find at least one WIP group
-        wip_groups = [
-            g
-            for g in groups
-            if any(c.message.lower().startswith("wip") for c in g)
-        ]
+        wip_groups = [g for g in groups if any(c.message.lower().startswith("wip") for c in g)]
         assert len(wip_groups) >= 1
         wip_shas = {c.sha for g in wip_groups for c in g}
         assert "bbb2222" in wip_shas
@@ -208,9 +200,7 @@ class TestHistoryAnalyzer:
         analyzer = HistoryAnalyzer(MagicMock())
         groups = analyzer.find_squash_candidates(commits)
 
-        fixup_groups = [
-            g for g in groups if any("fixup!" in c.message for c in g)
-        ]
+        fixup_groups = [g for g in groups if any("fixup!" in c.message for c in g)]
         assert len(fixup_groups) >= 1
         assert len(fixup_groups[0]) == 2
 
@@ -242,9 +232,7 @@ class TestHistoryAnalyzer:
         related = [g for g in groups if len(g) == 2]
         assert len(related) >= 1
 
-    def test_find_reorder_groups_by_directory(
-        self, sample_commits: list[CommitInfo]
-    ) -> None:
+    def test_find_reorder_groups_by_directory(self, sample_commits: list[CommitInfo]) -> None:
         """find_reorder_groups groups commits by primary directory."""
         analyzer = HistoryAnalyzer(MagicMock())
         groups = analyzer.find_reorder_groups(sample_commits)
@@ -380,13 +368,9 @@ class TestSafeRewriter:
         result = rewriter.create_cleaned_branch("feature/auth")
 
         assert result == "feature/auth-cleaned"
-        mock_runner._run.assert_called_once_with(
-            "checkout", "-b", "feature/auth-cleaned"
-        )
+        mock_runner._run.assert_called_once_with("checkout", "-b", "feature/auth-cleaned")
 
-    def test_create_cleaned_branch_invalid_name(
-        self, mock_runner: MagicMock
-    ) -> None:
+    def test_create_cleaned_branch_invalid_name(self, mock_runner: MagicMock) -> None:
         """create_cleaned_branch rejects invalid names."""
         rewriter = SafeRewriter(mock_runner)
         with pytest.raises(ValueError, match="Invalid branch name"):
@@ -426,13 +410,9 @@ class TestSafeRewriter:
         assert "chore: update stuff" in output
 
     @patch("subprocess.run")
-    def test_execute_squash_calls_rebase(
-        self, mock_subprocess: MagicMock, mock_runner: MagicMock
-    ) -> None:
+    def test_execute_squash_calls_rebase(self, mock_subprocess: MagicMock, mock_runner: MagicMock) -> None:
         """execute_squash runs git rebase -i with GIT_SEQUENCE_EDITOR."""
-        mock_subprocess.return_value = MagicMock(
-            returncode=0, stdout="", stderr=""
-        )
+        mock_subprocess.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
         plan = [
             {
@@ -457,13 +437,9 @@ class TestSafeRewriter:
         assert "GIT_SEQUENCE_EDITOR" in env
 
     @patch("subprocess.run")
-    def test_execute_squash_failure_aborts(
-        self, mock_subprocess: MagicMock, mock_runner: MagicMock
-    ) -> None:
+    def test_execute_squash_failure_aborts(self, mock_subprocess: MagicMock, mock_runner: MagicMock) -> None:
         """execute_squash aborts rebase on failure."""
-        mock_subprocess.return_value = MagicMock(
-            returncode=1, stdout="", stderr="conflict"
-        )
+        mock_subprocess.return_value = MagicMock(returncode=1, stdout="", stderr="conflict")
 
         plan = [
             {
@@ -480,9 +456,7 @@ class TestSafeRewriter:
         # Verify rebase --abort was called
         mock_runner._run.assert_called_with("rebase", "--abort", check=False)
 
-    def test_execute_squash_empty_plan(
-        self, mock_runner: MagicMock
-    ) -> None:
+    def test_execute_squash_empty_plan(self, mock_runner: MagicMock) -> None:
         """execute_squash returns True for empty plan."""
         rewriter = SafeRewriter(mock_runner)
         assert rewriter.execute_squash([], base="main") is True

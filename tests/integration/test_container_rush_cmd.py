@@ -1,6 +1,5 @@
 """Integration tests for rush command mode flag."""
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -26,9 +25,6 @@ class TestRushCommand:
         assert has_mode_flag, f"Expected --mode flag in help:\n{result.output}"
 
         # Check for all mode choices
-        assert "subprocess" in result.output, \
-            f"Expected 'subprocess' in help:\n{result.output}"
-        assert "container" in result.output, \
-            f"Expected 'container' in help:\n{result.output}"
-        assert "auto" in result.output, \
-            f"Expected 'auto' in help:\n{result.output}"
+        assert "subprocess" in result.output, f"Expected 'subprocess' in help:\n{result.output}"
+        assert "container" in result.output, f"Expected 'container' in help:\n{result.output}"
+        assert "auto" in result.output, f"Expected 'auto' in help:\n{result.output}"

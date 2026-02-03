@@ -3,9 +3,7 @@
 import textwrap
 from pathlib import Path
 
-import pytest
-
-from zerg.repo_map_js import JSSymbol, extract_js_file, extract_js_symbols
+from zerg.repo_map_js import extract_js_file, extract_js_symbols
 
 
 class TestExtractJSSymbols:

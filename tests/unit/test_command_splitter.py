@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from zerg.command_splitter import CHARS_PER_TOKEN, MIN_LINES_TO_SPLIT, CommandSplitter
+from zerg.command_splitter import CHARS_PER_TOKEN, CommandSplitter
 
 
 class TestEstimateTokens:

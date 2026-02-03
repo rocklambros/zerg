@@ -229,9 +229,7 @@ class Runner:
                 errors=[f"Test execution error: {e}"],
             )
 
-    def _parse_output(
-        self, framework: Framework, output: str, returncode: int, duration: float
-    ) -> RunResult:
+    def _parse_output(self, framework: Framework, output: str, returncode: int, duration: float) -> RunResult:
         """Parse test output to extract results."""
         import re
 
@@ -479,10 +477,7 @@ def _watch_loop(tester: Command, framework: Framework | None, path: str) -> None
             current_hashes = get_file_hashes(Path(path))
 
             if current_hashes != last_hashes and time.time() - last_run_time > 2:
-                changed = [
-                    f for f in current_hashes
-                    if f not in last_hashes or current_hashes[f] != last_hashes[f]
-                ]
+                changed = [f for f in current_hashes if f not in last_hashes or current_hashes[f] != last_hashes[f]]
                 console.print(f"\n[yellow]Changes detected in {len(changed)} files[/yellow]")
 
                 result = tester.run(framework=framework, path=path)

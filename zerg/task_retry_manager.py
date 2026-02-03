@@ -74,10 +74,7 @@ class TaskRetryManager:
         """
         # Use provided timeout, config value, or default
         if timeout_seconds is None:
-            timeout_seconds = getattr(
-                self._config.workers, "task_stale_timeout_seconds",
-                DEFAULT_STALE_TIMEOUT_SECONDS
-            )
+            timeout_seconds = getattr(self._config.workers, "task_stale_timeout_seconds", DEFAULT_STALE_TIMEOUT_SECONDS)
 
         stale_tasks = self._state.get_stale_in_progress_tasks(timeout_seconds)
         requeued = []
@@ -88,17 +85,19 @@ class TaskRetryManager:
             elapsed = task_info["elapsed_seconds"]
 
             logger.warning(
-                f"Task {task_id} stale: in_progress for {elapsed}s "
-                f"(timeout={timeout_seconds}s), worker={worker_id}"
+                f"Task {task_id} stale: in_progress for {elapsed}s (timeout={timeout_seconds}s), worker={worker_id}"
             )
 
             # Log structured event for stale task detection
-            self._state.append_event("task_stale_detected", {
-                "task_id": task_id,
-                "worker_id": worker_id,
-                "elapsed_seconds": elapsed,
-                "timeout_seconds": timeout_seconds,
-            })
+            self._state.append_event(
+                "task_stale_detected",
+                {
+                    "task_id": task_id,
+                    "worker_id": worker_id,
+                    "elapsed_seconds": elapsed,
+                    "timeout_seconds": timeout_seconds,
+                },
+            )
 
             if self._structured_writer:
                 self._structured_writer.emit(
@@ -153,14 +152,17 @@ class TaskRetryManager:
                 f"will retry in {delay:.0f}s: {error}"
             )
             self._state.set_task_status(task_id, "waiting_retry")
-            self._state.append_event("task_retry_scheduled", {
-                "task_id": task_id,
-                "worker_id": worker_id,
-                "retry_count": new_count,
-                "backoff_seconds": round(delay),
-                "next_retry_at": next_retry_at,
-                "error": error,
-            })
+            self._state.append_event(
+                "task_retry_scheduled",
+                {
+                    "task_id": task_id,
+                    "worker_id": worker_id,
+                    "retry_count": new_count,
+                    "backoff_seconds": round(delay),
+                    "next_retry_at": next_retry_at,
+                    "error": error,
+                },
+            )
             if self._structured_writer:
                 self._structured_writer.emit(
                     "warn",
@@ -170,20 +172,23 @@ class TaskRetryManager:
                 )
             return True
         else:
-            logger.error(
-                f"Task {task_id} failed after {retry_count} retries: {error}"
-            )
+            logger.error(f"Task {task_id} failed after {retry_count} retries: {error}")
             self._levels.mark_task_failed(task_id, error)
             self._state.set_task_status(
-                task_id, TaskStatus.FAILED, worker_id=worker_id,
+                task_id,
+                TaskStatus.FAILED,
+                worker_id=worker_id,
                 error=f"Failed after {retry_count} retries: {error}",
             )
-            self._state.append_event("task_failed_permanent", {
-                "task_id": task_id,
-                "worker_id": worker_id,
-                "retry_count": retry_count,
-                "error": error,
-            })
+            self._state.append_event(
+                "task_failed_permanent",
+                {
+                    "task_id": task_id,
+                    "worker_id": worker_id,
+                    "retry_count": retry_count,
+                    "error": error,
+                },
+            )
             return False
 
     def retry_task(self, task_id: str) -> bool:
@@ -239,6 +244,7 @@ class TaskRetryManager:
             True if verification passed, False if all attempts failed
         """
         from zerg.verify import VerificationExecutor
+
         verifier = VerificationExecutor()
         max_attempts = max_retries if max_retries is not None else self._max_retry_attempts
         for attempt in range(max_attempts + 1):
@@ -247,8 +253,7 @@ class TaskRetryManager:
                 return True
             if attempt < max_attempts:
                 logger.warning(
-                    f"Verification failed for {task_id} "
-                    f"(attempt {attempt + 1}/{max_attempts + 1}), retrying..."
+                    f"Verification failed for {task_id} (attempt {attempt + 1}/{max_attempts + 1}), retrying..."
                 )
                 time.sleep(1)
         return False

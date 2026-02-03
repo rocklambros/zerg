@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -41,7 +40,6 @@ from zerg.commands.refactor import (
     _collect_files,
     refactor,
 )
-
 
 # =============================================================================
 # TransformType Enum Tests
@@ -825,9 +823,7 @@ class TestRefactorCommand:
         assert len(result.errors) > 0
 
     @patch("zerg.commands.refactor.Confirm")
-    def test_run_interactive_mode_apply(
-        self, mock_confirm: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_run_interactive_mode_apply(self, mock_confirm: MagicMock, tmp_path: Path) -> None:
         """Test run in interactive mode with apply."""
         mock_confirm.ask.return_value = True
 
@@ -846,9 +842,7 @@ class TestRefactorCommand:
         assert result.applied >= 1
 
     @patch("zerg.commands.refactor.Confirm")
-    def test_run_interactive_mode_skip(
-        self, mock_confirm: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_run_interactive_mode_skip(self, mock_confirm: MagicMock, tmp_path: Path) -> None:
         """Test run in interactive mode with skip."""
         mock_confirm.ask.return_value = False
 
@@ -1052,9 +1046,7 @@ class TestRefactorCLI:
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_dry_run(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_refactor_dry_run(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test refactor --dry-run."""
         mock_command = MagicMock()
         mock_command.run.return_value = RefactorResult(
@@ -1071,9 +1063,7 @@ class TestRefactorCLI:
 
     @patch("zerg.commands.refactor._collect_files")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_no_files(
-        self, mock_console: MagicMock, mock_collect: MagicMock
-    ) -> None:
+    def test_refactor_no_files(self, mock_console: MagicMock, mock_collect: MagicMock) -> None:
         """Test refactor with no files found."""
         mock_collect.return_value = []
 
@@ -1084,9 +1074,7 @@ class TestRefactorCLI:
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_json_output(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_refactor_json_output(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test refactor --json."""
         mock_command = MagicMock()
         mock_command.run.return_value = RefactorResult(
@@ -1101,15 +1089,11 @@ class TestRefactorCLI:
         result = runner.invoke(refactor, ["--json", "--dry-run"])
 
         assert result.exit_code == 0
-        mock_command.format_result.assert_called_with(
-            mock_command.run.return_value, "json"
-        )
+        mock_command.format_result.assert_called_with(mock_command.run.return_value, "json")
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_with_transforms(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_refactor_with_transforms(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test refactor with specific transforms."""
         mock_command = MagicMock()
         mock_command.run.return_value = RefactorResult(
@@ -1120,17 +1104,13 @@ class TestRefactorCLI:
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(
-            refactor, ["--transforms", "types,naming", "--dry-run"]
-        )
+        result = runner.invoke(refactor, ["--transforms", "types,naming", "--dry-run"])
 
         assert result.exit_code == 0
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_with_suggestions(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_refactor_with_suggestions(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test refactor with suggestions found."""
         suggestions = [
             RefactorSuggestion(
@@ -1181,9 +1161,7 @@ class TestRefactorCLI:
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_with_errors(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_refactor_with_errors(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test refactor with errors."""
         mock_command = MagicMock()
         mock_command.run.return_value = RefactorResult(
@@ -1201,9 +1179,7 @@ class TestRefactorCLI:
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_applied_changes(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_refactor_applied_changes(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test refactor with applied changes."""
         mock_command = MagicMock()
         mock_command.run.return_value = RefactorResult(
@@ -1283,9 +1259,7 @@ class TestRefactorCLI:
 
     @patch("zerg.commands.refactor.RefactorCommand")
     @patch("zerg.commands.refactor.console")
-    def test_refactor_no_suggestions_message(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_refactor_no_suggestions_message(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test refactor shows good code message when no suggestions."""
         mock_command = MagicMock()
         mock_command.run.return_value = RefactorResult(

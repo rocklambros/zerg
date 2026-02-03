@@ -28,7 +28,9 @@ logger = get_logger("cleanup")
 @click.option("--keep-branches", is_flag=True, help="Preserve git branches")
 @click.option("--dry-run", is_flag=True, help="Show cleanup plan only")
 @click.option(
-    "--logs", "logs_only", is_flag=True,
+    "--logs",
+    "logs_only",
+    is_flag=True,
     help="Clean only structured logs (task artifacts and rotated worker logs)",
 )
 @click.pass_context
@@ -313,10 +315,7 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
                     container_mgr.stop_worker(worker_id)
                     stopped += 1
             if stopped:
-                console.print(
-                    f"  [green]✓[/green] Stopped {stopped}"
-                    f" container(s) matching {pattern}"
-                )
+                console.print(f"  [green]✓[/green] Stopped {stopped} container(s) matching {pattern}")
             else:
                 console.print(f"  [dim]-[/dim] No containers matching {pattern}")
         except Exception as e:
@@ -469,13 +468,11 @@ def cleanup_structured_logs(config: ZergConfig, dry_run: bool = False) -> None:
 
     if dry_run:
         console.print(
-            f"\n[dim]Dry run: {cleaned_tasks} task dirs, "
-            f"{cleaned_workers} worker files would be cleaned[/dim]"
+            f"\n[dim]Dry run: {cleaned_tasks} task dirs, {cleaned_workers} worker files would be cleaned[/dim]"
         )
     else:
         console.print(
-            f"\n[green]Log cleanup complete:[/green] "
-            f"{cleaned_tasks} task dirs, {cleaned_workers} worker files"
+            f"\n[green]Log cleanup complete:[/green] {cleaned_tasks} task dirs, {cleaned_workers} worker files"
         )
 
     if errors:

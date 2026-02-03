@@ -64,9 +64,7 @@ class ContextPreparer:
         Returns:
             List of changed file paths relative to repo root.
         """
-        result = self._runner._run(
-            "diff", "--name-only", f"{base_branch}..HEAD"
-        )
+        result = self._runner._run("diff", "--name-only", f"{base_branch}..HEAD")
         output = result.stdout.strip()
         if not output:
             return []
@@ -88,9 +86,7 @@ class ContextPreparer:
         Returns:
             Diff hunk text, truncated if necessary.
         """
-        result = self._runner._run(
-            "diff", f"{base_branch}..HEAD", "--", filepath
-        )
+        result = self._runner._run("diff", f"{base_branch}..HEAD", "--", filepath)
         hunks = result.stdout
         if len(hunks) <= budget_chars:
             return hunks
@@ -127,11 +123,13 @@ class ContextPreparer:
             if hunks.endswith("... [truncated]"):
                 truncated = True
             ext = Path(fpath).suffix
-            files.append({
-                "path": fpath,
-                "hunks": hunks,
-                "extension": ext,
-            })
+            files.append(
+                {
+                    "path": fpath,
+                    "hunks": hunks,
+                    "extension": ext,
+                }
+            )
 
         return {
             "files": files,
@@ -212,9 +210,7 @@ class DomainFilter:
                 domain_dir = (resolved_rules_dir / rel_path).resolve()
                 # Security: ensure path is within rules_dir
                 if not domain_dir.is_relative_to(resolved_rules_dir):
-                    logger.warning(
-                        f"Skipping path outside rules dir: {domain_dir}"
-                    )
+                    logger.warning(f"Skipping path outside rules dir: {domain_dir}")
                     continue
                 if not domain_dir.is_dir():
                     continue
@@ -231,9 +227,7 @@ class DomainFilter:
                         if chars_used + len(section) > budget_chars:
                             remaining = budget_chars - chars_used
                             if remaining > 50:
-                                summaries.append(
-                                    section[:remaining] + "\n... [truncated]"
-                                )
+                                summaries.append(section[:remaining] + "\n... [truncated]")
                             break
                         summaries.append(section)
                         chars_used += len(section)
@@ -377,9 +371,7 @@ class ReviewReporter:
 
         # Security: ensure report dir is within project root
         if not report_dir.is_relative_to(self._project_root):
-            raise ValueError(
-                f"Report directory {report_dir} is outside project root"
-            )
+            raise ValueError(f"Report directory {report_dir} is outside project root")
 
         report_dir.mkdir(parents=True, exist_ok=True)
 
@@ -388,9 +380,7 @@ class ReviewReporter:
 
         # Security: validate final path is within project root
         if not report_path.is_relative_to(self._project_root):
-            raise ValueError(
-                f"Report path {report_path} is outside project root"
-            )
+            raise ValueError(f"Report path {report_path} is outside project root")
 
         report_path.write_text(report, encoding="utf-8")
         logger.info(f"Saved review report to {report_path}")
@@ -428,30 +418,21 @@ class PreReviewEngine:
         file_paths = [f["path"] for f in context["files"]]
 
         rules_dir_path = self._runner.repo_path / ".claude" / "rules" / "security"
-        domain_filter = DomainFilter(
-            rules_dir=rules_dir_path if rules_dir_path.is_dir() else None
-        )
+        domain_filter = DomainFilter(rules_dir=rules_dir_path if rules_dir_path.is_dir() else None)
         rules = domain_filter.filter_for_files(file_paths)
 
         # Apply focus filter if specified
         if focus:
-            focused_domains = {
-                d for d in rules["domains"] if focus.lower() in d.lower()
-            }
+            focused_domains = {d for d in rules["domains"] if focus.lower() in d.lower()}
             # Always keep owasp when filtering
             focused_domains.add("owasp")
             rules["domains"] = focused_domains
-            rules["rules_summary"] = domain_filter.get_rules_summary(
-                sorted(focused_domains)
-            )
+            rules["rules_summary"] = domain_filter.get_rules_summary(sorted(focused_domains))
 
         branch = self._runner.current_branch()
         reporter = ReviewReporter(self._runner.repo_path)
         report = reporter.generate_report(context, rules, branch)
         reporter.save_report(report, branch)
 
-        logger.info(
-            f"Pre-review context assembled: {context['total_files']} files, "
-            f"{len(rules['domains'])} domains"
-        )
+        logger.info(f"Pre-review context assembled: {context['total_files']} files, {len(rules['domains'])} domains")
         return 0

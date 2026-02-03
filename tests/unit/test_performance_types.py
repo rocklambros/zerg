@@ -95,32 +95,50 @@ class TestPerformanceReport:
     def sample_report(self) -> PerformanceReport:
         findings = [
             PerformanceFinding(
-                factor_id=1, factor_name="Low issue", category="CPU",
-                severity=Severity.LOW, message="low",
+                factor_id=1,
+                factor_name="Low issue",
+                category="CPU",
+                severity=Severity.LOW,
+                message="low",
             ),
             PerformanceFinding(
-                factor_id=2, factor_name="Critical issue", category="CPU",
-                severity=Severity.CRITICAL, message="critical",
+                factor_id=2,
+                factor_name="Critical issue",
+                category="CPU",
+                severity=Severity.CRITICAL,
+                message="critical",
             ),
             PerformanceFinding(
-                factor_id=3, factor_name="High issue", category="Memory",
-                severity=Severity.HIGH, message="high",
+                factor_id=3,
+                factor_name="High issue",
+                category="Memory",
+                severity=Severity.HIGH,
+                message="high",
             ),
             PerformanceFinding(
-                factor_id=4, factor_name="Medium issue", category="IO",
-                severity=Severity.MEDIUM, message="medium",
+                factor_id=4,
+                factor_name="Medium issue",
+                category="IO",
+                severity=Severity.MEDIUM,
+                message="medium",
             ),
             PerformanceFinding(
-                factor_id=5, factor_name="Info issue", category="CPU",
-                severity=Severity.INFO, message="info",
+                factor_id=5,
+                factor_name="Info issue",
+                category="CPU",
+                severity=Severity.INFO,
+                message="info",
             ),
         ]
         return PerformanceReport(
             overall_score=72.5,
             categories=[
                 CategoryScore(
-                    category="CPU", score=80.0, findings=findings[:1],
-                    factors_checked=5, factors_total=10,
+                    category="CPU",
+                    score=80.0,
+                    findings=findings[:1],
+                    factors_checked=5,
+                    factors_total=10,
                 ),
             ],
             tool_statuses=[ToolStatus(name="semgrep", available=True, version="1.0")],
@@ -128,8 +146,10 @@ class TestPerformanceReport:
             factors_checked=10,
             factors_total=50,
             detected_stack=DetectedStack(
-                languages=["python"], frameworks=["django"],
-                has_docker=True, has_kubernetes=False,
+                languages=["python"],
+                frameworks=["django"],
+                has_docker=True,
+                has_kubernetes=False,
             ),
         )
 
@@ -172,8 +192,11 @@ class TestCategoryScore:
 
     def test_score_none(self) -> None:
         cs = CategoryScore(
-            category="CPU", score=None, findings=[],
-            factors_checked=0, factors_total=10,
+            category="CPU",
+            score=None,
+            findings=[],
+            factors_checked=0,
+            factors_total=10,
         )
         assert cs.score is None
         d = cs.to_dict()

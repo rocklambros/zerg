@@ -113,9 +113,7 @@ class TestContainerLauncherStartContainer:
     @patch("subprocess.run")
     def test_docker_run_includes_memory_flag(self, mock_run: MagicMock) -> None:
         """_start_container must pass --memory flag to docker run."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="abc123container\n", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="abc123container\n", stderr="")
 
         launcher = ContainerLauncher(memory_limit="8g", cpu_limit=4.0)
         worktree_path = Path("/tmp/fake-worktrees/feature/worker-0")
@@ -135,9 +133,7 @@ class TestContainerLauncherStartContainer:
     @patch("subprocess.run")
     def test_docker_run_includes_cpus_flag(self, mock_run: MagicMock) -> None:
         """_start_container must pass --cpus flag to docker run."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="abc123container\n", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="abc123container\n", stderr="")
 
         launcher = ContainerLauncher(memory_limit="4g", cpu_limit=3.5)
         worktree_path = Path("/tmp/fake-worktrees/feature/worker-0")
@@ -156,9 +152,7 @@ class TestContainerLauncherStartContainer:
     @patch("subprocess.run")
     def test_docker_run_default_limits(self, mock_run: MagicMock) -> None:
         """_start_container with default limits passes '4g' and '2.0'."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="containerid\n", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="containerid\n", stderr="")
 
         launcher = ContainerLauncher()
         worktree_path = Path("/tmp/fake-worktrees/feature/worker-0")
@@ -198,9 +192,7 @@ class TestOrchestratorPassesLimits:
         orch.config = config
         orch.repo_path = Path(".")
         orch._plugin_registry = PluginRegistry()
-        orch._launcher_config = LauncherConfigurator(
-            config, orch.repo_path, orch._plugin_registry
-        )
+        orch._launcher_config = LauncherConfigurator(config, orch.repo_path, orch._plugin_registry)
 
         # Patch ContainerLauncher at the module level to capture constructor args
         with patch("zerg.orchestrator.ContainerLauncher") as mock_cl_cls:
@@ -248,9 +240,7 @@ class TestCleanupOrphanContainers:
         orch.config = ZergConfig()
         orch.launcher = MagicMock(spec=ContainerLauncher)
         orch._plugin_registry = PluginRegistry()
-        orch._launcher_config = LauncherConfigurator(
-            orch.config, Path("."), orch._plugin_registry
-        )
+        orch._launcher_config = LauncherConfigurator(orch.config, Path("."), orch._plugin_registry)
         return orch
 
     @patch("zerg.launcher_configurator.sp.run")
@@ -333,9 +323,7 @@ class TestCheckContainerHealth:
         orch.state = MagicMock()
         orch._workers = {}
         orch._plugin_registry = PluginRegistry()
-        orch._launcher_config = LauncherConfigurator(
-            orch.config, Path("."), orch._plugin_registry
-        )
+        orch._launcher_config = LauncherConfigurator(orch.config, Path("."), orch._plugin_registry)
         return orch
 
     def test_marks_timed_out_worker_as_crashed(self) -> None:
@@ -448,9 +436,7 @@ class TestGetContainerLogs:
     @patch("zerg.commands.logs.subprocess.run")
     def test_returns_stdout_on_success(self, mock_run: MagicMock) -> None:
         """Should return stdout when docker logs succeeds."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="line1\nline2\n", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="line1\nline2\n", stderr="")
 
         from zerg.commands.logs import _get_container_logs
 
@@ -463,9 +449,7 @@ class TestGetContainerLogs:
     @patch("zerg.commands.logs.subprocess.run")
     def test_returns_none_on_nonzero_exit(self, mock_run: MagicMock) -> None:
         """Should return None when docker logs fails."""
-        mock_run.return_value = MagicMock(
-            returncode=1, stdout="", stderr="no such container"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="no such container")
 
         from zerg.commands.logs import _get_container_logs
 
@@ -485,9 +469,7 @@ class TestGetContainerLogs:
         assert result is None
 
     @patch("zerg.commands.logs.subprocess.run")
-    def test_returns_none_when_docker_unavailable(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_returns_none_when_docker_unavailable(self, mock_run: MagicMock) -> None:
         """Should return None when Docker is not installed (FileNotFoundError)."""
         mock_run.side_effect = FileNotFoundError("docker not found")
 
@@ -532,9 +514,7 @@ class TestBuildDockerImage:
 
     @patch("zerg.commands.build.subprocess.run")
     @patch("zerg.commands.build.Path")
-    def test_runs_docker_build(
-        self, mock_path_cls: MagicMock, mock_run: MagicMock
-    ) -> None:
+    def test_runs_docker_build(self, mock_path_cls: MagicMock, mock_run: MagicMock) -> None:
         """Should run docker build with correct arguments."""
         # Make Dockerfile exist
         mock_dockerfile = MagicMock()
@@ -574,9 +554,7 @@ class TestBuildDockerImage:
 
     @patch("zerg.commands.build.subprocess.run")
     @patch("zerg.commands.build.Path")
-    def test_handles_docker_not_found(
-        self, mock_path_cls: MagicMock, mock_run: MagicMock
-    ) -> None:
+    def test_handles_docker_not_found(self, mock_path_cls: MagicMock, mock_run: MagicMock) -> None:
         """Should raise SystemExit when Docker is not installed."""
         mock_dockerfile = MagicMock()
         mock_dockerfile.exists.return_value = True
@@ -592,9 +570,7 @@ class TestBuildDockerImage:
 
     @patch("zerg.commands.build.subprocess.run")
     @patch("zerg.commands.build.Path")
-    def test_handles_build_failure(
-        self, mock_path_cls: MagicMock, mock_run: MagicMock
-    ) -> None:
+    def test_handles_build_failure(self, mock_path_cls: MagicMock, mock_run: MagicMock) -> None:
         """Should raise SystemExit when docker build fails."""
         mock_dockerfile = MagicMock()
         mock_dockerfile.exists.return_value = True
@@ -610,9 +586,7 @@ class TestBuildDockerImage:
 
     @patch("zerg.commands.build.subprocess.run")
     @patch("zerg.commands.build.Path")
-    def test_handles_build_timeout(
-        self, mock_path_cls: MagicMock, mock_run: MagicMock
-    ) -> None:
+    def test_handles_build_timeout(self, mock_path_cls: MagicMock, mock_run: MagicMock) -> None:
         """Should raise SystemExit when docker build times out."""
         mock_dockerfile = MagicMock()
         mock_dockerfile.exists.return_value = True

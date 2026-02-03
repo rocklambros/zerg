@@ -1,10 +1,7 @@
 """Tests for ZERG context tracker module."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 from zerg.context_tracker import (
     MAX_CONTEXT_TOKENS,
@@ -220,11 +217,7 @@ class TestEstimateTokens:
         tokens = tracker.estimate_tokens()
 
         # Should be sum of all components plus time-based
-        min_expected = (
-            int(4000 * TOKENS_PER_CHAR) + TOKENS_PER_FILE_READ +
-            TOKENS_PER_TASK +
-            TOKENS_PER_TOOL_CALL
-        )
+        min_expected = int(4000 * TOKENS_PER_CHAR) + TOKENS_PER_FILE_READ + TOKENS_PER_TASK + TOKENS_PER_TOOL_CALL
         assert tokens >= min_expected
 
 

@@ -60,9 +60,7 @@ class TestModuleWiringEndToEnd:
         )
         for msg in messages:
             for exempt_name in WIRING_EXEMPT_NAMES:
-                assert exempt_name not in msg, (
-                    f"Exempt file {exempt_name} should not be flagged: {msg}"
-                )
+                assert exempt_name not in msg, f"Exempt file {exempt_name} should not be flagged: {msg}"
 
     def test_entry_points_not_flagged(self) -> None:
         """Files with 'if __name__' guard must not be flagged."""
@@ -75,9 +73,7 @@ class TestModuleWiringEndToEnd:
             file_path = PACKAGE_DIR / flagged
             if file_path.exists():
                 content = file_path.read_text()
-                assert "if __name__" not in content, (
-                    f"{flagged} has __name__ guard but was still flagged"
-                )
+                assert "if __name__" not in content, f"{flagged} has __name__ guard but was still flagged"
 
 
 class TestTaskGraphSchema:
@@ -93,36 +89,30 @@ class TestTaskGraphSchema:
     def test_task_graph_has_consumers_field(self, task_graph: dict) -> None:
         """Every task in task-graph.json must have a consumers field."""
         for task in task_graph["tasks"]:
-            assert "consumers" in task, (
-                f"{task['id']} missing 'consumers' field"
-            )
+            assert "consumers" in task, f"{task['id']} missing 'consumers' field"
             assert isinstance(task["consumers"], list)
 
     def test_task_graph_has_integration_test_field(self, task_graph: dict) -> None:
         """Every task in task-graph.json must have an integration_test field."""
         for task in task_graph["tasks"]:
-            assert "integration_test" in task, (
-                f"{task['id']} missing 'integration_test' field"
-            )
+            assert "integration_test" in task, f"{task['id']} missing 'integration_test' field"
 
     def test_consumer_references_valid(self, task_graph: dict) -> None:
         """Consumer references must point to real task IDs in the graph."""
         task_ids = {t["id"] for t in task_graph["tasks"]}
         for task in task_graph["tasks"]:
             for consumer_id in task.get("consumers", []):
-                assert consumer_id in task_ids, (
-                    f"{task['id']} references consumer {consumer_id} "
-                    f"which does not exist in the task graph"
-                )
+                assert (
+                    consumer_id in task_ids
+                ), f"{task['id']} references consumer {consumer_id} which does not exist in the task graph"
 
     def test_integration_test_when_consumers_nonempty(self, task_graph: dict) -> None:
         """Tasks with non-empty consumers should have an integration_test path."""
         for task in task_graph["tasks"]:
             if task.get("consumers"):
-                assert task.get("integration_test") is not None, (
-                    f"{task['id']} has consumers {task['consumers']} "
-                    f"but no integration_test"
-                )
+                assert (
+                    task.get("integration_test") is not None
+                ), f"{task['id']} has consumers {task['consumers']} but no integration_test"
 
 
 class TestCIWorkflow:

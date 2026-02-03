@@ -155,9 +155,7 @@ class TaskArtifactCapture:
                 f.write(str(stderr))
                 f.write("\n")
 
-    def capture_verification(
-        self, stdout: str, stderr: str, exit_code: int
-    ) -> None:
+    def capture_verification(self, stdout: str, stderr: str, exit_code: int) -> None:
         """Capture verification command output.
 
         Args:
@@ -193,9 +191,7 @@ class TaskArtifactCapture:
         Args:
             event_data: Event data dictionary
         """
-        event_data.setdefault(
-            "ts", datetime.now(UTC).isoformat().replace("+00:00", "Z")
-        )
+        event_data.setdefault("ts", datetime.now(UTC).isoformat().replace("+00:00", "Z"))
         execution_path = self.task_dir / "execution.jsonl"
         with open(execution_path, "a") as f:
             f.write(json.dumps(event_data) + "\n")
@@ -210,9 +206,7 @@ class TaskArtifactCapture:
         retain_on_success = getattr(config, "ephemeral_retain_on_success", False)
         retain_on_failure = getattr(config, "ephemeral_retain_on_failure", True)
 
-        should_retain = (success and retain_on_success) or (
-            not success and retain_on_failure
-        )
+        should_retain = (success and retain_on_success) or (not success and retain_on_failure)
 
         if not should_retain:
             import contextlib

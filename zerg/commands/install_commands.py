@@ -44,10 +44,7 @@ def _get_source_dir() -> Path:
     if fallback.is_dir():
         return fallback
 
-    raise FileNotFoundError(
-        "Cannot locate ZERG command files. "
-        "Ensure the package is installed correctly."
-    )
+    raise FileNotFoundError("Cannot locate ZERG command files. Ensure the package is installed correctly.")
 
 
 def _get_target_dir(target: str | None) -> Path:
@@ -88,9 +85,7 @@ def _install_to_subdir(
         # Remove existing file/symlink
         if dest.exists() or dest.is_symlink():
             if not force:
-                console.print(
-                    f"  [yellow]skip[/yellow] {src.name} (exists, use --force to overwrite)"
-                )
+                console.print(f"  [yellow]skip[/yellow] {src.name} (exists, use --force to overwrite)")
                 continue
             dest.unlink()
 
@@ -144,9 +139,7 @@ def _install_shortcut_redirects(
         # Remove existing file/symlink
         if dest.exists() or dest.is_symlink():
             if not force:
-                console.print(
-                    f"  [yellow]skip[/yellow] {src.name} (exists, use --force to overwrite)"
-                )
+                console.print(f"  [yellow]skip[/yellow] {src.name} (exists, use --force to overwrite)")
                 continue
             dest.unlink()
 
@@ -250,9 +243,7 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
         # Clean up legacy root-level files first
         legacy_removed = _remove_legacy(target_dir)
         if legacy_removed > 0:
-            console.print(
-                f"  [dim]Cleaned up {legacy_removed} legacy root-level command files[/dim]"
-            )
+            console.print(f"  [dim]Cleaned up {legacy_removed} legacy root-level command files[/dim]")
 
         count = _install(target_dir, source_dir, copy=copy, force=force)
         source_count = len(list(source_dir.glob(COMMAND_GLOB)))
@@ -266,8 +257,7 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
         else:
             method = "copied" if (copy or os.name == "nt") else "symlinked"
             console.print(
-                f"[green]Installed {count}/{total} ZERG commands[/green] "
-                f"({method} to {target_dir}/{{zerg,z}}/)"
+                f"[green]Installed {count}/{total} ZERG commands[/green] ({method} to {target_dir}/{{zerg,z}}/)"
             )
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -300,9 +290,7 @@ def uninstall_commands(target: str | None) -> None:
         if count == 0:
             console.print("[dim]No ZERG commands found to remove[/dim]")
         else:
-            console.print(
-                f"[green]Removed {count} ZERG commands[/green] from {target_dir}"
-            )
+            console.print(f"[green]Removed {count} ZERG commands[/green] from {target_dir}")
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1) from e
@@ -326,8 +314,6 @@ def auto_install_commands() -> None:
 
         count = _install(target_dir, source_dir)
         if count > 0:
-            console.print(
-                f"  [green]\u2713[/green] Installed {count} ZERG slash commands globally"
-            )
+            console.print(f"  [green]\u2713[/green] Installed {count} ZERG slash commands globally")
     except Exception as exc:
         logger.debug("Auto-install commands failed: %s", exc)

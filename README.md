@@ -1,7 +1,7 @@
 # ZERG
 
 <p align="center">
-  <img src="logo/zerg_logo.png" alt="ZERG Logo" width="300">
+  <img src="logo/zerg_logo.png" alt="ZERG Logo" width="450">
 </p>
 
 **Zero-Effort Rapid Growth** — Parallel Claude Code execution system. Overwhelm features with coordinated zergling swarms.
@@ -79,6 +79,9 @@ cd zerg
 
 # Install in development mode
 pip install -e ".[dev]"
+
+# Install pre-commit hooks (required for contributors)
+pre-commit install
 
 # Verify installation
 zerg --help

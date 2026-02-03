@@ -48,9 +48,7 @@ class TaskExecutionMetrics:
         """
         self.completed_at = datetime.now()
         self.status = status
-        self.duration_seconds = (
-            self.completed_at - self.started_at
-        ).total_seconds()
+        self.duration_seconds = (self.completed_at - self.started_at).total_seconds()
         if context_usage is not None:
             self.context_usage_after = context_usage
         if verification_passed is not None:
@@ -71,9 +69,7 @@ class TaskExecutionMetrics:
             "task_id": self.task_id,
             "worker_id": self.worker_id,
             "started_at": self.started_at.isoformat(),
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
             "status": self.status,
             "duration_seconds": self.duration_seconds,
             "context_usage_before": self.context_usage_before,
@@ -150,9 +146,7 @@ class WorkerMetrics:
             return 0.0
         return self.total_task_duration_seconds / self.total_tasks
 
-    def start_task(
-        self, task_id: str, context_usage: float | None = None
-    ) -> TaskExecutionMetrics:
+    def start_task(self, task_id: str, context_usage: float | None = None) -> TaskExecutionMetrics:
         """Record task start and return metrics object.
 
         Args:
@@ -273,11 +267,7 @@ class WorkerMetrics:
             "utilization": round(self.utilization, 3),
             "avg_task_duration": round(self.avg_task_duration, 2),
             "health_check_failures": self.health_check_failures,
-            "last_health_check_at": (
-                self.last_health_check_at.isoformat()
-                if self.last_health_check_at
-                else None
-            ),
+            "last_health_check_at": (self.last_health_check_at.isoformat() if self.last_health_check_at else None),
             "last_health_check_ok": self.last_health_check_ok,
             "task_history": [t.to_dict() for t in self.task_history],
         }
@@ -311,13 +301,9 @@ class WorkerMetrics:
         if data.get("stopped_at"):
             metrics.stopped_at = datetime.fromisoformat(data["stopped_at"])
         if data.get("last_task_completed_at"):
-            metrics.last_task_completed_at = datetime.fromisoformat(
-                data["last_task_completed_at"]
-            )
+            metrics.last_task_completed_at = datetime.fromisoformat(data["last_task_completed_at"])
         if data.get("last_health_check_at"):
-            metrics.last_health_check_at = datetime.fromisoformat(
-                data["last_health_check_at"]
-            )
+            metrics.last_health_check_at = datetime.fromisoformat(data["last_health_check_at"])
 
         return metrics
 
@@ -355,19 +341,14 @@ class LevelMetrics:
     @property
     def is_complete(self) -> bool:
         """Check if level is complete."""
-        return (
-            self.completed_tasks + self.failed_tasks == self.total_tasks
-            and self.total_tasks > 0
-        )
+        return self.completed_tasks + self.failed_tasks == self.total_tasks and self.total_tasks > 0
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "level": self.level,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
             "total_tasks": self.total_tasks,
             "completed_tasks": self.completed_tasks,
             "failed_tasks": self.failed_tasks,
@@ -469,9 +450,7 @@ class WorkerMetricsCollector:
                     if task.duration_seconds:
                         lvl.total_duration_seconds += task.duration_seconds
 
-    def record_task_completion(
-        self, level: int, success: bool
-    ) -> None:
+    def record_task_completion(self, level: int, success: bool) -> None:
         """Record task completion at level.
 
         Args:
@@ -496,62 +475,38 @@ class WorkerMetricsCollector:
         total_tasks = sum(w.total_tasks for w in self._workers.values())
         completed_tasks = sum(w.tasks_completed for w in self._workers.values())
         failed_tasks = sum(w.tasks_failed for w in self._workers.values())
-        total_task_duration = sum(
-            w.total_task_duration_seconds for w in self._workers.values()
-        )
+        total_task_duration = sum(w.total_task_duration_seconds for w in self._workers.values())
         total_idle = sum(w.total_idle_seconds for w in self._workers.values())
 
         # Calculate averages
         worker_count = len(self._workers)
-        avg_utilization = (
-            sum(w.utilization for w in self._workers.values()) / worker_count
-            if worker_count > 0
-            else 0.0
-        )
-        avg_context = (
-            sum(w.context_usage for w in self._workers.values()) / worker_count
-            if worker_count > 0
-            else 0.0
-        )
-        peak_context = (
-            max(w.peak_context_usage for w in self._workers.values())
-            if worker_count > 0
-            else 0.0
-        )
+        avg_utilization = sum(w.utilization for w in self._workers.values()) / worker_count if worker_count > 0 else 0.0
+        avg_context = sum(w.context_usage for w in self._workers.values()) / worker_count if worker_count > 0 else 0.0
+        peak_context = max(w.peak_context_usage for w in self._workers.values()) if worker_count > 0 else 0.0
 
         # Calculate overall duration
-        duration = (
-            (self.completed_at or datetime.now()) - self.started_at
-        ).total_seconds()
+        duration = ((self.completed_at or datetime.now()) - self.started_at).total_seconds()
 
         return {
             "execution_id": self.execution_id,
             "feature": self.feature,
             "started_at": self.started_at.isoformat(),
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
             "duration_seconds": round(duration, 2),
             "worker_count": worker_count,
-            "levels_completed": sum(
-                1 for lvl in self._levels.values() if lvl.is_complete
-            ),
+            "levels_completed": sum(1 for lvl in self._levels.values() if lvl.is_complete),
             "total_levels": len(self._levels),
             "total_tasks": total_tasks,
             "completed_tasks": completed_tasks,
             "failed_tasks": failed_tasks,
-            "success_rate": (
-                round(completed_tasks / total_tasks, 3) if total_tasks > 0 else 0.0
-            ),
+            "success_rate": (round(completed_tasks / total_tasks, 3) if total_tasks > 0 else 0.0),
             "total_task_duration_seconds": round(total_task_duration, 2),
             "total_idle_seconds": round(total_idle, 2),
             "avg_worker_utilization": round(avg_utilization, 3),
             "avg_context_usage": round(avg_context, 3),
             "peak_context_usage": round(peak_context, 3),
             "parallel_efficiency": (
-                round(total_task_duration / (duration * worker_count), 3)
-                if duration > 0 and worker_count > 0
-                else 0.0
+                round(total_task_duration / (duration * worker_count), 3) if duration > 0 and worker_count > 0 else 0.0
             ),
         }
 
@@ -603,12 +558,8 @@ class WorkerMetricsCollector:
 
         data = {
             "summary": self.get_summary(),
-            "workers": {
-                str(wid): w.to_dict() for wid, w in self._workers.items()
-            },
-            "levels": {
-                str(lvl): lm.to_dict() for lvl, lm in self._levels.items()
-            },
+            "workers": {str(wid): w.to_dict() for wid, w in self._workers.items()},
+            "levels": {str(lvl): lm.to_dict() for lvl, lm in self._levels.items()},
         }
 
         path.write_text(json.dumps(data, indent=2))

@@ -1,6 +1,5 @@
 """Comprehensive unit tests for worktree.py - 100% coverage target."""
 
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -92,7 +91,7 @@ class TestRunGit:
         """Test git command with check=False doesn't raise."""
         manager = WorktreeManager(tmp_repo)
         # This command will fail but should not raise
-        result = manager._run_git("branch", "--list", "nonexistent", check=False)
+        manager._run_git("branch", "--list", "nonexistent", check=False)
         # Should return without raising, even if command fails
 
 

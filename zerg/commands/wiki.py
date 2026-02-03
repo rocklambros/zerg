@@ -84,8 +84,8 @@ def wiki(
 
         # Discover documentable components
         project_root = Path(".")
-        detector = ComponentDetector()
-        extractor = SymbolExtractor()
+        ComponentDetector()
+        SymbolExtractor()
         mapper = DependencyMapper()
         _mermaid = MermaidGenerator()
         renderer = DocRenderer()
@@ -127,10 +127,7 @@ def wiki(
             pages["Glossary"] = glossary_content
 
         # Sidebar
-        sidebar_pages = [
-            {"name": name, "section": "Reference"}
-            for name in sorted(pages.keys())
-        ]
+        sidebar_pages = [{"name": name, "section": "Reference"} for name in sorted(pages.keys())]
         sidebar_content = sidebar_gen.generate(sidebar_pages)
         if not dry_run:
             (output_dir / "_Sidebar.md").write_text(sidebar_content)

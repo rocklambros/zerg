@@ -1,10 +1,8 @@
 """Tests for ZERG heartbeat module."""
 
 import json
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-
-import pytest
 
 from zerg.heartbeat import Heartbeat, HeartbeatMonitor, HeartbeatWriter
 
@@ -52,12 +50,12 @@ class TestHeartbeat:
         assert hb.progress_pct == 75
 
     def test_is_stale_true(self) -> None:
-        old_time = (datetime.now(timezone.utc) - timedelta(seconds=200)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(seconds=200)).isoformat()
         hb = Heartbeat(worker_id=1, timestamp=old_time, task_id=None, step="idle", progress_pct=0)
         assert hb.is_stale(120) is True
 
     def test_is_stale_false(self) -> None:
-        recent = datetime.now(timezone.utc).isoformat()
+        recent = datetime.now(UTC).isoformat()
         hb = Heartbeat(worker_id=1, timestamp=recent, task_id=None, step="idle", progress_pct=0)
         assert hb.is_stale(120) is False
 
@@ -105,7 +103,7 @@ class TestHeartbeatMonitor:
         # Write a heartbeat manually
         data = {
             "worker_id": 1,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "task_id": "TASK-001",
             "step": "implementing",
             "progress_pct": 50,
@@ -123,7 +121,7 @@ class TestHeartbeatMonitor:
         assert monitor.read(99) is None
 
     def test_read_all(self, tmp_path: Path) -> None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         for wid in [1, 2, 3]:
             data = {"worker_id": wid, "timestamp": now, "task_id": None, "step": "idle", "progress_pct": 0}
             (tmp_path / f"heartbeat-{wid}.json").write_text(json.dumps(data))
@@ -134,7 +132,7 @@ class TestHeartbeatMonitor:
         assert set(all_hb.keys()) == {1, 2, 3}
 
     def test_check_stale(self, tmp_path: Path) -> None:
-        old_time = (datetime.now(timezone.utc) - timedelta(seconds=200)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(seconds=200)).isoformat()
         data = {"worker_id": 1, "timestamp": old_time, "task_id": None, "step": "idle", "progress_pct": 0}
         (tmp_path / "heartbeat-1.json").write_text(json.dumps(data))
 
@@ -142,7 +140,7 @@ class TestHeartbeatMonitor:
         assert monitor.check_stale(1, timeout_seconds=120) is True
 
     def test_get_stalled_workers(self, tmp_path: Path) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         old_time = (now - timedelta(seconds=200)).isoformat()
         recent_time = now.isoformat()
 
@@ -169,7 +167,7 @@ class TestHeartbeatMonitor:
     def test_check_stale_uses_configured_timeout(self, tmp_path: Path) -> None:
         """Test check_stale uses configured timeout when not provided."""
         # Heartbeat 150 seconds old
-        old_time = (datetime.now(timezone.utc) - timedelta(seconds=150)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(seconds=150)).isoformat()
         data = {"worker_id": 1, "timestamp": old_time, "task_id": None, "step": "idle", "progress_pct": 0}
         (tmp_path / "heartbeat-1.json").write_text(json.dumps(data))
 
@@ -183,7 +181,7 @@ class TestHeartbeatMonitor:
 
     def test_check_stale_explicit_override(self, tmp_path: Path) -> None:
         """Test check_stale explicit timeout_seconds overrides configured."""
-        old_time = (datetime.now(timezone.utc) - timedelta(seconds=150)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(seconds=150)).isoformat()
         data = {"worker_id": 1, "timestamp": old_time, "task_id": None, "step": "idle", "progress_pct": 0}
         (tmp_path / "heartbeat-1.json").write_text(json.dumps(data))
 
@@ -194,7 +192,7 @@ class TestHeartbeatMonitor:
 
     def test_get_stalled_workers_uses_configured_timeout(self, tmp_path: Path) -> None:
         """Test get_stalled_workers uses configured timeout when not provided."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # Worker 1: 150s old (stale at 120s, not stale at 200s)
         # Worker 2: fresh
         old_time = (now - timedelta(seconds=150)).isoformat()

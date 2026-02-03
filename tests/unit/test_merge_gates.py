@@ -12,8 +12,6 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.config import QualityGate, ZergConfig
 from zerg.constants import GateResult
 from zerg.gates import GateRunner
@@ -844,7 +842,7 @@ class TestPostMergeGates:
         post_result = coordinator.run_post_merge_gates()
 
         # Both should return tuple[bool, list[GateRunResult]]
-        assert type(pre_result) == type(post_result)
+        assert type(pre_result) is type(post_result)
         assert len(pre_result) == len(post_result)
 
     def test_post_merge_gates_uses_required_only(self):

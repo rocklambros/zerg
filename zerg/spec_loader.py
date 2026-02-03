@@ -75,10 +75,7 @@ class SpecLoader:
         if not design:
             design = self._load_file(spec_dir / "ARCHITECTURE.md")
 
-        logger.debug(
-            f"Loaded specs for {feature}: "
-            f"requirements={len(requirements)} chars, design={len(design)} chars"
-        )
+        logger.debug(f"Loaded specs for {feature}: requirements={len(requirements)} chars, design={len(design)} chars")
 
         return SpecContent(
             requirements=requirements,
@@ -136,9 +133,7 @@ class SpecLoader:
         # Requirements summary
         if requirements:
             parts.append("## Requirements Summary")
-            truncated_req = self._truncate_to_tokens(
-                requirements, max_tokens // 2
-            )
+            truncated_req = self._truncate_to_tokens(requirements, max_tokens // 2)
             parts.append(truncated_req)
             parts.append("")
 
@@ -147,9 +142,7 @@ class SpecLoader:
             parts.append("## Design Decisions")
             # Give remaining token budget to design
             remaining_tokens = max_tokens - self._estimate_tokens("\n".join(parts))
-            truncated_design = self._truncate_to_tokens(
-                design, max(remaining_tokens, max_tokens // 2)
-            )
+            truncated_design = self._truncate_to_tokens(design, max(remaining_tokens, max_tokens // 2))
             parts.append(truncated_design)
             parts.append("")
 
@@ -200,7 +193,7 @@ class SpecLoader:
                 truncated.rfind(".\n"),
             )
             if last_sentence > max_chars // 2:
-                truncated = truncated[:last_sentence + 1]
+                truncated = truncated[: last_sentence + 1]
 
         return truncated + "\n\n[... truncated for context limits ...]"
 
@@ -248,11 +241,7 @@ class SpecLoader:
             if relevant:
                 parts.append("## Relevant Design")
                 remaining = max_tokens - self._estimate_tokens("\n".join(parts))
-                parts.append(
-                    self._truncate_to_tokens(
-                        relevant, max(remaining, max_tokens // 4)
-                    )
-                )
+                parts.append(self._truncate_to_tokens(relevant, max(remaining, max_tokens // 4)))
 
         return "\n\n".join(parts) if parts else ""
 
@@ -275,11 +264,7 @@ class SpecLoader:
                     from pathlib import Path as _Path
 
                     stem = _Path(fp).stem
-                    words.update(
-                        part.lower()
-                        for part in stem.replace("-", "_").split("_")
-                        if len(part) > 2
-                    )
+                    words.update(part.lower() for part in stem.replace("-", "_").split("_") if len(part) > 2)
         return words
 
     def _extract_relevant_sections(self, text: str, keywords: set[str]) -> str:
@@ -337,9 +322,12 @@ class SpecLoader:
 
         # Check for any spec files
         spec_files = [
-            "requirements.md", "REQUIREMENTS.md",
-            "design.md", "DESIGN.md",
-            "architecture.md", "ARCHITECTURE.md",
+            "requirements.md",
+            "REQUIREMENTS.md",
+            "design.md",
+            "DESIGN.md",
+            "architecture.md",
+            "ARCHITECTURE.md",
         ]
 
         return any((spec_dir / f).exists() for f in spec_files)

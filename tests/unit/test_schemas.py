@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 
 class TestSchemasModule:
     """Tests for the schemas __init__.py module."""
@@ -191,7 +189,7 @@ class TestModuleExports:
 
         # Check parameter type hint
         param = sig.parameters["schema_name"]
-        assert param.annotation == str
+        assert param.annotation is str
 
         # Check return type hint
         assert sig.return_annotation == Path
@@ -239,11 +237,7 @@ class TestSchemaFileContents:
         assert isinstance(data, dict)
         # At minimum should define some properties or type
         has_schema_elements = (
-            "type" in data
-            or "properties" in data
-            or "$schema" in data
-            or "definitions" in data
-            or "$defs" in data
+            "type" in data or "properties" in data or "$schema" in data or "definitions" in data or "$defs" in data
         )
         assert has_schema_elements
 

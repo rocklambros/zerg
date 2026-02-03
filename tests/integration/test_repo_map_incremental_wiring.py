@@ -8,8 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from zerg.repo_map import IncrementalIndex
 from zerg.status_formatter import format_repo_map_stats
 
@@ -60,7 +58,7 @@ class TestIncrementalIndexWiring:
         assert "Files indexed" in formatted
 
         # Record initial stale count (all files are new on first index)
-        first_stale = stats["stale_files"]
+        stats["stale_files"]
 
         # Step 5: Modify the file (add a new function)
         _write_python_file(

@@ -19,9 +19,7 @@ class MockWorker:
         self.fail_tasks: set[str] = fail_tasks or set()
         self.invocations: list[dict] = []
 
-    def invoke_claude_code(
-        self, task: dict, timeout: int = 300
-    ) -> ClaudeInvocationResult:
+    def invoke_claude_code(self, task: dict, timeout: int = 300) -> ClaudeInvocationResult:
         """Execute a mock Claude Code invocation with deterministic file operations.
 
         Creates and modifies files listed in the task manifest, then returns
@@ -49,9 +47,7 @@ class MockWorker:
             path = Path(filepath)
             if path.exists():
                 existing = path.read_text()
-                path.write_text(
-                    f"{existing}\n# Modified by task {task_id}\n"
-                )
+                path.write_text(f"{existing}\n# Modified by task {task_id}\n")
 
         if task_id in self.fail_tasks:
             return ClaudeInvocationResult(

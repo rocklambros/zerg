@@ -25,7 +25,7 @@ class RetryBackoffCalculator:
             Delay in seconds with ±10% jitter applied
         """
         if strategy == "exponential":
-            delay = base_seconds * (2 ** attempt)
+            delay = base_seconds * (2**attempt)
         elif strategy == "linear":
             delay = base_seconds * attempt
         elif strategy == "fixed":

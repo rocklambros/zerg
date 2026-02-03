@@ -1,10 +1,8 @@
 """Integration tests for ContainerLauncher availability checks."""
 
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import subprocess
-
-import pytest
 
 from zerg.launcher import ContainerLauncher
 
@@ -45,9 +43,7 @@ class TestContainerLauncher:
         """
         # Mock docker image inspect to fail (image not found)
         mock_run.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="Error: No such image: nonexistent-image-12345"
+            returncode=1, stdout="", stderr="Error: No such image: nonexistent-image-12345"
         )
 
         # Create launcher with specific image name
@@ -57,9 +53,7 @@ class TestContainerLauncher:
         assert result is False, "Expected False for nonexistent image"
 
     @patch("subprocess.run")
-    def test_spawn_requires_image(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_requires_image(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Spawn fails gracefully when image doesn't exist.
 
         When attempting to spawn with a nonexistent image,
@@ -67,11 +61,7 @@ class TestContainerLauncher:
         than raising an exception.
         """
         # Mock all docker commands to fail (image not found scenario)
-        mock_run.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="Error: No such image"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Error: No such image")
 
         launcher = ContainerLauncher(image_name="nonexistent-test-image")
         result = launcher.spawn(

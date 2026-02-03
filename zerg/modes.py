@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -10,11 +10,11 @@ from typing import Any
 class BehavioralMode(Enum):
     """Behavioral execution modes."""
 
-    PRECISION = "precision"      # Default: careful, thorough
-    SPEED = "speed"              # Fast iteration, less verification
+    PRECISION = "precision"  # Default: careful, thorough
+    SPEED = "speed"  # Fast iteration, less verification
     EXPLORATION = "exploration"  # Discovery, broad search
-    REFACTOR = "refactor"        # Code transformation focus
-    DEBUG = "debug"              # Diagnostic, verbose logging
+    REFACTOR = "refactor"  # Code transformation focus
+    DEBUG = "debug"  # Diagnostic, verbose logging
 
     @property
     def description(self) -> str:
@@ -72,18 +72,40 @@ class ModeDetector:
     # Keywords mapped to modes
     MODE_KEYWORDS: dict[BehavioralMode, list[str]] = {
         BehavioralMode.SPEED: [
-            "quick", "fast", "prototype", "spike", "poc", "draft",
+            "quick",
+            "fast",
+            "prototype",
+            "spike",
+            "poc",
+            "draft",
         ],
         BehavioralMode.EXPLORATION: [
-            "explore", "discover", "research", "investigate", "brainstorm", "analyze",
+            "explore",
+            "discover",
+            "research",
+            "investigate",
+            "brainstorm",
+            "analyze",
         ],
         BehavioralMode.REFACTOR: [
-            "refactor", "restructure", "reorganize", "clean up", "migrate",
-            "rename", "extract", "move",
+            "refactor",
+            "restructure",
+            "reorganize",
+            "clean up",
+            "migrate",
+            "rename",
+            "extract",
+            "move",
         ],
         BehavioralMode.DEBUG: [
-            "debug", "diagnose", "troubleshoot", "fix", "bug", "error",
-            "failing", "broken",
+            "debug",
+            "diagnose",
+            "troubleshoot",
+            "fix",
+            "bug",
+            "error",
+            "failing",
+            "broken",
         ],
     }
 
@@ -224,12 +246,14 @@ class ModeDetector:
         """
         if self.log_transitions:
             from_mode = self._current_mode.value if self._current_mode else "none"
-            self._transitions.append({
-                "from": from_mode,
-                "to": context.mode.value,
-                "reason": context.detection_reason,
-                "auto": context.auto_detected,
-            })
+            self._transitions.append(
+                {
+                    "from": from_mode,
+                    "to": context.mode.value,
+                    "reason": context.detection_reason,
+                    "auto": context.auto_detected,
+                }
+            )
         self._current_mode = context.mode
 
     @property

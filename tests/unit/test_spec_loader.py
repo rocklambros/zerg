@@ -1,9 +1,10 @@
 """Unit tests for SpecLoader utility."""
 
-import pytest
 from pathlib import Path
 
-from zerg.spec_loader import SpecLoader, SpecContent, MAX_SPEC_TOKENS, CHARS_PER_TOKEN
+import pytest
+
+from zerg.spec_loader import CHARS_PER_TOKEN, SpecContent, SpecLoader
 
 
 class TestSpecLoader:
@@ -45,9 +46,7 @@ class TestSpecLoader:
         assert specs.design == ""
         assert specs.feature == "nonexistent"
 
-    def test_load_feature_specs_requirements_only(
-        self, loader: SpecLoader, temp_gsd_dir: Path
-    ) -> None:
+    def test_load_feature_specs_requirements_only(self, loader: SpecLoader, temp_gsd_dir: Path) -> None:
         """Test loading when only requirements exist."""
         feature_dir = temp_gsd_dir / "specs" / "test-feature"
         feature_dir.mkdir(parents=True)
@@ -58,9 +57,7 @@ class TestSpecLoader:
         assert specs.design == ""
         assert specs.feature == "test-feature"
 
-    def test_load_feature_specs_design_only(
-        self, loader: SpecLoader, temp_gsd_dir: Path
-    ) -> None:
+    def test_load_feature_specs_design_only(self, loader: SpecLoader, temp_gsd_dir: Path) -> None:
         """Test loading when only design exists."""
         feature_dir = temp_gsd_dir / "specs" / "test-feature"
         feature_dir.mkdir(parents=True)
@@ -70,9 +67,7 @@ class TestSpecLoader:
         assert specs.requirements == ""
         assert "Use JWT tokens" in specs.design
 
-    def test_load_feature_specs_both(
-        self, loader: SpecLoader, temp_gsd_dir: Path
-    ) -> None:
+    def test_load_feature_specs_both(self, loader: SpecLoader, temp_gsd_dir: Path) -> None:
         """Test loading both requirements and design."""
         feature_dir = temp_gsd_dir / "specs" / "test-feature"
         feature_dir.mkdir(parents=True)
@@ -83,9 +78,7 @@ class TestSpecLoader:
         assert "Must be fast" in specs.requirements
         assert "Use caching" in specs.design
 
-    def test_load_feature_specs_uppercase(
-        self, loader: SpecLoader, temp_gsd_dir: Path
-    ) -> None:
+    def test_load_feature_specs_uppercase(self, loader: SpecLoader, temp_gsd_dir: Path) -> None:
         """Test loading uppercase named files."""
         feature_dir = temp_gsd_dir / "specs" / "test-feature"
         feature_dir.mkdir(parents=True)
@@ -161,9 +154,7 @@ class TestSpecLoader:
         # Should truncate at a clean boundary
         assert "truncated" in result
 
-    def test_load_and_format(
-        self, loader: SpecLoader, temp_gsd_dir: Path
-    ) -> None:
+    def test_load_and_format(self, loader: SpecLoader, temp_gsd_dir: Path) -> None:
         """Test combined load and format."""
         feature_dir = temp_gsd_dir / "specs" / "auth"
         feature_dir.mkdir(parents=True)
@@ -175,9 +166,7 @@ class TestSpecLoader:
         assert "login securely" in result
         assert "OAuth 2.0" in result
 
-    def test_specs_exist_true(
-        self, loader: SpecLoader, temp_gsd_dir: Path
-    ) -> None:
+    def test_specs_exist_true(self, loader: SpecLoader, temp_gsd_dir: Path) -> None:
         """Test specs_exist returns True when files exist."""
         feature_dir = temp_gsd_dir / "specs" / "test"
         feature_dir.mkdir(parents=True)
@@ -189,9 +178,7 @@ class TestSpecLoader:
         """Test specs_exist returns False when dir doesn't exist."""
         assert loader.specs_exist("nonexistent") is False
 
-    def test_specs_exist_false_empty_dir(
-        self, loader: SpecLoader, temp_gsd_dir: Path
-    ) -> None:
+    def test_specs_exist_false_empty_dir(self, loader: SpecLoader, temp_gsd_dir: Path) -> None:
         """Test specs_exist returns False when dir is empty."""
         feature_dir = temp_gsd_dir / "specs" / "empty"
         feature_dir.mkdir(parents=True)

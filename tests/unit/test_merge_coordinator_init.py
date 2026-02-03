@@ -1,9 +1,7 @@
 """Tests for MergeCoordinator __init__ and prepare_merge methods."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from zerg.config import QualityGate, ZergConfig
 from zerg.merge import MergeCoordinator
@@ -27,9 +25,7 @@ class TestMergeCoordinatorInit:
     def test_init_with_custom_config(self, tmp_repo: Path) -> None:
         """Test __init__ with custom config does not load from file."""
         custom_config = ZergConfig()
-        custom_config.quality_gates = [
-            QualityGate(name="custom-lint", command="echo lint", required=True)
-        ]
+        custom_config.quality_gates = [QualityGate(name="custom-lint", command="echo lint", required=True)]
 
         with patch("zerg.merge.ZergConfig.load") as mock_load:
             coordinator = MergeCoordinator(
@@ -98,9 +94,7 @@ class TestMergeCoordinatorInit:
 class TestMergeCoordinatorPrepareMerge:
     """Tests for MergeCoordinator.prepare_merge method."""
 
-    def test_prepare_merge_creates_correct_staging_branch_name(
-        self, tmp_repo: Path
-    ) -> None:
+    def test_prepare_merge_creates_correct_staging_branch_name(self, tmp_repo: Path) -> None:
         """Test prepare_merge creates staging branch with correct naming."""
         config = ZergConfig()
         coordinator = MergeCoordinator(

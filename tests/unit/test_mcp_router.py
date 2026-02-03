@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -144,9 +143,7 @@ class TestRoutingDecision:
 
     def test_to_dict_empty_servers(self) -> None:
         """Test to_dict with empty server list."""
-        decision = RoutingDecision(
-            recommended_servers=[], reasoning=[], cost_estimate=0.0
-        )
+        decision = RoutingDecision(recommended_servers=[], reasoning=[], cost_estimate=0.0)
         d = decision.to_dict()
         assert d["servers"] == []
 
@@ -342,25 +339,19 @@ class TestMCPRouterRouting:
     def test_route_max_servers_limit(self) -> None:
         """Test max_servers limits output."""
         router = MCPRouter(max_servers=1, cost_aware=False)
-        decision = router.route(
-            task_description="debug test refactor analyze ui design review document security"
-        )
+        decision = router.route(task_description="debug test refactor analyze ui design review document security")
         assert len(decision.recommended_servers) <= 1
 
     def test_route_max_servers_custom(self) -> None:
         """Test custom max_servers value."""
         router = MCPRouter(max_servers=2)
-        decision = router.route(
-            task_description="debug test refactor analyze ui design review document"
-        )
+        decision = router.route(task_description="debug test refactor analyze ui design review document")
         assert len(decision.recommended_servers) <= 2
 
     def test_route_cost_aware_optimization(self) -> None:
         """Test cost-aware mode optimizes server selection."""
         router = MCPRouter(cost_aware=True, max_servers=2)
-        decision = router.route(
-            task_description="debug test refactor analyze ui design review document"
-        )
+        decision = router.route(task_description="debug test refactor analyze ui design review document")
         assert len(decision.recommended_servers) <= 2
 
     def test_route_limited_available_servers(self) -> None:
@@ -399,9 +390,7 @@ class TestMCPRouterGetEnvHint:
 
     def test_env_hint_empty_when_no_servers(self) -> None:
         """Test env hint is empty when no servers recommended."""
-        decision = RoutingDecision(
-            recommended_servers=[], reasoning=[], cost_estimate=0.0
-        )
+        decision = RoutingDecision(recommended_servers=[], reasoning=[], cost_estimate=0.0)
         router = MCPRouter()
         hint = router.get_env_hint(decision)
         assert hint == {}
@@ -449,9 +438,7 @@ class TestRoutingEvent:
 
     def test_to_dict_timestamp_iso_format(self) -> None:
         """Test timestamp is serialized as ISO format string."""
-        event = RoutingEvent(
-            task_id="task-3", servers_recommended=[], cost_estimate=0.0
-        )
+        event = RoutingEvent(task_id="task-3", servers_recommended=[], cost_estimate=0.0)
         d = event.to_dict()
         # Should be parseable as datetime
         datetime.fromisoformat(d["timestamp"])
@@ -468,9 +455,7 @@ class TestRoutingTelemetry:
     def test_record_event(self) -> None:
         """Test recording a single event."""
         tel = RoutingTelemetry()
-        event = RoutingEvent(
-            task_id="t1", servers_recommended=["sequential"], cost_estimate=1.0
-        )
+        event = RoutingEvent(task_id="t1", servers_recommended=["sequential"], cost_estimate=1.0)
         tel.record(event)
         assert len(tel.events) == 1
 
@@ -545,9 +530,7 @@ class TestRoutingTelemetry:
         tel = RoutingTelemetry()
         tel.record_routing("t1", ["sequential"])
         events = tel.events
-        events.append(
-            RoutingEvent(task_id="t2", servers_recommended=[], cost_estimate=0.0)
-        )
+        events.append(RoutingEvent(task_id="t2", servers_recommended=[], cost_estimate=0.0))
         # Original should be unchanged
         assert len(tel.events) == 1
 

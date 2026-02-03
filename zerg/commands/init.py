@@ -84,9 +84,7 @@ def is_empty_project(path: Path | None = None) -> bool:
 
     # Check for any source code files
     code_extensions = {".py", ".js", ".ts", ".go", ".rs", ".java", ".rb", ".cs", ".cpp", ".c"}
-    return all(
-        not (entry.is_file() and entry.suffix in code_extensions) for entry in entries
-    )
+    return all(not (entry.is_file() and entry.suffix in code_extensions) for entry in entries)
 
 
 @click.command()
@@ -210,7 +208,10 @@ def init(
 
         # Show summary
         show_summary(
-            workers, security, stack, security_rules_result,
+            workers,
+            security,
+            stack,
+            security_rules_result,
             container_built=container_built,
         )
 

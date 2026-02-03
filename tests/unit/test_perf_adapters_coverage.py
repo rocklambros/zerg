@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from zerg.performance.adapters.cloc_adapter import ClocAdapter
-from zerg.performance.adapters.deptry_adapter import DeptryAdapter, _ERROR_MAP
+from zerg.performance.adapters.deptry_adapter import _ERROR_MAP, DeptryAdapter
 from zerg.performance.adapters.jscpd_adapter import JscpdAdapter
 from zerg.performance.adapters.pipdeptree_adapter import PipdeptreeAdapter
 from zerg.performance.types import DetectedStack, Severity
@@ -58,9 +56,7 @@ class TestJscpdAdapter:
         assert adapter.tool_name == "jscpd"
         assert adapter.factors_covered == [84]
 
-    def test_is_applicable_always_true(
-        self, python_stack: DetectedStack, go_stack: DetectedStack
-    ) -> None:
+    def test_is_applicable_always_true(self, python_stack: DetectedStack, go_stack: DetectedStack) -> None:
         adapter = JscpdAdapter()
         assert adapter.is_applicable(python_stack) is True
         assert adapter.is_applicable(go_stack) is True
@@ -85,15 +81,14 @@ class TestJscpdAdapter:
 
         adapter = JscpdAdapter()
         # Test through _execute directly to avoid tmpdir/shutil complexity
-        with patch(_JSCPD_RUN, return_value=MagicMock()), patch(
-            "zerg.performance.adapters.jscpd_adapter.Path"
-        ) as mock_path_cls:
+        with (
+            patch(_JSCPD_RUN, return_value=MagicMock()),
+            patch("zerg.performance.adapters.jscpd_adapter.Path") as mock_path_cls,
+        ):
             mock_report = MagicMock()
             mock_report.exists.return_value = True
             mock_report.read_text.return_value = json.dumps(report_data)
-            mock_path_cls.return_value.__truediv__ = MagicMock(
-                return_value=mock_report
-            )
+            mock_path_cls.return_value.__truediv__ = MagicMock(return_value=mock_report)
             findings = adapter._execute("/project", "/tmp/out")
 
         assert len(findings) == 1
@@ -127,29 +122,27 @@ class TestJscpdAdapter:
     def test_execute_report_not_found(self, python_stack: DetectedStack) -> None:
         """Missing report file returns empty findings."""
         adapter = JscpdAdapter()
-        with patch(_JSCPD_RUN, return_value=MagicMock()), patch(
-            "zerg.performance.adapters.jscpd_adapter.Path"
-        ) as mock_path_cls:
+        with (
+            patch(_JSCPD_RUN, return_value=MagicMock()),
+            patch("zerg.performance.adapters.jscpd_adapter.Path") as mock_path_cls,
+        ):
             mock_report = MagicMock()
             mock_report.exists.return_value = False
-            mock_path_cls.return_value.__truediv__ = MagicMock(
-                return_value=mock_report
-            )
+            mock_path_cls.return_value.__truediv__ = MagicMock(return_value=mock_report)
             findings = adapter._execute("/project", "/tmp/out")
         assert findings == []
 
     def test_execute_json_decode_error(self, python_stack: DetectedStack) -> None:
         """Corrupted JSON report returns empty findings."""
         adapter = JscpdAdapter()
-        with patch(_JSCPD_RUN, return_value=MagicMock()), patch(
-            "zerg.performance.adapters.jscpd_adapter.Path"
-        ) as mock_path_cls:
+        with (
+            patch(_JSCPD_RUN, return_value=MagicMock()),
+            patch("zerg.performance.adapters.jscpd_adapter.Path") as mock_path_cls,
+        ):
             mock_report = MagicMock()
             mock_report.exists.return_value = True
             mock_report.read_text.return_value = "NOT JSON"
-            mock_path_cls.return_value.__truediv__ = MagicMock(
-                return_value=mock_report
-            )
+            mock_path_cls.return_value.__truediv__ = MagicMock(return_value=mock_report)
             findings = adapter._execute("/project", "/tmp/out")
         assert findings == []
 
@@ -247,13 +240,13 @@ class TestJscpdAdapter:
     def test_run_cleans_up_tmpdir_on_success(self, python_stack: DetectedStack) -> None:
         """Temp directory is cleaned up after successful run."""
         adapter = JscpdAdapter()
-        with patch(
-            "zerg.performance.adapters.jscpd_adapter.tempfile.mkdtemp",
-            return_value="/tmp/jscpd-test",
-        ), patch(
-            "shutil.rmtree"
-        ) as mock_rmtree, patch.object(
-            adapter, "_execute", return_value=[]
+        with (
+            patch(
+                "zerg.performance.adapters.jscpd_adapter.tempfile.mkdtemp",
+                return_value="/tmp/jscpd-test",
+            ),
+            patch("shutil.rmtree") as mock_rmtree,
+            patch.object(adapter, "_execute", return_value=[]),
         ):
             adapter.run([], "/project", python_stack)
         mock_rmtree.assert_called_once_with("/tmp/jscpd-test", ignore_errors=True)
@@ -261,21 +254,19 @@ class TestJscpdAdapter:
     def test_run_cleans_up_tmpdir_on_exception(self, python_stack: DetectedStack) -> None:
         """Temp directory is cleaned up even when _execute raises."""
         adapter = JscpdAdapter()
-        with patch(
-            "zerg.performance.adapters.jscpd_adapter.tempfile.mkdtemp",
-            return_value="/tmp/jscpd-test",
-        ), patch(
-            "shutil.rmtree"
-        ) as mock_rmtree, patch.object(
-            adapter, "_execute", side_effect=RuntimeError("boom")
+        with (
+            patch(
+                "zerg.performance.adapters.jscpd_adapter.tempfile.mkdtemp",
+                return_value="/tmp/jscpd-test",
+            ),
+            patch("shutil.rmtree") as mock_rmtree,
+            patch.object(adapter, "_execute", side_effect=RuntimeError("boom")),
         ):
             with pytest.raises(RuntimeError, match="boom"):
                 adapter.run([], "/project", python_stack)
         mock_rmtree.assert_called_once_with("/tmp/jscpd-test", ignore_errors=True)
 
-    def test_run_end_to_end_via_run_method(
-        self, python_stack: DetectedStack, tmp_path: Path
-    ) -> None:
+    def test_run_end_to_end_via_run_method(self, python_stack: DetectedStack, tmp_path: Path) -> None:
         """Test the full run() method including tmpdir creation and cleanup."""
         report_data = {
             "duplicates": [
@@ -291,10 +282,13 @@ class TestJscpdAdapter:
         # Use a real tmpdir via tmp_path to avoid mocking shutil
         tmpdir = str(tmp_path / "jscpd-out")
 
-        with patch(
-            "zerg.performance.adapters.jscpd_adapter.tempfile.mkdtemp",
-            return_value=tmpdir,
-        ), patch(_JSCPD_RUN, return_value=MagicMock()):
+        with (
+            patch(
+                "zerg.performance.adapters.jscpd_adapter.tempfile.mkdtemp",
+                return_value=tmpdir,
+            ),
+            patch(_JSCPD_RUN, return_value=MagicMock()),
+        ):
             # Create the report file where _execute expects it
             import os
 
@@ -535,9 +529,7 @@ class TestClocAdapter:
         assert adapter.tool_name == "cloc"
         assert adapter.factors_covered == [115]
 
-    def test_is_applicable_always_true(
-        self, python_stack: DetectedStack, go_stack: DetectedStack
-    ) -> None:
+    def test_is_applicable_always_true(self, python_stack: DetectedStack, go_stack: DetectedStack) -> None:
         adapter = ClocAdapter()
         assert adapter.is_applicable(python_stack) is True
         assert adapter.is_applicable(go_stack) is True
@@ -641,9 +633,7 @@ class TestClocAdapter:
 
     def test_run_full_pipeline(self, python_stack: DetectedStack) -> None:
         """End-to-end run with low comment ratio."""
-        cloc_output = json.dumps(
-            {"SUM": {"code": 2000, "comment": 50, "nFiles": 10}}
-        )
+        cloc_output = json.dumps({"SUM": {"code": 2000, "comment": 50, "nFiles": 10}})
         mock_result = MagicMock()
         mock_result.stdout = cloc_output
         adapter = ClocAdapter()
@@ -780,9 +770,7 @@ class TestDeptryAdapter:
         assert findings[0].rule_id == "DEP003"
         assert "direct dependency" in findings[0].suggestion
 
-    def test_run_dep004_misplaced_dev_dependency(
-        self, python_stack: DetectedStack
-    ) -> None:
+    def test_run_dep004_misplaced_dev_dependency(self, python_stack: DetectedStack) -> None:
         """DEP004 (misplaced dev dependency) maps to LOW severity."""
         data = [
             {
@@ -878,7 +866,7 @@ class TestDeptryAdapter:
         for code in ("DEP001", "DEP002", "DEP003", "DEP004"):
             suggestion = DeptryAdapter._suggestion_for(code, "mymod")
             assert "mymod" in suggestion
-            assert suggestion != f"Review dependency 'mymod'"
+            assert suggestion != "Review dependency 'mymod'"
 
     def test_suggestion_for_unknown_code(self) -> None:
         """Unknown error code produces generic suggestion."""

@@ -125,7 +125,9 @@ class VerificationTiers:
             if not tier_result.success and tier_result.blocking:
                 logger.warning(
                     "Task %s failed blocking tier %d (%s)",
-                    task_id, tier_num, tier_name,
+                    task_id,
+                    tier_num,
+                    tier_name,
                 )
                 break
 

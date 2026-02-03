@@ -205,8 +205,7 @@ class PreflightChecker:
             name="Port availability",
             passed=False,
             message=(
-                f"Only {available}/{needed} ports available in range "
-                f"{self.port_range_start}-{self.port_range_end}"
+                f"Only {available}/{needed} ports available in range {self.port_range_start}-{self.port_range_end}"
             ),
         )
 

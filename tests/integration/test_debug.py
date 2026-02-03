@@ -24,9 +24,7 @@ class TestDebugCommand:
     def test_debug_error_option(self) -> None:
         """Test debug --error option works."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "ValueError: test error"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "ValueError: test error"])
         # Check that click didn't reject the option (exit code 2 means usage error)
         assert result.exit_code != 2
 
@@ -39,17 +37,13 @@ class TestDebugCommand:
     def test_debug_verbose_flag(self) -> None:
         """Test debug --verbose flag works."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "Error", "--verbose"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "Error", "--verbose"])
         assert "Invalid value" not in result.output
 
     def test_debug_output_option(self) -> None:
         """Test debug --output option works."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "Error", "--output", "report.md"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "Error", "--output", "report.md"])
         assert "Invalid value" not in result.output
 
 
@@ -59,9 +53,7 @@ class TestDebugCombinations:
     def test_debug_error_and_verbose(self) -> None:
         """Test debug with error and verbose."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "ImportError: No module", "--verbose"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "ImportError: No module", "--verbose"])
         assert "Invalid value" not in result.output
 
     def test_debug_all_options(self) -> None:
@@ -92,9 +84,7 @@ class TestDebugCombinations:
     def test_debug_error_with_special_chars(self) -> None:
         """Test debug with special characters in error."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "Error: 'foo' != \"bar\""]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "Error: 'foo' != \"bar\""])
         assert "Invalid value" not in result.output
 
 
@@ -110,58 +100,44 @@ class TestDebugFunctional:
     def test_debug_value_error(self) -> None:
         """Test debug analyzes ValueError."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "ValueError: invalid literal for int()"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "ValueError: invalid literal for int()"])
         assert result.exit_code in [0, 1]
         assert len(result.output) > 0
 
     def test_debug_import_error(self) -> None:
         """Test debug analyzes ImportError."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "ImportError: No module named 'missing'"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "ImportError: No module named 'missing'"])
         assert result.exit_code in [0, 1]
 
     def test_debug_type_error(self) -> None:
         """Test debug analyzes TypeError."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "TypeError: unsupported operand type(s)"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "TypeError: unsupported operand type(s)"])
         assert result.exit_code in [0, 1]
 
     def test_debug_attribute_error(self) -> None:
         """Test debug analyzes AttributeError."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "AttributeError: 'NoneType' has no attribute 'foo'"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "AttributeError: 'NoneType' has no attribute 'foo'"])
         assert result.exit_code in [0, 1]
 
     def test_debug_key_error(self) -> None:
         """Test debug analyzes KeyError."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "KeyError: 'missing_key'"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "KeyError: 'missing_key'"])
         assert result.exit_code in [0, 1]
 
     def test_debug_index_error(self) -> None:
         """Test debug analyzes IndexError."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "IndexError: list index out of range"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "IndexError: list index out of range"])
         assert result.exit_code in [0, 1]
 
     def test_debug_json_output(self) -> None:
         """Test debug --json produces JSON output."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "Error", "--json"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "Error", "--json"])
         assert result.exit_code in [0, 1]
 
 
@@ -210,41 +186,31 @@ class TestDebugHypothesis:
     def test_debug_generates_hypotheses(self) -> None:
         """Test debug generates hypotheses for errors."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "TypeError: cannot concatenate 'str' and 'int'", "--verbose"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "TypeError: cannot concatenate 'str' and 'int'", "--verbose"])
         assert result.exit_code in [0, 1]
 
     def test_debug_connection_error(self) -> None:
         """Test debug analyzes connection errors."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "ConnectionError: Failed to connect to server"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "ConnectionError: Failed to connect to server"])
         assert result.exit_code in [0, 1]
 
     def test_debug_timeout_error(self) -> None:
         """Test debug analyzes timeout errors."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "TimeoutError: Connection timed out"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "TimeoutError: Connection timed out"])
         assert result.exit_code in [0, 1]
 
     def test_debug_permission_error(self) -> None:
         """Test debug analyzes permission errors."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "PermissionError: Permission denied"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "PermissionError: Permission denied"])
         assert result.exit_code in [0, 1]
 
     def test_debug_file_not_found(self) -> None:
         """Test debug analyzes file not found errors."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "FileNotFoundError: No such file or directory"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "FileNotFoundError: No such file or directory"])
         assert result.exit_code in [0, 1]
 
 
@@ -265,12 +231,8 @@ class TestDebugOutput:
     def test_debug_verbose_more_detail(self) -> None:
         """Test debug --verbose provides more detail."""
         runner = CliRunner()
-        normal_result = runner.invoke(
-            cli, ["debug", "--error", "ValueError: test"]
-        )
-        verbose_result = runner.invoke(
-            cli, ["debug", "--error", "ValueError: test", "--verbose"]
-        )
+        normal_result = runner.invoke(cli, ["debug", "--error", "ValueError: test"])
+        verbose_result = runner.invoke(cli, ["debug", "--error", "ValueError: test", "--verbose"])
 
         # Both should succeed
         assert normal_result.exit_code in [0, 1]
@@ -283,25 +245,18 @@ class TestDebugPhases:
     def test_debug_symptom_phase(self) -> None:
         """Test debug symptom parsing phase."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "SyntaxError: invalid syntax", "--verbose"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "SyntaxError: invalid syntax", "--verbose"])
         assert result.exit_code in [0, 1]
 
     def test_debug_hypothesis_phase(self) -> None:
         """Test debug hypothesis generation phase."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["debug", "--error", "RecursionError: maximum recursion depth exceeded"]
-        )
+        result = runner.invoke(cli, ["debug", "--error", "RecursionError: maximum recursion depth exceeded"])
         assert result.exit_code in [0, 1]
 
     def test_debug_complex_error(self) -> None:
         """Test debug handles complex multi-line errors."""
         runner = CliRunner()
-        error_msg = (
-            "ModuleNotFoundError: No module named 'foo.bar.baz'; "
-            "'foo.bar' is not a package"
-        )
+        error_msg = "ModuleNotFoundError: No module named 'foo.bar.baz'; 'foo.bar' is not a package"
         result = runner.invoke(cli, ["debug", "--error", error_msg])
         assert result.exit_code in [0, 1]

@@ -1,7 +1,5 @@
 """Unit tests for ZERG CLI module."""
 
-from unittest.mock import patch
-
 from click.testing import CliRunner
 
 from zerg.cli import cli

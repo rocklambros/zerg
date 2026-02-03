@@ -87,9 +87,7 @@ class VultureAdapter(BaseToolAdapter):
                     factor_name="Dead code",
                     category="Code-Level Patterns",
                     severity=severity,
-                    message=(
-                        f"Unused {unused_type} '{name}' ({confidence}% confidence)"
-                    ),
+                    message=(f"Unused {unused_type} '{name}' ({confidence}% confidence)"),
                     file=filepath,
                     line=lineno,
                     tool=self.name,

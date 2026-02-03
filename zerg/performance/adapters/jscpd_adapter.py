@@ -42,9 +42,7 @@ class JscpdAdapter(BaseToolAdapter):
 
             shutil.rmtree(tmpdir, ignore_errors=True)
 
-    def _execute(
-        self, project_path: str, output_dir: str
-    ) -> list[PerformanceFinding]:
+    def _execute(self, project_path: str, output_dir: str) -> list[PerformanceFinding]:
         """Execute jscpd and parse the JSON report."""
         try:
             subprocess.run(
@@ -85,9 +83,7 @@ class JscpdAdapter(BaseToolAdapter):
 
         return self._parse_duplicates(data)
 
-    def _parse_duplicates(
-        self, data: dict[str, object]
-    ) -> list[PerformanceFinding]:
+    def _parse_duplicates(self, data: dict[str, object]) -> list[PerformanceFinding]:
         """Parse the jscpd JSON report and map to findings."""
         duplicates = data.get("duplicates", [])
         if not isinstance(duplicates, list):
@@ -106,21 +102,9 @@ class JscpdAdapter(BaseToolAdapter):
 
             first_file = dup.get("firstFile", {})
             second_file = dup.get("secondFile", {})
-            first_name = (
-                first_file.get("name", "<unknown>")
-                if isinstance(first_file, dict)
-                else "<unknown>"
-            )
-            second_name = (
-                second_file.get("name", "<unknown>")
-                if isinstance(second_file, dict)
-                else "<unknown>"
-            )
-            start_line = (
-                first_file.get("startLoc", {}).get("line", 0)
-                if isinstance(first_file, dict)
-                else 0
-            )
+            first_name = first_file.get("name", "<unknown>") if isinstance(first_file, dict) else "<unknown>"
+            second_name = second_file.get("name", "<unknown>") if isinstance(second_file, dict) else "<unknown>"
+            start_line = first_file.get("startLoc", {}).get("line", 0) if isinstance(first_file, dict) else 0
             if not isinstance(start_line, int):
                 start_line = 0
 
@@ -133,8 +117,7 @@ class JscpdAdapter(BaseToolAdapter):
                     category="Code Volume",
                     severity=severity,
                     message=(
-                        f"Duplicated block ({lines} lines, {tokens} tokens) "
-                        f"between {first_name} and {second_name}"
+                        f"Duplicated block ({lines} lines, {tokens} tokens) between {first_name} and {second_name}"
                     ),
                     file=first_name,
                     line=start_line,

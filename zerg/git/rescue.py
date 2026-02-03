@@ -35,8 +35,7 @@ def _validate_name(name: str, kind: str = "name") -> None:
     """
     if not name or not _NAME_PATTERN.match(name):
         raise ValueError(
-            f"Invalid {kind}: {name!r}. "
-            f"Only alphanumeric characters, hyphens, slashes, and dots are allowed."
+            f"Invalid {kind}: {name!r}. Only alphanumeric characters, hyphens, slashes, and dots are allowed."
         )
 
 
@@ -55,9 +54,7 @@ def _validate_path_within_project(path: Path, project_root: Path) -> Path:
     """
     resolved = path.resolve()
     if not resolved.is_relative_to(project_root.resolve()):
-        raise ValueError(
-            f"Path {resolved} is outside project root {project_root}"
-        )
+        raise ValueError(f"Path {resolved} is outside project root {project_root}")
     return resolved
 
 
@@ -386,7 +383,10 @@ class RescueEngine:
         try:
             # Search reflog for the branch
             result = self._runner._run(
-                "reflog", "show", "--format=%H %gs", "--all",
+                "reflog",
+                "show",
+                "--format=%H %gs",
+                "--all",
                 check=False,
             )
             target_commit: str | None = None
@@ -430,10 +430,7 @@ class RescueEngine:
             count = int(kwargs.get("count", 20))  # type: ignore[arg-type]
             ops = self.list_operations(count)
             for op in ops:
-                print(
-                    f"[{op.get('timestamp', '?')}] "
-                    f"{op.get('operation', '?')}: {op.get('description', '')}"
-                )
+                print(f"[{op.get('timestamp', '?')}] {op.get('operation', '?')}: {op.get('description', '')}")
             return 0
 
         if action == "undo":

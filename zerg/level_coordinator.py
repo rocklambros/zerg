@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from zerg.assign import WorkerAssignment
-from zerg.gates import GateRunner
 from zerg.config import QualityGate, ZergConfig
 from zerg.constants import (
     LevelMergeStatus,
@@ -21,6 +20,7 @@ from zerg.constants import (
     PluginHookEvent,
     TaskStatus,
 )
+from zerg.gates import GateRunner
 from zerg.levels import LevelController
 from zerg.log_writer import StructuredLogWriter
 from zerg.logging import get_logger
@@ -124,16 +124,20 @@ class LevelCoordinator:
 
         if self._structured_writer:
             self._structured_writer.emit(
-                "info", f"Level {level} started with {len(task_ids)} tasks",
-                event=LogEvent.LEVEL_STARTED, data={"level": level, "tasks": len(task_ids)},
+                "info",
+                f"Level {level} started with {len(task_ids)} tasks",
+                event=LogEvent.LEVEL_STARTED,
+                data={"level": level, "tasks": len(task_ids)},
             )
 
         # Emit plugin lifecycle event for level started
         try:
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.LEVEL_COMPLETE.value,  # Reused for level start
-                data={"level": level, "tasks": len(task_ids)},
-            ))
+            self._plugin_registry.emit_event(
+                LifecycleEvent(
+                    event_type=PluginHookEvent.LEVEL_COMPLETE.value,  # Reused for level start
+                    data={"level": level, "tasks": len(task_ids)},
+                )
+            )
         except Exception as e:
             logger.warning(f"Failed to emit LEVEL_COMPLETE event: {e}")
 
@@ -176,8 +180,8 @@ class LevelCoordinator:
         self.state.set_level_merge_status(level, LevelMergeStatus.MERGING)
 
         # Execute merge protocol with timeout and retry (BF-007)
-        merge_timeout = getattr(self.config, 'merge_timeout_seconds', 600)  # 10 min default
-        max_retries = getattr(self.config, 'merge_max_retries', 3)
+        merge_timeout = getattr(self.config, "merge_timeout_seconds", 600)  # 10 min default
+        max_retries = getattr(self.config, "merge_max_retries", 3)
 
         merge_result = None
         for attempt in range(max_retries):
@@ -198,17 +202,20 @@ class LevelCoordinator:
                     logger.warning(f"Merge timed out for level {level} (attempt {attempt + 1})")
 
             if not merge_result.success and attempt < max_retries - 1:
-                backoff = 2 ** attempt * 10  # 10s, 20s, 40s
+                backoff = 2**attempt * 10  # 10s, 20s, 40s
                 logger.warning(
                     f"Merge attempt {attempt + 1} failed for level {level}, "
                     f"retrying in {backoff}s: {merge_result.error}"
                 )
-                self.state.append_event("merge_retry", {
-                    "level": level,
-                    "attempt": attempt + 1,
-                    "backoff_seconds": backoff,
-                    "error": merge_result.error,
-                })
+                self.state.append_event(
+                    "merge_retry",
+                    {
+                        "level": level,
+                        "attempt": attempt + 1,
+                        "backoff_seconds": backoff,
+                        "error": merge_result.error,
+                    },
+                )
                 time.sleep(backoff)
 
         if merge_result and merge_result.success:
@@ -218,20 +225,26 @@ class LevelCoordinator:
 
             self.state.set_level_status(level, "complete", merge_commit=merge_result.merge_commit)
             self.state.set_level_merge_status(level, LevelMergeStatus.COMPLETE)
-            self.state.append_event("level_complete", {
-                "level": level,
-                "merge_commit": merge_result.merge_commit,
-            })
+            self.state.append_event(
+                "level_complete",
+                {
+                    "level": level,
+                    "merge_commit": merge_result.merge_commit,
+                },
+            )
 
             if self._structured_writer:
                 self._structured_writer.emit(
-                    "info", f"Level {level} merge complete",
+                    "info",
+                    f"Level {level} merge complete",
                     event=LogEvent.MERGE_COMPLETE,
                     data={"level": level, "merge_commit": merge_result.merge_commit},
                 )
                 self._structured_writer.emit(
-                    "info", f"Level {level} complete",
-                    event=LogEvent.LEVEL_COMPLETE, data={"level": level},
+                    "info",
+                    f"Level {level} complete",
+                    event=LogEvent.LEVEL_COMPLETE,
+                    data={"level": level},
                 )
 
             # Compute and store metrics
@@ -249,14 +262,18 @@ class LevelCoordinator:
 
             # Emit plugin lifecycle events
             try:
-                self._plugin_registry.emit_event(LifecycleEvent(
-                    event_type=PluginHookEvent.LEVEL_COMPLETE.value,
-                    data={"level": level, "merge_commit": merge_result.merge_commit},
-                ))
-                self._plugin_registry.emit_event(LifecycleEvent(
-                    event_type=PluginHookEvent.MERGE_COMPLETE.value,
-                    data={"level": level, "merge_commit": merge_result.merge_commit},
-                ))
+                self._plugin_registry.emit_event(
+                    LifecycleEvent(
+                        event_type=PluginHookEvent.LEVEL_COMPLETE.value,
+                        data={"level": level, "merge_commit": merge_result.merge_commit},
+                    )
+                )
+                self._plugin_registry.emit_event(
+                    LifecycleEvent(
+                        event_type=PluginHookEvent.MERGE_COMPLETE.value,
+                        data={"level": level, "merge_commit": merge_result.merge_commit},
+                    )
+                )
             except Exception as e:
                 logger.debug(f"Status update failed: {e}")
 
@@ -298,9 +315,7 @@ class LevelCoordinator:
             else:
                 # BF-007: Set recoverable error state (pause) instead of stop
                 self.state.set_level_merge_status(level, LevelMergeStatus.FAILED)
-                self.set_recoverable_error(
-                    f"Level {level} merge failed after {max_retries} attempts: {error_msg}"
-                )
+                self.set_recoverable_error(f"Level {level} merge failed after {max_retries} attempts: {error_msg}")
 
             return False
 
@@ -316,8 +331,10 @@ class LevelCoordinator:
         logger.info(f"Starting merge for level {level}")
         if self._structured_writer:
             self._structured_writer.emit(
-                "info", f"Merge started for level {level}",
-                event=LogEvent.MERGE_STARTED, data={"level": level},
+                "info",
+                f"Merge started for level {level}",
+                event=LogEvent.MERGE_STARTED,
+                data={"level": level},
             )
 
         # Collect worker branches

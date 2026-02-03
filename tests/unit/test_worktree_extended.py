@@ -3,7 +3,6 @@
 Tests worktree creation, deletion, synchronization, and edge cases.
 """
 
-import os
 import subprocess
 from pathlib import Path
 
@@ -268,6 +267,7 @@ class TestWorktreePruning:
         # Create and manually delete directory (leaving stale reference)
         info = manager.create("test-feature", 0)
         import shutil
+
         shutil.rmtree(info.path)
 
         # Prune should not raise

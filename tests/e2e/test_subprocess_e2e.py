@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.constants import TaskStatus, WorkerStatus
-from zerg.launcher import SubprocessLauncher, SpawnResult, LauncherConfig
+from zerg.constants import WorkerStatus
+from zerg.launcher import LauncherConfig, SpawnResult, SubprocessLauncher
 from zerg.orchestrator import Orchestrator
 
 
@@ -29,7 +29,7 @@ def e2e_orchestrator(tmp_path: Path, monkeypatch):
         "tasks": [
             {"id": "TASK-001", "title": "First task", "level": 1, "files": ["src/a.py"]},
             {"id": "TASK-002", "title": "Second task", "level": 1, "files": ["src/b.py"]},
-        ]
+        ],
     }
     (zerg_dir / "task-graph.json").write_text(json.dumps(task_graph))
 
@@ -39,16 +39,17 @@ def e2e_orchestrator(tmp_path: Path, monkeypatch):
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock all orchestrator dependencies."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner"),
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager"),
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator"),
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state_mock.return_value = state
@@ -106,9 +107,7 @@ def mock_orchestrator_deps():
 class TestSubprocessSpawning:
     """Tests for subprocess worker spawning."""
 
-    def test_spawn_worker_creates_handle(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_spawn_worker_creates_handle(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test spawning a subprocess worker creates handle."""
         orch = Orchestrator("test-feature")
 
@@ -117,9 +116,7 @@ class TestSubprocessSpawning:
         assert worker_state is not None
         assert 0 in orch._workers
 
-    def test_spawn_multiple_workers(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_spawn_multiple_workers(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test spawning multiple subprocess workers."""
         mock_orchestrator_deps["ports"].allocate_one.side_effect = [49152, 49153, 49154]
 
@@ -134,9 +131,7 @@ class TestSubprocessSpawning:
 class TestSubprocessWorkflow:
     """Tests for complete subprocess workflow."""
 
-    def test_worker_lifecycle(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_worker_lifecycle(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test worker lifecycle: spawn -> work -> terminate."""
         orch = Orchestrator("test-feature")
 
@@ -148,9 +143,7 @@ class TestSubprocessWorkflow:
         orch._terminate_worker(0)
         mock_orchestrator_deps["launcher"].terminate.assert_called()
 
-    def test_worker_polling(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_worker_polling(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test worker status polling."""
         orch = Orchestrator("test-feature")
 
@@ -163,9 +156,7 @@ class TestSubprocessWorkflow:
 class TestSubprocessCleanup:
     """Tests for subprocess cleanup."""
 
-    def test_cleanup_on_stop(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_cleanup_on_stop(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test cleanup when orchestrator stops."""
         mock_orchestrator_deps["ports"].allocate_one.side_effect = [49152, 49153]
 
@@ -185,18 +176,14 @@ class TestSubprocessCleanup:
 class TestOrchestratorStatus:
     """Tests for orchestrator status reporting."""
 
-    def test_status_includes_feature(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_status_includes_feature(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test status includes feature name."""
         orch = Orchestrator("test-feature")
         status = orch.status()
 
         assert status["feature"] == "test-feature"
 
-    def test_status_includes_workers(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_status_includes_workers(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test status includes worker info."""
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -210,9 +197,7 @@ class TestOrchestratorStatus:
 class TestWorkerAssignment:
     """Tests for worker task assignment."""
 
-    def test_task_assigned_to_worker(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_task_assigned_to_worker(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test tasks are assigned to workers."""
         mock_orchestrator_deps["levels"].start_level.return_value = ["TASK-001"]
 
@@ -228,9 +213,7 @@ class TestWorkerAssignment:
 class TestLevelStarting:
     """Tests for level starting."""
 
-    def test_start_level_emits_event(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_start_level_emits_event(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test starting level emits event."""
         mock_orchestrator_deps["levels"].start_level.return_value = ["TASK-001"]
 
@@ -239,9 +222,7 @@ class TestLevelStarting:
 
         mock_orchestrator_deps["state"].append_event.assert_called()
 
-    def test_start_level_sets_state(
-        self, e2e_orchestrator: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_start_level_sets_state(self, e2e_orchestrator: Path, mock_orchestrator_deps) -> None:
         """Test starting level sets state."""
         mock_orchestrator_deps["levels"].start_level.return_value = ["TASK-001"]
 

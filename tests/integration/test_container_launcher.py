@@ -4,8 +4,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.constants import WorkerStatus
 from zerg.devcontainer_features import (
     DEVCONTAINER_FEATURES,
@@ -173,6 +171,7 @@ class TestDynamicDevcontainerGenerator:
 
         # Check executable
         import os
+
         assert os.access(script_path, os.X_OK)
 
 
@@ -202,9 +201,7 @@ class TestContainerLauncher:
 
     @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_wait_ready", return_value=True)
-    def test_spawn_success(
-        self, mock_wait: MagicMock, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_success(self, mock_wait: MagicMock, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test successful container spawn."""
         # Mock docker run returning container ID
         mock_run.return_value = MagicMock(returncode=0, stdout="abc123def456\n")
@@ -263,6 +260,7 @@ class TestContainerLauncher:
         """Test monitoring exited container."""
         # Setup container
         from zerg.launcher import WorkerHandle
+
         launcher = ContainerLauncher()
         launcher._workers[0] = WorkerHandle(worker_id=0, container_id="abc123")
         launcher._container_ids[0] = "abc123"
@@ -280,6 +278,7 @@ class TestContainerLauncher:
     def test_terminate(self, mock_run: MagicMock) -> None:
         """Test container termination."""
         from zerg.launcher import WorkerHandle
+
         launcher = ContainerLauncher()
         launcher._workers[0] = WorkerHandle(worker_id=0, container_id="abc123")
         launcher._container_ids[0] = "abc123"

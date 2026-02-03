@@ -2,14 +2,12 @@
 
 import json
 import os
-import tempfile
-import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
+from zerg.command_executor import CommandValidationError
 from zerg.commands.build import (
     BuildCommand,
     BuildConfig,
@@ -22,7 +20,6 @@ from zerg.commands.build import (
     _watch_loop,
     build,
 )
-from zerg.command_executor import CommandValidationError
 
 
 class TestBuildSystem:
@@ -285,7 +282,9 @@ class TestErrorRecovery:
     def test_classify_resource_exhaustion_memory(self) -> None:
         """Test classification of out of memory."""
         recovery = ErrorRecovery()
-        category = recovery.classify("FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory")
+        category = recovery.classify(
+            "FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory"
+        )
         assert category == ErrorCategory.RESOURCE_EXHAUSTION
 
     def test_classify_resource_exhaustion_heap(self) -> None:
@@ -672,9 +671,7 @@ class TestBuildCommand:
 
     @patch.object(BuildRunner, "run")
     @patch("zerg.commands.build.time.sleep")
-    def test_run_with_network_timeout_backoff(
-        self, mock_sleep: MagicMock, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_run_with_network_timeout_backoff(self, mock_sleep: MagicMock, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test run with network timeout applies exponential backoff."""
         mock_run.return_value = BuildResult(
             success=False,
@@ -816,9 +813,7 @@ class TestWatchLoop:
 
     @patch("zerg.commands.build.time.sleep")
     @patch("zerg.commands.build.console")
-    def test_watch_loop_detects_changes(
-        self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_watch_loop_detects_changes(self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test watch loop detects file changes."""
         # Create initial file
         test_file = tmp_path / "test.py"
@@ -826,9 +821,7 @@ class TestWatchLoop:
 
         # Mock builder
         mock_builder = MagicMock()
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=1.0, artifacts=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=1.0, artifacts=[])
 
         call_count = [0]
 
@@ -847,9 +840,7 @@ class TestWatchLoop:
 
         # Should have detected change and run build
         mock_builder.run.assert_called()
-        mock_console.print.assert_any_call(
-            "[cyan]Watch mode enabled. Press Ctrl+C to stop.[/cyan]\n"
-        )
+        mock_console.print.assert_any_call("[cyan]Watch mode enabled. Press Ctrl+C to stop.[/cyan]\n")
         mock_console.print.assert_any_call("\n[yellow]Watch mode stopped[/yellow]")
 
     @patch("zerg.commands.build.time.sleep")
@@ -892,9 +883,7 @@ class TestWatchLoop:
 
         mock_builder = MagicMock()
         # This tests line 343 - when result.errors is empty, falls back to 'Unknown'
-        mock_builder.run.return_value = BuildResult(
-            success=False, duration_seconds=0.5, artifacts=[], errors=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=False, duration_seconds=0.5, artifacts=[], errors=[])
 
         call_count = [0]
 
@@ -913,17 +902,13 @@ class TestWatchLoop:
 
     @patch("zerg.commands.build.time.sleep")
     @patch("zerg.commands.build.console")
-    def test_watch_loop_no_changes(
-        self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_watch_loop_no_changes(self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test watch loop does nothing without changes."""
         test_file = tmp_path / "test.py"
         test_file.write_text("content")
 
         mock_builder = MagicMock()
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=1.0, artifacts=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=1.0, artifacts=[])
 
         call_count = [0]
 
@@ -941,9 +926,7 @@ class TestWatchLoop:
 
     @patch("zerg.commands.build.time.sleep")
     @patch("zerg.commands.build.console")
-    def test_watch_loop_file_read_error(
-        self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_watch_loop_file_read_error(self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test watch loop handles file read errors gracefully."""
         test_file = tmp_path / "test.py"
         test_file.write_text("content")
@@ -976,9 +959,7 @@ class TestWatchLoop:
         test_file.write_text("content")
 
         mock_builder = MagicMock()
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=1.0, artifacts=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=1.0, artifacts=[])
 
         call_count = [0]
 
@@ -1007,17 +988,13 @@ class TestWatchLoop:
 
     @patch("zerg.commands.build.time.sleep")
     @patch("zerg.commands.build.console")
-    def test_watch_loop_debounce(
-        self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_watch_loop_debounce(self, mock_console: MagicMock, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test watch loop debounces rapid changes."""
         test_file = tmp_path / "test.py"
         test_file.write_text("initial")
 
         mock_builder = MagicMock()
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=1.0, artifacts=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=1.0, artifacts=[])
 
         call_count = [0]
 
@@ -1061,9 +1038,7 @@ class TestBuildCLI:
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_dry_run(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_dry_run(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build --dry-run."""
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = [BuildSystem.PYTHON]
@@ -1082,9 +1057,7 @@ class TestBuildCLI:
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_json_output(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_json_output(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build --json."""
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = [BuildSystem.PYTHON]
@@ -1102,9 +1075,7 @@ class TestBuildCLI:
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_no_system_detected(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_no_system_detected(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build with no system detected."""
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = []
@@ -1123,15 +1094,11 @@ class TestBuildCLI:
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_clean_flag(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_clean_flag(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build --clean."""
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = [BuildSystem.PYTHON]
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=1.0, artifacts=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=1.0, artifacts=[])
         mock_builder_class.return_value = mock_builder
 
         runner = CliRunner()
@@ -1154,21 +1121,17 @@ class TestBuildCLI:
         mock_builder_class.return_value = mock_builder
 
         runner = CliRunner()
-        result = runner.invoke(build, ["--watch"])
+        runner.invoke(build, ["--watch"])
 
         mock_watch_loop.assert_called_once()
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_watch_dry_run(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_watch_dry_run(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build --watch --dry-run."""
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = [BuildSystem.PYTHON]
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=0.0, artifacts=[], warnings=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=0.0, artifacts=[], warnings=[])
         mock_builder_class.return_value = mock_builder
 
         runner = CliRunner()
@@ -1178,9 +1141,7 @@ class TestBuildCLI:
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_failure_shows_recovery(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_failure_shows_recovery(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build failure shows recovery suggestion."""
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = [BuildSystem.NPM]
@@ -1200,9 +1161,7 @@ class TestBuildCLI:
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_keyboard_interrupt(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_keyboard_interrupt(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build handles KeyboardInterrupt."""
         mock_builder_class.side_effect = KeyboardInterrupt
 
@@ -1213,9 +1172,7 @@ class TestBuildCLI:
 
     @patch("zerg.commands.build.BuildCommand")
     @patch("zerg.commands.build.console")
-    def test_build_generic_exception(
-        self, mock_console: MagicMock, mock_builder_class: MagicMock
-    ) -> None:
+    def test_build_generic_exception(self, mock_console: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test build handles generic exception."""
         mock_builder_class.side_effect = RuntimeError("Unexpected failure")
 
@@ -1236,16 +1193,12 @@ class TestBuildCLI:
         """Test actual build run shows progress."""
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = [BuildSystem.PYTHON]
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=1.5, artifacts=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=1.5, artifacts=[])
         mock_builder_class.return_value = mock_builder
 
         # Mock Progress context manager
         mock_progress_instance = MagicMock()
-        mock_progress.return_value.__enter__ = MagicMock(
-            return_value=mock_progress_instance
-        )
+        mock_progress.return_value.__enter__ = MagicMock(return_value=mock_progress_instance)
         mock_progress.return_value.__exit__ = MagicMock(return_value=None)
 
         runner = CliRunner()
@@ -1297,15 +1250,11 @@ class TestBuildCLI:
 
         mock_builder = MagicMock()
         mock_builder.detector.detect.return_value = []
-        mock_builder.run.return_value = BuildResult(
-            success=True, duration_seconds=1.0, artifacts=[]
-        )
+        mock_builder.run.return_value = BuildResult(success=True, duration_seconds=1.0, artifacts=[])
         mock_builder_class.return_value = mock_builder
 
         mock_progress_instance = MagicMock()
-        mock_progress.return_value.__enter__ = MagicMock(
-            return_value=mock_progress_instance
-        )
+        mock_progress.return_value.__enter__ = MagicMock(return_value=mock_progress_instance)
         mock_progress.return_value.__exit__ = MagicMock(return_value=None)
 
         runner = CliRunner()

@@ -17,10 +17,8 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.commands.review import (
@@ -34,7 +32,6 @@ from zerg.commands.review import (
     _collect_files,
     review,
 )
-
 
 # =============================================================================
 # ReviewMode Enum Tests
@@ -1005,9 +1002,7 @@ class TestCollectFiles:
 
     def test_collect_files_git_exception(self) -> None:
         """Test collect_files handles git exception."""
-        with patch.object(
-            subprocess, "run", side_effect=Exception("Git not installed")
-        ):
+        with patch.object(subprocess, "run", side_effect=Exception("Git not installed")):
             files = _collect_files(None, "full")
 
         # Should return files from current directory scan
@@ -1093,9 +1088,7 @@ class TestReviewCLI:
 
     @patch("zerg.commands.review._collect_files")
     @patch("zerg.commands.review.console")
-    def test_review_no_files(
-        self, mock_console: MagicMock, mock_collect: MagicMock
-    ) -> None:
+    def test_review_no_files(self, mock_console: MagicMock, mock_collect: MagicMock) -> None:
         """Test review with no files found."""
         mock_collect.return_value = []
 
@@ -1290,9 +1283,7 @@ class TestReviewCLI:
         mock_path_class.return_value = mock_output_path
 
         runner = CliRunner()
-        result = runner.invoke(
-            review, ["--files", "test.py", "--output", "/tmp/review.txt"]
-        )
+        result = runner.invoke(review, ["--files", "test.py", "--output", "/tmp/review.txt"])
 
         assert result.exit_code == 0
         mock_output_path.write_text.assert_called_once()

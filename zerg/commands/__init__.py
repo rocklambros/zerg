@@ -4,8 +4,8 @@ from zerg.commands.analyze import analyze
 from zerg.commands.build import build
 from zerg.commands.cleanup import cleanup
 from zerg.commands.debug import debug
-from zerg.commands.document import document
 from zerg.commands.design import design
+from zerg.commands.document import document
 from zerg.commands.git_cmd import git_cmd
 from zerg.commands.init import init
 from zerg.commands.install_commands import install_commands, uninstall_commands

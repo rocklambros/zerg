@@ -381,24 +381,17 @@ class WorkerLauncher(ABC):
         last_error: str = ""
 
         for attempt in range(1, max_attempts + 1):
-            logger.info(
-                f"Spawn attempt {attempt}/{max_attempts} for worker {worker_id}"
-            )
+            logger.info(f"Spawn attempt {attempt}/{max_attempts} for worker {worker_id}")
 
             result = self.spawn(worker_id, feature, worktree_path, branch, env)
 
             if result.success:
                 if attempt > 1:
-                    logger.info(
-                        f"Worker {worker_id} spawned successfully on attempt {attempt}"
-                    )
+                    logger.info(f"Worker {worker_id} spawned successfully on attempt {attempt}")
                 return result
 
             last_error = result.error or "Unknown error"
-            logger.warning(
-                f"Spawn attempt {attempt}/{max_attempts} failed for worker {worker_id}: "
-                f"{last_error}"
-            )
+            logger.warning(f"Spawn attempt {attempt}/{max_attempts} failed for worker {worker_id}: {last_error}")
 
             # Don't sleep after the last attempt
             if attempt < max_attempts:
@@ -408,16 +401,11 @@ class WorkerLauncher(ABC):
                     base_seconds=int(backoff_base_seconds),
                     max_seconds=int(backoff_max_seconds),
                 )
-                logger.info(
-                    f"Waiting {delay:.2f}s before retry {attempt + 1}/{max_attempts}"
-                )
+                logger.info(f"Waiting {delay:.2f}s before retry {attempt + 1}/{max_attempts}")
                 time.sleep(delay)
 
         # All attempts exhausted
-        logger.error(
-            f"All {max_attempts} spawn attempts failed for worker {worker_id}. "
-            f"Last error: {last_error}"
-        )
+        logger.error(f"All {max_attempts} spawn attempts failed for worker {worker_id}. Last error: {last_error}")
         return SpawnResult(
             success=False,
             error=f"All {max_attempts} spawn attempts failed. Last error: {last_error}",
@@ -458,26 +446,17 @@ class WorkerLauncher(ABC):
         last_error: str = ""
 
         for attempt in range(1, max_attempts + 1):
-            logger.info(
-                f"Async spawn attempt {attempt}/{max_attempts} for worker {worker_id}"
-            )
+            logger.info(f"Async spawn attempt {attempt}/{max_attempts} for worker {worker_id}")
 
-            result = await self.spawn_async(
-                worker_id, feature, worktree_path, branch, env
-            )
+            result = await self.spawn_async(worker_id, feature, worktree_path, branch, env)
 
             if result.success:
                 if attempt > 1:
-                    logger.info(
-                        f"Worker {worker_id} spawned successfully on attempt {attempt}"
-                    )
+                    logger.info(f"Worker {worker_id} spawned successfully on attempt {attempt}")
                 return result
 
             last_error = result.error or "Unknown error"
-            logger.warning(
-                f"Async spawn attempt {attempt}/{max_attempts} failed for worker "
-                f"{worker_id}: {last_error}"
-            )
+            logger.warning(f"Async spawn attempt {attempt}/{max_attempts} failed for worker {worker_id}: {last_error}")
 
             # Don't sleep after the last attempt
             if attempt < max_attempts:
@@ -487,16 +466,11 @@ class WorkerLauncher(ABC):
                     base_seconds=int(backoff_base_seconds),
                     max_seconds=int(backoff_max_seconds),
                 )
-                logger.info(
-                    f"Waiting {delay:.2f}s before async retry {attempt + 1}/{max_attempts}"
-                )
+                logger.info(f"Waiting {delay:.2f}s before async retry {attempt + 1}/{max_attempts}")
                 await asyncio.sleep(delay)
 
         # All attempts exhausted
-        logger.error(
-            f"All {max_attempts} async spawn attempts failed for worker {worker_id}. "
-            f"Last error: {last_error}"
-        )
+        logger.error(f"All {max_attempts} async spawn attempts failed for worker {worker_id}. Last error: {last_error}")
         return SpawnResult(
             success=False,
             error=f"All {max_attempts} spawn attempts failed. Last error: {last_error}",
@@ -526,9 +500,7 @@ class WorkerLauncher(ABC):
         Returns:
             SpawnResult with handle or error
         """
-        return await asyncio.to_thread(
-            self.spawn, worker_id, feature, worktree_path, branch, env
-        )
+        return await asyncio.to_thread(self.spawn, worker_id, feature, worktree_path, branch, env)
 
     async def terminate_async(self, worker_id: int, force: bool = False) -> bool:
         """Terminate a worker asynchronously.
@@ -617,16 +589,18 @@ class SubprocessLauncher(WorkerLauncher):
             repo_path = Path.cwd().resolve()
             worker_env = os.environ.copy()
             log_dir = repo_path / LOGS_WORKERS_DIR.rsplit("/", 1)[0]  # .zerg/logs
-            worker_env.update({
-                "ZERG_WORKER_ID": str(worker_id),
-                "ZERG_FEATURE": feature,
-                "ZERG_WORKTREE": str(worktree_path),
-                "ZERG_BRANCH": branch,
-                "ZERG_SPEC_DIR": str(worktree_path / ".gsd" / "specs" / feature),
-                "ZERG_STATE_DIR": str(repo_path / ".zerg" / "state"),
-                "ZERG_REPO_PATH": str(repo_path),
-                "ZERG_LOG_DIR": str(log_dir),
-            })
+            worker_env.update(
+                {
+                    "ZERG_WORKER_ID": str(worker_id),
+                    "ZERG_FEATURE": feature,
+                    "ZERG_WORKTREE": str(worktree_path),
+                    "ZERG_BRANCH": branch,
+                    "ZERG_SPEC_DIR": str(worktree_path / ".gsd" / "specs" / feature),
+                    "ZERG_STATE_DIR": str(repo_path / ".zerg" / "state"),
+                    "ZERG_REPO_PATH": str(repo_path),
+                    "ZERG_LOG_DIR": str(log_dir),
+                }
+            )
 
             # Cross-session task list coordination
             task_list_id = os.environ.get("CLAUDE_CODE_TASK_LIST_ID")
@@ -648,11 +622,16 @@ class SubprocessLauncher(WorkerLauncher):
             # Build command
             cmd = [
                 sys.executable,
-                "-m", "zerg.worker_main",
-                "--worker-id", str(worker_id),
-                "--feature", feature,
-                "--worktree", str(worktree_path),
-                "--branch", branch,
+                "-m",
+                "zerg.worker_main",
+                "--worker-id",
+                str(worker_id),
+                "--feature",
+                feature,
+                "--worktree",
+                str(worktree_path),
+                "--branch",
+                branch,
             ]
 
             # Set working directory
@@ -897,16 +876,18 @@ class SubprocessLauncher(WorkerLauncher):
             repo_path = Path.cwd().resolve()
             worker_env = os.environ.copy()
             log_dir = repo_path / LOGS_WORKERS_DIR.rsplit("/", 1)[0]
-            worker_env.update({
-                "ZERG_WORKER_ID": str(worker_id),
-                "ZERG_FEATURE": feature,
-                "ZERG_WORKTREE": str(worktree_path),
-                "ZERG_BRANCH": branch,
-                "ZERG_SPEC_DIR": str(worktree_path / ".gsd" / "specs" / feature),
-                "ZERG_STATE_DIR": str(repo_path / ".zerg" / "state"),
-                "ZERG_REPO_PATH": str(repo_path),
-                "ZERG_LOG_DIR": str(log_dir),
-            })
+            worker_env.update(
+                {
+                    "ZERG_WORKER_ID": str(worker_id),
+                    "ZERG_FEATURE": feature,
+                    "ZERG_WORKTREE": str(worktree_path),
+                    "ZERG_BRANCH": branch,
+                    "ZERG_SPEC_DIR": str(worktree_path / ".gsd" / "specs" / feature),
+                    "ZERG_STATE_DIR": str(repo_path / ".zerg" / "state"),
+                    "ZERG_REPO_PATH": str(repo_path),
+                    "ZERG_LOG_DIR": str(log_dir),
+                }
+            )
 
             # Cross-session task list coordination
             task_list_id = os.environ.get("CLAUDE_CODE_TASK_LIST_ID")
@@ -929,11 +910,16 @@ class SubprocessLauncher(WorkerLauncher):
             # Build command arguments (first element is the program)
             program = sys.executable
             args = [
-                "-m", "zerg.worker_main",
-                "--worker-id", str(worker_id),
-                "--feature", feature,
-                "--worktree", str(worktree_path),
-                "--branch", branch,
+                "-m",
+                "zerg.worker_main",
+                "--worker-id",
+                str(worker_id),
+                "--feature",
+                feature,
+                "--worktree",
+                str(worktree_path),
+                "--branch",
+                branch,
             ]
 
             # Set working directory
@@ -957,7 +943,8 @@ class SubprocessLauncher(WorkerLauncher):
 
             # Spawn process asynchronously
             process = await asyncio.create_subprocess_exec(
-                program, *args,
+                program,
+                *args,
                 env=worker_env,
                 cwd=cwd,
                 stdout=stdout_target,
@@ -1052,10 +1039,7 @@ class SubprocessLauncher(WorkerLauncher):
                 handle.status = WorkerStatus.STOPPED
                 handle.exit_code = process.returncode
 
-                logger.info(
-                    f"Async terminated worker {worker_id} "
-                    f"(exit code: {handle.exit_code})"
-                )
+                logger.info(f"Async terminated worker {worker_id} (exit code: {handle.exit_code})")
                 return True
 
             except Exception as e:
@@ -1148,8 +1132,11 @@ class ContainerLauncher(WorkerLauncher):
                 "ZERG_WORKTREE": "/workspace",
                 "ZERG_BRANCH": branch,
                 "ZERG_SPEC_DIR": f"/workspace/.gsd/specs/{feature}",
-                **({"CLAUDE_CODE_TASK_LIST_ID": os.environ["CLAUDE_CODE_TASK_LIST_ID"]}
-                   if "CLAUDE_CODE_TASK_LIST_ID" in os.environ else {}),
+                **(
+                    {"CLAUDE_CODE_TASK_LIST_ID": os.environ["CLAUDE_CODE_TASK_LIST_ID"]}
+                    if "CLAUDE_CODE_TASK_LIST_ID" in os.environ
+                    else {}
+                ),
             }
 
             # Add API key from environment or .env file
@@ -1265,11 +1252,17 @@ class ContainerLauncher(WorkerLauncher):
         home_dir = CONTAINER_HOME_DIR
 
         cmd = [
-            "docker", "run", "-d",
-            "--name", container_name,
-            "--user", f"{uid}:{gid}",
-            "-v", f"{worktree_path.absolute()}:/workspace",
-            "-v", f"{state_dir.absolute()}:/workspace/.zerg/state",  # Share state with orchestrator
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            container_name,
+            "--user",
+            f"{uid}:{gid}",
+            "-v",
+            f"{worktree_path.absolute()}:/workspace",
+            "-v",
+            f"{state_dir.absolute()}:/workspace/.zerg/state",  # Share state with orchestrator
         ]
 
         # Mount main repo's .git and worktree metadata for git operations inside container
@@ -1297,10 +1290,14 @@ class ContainerLauncher(WorkerLauncher):
         cmd.extend(["--memory", self.memory_limit])
         cmd.extend(["--cpus", str(self.cpu_limit)])
 
-        cmd.extend([
-            "-w", "/workspace",
-            "--network", self.network,
-        ])
+        cmd.extend(
+            [
+                "-w",
+                "/workspace",
+                "--network",
+                self.network,
+            ]
+        )
 
         # Add environment variables
         for key, value in env.items():
@@ -1309,12 +1306,15 @@ class ContainerLauncher(WorkerLauncher):
         # Run entry script directly as container CMD.
         # The entry script uses 'exec' to become worker_main (PID 1).
         # If it fails, the fallback keeps the container alive for debugging.
-        cmd.extend([
-            self.image_name,
-            "bash", "-c",
-            f"bash /workspace/{self.WORKER_ENTRY_SCRIPT} 2>&1; "
-            f"echo 'Worker entry exited with code '$?; sleep infinity",
-        ])
+        cmd.extend(
+            [
+                self.image_name,
+                "bash",
+                "-c",
+                f"bash /workspace/{self.WORKER_ENTRY_SCRIPT} 2>&1; "
+                f"echo 'Worker entry exited with code '$?; sleep infinity",
+            ]
+        )
 
         try:
             result = subprocess.run(
@@ -1377,10 +1377,14 @@ class ContainerLauncher(WorkerLauncher):
             True if execution started successfully
         """
         cmd = [
-            "docker", "exec", "-d",
-            "-w", "/workspace",
+            "docker",
+            "exec",
+            "-d",
+            "-w",
+            "/workspace",
             container_id,
-            "/bin/bash", f"/workspace/{self.WORKER_ENTRY_SCRIPT}",
+            "/bin/bash",
+            f"/workspace/{self.WORKER_ENTRY_SCRIPT}",
         ]
 
         try:
@@ -1424,10 +1428,7 @@ class ContainerLauncher(WorkerLauncher):
                 logger.debug(f"Process check failed: {e}")
             _time.sleep(0.5)
 
-        logger.warning(
-            f"Worker process not found in container"
-            f" {container_id[:12]} after {timeout}s"
-        )
+        logger.warning(f"Worker process not found in container {container_id[:12]} after {timeout}s")
         return False
 
     def _cleanup_failed_container(self, container_id: str, worker_id: int) -> None:
@@ -1471,9 +1472,7 @@ class ContainerLauncher(WorkerLauncher):
         try:
             # Check container state
             result = subprocess.run(
-                ["docker", "inspect", "-f",
-                 "{{.State.Running}},{{.State.ExitCode}}",
-                 container_id],
+                ["docker", "inspect", "-f", "{{.State.Running}},{{.State.ExitCode}}", container_id],
                 capture_output=True,
                 text=True,
                 timeout=10,
@@ -1492,11 +1491,11 @@ class ContainerLauncher(WorkerLauncher):
                 # Only check after a grace period (marker created during init).
                 if handle.started_at:
                     from datetime import timedelta
+
                     age = datetime.now() - handle.started_at
                     if age > timedelta(seconds=60):
                         alive_check = subprocess.run(
-                            ["docker", "exec", container_id,
-                             "test", "-f", CONTAINER_HEALTH_FILE],
+                            ["docker", "exec", container_id, "test", "-f", CONTAINER_HEALTH_FILE],
                             capture_output=True,
                             timeout=5,
                         )
@@ -1703,7 +1702,10 @@ class ContainerLauncher(WorkerLauncher):
 
             # Remove any existing container with the same name
             proc = await asyncio.create_subprocess_exec(
-                "docker", "rm", "-f", container_name,
+                "docker",
+                "rm",
+                "-f",
+                container_name,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -1716,8 +1718,11 @@ class ContainerLauncher(WorkerLauncher):
                 "ZERG_WORKTREE": "/workspace",
                 "ZERG_BRANCH": branch,
                 "ZERG_SPEC_DIR": f"/workspace/.gsd/specs/{feature}",
-                **({"CLAUDE_CODE_TASK_LIST_ID": os.environ["CLAUDE_CODE_TASK_LIST_ID"]}
-                   if "CLAUDE_CODE_TASK_LIST_ID" in os.environ else {}),
+                **(
+                    {"CLAUDE_CODE_TASK_LIST_ID": os.environ["CLAUDE_CODE_TASK_LIST_ID"]}
+                    if "CLAUDE_CODE_TASK_LIST_ID" in os.environ
+                    else {}
+                ),
             }
 
             # Add API key from environment or .env file
@@ -1777,14 +1782,10 @@ class ContainerLauncher(WorkerLauncher):
                 )
 
             # Verify worker process
-            verified = await asyncio.to_thread(
-                self._verify_worker_process, container_id, 120.0
-            )
+            verified = await asyncio.to_thread(self._verify_worker_process, container_id, 120.0)
             if not verified:
                 logger.error(f"Worker process failed to start for worker {worker_id}")
-                await asyncio.to_thread(
-                    self._cleanup_failed_container, container_id, worker_id
-                )
+                await asyncio.to_thread(self._cleanup_failed_container, container_id, worker_id)
                 return SpawnResult(
                     success=False,
                     worker_id=worker_id,
@@ -1830,11 +1831,16 @@ class ContainerLauncher(WorkerLauncher):
         home_dir = CONTAINER_HOME_DIR
 
         cmd_args = [
-            "run", "-d",
-            "--name", container_name,
-            "--user", f"{uid}:{gid}",
-            "-v", f"{worktree_path.absolute()}:/workspace",
-            "-v", f"{state_dir.absolute()}:/workspace/.zerg/state",
+            "run",
+            "-d",
+            "--name",
+            container_name,
+            "--user",
+            f"{uid}:{gid}",
+            "-v",
+            f"{worktree_path.absolute()}:/workspace",
+            "-v",
+            f"{state_dir.absolute()}:/workspace/.zerg/state",
         ]
 
         if main_git_dir.exists() and git_worktree_dir.exists():
@@ -1854,24 +1860,32 @@ class ContainerLauncher(WorkerLauncher):
         cmd_args.extend(["--memory", self.memory_limit])
         cmd_args.extend(["--cpus", str(self.cpu_limit)])
 
-        cmd_args.extend([
-            "-w", "/workspace",
-            "--network", self.network,
-        ])
+        cmd_args.extend(
+            [
+                "-w",
+                "/workspace",
+                "--network",
+                self.network,
+            ]
+        )
 
         for key, value in env.items():
             cmd_args.extend(["-e", f"{key}={value}"])
 
-        cmd_args.extend([
-            self.image_name,
-            "bash", "-c",
-            f"bash /workspace/{self.WORKER_ENTRY_SCRIPT} 2>&1; "
-            f"echo 'Worker entry exited with code '$?; sleep infinity",
-        ])
+        cmd_args.extend(
+            [
+                self.image_name,
+                "bash",
+                "-c",
+                f"bash /workspace/{self.WORKER_ENTRY_SCRIPT} 2>&1; "
+                f"echo 'Worker entry exited with code '$?; sleep infinity",
+            ]
+        )
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                "docker", *cmd_args,
+                "docker",
+                *cmd_args,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -1914,13 +1928,13 @@ class ContainerLauncher(WorkerLauncher):
             timeout = 10 if force else 30
 
             proc = await asyncio.create_subprocess_exec(
-                "docker", action, container_id,
+                "docker",
+                action,
+                container_id,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=timeout
-            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
 
             if proc.returncode == 0:
                 handle.status = WorkerStatus.STOPPED
@@ -1928,7 +1942,10 @@ class ContainerLauncher(WorkerLauncher):
 
                 # Remove container
                 rm_proc = await asyncio.create_subprocess_exec(
-                    "docker", "rm", "-f", container_id,
+                    "docker",
+                    "rm",
+                    "-f",
+                    container_id,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -1942,7 +1959,9 @@ class ContainerLauncher(WorkerLauncher):
         except TimeoutError:
             # Force kill on timeout
             kill_proc = await asyncio.create_subprocess_exec(
-                "docker", "kill", container_id,
+                "docker",
+                "kill",
+                container_id,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )

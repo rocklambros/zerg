@@ -98,9 +98,7 @@ class LintChecker(BaseChecker):
     def check(self, files: list[str]) -> AnalysisResult:
         """Run lint check."""
         if not files:
-            return AnalysisResult(
-                check_type=CheckType.LINT, passed=True, issues=[], score=100.0
-            )
+            return AnalysisResult(check_type=CheckType.LINT, passed=True, issues=[], score=100.0)
 
         try:
             paths: list[str | Path] = list(files)
@@ -111,9 +109,7 @@ class LintChecker(BaseChecker):
             result = self._executor.execute(cmd_parts, timeout=120)
 
             if result.success:
-                return AnalysisResult(
-                    check_type=CheckType.LINT, passed=True, issues=[], score=100.0
-                )
+                return AnalysisResult(check_type=CheckType.LINT, passed=True, issues=[], score=100.0)
             else:
                 issues = result.stdout.strip().split("\n") if result.stdout else []
                 score = max(0, 100 - len(issues) * 5)
@@ -150,9 +146,7 @@ class ComplexityChecker(BaseChecker):
 
     def check(self, files: list[str]) -> AnalysisResult:
         """Run complexity check."""
-        return AnalysisResult(
-            check_type=CheckType.COMPLEXITY, passed=True, issues=[], score=85.0
-        )
+        return AnalysisResult(check_type=CheckType.COMPLEXITY, passed=True, issues=[], score=85.0)
 
 
 class CoverageChecker(BaseChecker):
@@ -166,9 +160,7 @@ class CoverageChecker(BaseChecker):
 
     def check(self, files: list[str]) -> AnalysisResult:
         """Run coverage check."""
-        return AnalysisResult(
-            check_type=CheckType.COVERAGE, passed=True, issues=[], score=75.0
-        )
+        return AnalysisResult(check_type=CheckType.COVERAGE, passed=True, issues=[], score=75.0)
 
 
 class SecurityChecker(BaseChecker):
@@ -187,9 +179,7 @@ class SecurityChecker(BaseChecker):
     def check(self, files: list[str]) -> AnalysisResult:
         """Run security check."""
         if not files:
-            return AnalysisResult(
-                check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0
-            )
+            return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)
 
         try:
             paths: list[str | Path] = list(files)
@@ -201,9 +191,7 @@ class SecurityChecker(BaseChecker):
             result = self._executor.execute(cmd_parts, timeout=120)
 
             if result.success:
-                return AnalysisResult(
-                    check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0
-                )
+                return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)
             else:
                 issues = result.stdout.strip().split("\n") if result.stdout else []
                 return AnalysisResult(
@@ -213,13 +201,9 @@ class SecurityChecker(BaseChecker):
                     score=max(0.0, 100.0 - len(issues) * 10),
                 )
         except CommandValidationError:
-            return AnalysisResult(
-                check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0
-            )
+            return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)
         except Exception:
-            return AnalysisResult(
-                check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0
-            )
+            return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)
 
 
 class PerformanceChecker(BaseChecker):
@@ -269,9 +253,7 @@ class DeadCodeChecker(BaseChecker):
     def check(self, files: list[str]) -> AnalysisResult:
         """Run vulture dead code detection on given files."""
         if not files:
-            return AnalysisResult(
-                check_type=CheckType.DEAD_CODE, passed=True, issues=[], score=100.0
-            )
+            return AnalysisResult(check_type=CheckType.DEAD_CODE, passed=True, issues=[], score=100.0)
 
         try:
             paths: list[str | Path] = list(files)
@@ -286,15 +268,9 @@ class DeadCodeChecker(BaseChecker):
             result = self._executor.execute(cmd_parts, timeout=120)
 
             if result.success:
-                return AnalysisResult(
-                    check_type=CheckType.DEAD_CODE, passed=True, issues=[], score=100.0
-                )
+                return AnalysisResult(check_type=CheckType.DEAD_CODE, passed=True, issues=[], score=100.0)
             else:
-                issues = (
-                    [line for line in result.stdout.strip().split("\n") if line.strip()]
-                    if result.stdout
-                    else []
-                )
+                issues = [line for line in result.stdout.strip().split("\n") if line.strip()] if result.stdout else []
                 score = max(0.0, 100.0 - len(issues) * 5)
                 return AnalysisResult(
                     check_type=CheckType.DEAD_CODE,
@@ -377,13 +353,9 @@ class ConventionsChecker(BaseChecker):
     _SNAKE_CASE_RE = re.compile(r"^[a-z][a-z0-9_]*\.py$")
 
     # Pattern for bracketed Task prefixes in command files
-    _TASK_PREFIX_RE = re.compile(
-        r"\[(?:Plan|Design|L\d+|Brainstorm|Init|Cleanup|Review|Build|Test|Security)\]"
-    )
+    _TASK_PREFIX_RE = re.compile(r"\[(?:Plan|Design|L\d+|Brainstorm|Init|Cleanup|Review|Build|Test|Security)\]")
 
-    def __init__(
-        self, naming: str = "snake_case", require_task_prefixes: bool = True
-    ) -> None:
+    def __init__(self, naming: str = "snake_case", require_task_prefixes: bool = True) -> None:
         """Initialize conventions checker.
 
         Args:
@@ -449,10 +421,7 @@ class ConventionsChecker(BaseChecker):
 
             content = md_file.read_text()
             if not self._TASK_PREFIX_RE.search(content):
-                issues.append(
-                    f"Missing Task prefix: {name} has no bracketed prefix "
-                    f"(e.g., [Plan], [L1], [Build])"
-                )
+                issues.append(f"Missing Task prefix: {name} has no bracketed prefix (e.g., [Plan], [L1], [Build])")
         return issues
 
     def _check_file_organization(self, files: list[str]) -> list[str]:
@@ -464,12 +433,11 @@ class ConventionsChecker(BaseChecker):
 
             # Test files should be in tests/ directory
             if (
-                filename.startswith("test_")
-                or filename.endswith("_test.py")
-            ) and "tests" not in p.parts and "test" not in p.parts:
-                issues.append(
-                    f"File organization: {filepath} looks like a test but is not in tests/"
-                )
+                (filename.startswith("test_") or filename.endswith("_test.py"))
+                and "tests" not in p.parts
+                and "test" not in p.parts
+            ):
+                issues.append(f"File organization: {filepath} looks like a test but is not in tests/")
 
         return issues
 
@@ -507,9 +475,7 @@ class CrossFileChecker(BaseChecker):
         issues: list[str] = []
         scope_path = Path(self.scope)
         if not scope_path.is_dir():
-            return AnalysisResult(
-                check_type=CheckType.CROSS_FILE, passed=True, issues=[], score=100.0
-            )
+            return AnalysisResult(check_type=CheckType.CROSS_FILE, passed=True, issues=[], score=100.0)
 
         py_files = sorted(scope_path.rglob("*.py"))
 
@@ -626,10 +592,7 @@ class ImportChainChecker(BaseChecker):
         for mod in sorted(graph):
             depth = _max_import_depth(graph, mod, set())
             if depth > self.max_depth:
-                issues.append(
-                    f"Deep import chain: {mod} has depth {depth} "
-                    f"(max: {self.max_depth})"
-                )
+                issues.append(f"Deep import chain: {mod} has depth {depth} (max: {self.max_depth})")
 
         score = max(0.0, 100.0 - len(issues) * 10)
         return AnalysisResult(
@@ -697,18 +660,14 @@ class AnalyzeCommand:
                 self.config.conventions_require_task_prefixes,
             ),
             "import-chain": ImportChainChecker(self.config.import_chain_max_depth),
-            "context-engineering": ContextEngineeringChecker(
-                self.config.context_engineering_auto_split
-            ),
+            "context-engineering": ContextEngineeringChecker(self.config.context_engineering_auto_split),
         }
 
     def supported_checks(self) -> list[str]:
         """Return list of supported check types."""
         return list(self.checkers.keys())
 
-    def run(
-        self, checks: list[str], files: list[str], threshold: dict[str, int] | None = None
-    ) -> list[AnalysisResult]:
+    def run(self, checks: list[str], files: list[str], threshold: dict[str, int] | None = None) -> list[AnalysisResult]:
         """Run specified checks on files."""
         results = []
 
@@ -824,11 +783,22 @@ def _collect_files(path: str | None) -> list[str]:
 @click.option(
     "--check",
     "-c",
-    type=click.Choice([
-        "lint", "complexity", "coverage", "security", "performance",
-        "dead-code", "wiring", "cross-file", "conventions",
-        "import-chain", "context-engineering", "all",
-    ]),
+    type=click.Choice(
+        [
+            "lint",
+            "complexity",
+            "coverage",
+            "security",
+            "performance",
+            "dead-code",
+            "wiring",
+            "cross-file",
+            "conventions",
+            "import-chain",
+            "context-engineering",
+            "all",
+        ]
+    ),
     default="all",
     help="Type of check to run",
 )
@@ -846,9 +816,7 @@ def _collect_files(path: str | None) -> list[str]:
     multiple=True,
     help="Thresholds (e.g., complexity=10,coverage=70)",
 )
-@click.option(
-    "--performance", is_flag=True, help="Run comprehensive performance audit (140 factors)"
-)
+@click.option("--performance", is_flag=True, help="Run comprehensive performance audit (140 factors)")
 @click.pass_context
 def analyze(
     ctx: click.Context,

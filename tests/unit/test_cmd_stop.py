@@ -75,7 +75,7 @@ class TestStopBehavior:
         mock_state.return_value = mock_instance
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["stop", "--feature", "test", "--force"], input="y\n")
+        runner.invoke(cli, ["stop", "--feature", "test", "--force"], input="y\n")
 
         # Should attempt to pause
         # mock_instance.pause.assert_called() or similar

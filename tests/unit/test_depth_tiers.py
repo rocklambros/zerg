@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -218,9 +217,7 @@ class TestDepthRouter:
         ]
         for keyword in keywords:
             ctx = router.route(description=f"Need to {keyword} the system")
-            assert ctx.tier == DepthTier.THINK_HARD, (
-                f"Keyword '{keyword}' should trigger THINK_HARD"
-            )
+            assert ctx.tier == DepthTier.THINK_HARD, f"Keyword '{keyword}' should trigger THINK_HARD"
 
     def test_route_description_ultrathink_keywords(self) -> None:
         """Test ULTRATHINK-level keywords trigger ULTRATHINK tier."""
@@ -235,9 +232,7 @@ class TestDepthRouter:
         ]
         for keyword in keywords:
             ctx = router.route(description=f"We must {keyword} everything")
-            assert ctx.tier == DepthTier.ULTRATHINK, (
-                f"Keyword '{keyword}' should trigger ULTRATHINK"
-            )
+            assert ctx.tier == DepthTier.ULTRATHINK, f"Keyword '{keyword}' should trigger ULTRATHINK"
 
     def test_route_description_case_insensitive(self) -> None:
         """Test keyword matching is case insensitive."""

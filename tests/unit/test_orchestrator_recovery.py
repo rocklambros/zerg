@@ -8,32 +8,31 @@ This module covers:
 5. Worktree cleanup on recovery
 """
 
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.constants import TaskStatus, WorkerStatus
+from zerg.constants import WorkerStatus
 from zerg.orchestrator import Orchestrator
-from zerg.types import WorkerState
 
 
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock all orchestrator dependencies for recovery testing."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.TaskSyncBridge") as task_sync_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as subprocess_launcher_mock, \
-         patch("zerg.orchestrator.ContainerLauncher") as container_launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner") as gates_mock,
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager") as container_mock,
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+        patch("zerg.orchestrator.TaskSyncBridge") as task_sync_mock,
+        patch("zerg.orchestrator.SubprocessLauncher") as subprocess_launcher_mock,
+        patch("zerg.orchestrator.ContainerLauncher") as container_launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state.get_task_status.return_value = None
@@ -147,9 +146,7 @@ def mock_orchestrator_deps():
 class TestSetRecoverableErrorPauseState:
     """Tests for _set_recoverable_error setting pause state."""
 
-    def test_set_recoverable_error_sets_paused_true(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_set_recoverable_error_sets_paused_true(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test _set_recoverable_error sets _paused to True."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -194,9 +191,7 @@ class TestSetRecoverableErrorPauseState:
 class TestSetRecoverableErrorMessage:
     """Tests for _set_recoverable_error setting error message."""
 
-    def test_set_recoverable_error_calls_set_error(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_set_recoverable_error_calls_set_error(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test _set_recoverable_error calls state.set_error with message."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -208,9 +203,7 @@ class TestSetRecoverableErrorMessage:
 
         mock_orchestrator_deps["state"].set_error.assert_called_once_with(error_message)
 
-    def test_set_recoverable_error_appends_event(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_set_recoverable_error_appends_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test _set_recoverable_error appends recoverable_error event."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -220,9 +213,7 @@ class TestSetRecoverableErrorMessage:
         error_message = "Level 2 merge failed"
         orch._set_recoverable_error(error_message)
 
-        mock_orchestrator_deps["state"].append_event.assert_called_with(
-            "recoverable_error", {"error": error_message}
-        )
+        mock_orchestrator_deps["state"].append_event.assert_called_with("recoverable_error", {"error": error_message})
 
     def test_set_recoverable_error_handles_complex_message(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
@@ -237,17 +228,13 @@ class TestSetRecoverableErrorMessage:
         orch._set_recoverable_error(complex_error)
 
         mock_orchestrator_deps["state"].set_error.assert_called_once_with(complex_error)
-        mock_orchestrator_deps["state"].append_event.assert_called_with(
-            "recoverable_error", {"error": complex_error}
-        )
+        mock_orchestrator_deps["state"].append_event.assert_called_with("recoverable_error", {"error": complex_error})
 
 
 class TestResumeFromRecoverableError:
     """Tests for resume from recoverable error state."""
 
-    def test_resume_clears_paused_flag(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_clears_paused_flag(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resume clears the _paused flag."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -259,9 +246,7 @@ class TestResumeFromRecoverableError:
 
         assert orch._paused is False
 
-    def test_resume_calls_state_set_paused_false(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_calls_state_set_paused_false(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resume calls state.set_paused(False)."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -273,9 +258,7 @@ class TestResumeFromRecoverableError:
 
         mock_orchestrator_deps["state"].set_paused.assert_called_once_with(False)
 
-    def test_resume_appends_resumed_event(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_appends_resumed_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resume appends resumed event to state."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -287,9 +270,7 @@ class TestResumeFromRecoverableError:
 
         mock_orchestrator_deps["state"].append_event.assert_called_with("resumed", {})
 
-    def test_resume_when_not_paused_does_nothing(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_when_not_paused_does_nothing(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resume does nothing when not paused."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -302,9 +283,7 @@ class TestResumeFromRecoverableError:
         mock_orchestrator_deps["state"].set_paused.assert_not_called()
         mock_orchestrator_deps["state"].append_event.assert_not_called()
 
-    def test_resume_after_recoverable_error_workflow(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_after_recoverable_error_workflow(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test full workflow: recoverable error then resume."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -326,9 +305,7 @@ class TestResumeFromRecoverableError:
 class TestWorkerRespawnAfterCrash:
     """Tests for worker respawn after crash."""
 
-    def test_crashed_worker_triggers_respawn(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_crashed_worker_triggers_respawn(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test crashed worker triggers respawn when tasks remain."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -340,9 +317,7 @@ class TestWorkerRespawnAfterCrash:
         ]
 
         # Remaining tasks exist
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "TASK-002"
-        ]
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-002"]
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -358,16 +333,12 @@ class TestWorkerRespawnAfterCrash:
         # Worker should be respawned
         assert mock_orchestrator_deps["subprocess_launcher"].spawn.call_count == 1
 
-    def test_crashed_worker_marks_task_failed(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_crashed_worker_marks_task_failed(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test crashed worker marks current task as failed."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = (
-            WorkerStatus.CRASHED
-        )
+        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.CRASHED
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -379,19 +350,13 @@ class TestWorkerRespawnAfterCrash:
 
         failure_mock.assert_called_with("TASK-001", 0, "Worker crashed")
 
-    def test_crashed_worker_no_respawn_when_stopped(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_crashed_worker_no_respawn_when_stopped(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test crashed worker does not respawn when orchestrator stopped."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = (
-            WorkerStatus.CRASHED
-        )
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "TASK-002"
-        ]
+        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.CRASHED
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-002"]
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -412,9 +377,7 @@ class TestWorkerRespawnAfterCrash:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = (
-            WorkerStatus.CRASHED
-        )
+        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.CRASHED
         mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = []
 
         orch = Orchestrator("test-feature")
@@ -429,9 +392,7 @@ class TestWorkerRespawnAfterCrash:
         # Should not respawn since no remaining tasks
         mock_orchestrator_deps["subprocess_launcher"].spawn.assert_not_called()
 
-    def test_respawn_failure_handled_gracefully(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_respawn_failure_handled_gracefully(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test respawn failure is handled gracefully."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -451,12 +412,8 @@ class TestWorkerRespawnAfterCrash:
             spawn_success,
             spawn_fail,
         ]
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = (
-            WorkerStatus.STOPPED
-        )
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "TASK-002"
-        ]
+        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.STOPPED
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-002"]
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -472,9 +429,7 @@ class TestWorkerRespawnAfterCrash:
 class TestWorktreeCleanupOnRecovery:
     """Tests for worktree cleanup on recovery."""
 
-    def test_terminate_worker_deletes_worktree(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_terminate_worker_deletes_worktree(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test terminate worker deletes worktree."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -486,9 +441,7 @@ class TestWorktreeCleanupOnRecovery:
 
         mock_orchestrator_deps["worktree"].delete.assert_called_once()
 
-    def test_worktree_cleanup_on_failed_respawn(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_worktree_cleanup_on_failed_respawn(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test worktree cleanup when respawn fails."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -508,12 +461,8 @@ class TestWorktreeCleanupOnRecovery:
             spawn_success,
             spawn_fail,
         ]
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = (
-            WorkerStatus.STOPPED
-        )
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "TASK-002"
-        ]
+        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.STOPPED
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-002"]
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -535,9 +484,7 @@ class TestWorktreeCleanupOnRecovery:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["worktree"].delete.side_effect = Exception(
-            "Delete failed"
-        )
+        mock_orchestrator_deps["worktree"].delete.side_effect = Exception("Delete failed")
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -548,9 +495,7 @@ class TestWorktreeCleanupOnRecovery:
         # Worker should still be removed
         assert 0 not in orch._workers
 
-    def test_worktree_cleanup_with_force_flag(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_worktree_cleanup_with_force_flag(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test worktree deletion uses force flag."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -565,16 +510,12 @@ class TestWorktreeCleanupOnRecovery:
         call_args = mock_orchestrator_deps["worktree"].delete.call_args
         assert call_args[1].get("force") is True
 
-    def test_port_released_on_worker_exit(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_port_released_on_worker_exit(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test port is released when worker exits."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = (
-            WorkerStatus.STOPPED
-        )
+        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.STOPPED
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
@@ -589,9 +530,7 @@ class TestWorktreeCleanupOnRecovery:
 class TestRecoveryIntegration:
     """Integration tests for recovery scenarios."""
 
-    def test_error_pause_resume_continue_workflow(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_error_pause_resume_continue_workflow(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test complete workflow: error -> pause -> resume -> continue."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -604,9 +543,7 @@ class TestRecoveryIntegration:
 
         assert orch._paused is True
         assert orch._running is True  # Not stopped, just paused
-        mock_orchestrator_deps["state"].set_error.assert_called_with(
-            "Level 1 merge failed"
-        )
+        mock_orchestrator_deps["state"].set_error.assert_called_with("Level 1 merge failed")
         mock_orchestrator_deps["state"].set_paused.assert_called_with(True)
 
         # Step 2: Admin fixes issue externally
@@ -620,9 +557,7 @@ class TestRecoveryIntegration:
         mock_orchestrator_deps["state"].set_paused.assert_called_with(False)
         mock_orchestrator_deps["state"].append_event.assert_called_with("resumed", {})
 
-    def test_multiple_recoverable_errors(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_multiple_recoverable_errors(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test handling multiple recoverable errors in sequence."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -647,19 +582,13 @@ class TestRecoveryIntegration:
         assert calls[0][0][0] == "Error 1"
         assert calls[1][0][0] == "Error 2"
 
-    def test_worker_crash_during_paused_state(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_worker_crash_during_paused_state(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test worker crash handling when orchestrator is paused."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = (
-            WorkerStatus.CRASHED
-        )
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "TASK-002"
-        ]
+        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.CRASHED
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-002"]
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)

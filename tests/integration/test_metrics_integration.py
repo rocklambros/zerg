@@ -4,7 +4,6 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -355,9 +354,7 @@ class TestMetricsEdgeCases:
         state.load()
 
         # Create task without timestamps
-        state._state["tasks"] = {
-            "T-001": {"status": TaskStatus.IN_PROGRESS.value, "worker_id": 0}
-        }
+        state._state["tasks"] = {"T-001": {"status": TaskStatus.IN_PROGRESS.value, "worker_id": 0}}
         state.save()
 
         collector = MetricsCollector(state)

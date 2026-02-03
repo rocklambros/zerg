@@ -1,9 +1,6 @@
 """Integration tests for escalation wiring into orchestrator."""
 
-import json
 from pathlib import Path
-
-import pytest
 
 from zerg.escalation import EscalationMonitor, EscalationWriter
 from zerg.progress_reporter import ProgressReporter

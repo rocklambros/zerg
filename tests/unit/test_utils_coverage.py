@@ -2,10 +2,12 @@
 
 Targets uncovered lines in:
 - zerg/spec_loader.py (lines 104-106, 195, 228-229, 234-257, 268-283, 295-304)
-- zerg/gates.py (lines 81-82, 97-114, 152, 155-156, 186-196, 213, 241, 260, 263, 266, 269, 290, 294, 302-323)
+- zerg/gates.py (lines 81-82, 97-114, 152, 155-156, 186-196, 213, 241, 260, 263, 266,
+  269, 290, 294, 302-323)
 - zerg/render_utils.py (lines 34-39, 52-54, 75, 79, 138-149)
 - zerg/retry_backoff.py (lines 29-34)
-- zerg/performance/stack_detector.py (lines 67, 71, 96-97, 104, 108, 112, 114, 126-127, 132, 144, 152, 154, 161, 166-167, 170-179, 199)
+- zerg/performance/stack_detector.py (lines 67, 71, 96-97, 104, 108, 112, 114, 126-127,
+  132, 144, 152, 154, 161, 166-167, 170-179, 199)
 """
 
 from __future__ import annotations
@@ -30,7 +32,6 @@ from zerg.performance.stack_detector import (
     _should_skip,
     detect_stack,
 )
-from zerg.performance.types import DetectedStack
 from zerg.render_utils import (
     format_elapsed_compact,
     render_gantt_chart,
@@ -40,7 +41,6 @@ from zerg.render_utils import (
 from zerg.retry_backoff import RetryBackoffCalculator
 from zerg.spec_loader import SpecLoader
 from zerg.types import GateRunResult
-
 
 # =============================================================================
 # spec_loader.py coverage tests
@@ -97,21 +97,15 @@ class TestSpecLoaderCoverage:
         assert result == ""
 
     # Lines 234-257: format_task_context with actual specs and keywords
-    def test_format_task_context_with_matching_content(
-        self, loader: SpecLoader, temp_gsd: Path
-    ) -> None:
+    def test_format_task_context_with_matching_content(self, loader: SpecLoader, temp_gsd: Path) -> None:
         """format_task_context extracts relevant sections matching task keywords."""
         feature_dir = temp_gsd / "specs" / "auth"
         feature_dir.mkdir(parents=True)
         (feature_dir / "requirements.md").write_text(
-            "Users must login securely.\n\n"
-            "Password must be hashed.\n\n"
-            "Sessions expire after timeout."
+            "Users must login securely.\n\nPassword must be hashed.\n\nSessions expire after timeout."
         )
         (feature_dir / "design.md").write_text(
-            "Login uses OAuth protocol.\n\n"
-            "Database stores hashed passwords.\n\n"
-            "Redis handles session cache."
+            "Login uses OAuth protocol.\n\nDatabase stores hashed passwords.\n\nRedis handles session cache."
         )
         task = {
             "title": "Implement login endpoint",
@@ -123,9 +117,7 @@ class TestSpecLoaderCoverage:
         assert "Relevant" in result
 
     # Lines 234-236: format_task_context with no keywords extracted
-    def test_format_task_context_no_keywords(
-        self, loader: SpecLoader, temp_gsd: Path
-    ) -> None:
+    def test_format_task_context_no_keywords(self, loader: SpecLoader, temp_gsd: Path) -> None:
         """format_task_context returns empty when task has no useful keywords."""
         feature_dir = temp_gsd / "specs" / "feat"
         feature_dir.mkdir(parents=True)
@@ -135,9 +127,7 @@ class TestSpecLoaderCoverage:
         assert result == ""
 
     # Lines 268-283: _extract_task_keywords
-    def test_extract_task_keywords_from_title_and_description(
-        self, loader: SpecLoader
-    ) -> None:
+    def test_extract_task_keywords_from_title_and_description(self, loader: SpecLoader) -> None:
         """Keywords extracted from title, description, and file paths."""
         task = {
             "title": "Implement authentication module",
@@ -199,17 +189,12 @@ class TestSpecLoaderCoverage:
         assert result == ""
 
     # format_task_context with only design matching
-    def test_format_task_context_design_only_match(
-        self, loader: SpecLoader, temp_gsd: Path
-    ) -> None:
+    def test_format_task_context_design_only_match(self, loader: SpecLoader, temp_gsd: Path) -> None:
         """format_task_context includes design section when only design matches."""
         feature_dir = temp_gsd / "specs" / "cache"
         feature_dir.mkdir(parents=True)
         (feature_dir / "requirements.md").write_text("Unrelated content about cooking.")
-        (feature_dir / "design.md").write_text(
-            "Redis handles caching layer.\n\n"
-            "Cache invalidation strategy uses TTL."
-        )
+        (feature_dir / "design.md").write_text("Redis handles caching layer.\n\nCache invalidation strategy uses TTL.")
         task = {
             "title": "Implement caching layer",
             "description": "Add Redis cache invalidation",
@@ -231,9 +216,7 @@ class TestGatesCoverage:
         return ZergConfig()
 
     # Lines 155-156: no gates and no plugin registry returns early
-    def test_run_all_gates_no_gates_no_plugins_returns_early(
-        self, config: ZergConfig
-    ) -> None:
+    def test_run_all_gates_no_gates_no_plugins_returns_early(self, config: ZergConfig) -> None:
         """No gates + no plugin registry returns (True, [])."""
         config.quality_gates = []
         runner = GateRunner(config, plugin_registry=None)
@@ -242,9 +225,7 @@ class TestGatesCoverage:
         assert results == []
 
     # Lines 186-196: plugin gate fails (required and optional)
-    def test_run_all_gates_plugin_gate_required_fails(
-        self, config: ZergConfig, tmp_path: Path
-    ) -> None:
+    def test_run_all_gates_plugin_gate_required_fails(self, config: ZergConfig, tmp_path: Path) -> None:
         """Required plugin gate failure sets all_passed=False and stops."""
         config.quality_gates = []
         mock_registry = MagicMock()
@@ -260,15 +241,11 @@ class TestGatesCoverage:
         mock_registry.is_gate_required.return_value = True
 
         runner = GateRunner(config, plugin_registry=mock_registry)
-        passed, results = runner.run_all_gates(
-            cwd=tmp_path, stop_on_failure=True, feature="test", level=1
-        )
+        passed, results = runner.run_all_gates(cwd=tmp_path, stop_on_failure=True, feature="test", level=1)
         assert passed is False
         assert len(results) == 1
 
-    def test_run_all_gates_plugin_gate_optional_fails(
-        self, config: ZergConfig, tmp_path: Path
-    ) -> None:
+    def test_run_all_gates_plugin_gate_optional_fails(self, config: ZergConfig, tmp_path: Path) -> None:
         """Optional plugin gate failure does not stop execution."""
         config.quality_gates = []
         mock_registry = MagicMock()
@@ -284,9 +261,7 @@ class TestGatesCoverage:
         mock_registry.is_gate_required.return_value = False
 
         runner = GateRunner(config, plugin_registry=mock_registry)
-        passed, results = runner.run_all_gates(
-            cwd=tmp_path, stop_on_failure=True, feature="test", level=1
-        )
+        passed, results = runner.run_all_gates(cwd=tmp_path, stop_on_failure=True, feature="test", level=1)
         # Optional failures don't affect all_passed
         assert passed is True
         assert len(results) == 1
@@ -305,9 +280,7 @@ class TestGatesCoverage:
     def test_check_result_fail_no_raise(self, config: ZergConfig) -> None:
         """check_result returns False when raise_on_failure is False."""
         runner = GateRunner(config)
-        result = GateRunResult(
-            gate_name="t", result=GateResult.FAIL, command="x", exit_code=1
-        )
+        result = GateRunResult(gate_name="t", result=GateResult.FAIL, command="x", exit_code=1)
         assert runner.check_result(result, raise_on_failure=False) is False
 
     def test_check_result_timeout_raises_gate_timeout(self, config: ZergConfig) -> None:
@@ -344,11 +317,7 @@ class TestGatesCoverage:
     def test_get_results_is_copy(self, config: ZergConfig) -> None:
         """get_results returns a copy of internal list."""
         runner = GateRunner(config)
-        runner._results.append(
-            GateRunResult(
-                gate_name="x", result=GateResult.PASS, command="echo", exit_code=0
-            )
-        )
+        runner._results.append(GateRunResult(gate_name="x", result=GateResult.PASS, command="echo", exit_code=0))
         copy = runner.get_results()
         copy.clear()
         assert len(runner.get_results()) == 1
@@ -357,11 +326,7 @@ class TestGatesCoverage:
     def test_clear_results(self, config: ZergConfig) -> None:
         """clear_results empties internal list."""
         runner = GateRunner(config)
-        runner._results.append(
-            GateRunResult(
-                gate_name="x", result=GateResult.PASS, command="echo", exit_code=0
-            )
-        )
+        runner._results.append(GateRunResult(gate_name="x", result=GateResult.PASS, command="echo", exit_code=0))
         runner.clear_results()
         assert len(runner._results) == 0
 
@@ -400,9 +365,7 @@ class TestGatesCoverage:
             QualityGate(name="opt", command="echo ok", required=False),
         ]
         runner = GateRunner(config)
-        passed, results = runner.run_all_gates(
-            gates=gates, cwd=tmp_path, required_only=True
-        )
+        passed, results = runner.run_all_gates(gates=gates, cwd=tmp_path, required_only=True)
         assert passed is True
         assert len(results) == 1
         assert results[0].gate_name == "req"
@@ -485,12 +448,8 @@ class TestRenderUtilsCoverage:
             wall_minutes: int
             worker_loads: dict[int, int] = field(default_factory=dict)
 
-        lt1 = FakeLevelTimeline(
-            level=1, task_count=3, wall_minutes=10, worker_loads={0: 5, 1: 8}
-        )
-        lt2 = FakeLevelTimeline(
-            level=2, task_count=2, wall_minutes=5, worker_loads={0: 3}
-        )
+        lt1 = FakeLevelTimeline(level=1, task_count=3, wall_minutes=10, worker_loads={0: 5, 1: 8})
+        lt2 = FakeLevelTimeline(level=2, task_count=2, wall_minutes=5, worker_loads={0: 3})
         result = render_gantt_chart({1: lt1, 2: lt2}, worker_count=2)  # type: ignore[arg-type]
         plain = result.plain
         assert "L1" in plain
@@ -534,26 +493,20 @@ class TestRetryBackoffCoverage:
 
     def test_linear_strategy(self) -> None:
         """Linear backoff: delay = base * attempt."""
-        delay = RetryBackoffCalculator.calculate_delay(
-            attempt=3, strategy="linear", base_seconds=10, max_seconds=300
-        )
+        delay = RetryBackoffCalculator.calculate_delay(attempt=3, strategy="linear", base_seconds=10, max_seconds=300)
         # base * attempt = 30, with +/-10% jitter => 27..33
         assert 27.0 <= delay <= 33.0
 
     def test_fixed_strategy(self) -> None:
         """Fixed backoff: delay = base regardless of attempt."""
-        delay = RetryBackoffCalculator.calculate_delay(
-            attempt=5, strategy="fixed", base_seconds=15, max_seconds=300
-        )
+        delay = RetryBackoffCalculator.calculate_delay(attempt=5, strategy="fixed", base_seconds=15, max_seconds=300)
         # Always 15 with +/-10% jitter => 13.5..16.5
         assert 13.5 <= delay <= 16.5
 
     def test_unknown_strategy_raises(self) -> None:
         """Unknown strategy raises ValueError."""
         with pytest.raises(ValueError, match="Unknown backoff strategy"):
-            RetryBackoffCalculator.calculate_delay(
-                attempt=1, strategy="quadratic", base_seconds=5, max_seconds=60
-            )
+            RetryBackoffCalculator.calculate_delay(attempt=1, strategy="quadratic", base_seconds=5, max_seconds=60)
 
     def test_exponential_strategy(self) -> None:
         """Exponential backoff: delay = base * 2^attempt."""
@@ -653,9 +606,7 @@ class TestStackDetectorCoverage:
 
     def test_detect_python_frameworks_pyproject(self, tmp_path: Path) -> None:
         """Python frameworks detected from pyproject.toml."""
-        (tmp_path / "pyproject.toml").write_text(
-            '[project]\ndependencies = ["fastapi", "sqlalchemy"]'
-        )
+        (tmp_path / "pyproject.toml").write_text('[project]\ndependencies = ["fastapi", "sqlalchemy"]')
         frameworks: set[str] = set()
         _detect_python_frameworks(tmp_path, frameworks)
         assert "fastapi" in frameworks

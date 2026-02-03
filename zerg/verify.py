@@ -342,7 +342,7 @@ class VerificationExecutor:
         Returns:
             TieredVerificationResult
         """
-        from zerg.verification_tiers import TieredVerificationResult, VerificationTiers
+        from zerg.verification_tiers import VerificationTiers
 
         if config is None:
             from zerg.config import VerificationTiersConfig

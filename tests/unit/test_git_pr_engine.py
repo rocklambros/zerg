@@ -7,8 +7,6 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.git.config import GitConfig, GitPRConfig
 from zerg.git.pr_engine import (
     ContextAssembler,
@@ -20,7 +18,6 @@ from zerg.git.pr_engine import (
     _sanitize_pr_content,
 )
 from zerg.git.types import CommitInfo, CommitType
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -436,9 +433,7 @@ class TestPREngine:
 
         mock_subprocess.side_effect = lambda cmd, **kw: MagicMock(
             returncode=0,
-            stdout="https://github.com/owner/repo/pull/5\n"
-            if "pr" in cmd
-            else json.dumps([]),
+            stdout="https://github.com/owner/repo/pull/5\n" if "pr" in cmd else json.dumps([]),
         )
 
         engine = PREngine(runner, config)
@@ -446,10 +441,7 @@ class TestPREngine:
 
         assert exit_code == 0
         # Verify reviewer was passed to gh pr create
-        pr_create_calls = [
-            c for c in mock_subprocess.call_args_list
-            if "pr" in c[0][0]
-        ]
+        pr_create_calls = [c for c in mock_subprocess.call_args_list if "pr" in c[0][0]]
         assert pr_create_calls
         call_cmd = pr_create_calls[0][0][0]
         assert "--reviewer" in call_cmd

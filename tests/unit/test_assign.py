@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from zerg.assign import WorkerAssignment
 from zerg.types import Task
 
@@ -34,9 +32,7 @@ class TestWorkerAssignment:
     def test_assign_single_task(self) -> None:
         """Test assigning a single task."""
         assigner = WorkerAssignment(worker_count=2)
-        tasks: list[Task] = [
-            {"id": "TASK-001", "level": 1, "estimate_minutes": 15}
-        ]
+        tasks: list[Task] = [{"id": "TASK-001", "level": 1, "estimate_minutes": 15}]
 
         result = assigner.assign(tasks, "test-feature")
 
@@ -93,7 +89,7 @@ class TestWorkerAssignment:
             {"id": "MEDIUM", "level": 1, "estimate_minutes": 30},
         ]
 
-        result = assigner.assign(tasks, "test-feature")
+        assigner.assign(tasks, "test-feature")
 
         # Longer task should go to worker with least time
         # After LONG (60min) -> worker 0 has 60, worker 1 has 0

@@ -3,7 +3,6 @@
 import json
 import logging
 from pathlib import Path
-from unittest.mock import patch
 
 from zerg.logging import (
     ConsoleFormatter,
@@ -48,6 +47,7 @@ class TestJsonFormatter:
             raise ValueError("Test error")
         except ValueError:
             import sys
+
             exc_info = sys.exc_info()
 
         record = logging.LogRecord(

@@ -26,7 +26,7 @@ class TestInitCommand:
         (tmp_path / ".git").mkdir()
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["init"])
+        runner.invoke(cli, ["init"])
 
         # Check directories created
         assert (tmp_path / ".zerg").exists()
@@ -38,7 +38,7 @@ class TestInitCommand:
         (tmp_path / ".git").mkdir()
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["init"])
+        runner.invoke(cli, ["init"])
 
         assert (tmp_path / ".zerg" / "config.yaml").exists()
 

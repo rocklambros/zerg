@@ -1,7 +1,6 @@
 """Tests for zerg.commands._utils — shared command utilities."""
 
 import json
-import os
 import time
 from pathlib import Path
 
@@ -48,9 +47,7 @@ class TestDetectFeature:
         result = detect_feature()
         assert result == "my-feature"
 
-    def test_returns_none_when_nothing_exists(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_returns_none_when_nothing_exists(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """When neither source exists, return None."""
         monkeypatch.chdir(tmp_path)
 
@@ -59,9 +56,7 @@ class TestDetectFeature:
         result = detect_feature()
         assert result is None
 
-    def test_empty_current_feature_falls_through(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_empty_current_feature_falls_through(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """When .current-feature is empty/whitespace, fall through to state JSON."""
         monkeypatch.chdir(tmp_path)
 
@@ -78,9 +73,7 @@ class TestDetectFeature:
         result = detect_feature()
         assert result == "fallback-feature"
 
-    def test_state_json_returns_most_recent(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_state_json_returns_most_recent(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """When multiple state files exist, return the most recently modified."""
         monkeypatch.chdir(tmp_path)
 
@@ -101,9 +94,7 @@ class TestDetectFeature:
         result = detect_feature()
         assert result == "new-feature"
 
-    def test_reexport_from_status_works(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_reexport_from_status_works(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """The detect_feature() re-exported from status.py delegates correctly."""
         monkeypatch.chdir(tmp_path)
 

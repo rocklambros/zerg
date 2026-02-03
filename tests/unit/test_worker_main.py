@@ -103,8 +103,7 @@ class TestParseArgs:
             "ZERG_BRANCH": "zerg/test/worker-3",
         }
 
-        with patch("sys.argv", ["worker_main"]), \
-             patch.dict(os.environ, env_patch, clear=False):
+        with patch("sys.argv", ["worker_main"]), patch.dict(os.environ, env_patch, clear=False):
             args = parse_args()
 
         assert args.worker_id == 3
@@ -368,20 +367,23 @@ class TestMainFunction:
 
         mock_protocol_class = MagicMock(return_value=mock_protocol)
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-            ],
-        ), patch.dict(
-            "sys.modules",
-            {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                ],
+            ),
+            patch.dict(
+                "sys.modules",
+                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+            ),
         ):
             result = main()
 
@@ -398,22 +400,25 @@ class TestMainFunction:
 
         mock_protocol_class = MagicMock(return_value=mock_protocol)
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-                "--worker-id",
-                "3",
-            ],
-        ), patch.dict(
-            "sys.modules",
-            {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                    "--worker-id",
+                    "3",
+                ],
+            ),
+            patch.dict(
+                "sys.modules",
+                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+            ),
         ):
             result = main()
 
@@ -431,22 +436,25 @@ class TestMainFunction:
 
         mock_protocol_class = MagicMock(return_value=mock_protocol)
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-                "--worker-id",
-                "2",
-            ],
-        ), patch.dict(
-            "sys.modules",
-            {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                    "--worker-id",
+                    "2",
+                ],
+            ),
+            patch.dict(
+                "sys.modules",
+                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+            ),
         ):
             result = main()
 
@@ -472,6 +480,7 @@ class TestMainFunction:
         captured_env = {}
 
         mock_protocol = MagicMock()
+
         def capture_env_and_return():
             captured_env["ZERG_WORKER_ID"] = os.environ.get("ZERG_WORKER_ID")
             captured_env["ZERG_FEATURE"] = os.environ.get("ZERG_FEATURE")
@@ -479,22 +488,25 @@ class TestMainFunction:
         mock_protocol.start = capture_env_and_return
         mock_protocol_class = MagicMock(return_value=mock_protocol)
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test-feature",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-                "--worker-id",
-                "7",
-            ],
-        ), patch.dict(
-            "sys.modules",
-            {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test-feature",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                    "--worker-id",
+                    "7",
+                ],
+            ),
+            patch.dict(
+                "sys.modules",
+                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+            ),
         ):
             result = main()
 
@@ -514,19 +526,22 @@ class TestModuleEntryPoint:
         config_path = tmp_path / "config.yaml"
         config_path.write_text("workers: 5")
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-                "--dry-run",
-            ],
-        ), patch.object(sys, "exit") as mock_exit:
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                    "--dry-run",
+                ],
+            ),
+            patch.object(sys, "exit"),
+        ):
             # Simulate running as __main__
             if hasattr(worker_main_module, "__name__"):
                 # Direct call to main
@@ -538,19 +553,22 @@ class TestModuleEntryPoint:
         config_path = tmp_path / "config.yaml"
         config_path.write_text("workers: 5")
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-                "--dry-run",
-            ],
-        ), pytest.raises(SystemExit) as exc_info:
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                    "--dry-run",
+                ],
+            ),
+            pytest.raises(SystemExit) as exc_info,
+        ):
             # Use runpy to actually execute the module as __main__
             runpy.run_module("zerg.worker_main", run_name="__main__")
 
@@ -562,16 +580,14 @@ class TestEdgeCases:
 
     def test_parse_args_version(self) -> None:
         """Test parsing version flag raises SystemExit."""
-        with patch("sys.argv", ["worker_main", "--version"]), \
-             pytest.raises(SystemExit) as exc_info:
+        with patch("sys.argv", ["worker_main", "--version"]), pytest.raises(SystemExit) as exc_info:
             parse_args()
 
         assert exc_info.value.code == 0
 
     def test_parse_args_invalid_worker_id(self) -> None:
         """Test parsing invalid worker ID."""
-        with patch("sys.argv", ["worker_main", "--worker-id", "not-a-number"]), \
-             pytest.raises(SystemExit):
+        with patch("sys.argv", ["worker_main", "--worker-id", "not-a-number"]), pytest.raises(SystemExit):
             parse_args()
 
     def test_setup_environment_preserves_existing_env(self, tmp_path: Path) -> None:
@@ -634,24 +650,29 @@ class TestEdgeCases:
 
         # Create a module that raises ImportError when WorkerProtocol is accessed
         import types
-        mock_module = types.ModuleType("zerg.worker_protocol")
+
+        types.ModuleType("zerg.worker_protocol")
+
         def raise_import_error(*args, **kwargs):
             raise ImportError("Cannot import WorkerProtocol")
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-                "--worker-id",
-                "1",
-            ],
-        ), patch("builtins.__import__", side_effect=ImportError("Cannot import")):
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                    "--worker-id",
+                    "1",
+                ],
+            ),
+            patch("builtins.__import__", side_effect=ImportError("Cannot import")),
+        ):
             # Can't easily test this without breaking other imports
             # Instead, test that exceptions in the import/execution are caught
             pass
@@ -666,22 +687,25 @@ class TestEdgeCases:
 
         mock_protocol_class = MagicMock(side_effect=raise_error)
 
-        with patch(
-            "sys.argv",
-            [
-                "worker_main",
-                "--feature",
-                "test",
-                "--worktree",
-                str(tmp_path),
-                "--config",
-                str(config_path),
-                "--worker-id",
-                "4",
-            ],
-        ), patch.dict(
-            "sys.modules",
-            {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "worker_main",
+                    "--feature",
+                    "test",
+                    "--worktree",
+                    str(tmp_path),
+                    "--config",
+                    str(config_path),
+                    "--worker-id",
+                    "4",
+                ],
+            ),
+            patch.dict(
+                "sys.modules",
+                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+            ),
         ):
             result = main()
 

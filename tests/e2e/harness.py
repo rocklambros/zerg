@@ -138,9 +138,7 @@ class E2EHarness:
         # Build levels metadata
         levels_dict: dict[str, dict] = {}
         for level_num in sorted(levels_set):
-            level_task_ids = [
-                t["id"] for t in tasks if t.get("level", 1) == level_num
-            ]
+            level_task_ids = [t["id"] for t in tasks if t.get("level", 1) == level_num]
             levels_dict[str(level_num)] = {
                 "name": f"Level {level_num}",
                 "tasks": level_task_ids,
@@ -160,9 +158,7 @@ class E2EHarness:
             "levels": levels_dict,
         }
 
-        graph_path = (
-            self.repo_path / ".gsd" / "specs" / self.feature / "task-graph.json"
-        )
+        graph_path = self.repo_path / ".gsd" / "specs" / self.feature / "task-graph.json"
         graph_path.write_text(json.dumps(task_graph, indent=2))
         return graph_path
 
@@ -211,9 +207,7 @@ class E2EHarness:
         start_time = time.monotonic()
 
         # Load task graph
-        graph_path = (
-            self.repo_path / ".gsd" / "specs" / self.feature / "task-graph.json"
-        )
+        graph_path = self.repo_path / ".gsd" / "specs" / self.feature / "task-graph.json"
         with open(graph_path) as f:
             task_graph = json.load(f)
 
@@ -243,9 +237,7 @@ class E2EHarness:
 
                     for task in level_tasks:
                         prompt = self._build_real_prompt(task)
-                        timeout = (
-                            task.get("verification", {}).get("timeout_seconds", 120)
-                        )
+                        timeout = task.get("verification", {}).get("timeout_seconds", 120)
 
                         try:
                             subprocess.run(

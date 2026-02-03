@@ -95,8 +95,7 @@ class TimelineBuilder:
 
         events: list[TimelineEvent] = []
         log_files = sorted(
-            list(logs_dir.glob("worker-*.stderr.log"))
-            + list(logs_dir.glob("worker-*.stdout.log")),
+            list(logs_dir.glob("worker-*.stderr.log")) + list(logs_dir.glob("worker-*.stdout.log")),
         )
 
         for log_file in log_files:
@@ -134,9 +133,7 @@ class TimelineBuilder:
             return self._parse_jsonl(lines, worker_id, str(path.name))
         return self._parse_plaintext(lines, worker_id, str(path.name))
 
-    def _parse_jsonl(
-        self, lines: list[str], worker_id: int, source: str
-    ) -> list[TimelineEvent]:
+    def _parse_jsonl(self, lines: list[str], worker_id: int, source: str) -> list[TimelineEvent]:
         """Parse JSONL formatted log lines."""
         events: list[TimelineEvent] = []
         for idx, line in enumerate(lines):
@@ -172,9 +169,7 @@ class TimelineBuilder:
             )
         return events
 
-    def _parse_plaintext(
-        self, lines: list[str], worker_id: int, source: str
-    ) -> list[TimelineEvent]:
+    def _parse_plaintext(self, lines: list[str], worker_id: int, source: str) -> list[TimelineEvent]:
         """Parse plaintext log lines."""
         events: list[TimelineEvent] = []
         for idx, line in enumerate(lines):
@@ -241,9 +236,7 @@ class TemporalClusterer:
         return clusters
 
     @staticmethod
-    def _within_window(
-        a: TimelineEvent, b: TimelineEvent, window_seconds: float
-    ) -> bool:
+    def _within_window(a: TimelineEvent, b: TimelineEvent, window_seconds: float) -> bool:
         """Determine whether two events are within the clustering window."""
         a_synthetic = a.timestamp.startswith("line:")
         b_synthetic = b.timestamp.startswith("line:")
@@ -282,9 +275,7 @@ class TemporalClusterer:
 class CrossWorkerCorrelator:
     """Find correlated error events across different workers."""
 
-    def correlate(
-        self, events: list[TimelineEvent]
-    ) -> list[tuple[TimelineEvent, TimelineEvent, float]]:
+    def correlate(self, events: list[TimelineEvent]) -> list[tuple[TimelineEvent, TimelineEvent, float]]:
         """Find error events from different workers with similar messages.
 
         Similarity is computed as Jaccard similarity of tokenized messages.
@@ -300,9 +291,7 @@ class CrossWorkerCorrelator:
         results: list[tuple[TimelineEvent, TimelineEvent, float]] = []
 
         # Pre-tokenize for efficiency
-        tokenized: list[tuple[TimelineEvent, set[str]]] = [
-            (e, _tokenize(e.message)) for e in error_events
-        ]
+        tokenized: list[tuple[TimelineEvent, set[str]]] = [(e, _tokenize(e.message)) for e in error_events]
 
         for i in range(len(tokenized)):
             ev_a, tok_a = tokenized[i]
@@ -337,14 +326,16 @@ class ErrorEvolutionTracker:
 
         for pat in patterns:
             trending = self._compute_trend(pat)
-            results.append({
-                "pattern": pat.pattern,
-                "count": pat.count,
-                "workers_affected": len(pat.worker_ids),
-                "first_seen": pat.first_seen,
-                "last_seen": pat.last_seen,
-                "trending": trending,
-            })
+            results.append(
+                {
+                    "pattern": pat.pattern,
+                    "count": pat.count,
+                    "workers_affected": len(pat.worker_ids),
+                    "first_seen": pat.first_seen,
+                    "last_seen": pat.last_seen,
+                    "trending": trending,
+                }
+            )
 
         return results
 
@@ -426,9 +417,7 @@ class LogCorrelationEngine:
 
         return {
             "timeline": [e.to_dict() for e in all_events],
-            "clusters": [
-                [e.to_dict() for e in cluster] for cluster in clusters
-            ],
+            "clusters": [[e.to_dict() for e in cluster] for cluster in clusters],
             "correlations": [
                 {
                     "event1": ev1.to_dict(),

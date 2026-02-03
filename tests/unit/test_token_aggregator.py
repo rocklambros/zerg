@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import json
-
-import pytest
-
 from zerg.token_aggregator import (
+    _DEFAULT_BASELINE_MULTIPLIER,
     BREAKDOWN_KEYS,
     AggregateResult,
     SavingsResult,
     TokenAggregator,
-    _DEFAULT_BASELINE_MULTIPLIER,
 )
 from zerg.token_tracker import TokenTracker
 
@@ -43,10 +39,14 @@ class TestAggregateSingleWorker:
 
     def test_single_worker_matches(self, tmp_path) -> None:
         """Aggregate with one worker matches that worker's data."""
-        _seed_worker(tmp_path, "w0", {
-            "T1": {"command_template": 100, "task_context": 200},
-            "T2": {"command_template": 50, "task_context": 50},
-        })
+        _seed_worker(
+            tmp_path,
+            "w0",
+            {
+                "T1": {"command_template": 100, "task_context": 200},
+                "T2": {"command_template": 50, "task_context": 50},
+            },
+        )
 
         agg = TokenAggregator(state_dir=tmp_path)
         result = agg.aggregate()
@@ -74,12 +74,20 @@ class TestAggregateMultiWorker:
 
     def test_breakdown_totals_sum(self, tmp_path) -> None:
         """Per-component breakdown sums are correct across workers."""
-        _seed_worker(tmp_path, "w0", {
-            "T1": {"command_template": 10, "task_context": 20},
-        })
-        _seed_worker(tmp_path, "w1", {
-            "T2": {"command_template": 30, "task_context": 40},
-        })
+        _seed_worker(
+            tmp_path,
+            "w0",
+            {
+                "T1": {"command_template": 10, "task_context": 20},
+            },
+        )
+        _seed_worker(
+            tmp_path,
+            "w1",
+            {
+                "T2": {"command_template": 30, "task_context": 40},
+            },
+        )
 
         agg = TokenAggregator(state_dir=tmp_path)
         result = agg.aggregate()
@@ -129,10 +137,14 @@ class TestEfficiencyRatio:
 
     def test_ratio_with_tasks(self, tmp_path) -> None:
         """tokens_per_task = total / tasks."""
-        _seed_worker(tmp_path, "w0", {
-            "T1": {"command_template": 100},
-            "T2": {"command_template": 200},
-        })
+        _seed_worker(
+            tmp_path,
+            "w0",
+            {
+                "T1": {"command_template": 100},
+                "T2": {"command_template": 200},
+            },
+        )
 
         agg = TokenAggregator(state_dir=tmp_path)
         ratio = agg.efficiency_ratio()

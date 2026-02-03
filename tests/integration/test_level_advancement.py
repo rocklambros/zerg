@@ -10,23 +10,23 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tests.mocks.mock_merge import MockMergeCoordinator
-from zerg.constants import LevelMergeStatus
 
 
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock orchestrator dependencies matching unit test pattern."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock, \
-         patch("time.sleep"):
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner"),
+        patch("zerg.orchestrator.WorktreeManager"),
+        patch("zerg.orchestrator.ContainerManager"),
+        patch("zerg.orchestrator.PortAllocator"),
+        patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+        patch("time.sleep"),
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state.get_task_status.return_value = None
@@ -76,9 +76,7 @@ def mock_orchestrator_deps():
 class TestLevelAdvancementAfterMerge:
     """Integration tests for level advancement after merge."""
 
-    def test_successful_merge_advances_level(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_successful_merge_advances_level(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Successful merge should allow level advancement."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -102,9 +100,7 @@ class TestLevelAdvancementAfterMerge:
         # State should reflect completion
         mock_orchestrator_deps["state"].set_level_status.assert_called()
 
-    def test_merge_failure_with_retry_eventually_succeeds(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_merge_failure_with_retry_eventually_succeeds(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Merge failure with retry should eventually succeed."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -127,9 +123,7 @@ class TestLevelAdvancementAfterMerge:
         # At least one should be a retry (after the first failure)
         assert len(merger.get_failed_attempts()) >= 1
 
-    def test_merge_conflict_pauses_execution(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_merge_conflict_pauses_execution(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Merge conflict should pause execution for intervention."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -148,9 +142,7 @@ class TestLevelAdvancementAfterMerge:
         # Should be paused
         assert orch._paused is True
 
-    def test_recoverable_error_pauses_not_stops(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_recoverable_error_pauses_not_stops(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Recoverable merge error should pause, not stop."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -177,9 +169,7 @@ class TestLevelAdvancementAfterMerge:
 class TestMultiLevelAdvancement:
     """Tests for multi-level advancement scenarios."""
 
-    def test_sequential_level_completion(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_sequential_level_completion(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Multiple levels should complete in sequence."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -200,9 +190,7 @@ class TestMultiLevelAdvancement:
         # All three levels should have merged
         assert merger.get_attempt_count() >= 3
 
-    def test_merge_failure_at_level_2_allows_retry(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_merge_failure_at_level_2_allows_retry(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Failure at level 2 should still allow retry."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -229,9 +217,7 @@ class TestMultiLevelAdvancement:
 class TestMergeRetryEvents:
     """Tests for merge retry event emission."""
 
-    def test_retry_events_emitted(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_retry_events_emitted(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Retry attempts should emit events."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -250,15 +236,10 @@ class TestMergeRetryEvents:
 
         # Check that merge_retry event was emitted
         append_event_calls = mock_orchestrator_deps["state"].append_event.call_args_list
-        retry_events = [
-            call for call in append_event_calls
-            if call[0][0] == "merge_retry"
-        ]
+        retry_events = [call for call in append_event_calls if call[0][0] == "merge_retry"]
         assert len(retry_events) >= 1
 
-    def test_recoverable_error_event_emitted(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_recoverable_error_event_emitted(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch):
         """Recoverable error should emit event."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -276,8 +257,5 @@ class TestMergeRetryEvents:
 
         # Check that recoverable_error event was emitted
         append_event_calls = mock_orchestrator_deps["state"].append_event.call_args_list
-        error_events = [
-            call for call in append_event_calls
-            if call[0][0] == "recoverable_error"
-        ]
+        error_events = [call for call in append_event_calls if call[0][0] == "recoverable_error"]
         assert len(error_events) >= 1

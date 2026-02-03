@@ -22,7 +22,6 @@ from zerg.diagnostics.types import (
     ScoredHypothesis,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -100,18 +99,12 @@ class TestBayesianScorer:
         assert result > 0.5
 
     def test_posterior_clamped_high(self, scorer):
-        strong_evidence = [
-            Evidence(description=f"ev{i}", source="code", confidence=0.99)
-            for i in range(20)
-        ]
+        strong_evidence = [Evidence(description=f"ev{i}", source="code", confidence=0.99) for i in range(20)]
         result = scorer.compute_posterior(0.9, strong_evidence, [])
         assert result <= 0.99
 
     def test_posterior_clamped_low(self, scorer):
-        strong_neg = [
-            Evidence(description=f"ev{i}", source="code", confidence=0.99)
-            for i in range(20)
-        ]
+        strong_neg = [Evidence(description=f"ev{i}", source="code", confidence=0.99) for i in range(20)]
         result = scorer.compute_posterior(0.1, [], strong_neg)
         assert result >= 0.01
 
@@ -178,14 +171,15 @@ class TestHypothesisGenerator:
 
     def test_generate_max_10(self, generator):
         fp = ErrorFingerprint(
-            hash="x", language="python", error_type="ValueError",
-            message_template="err", file="f.py", line=1,
+            hash="x",
+            language="python",
+            error_type="ValueError",
+            message_template="err",
+            file="f.py",
+            line=1,
         )
         # Create many evidence items to generate many hypotheses
-        evidence = [
-            Evidence(description=f"evidence_{i}", source="code", confidence=0.6)
-            for i in range(20)
-        ]
+        evidence = [Evidence(description=f"evidence_{i}", source="code", confidence=0.6) for i in range(20)]
         patterns = [
             (
                 KnownPattern(
@@ -205,8 +199,12 @@ class TestHypothesisGenerator:
 
     def test_generate_empty(self, generator):
         fp = ErrorFingerprint(
-            hash="empty", language="python", error_type="Unknown",
-            message_template="", file="", line=0,
+            hash="empty",
+            language="python",
+            error_type="Unknown",
+            message_template="",
+            file="",
+            line=0,
         )
         results = generator.generate(fp, [])
         # No file/line, no KB, no evidence -> empty or minimal
@@ -221,9 +219,7 @@ class TestHypothesisGenerator:
             common_causes=["root cause"],
             fix_templates=["apply the fix"],
         )
-        results = generator.generate(
-            sample_fingerprint, sample_evidence, kb_matches=[(pattern, 0.7)]
-        )
+        results = generator.generate(sample_fingerprint, sample_evidence, kb_matches=[(pattern, 0.7)])
         kb_hyps = [h for h in results if "Known pattern" in h.description]
         assert len(kb_hyps) >= 1
         assert kb_hyps[0].suggested_fix == "apply the fix"
@@ -320,9 +316,7 @@ class TestHypothesisChainer:
         )
 
     def test_chain_boost_same_category(self, chainer):
-        confirmed = self._make_hypothesis(
-            ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED"
-        )
+        confirmed = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED")
         candidate = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.5)
         candidates = [confirmed, candidate]
 
@@ -332,9 +326,7 @@ class TestHypothesisChainer:
         assert boosted.posterior_probability > 0.5
 
     def test_chain_suppress_contradictory(self, chainer):
-        confirmed = self._make_hypothesis(
-            ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED"
-        )
+        confirmed = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED")
         candidate = self._make_hypothesis(ErrorCategory.INFRASTRUCTURE, posterior=0.5)
         candidates = [confirmed, candidate]
 
@@ -344,9 +336,7 @@ class TestHypothesisChainer:
         assert suppressed.posterior_probability < 0.5
 
     def test_chain_empty(self, chainer):
-        confirmed = self._make_hypothesis(
-            ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED"
-        )
+        confirmed = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED")
         result = chainer.chain(confirmed, [])
         assert result == []
 

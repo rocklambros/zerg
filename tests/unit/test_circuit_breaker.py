@@ -1,9 +1,6 @@
 """Tests for ZERG CircuitBreaker module."""
 
 import time
-from unittest.mock import patch
-
-import pytest
 
 from zerg.circuit_breaker import CircuitBreaker, CircuitState, WorkerCircuit
 

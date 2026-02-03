@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import UTC, datetime
 
 from zerg.status_formatter import (
     format_escalations,
@@ -13,7 +11,6 @@ from zerg.status_formatter import (
     format_savings,
     format_token_table,
 )
-
 
 # ---------------------------------------------------------------------------
 # format_health_table
@@ -43,7 +40,7 @@ class TestFormatHealthTableWithData:
         step: str = "execute",
         progress_pct: int = 50,
     ) -> dict:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         return {
             "worker_id": worker_id,
             "timestamp": now,
@@ -81,11 +78,11 @@ class TestFormatHealthTableWithData:
         result = format_health_table(hbs)
         lines = result.split("\n")
         # Data rows are lines 3,4,5 (after top border, header, separator)
-        data_lines = [l for l in lines if "\u2502" in l and "Worker" not in l]
+        data_lines = [ln for ln in lines if "\u2502" in ln and "Worker" not in ln]
         assert len(data_lines) == 3
         # Worker 1 should appear before worker 3
-        idx_1 = next(i for i, l in enumerate(data_lines) if " 1 " in l)
-        idx_3 = next(i for i, l in enumerate(data_lines) if " 3 " in l)
+        idx_1 = next(i for i, ln in enumerate(data_lines) if " 1 " in ln)
+        idx_3 = next(i for i, ln in enumerate(data_lines) if " 3 " in ln)
         assert idx_1 < idx_3
 
     def test_column_alignment_consistent_width(self) -> None:
@@ -206,9 +203,7 @@ class TestFormatRepoMapStatsNone:
         assert result == "No repo map data available"
 
     def test_zero_counts_returns_no_data_message(self) -> None:
-        result = format_repo_map_stats(
-            {"total_files": 0, "indexed_files": 0, "stale_files": 0}
-        )
+        result = format_repo_map_stats({"total_files": 0, "indexed_files": 0, "stale_files": 0})
         assert result == "No repo map data available"
 
 

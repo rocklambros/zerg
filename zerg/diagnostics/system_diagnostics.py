@@ -142,7 +142,7 @@ class SystemDiagnostics:
         current_path = ""
         for line in stdout.splitlines():
             if line.startswith("worktree "):
-                current_path = line[len("worktree "):]
+                current_path = line[len("worktree ") :]
                 worktrees.append(current_path)
 
         result["count"] = len(worktrees)

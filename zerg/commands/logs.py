@@ -44,15 +44,22 @@ LEVEL_COLORS = {
 @click.option("--aggregate", is_flag=True, help="Merge all worker JSONL logs by timestamp")
 @click.option("--task", "task_id", type=str, default=None, help="Filter to specific task ID")
 @click.option(
-    "--artifacts", "artifacts_task", type=str, default=None,
+    "--artifacts",
+    "artifacts_task",
+    type=str,
+    default=None,
     help="Show artifact file contents for a task",
 )
 @click.option(
-    "--phase", type=str, default=None,
+    "--phase",
+    type=str,
+    default=None,
     help="Filter by execution phase (claim/execute/verify/commit/cleanup)",
 )
 @click.option(
-    "--event", type=str, default=None,
+    "--event",
+    type=str,
+    default=None,
     help="Filter by event type (task_started, task_completed, etc.)",
 )
 @click.option("--since", type=str, default=None, help="Only entries after this ISO8601 timestamp")
@@ -140,9 +147,7 @@ def logs(
             container_output = _get_container_logs(worker_id)
             if container_output is not None:
                 if not json_output:
-                    console.print(
-                        f"[dim]Container logs for worker {worker_id}:[/dim]\n"
-                    )
+                    console.print(f"[dim]Container logs for worker {worker_id}:[/dim]\n")
                 console.print(container_output)
                 return
 
@@ -276,6 +281,7 @@ def _get_launcher_type() -> str:
     """
     try:
         from zerg.config import ZergConfig
+
         config = ZergConfig.load()
         return config.workers.launcher_type
     except Exception as e:
@@ -296,7 +302,9 @@ def _get_container_logs(worker_id: int) -> str | None:
     try:
         result = subprocess.run(
             ["docker", "logs", name],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         return result.stdout if result.returncode == 0 else None
     except (subprocess.TimeoutExpired, FileNotFoundError):

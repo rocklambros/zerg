@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from zerg.progress_reporter import ProgressReporter, TierProgress, WorkerProgress
 
 
@@ -106,8 +104,14 @@ class TestProgressReporter:
         assert not reporter.progress_path.exists()
 
     def test_read_static(self, tmp_path: Path) -> None:
-        data = {"worker_id": 1, "tasks_completed": 2, "tasks_total": 5,
-                "current_task": "T3", "current_step": "impl", "tier_results": []}
+        data = {
+            "worker_id": 1,
+            "tasks_completed": 2,
+            "tasks_total": 5,
+            "current_task": "T3",
+            "current_step": "impl",
+            "tier_results": [],
+        }
         (tmp_path / "progress-1.json").write_text(json.dumps(data))
 
         wp = ProgressReporter.read(1, state_dir=tmp_path)
@@ -119,8 +123,14 @@ class TestProgressReporter:
 
     def test_read_all_static(self, tmp_path: Path) -> None:
         for wid in [1, 2]:
-            data = {"worker_id": wid, "tasks_completed": 0, "tasks_total": 5,
-                    "current_task": None, "current_step": "idle", "tier_results": []}
+            data = {
+                "worker_id": wid,
+                "tasks_completed": 0,
+                "tasks_total": 5,
+                "current_task": None,
+                "current_step": "idle",
+                "tier_results": [],
+            }
             (tmp_path / f"progress-{wid}.json").write_text(json.dumps(data))
 
         all_progress = ProgressReporter.read_all(state_dir=tmp_path)

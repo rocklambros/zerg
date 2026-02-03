@@ -164,9 +164,7 @@ class RiskScorer:
         if not deps:
             return 0
 
-        return 1 + max(
-            self._dependency_depth(d, visited.copy()) for d in deps
-        )
+        return 1 + max(self._dependency_depth(d, visited.copy()) for d in deps)
 
     def _find_critical_path(self) -> list[str]:
         """Find the longest path through the dependency graph by estimated time."""
@@ -177,9 +175,7 @@ class RiskScorer:
                 dependents[dep].append(task["id"])
 
         # Find roots (no dependencies)
-        roots = [
-            t["id"] for t in self.tasks if not t.get("dependencies")
-        ]
+        roots = [t["id"] for t in self.tasks if not t.get("dependencies")]
 
         # DFS to find longest path by cumulative estimate
         best_path: list[str] = []
@@ -223,14 +219,11 @@ class RiskScorer:
                 if l1 < l2:
                     overlap = level_files[l1] & level_files[l2]
                     if overlap:
-                        factors.append(
-                            f"Files modified in both L{l1} and L{l2}: {', '.join(sorted(overlap))}"
-                        )
+                        factors.append(f"Files modified in both L{l1} and L{l2}: {', '.join(sorted(overlap))}")
 
         # Factor: missing verifications
         no_verify = sum(
-            1 for t in self.tasks
-            if not t.get("verification") or not t.get("verification", {}).get("command")
+            1 for t in self.tasks if not t.get("verification") or not t.get("verification", {}).get("command")
         )
         if no_verify > 0:
             factors.append(f"{no_verify} task(s) missing verification commands")

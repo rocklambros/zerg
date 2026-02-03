@@ -121,8 +121,7 @@ class LevelController:
             tid
             for tid, task in self._tasks.items()
             if task.get("level") == level
-            and task.get("status", TaskStatus.TODO.value)
-            in (TaskStatus.TODO.value, TaskStatus.PENDING.value)
+            and task.get("status", TaskStatus.TODO.value) in (TaskStatus.TODO.value, TaskStatus.PENDING.value)
         ]
 
     def mark_task_complete(self, task_id: str) -> bool:
@@ -144,9 +143,7 @@ class LevelController:
 
         if level in self._levels:
             self._levels[level].completed_tasks += 1
-            self._levels[level].in_progress_tasks = max(
-                0, self._levels[level].in_progress_tasks - 1
-            )
+            self._levels[level].in_progress_tasks = max(0, self._levels[level].in_progress_tasks - 1)
 
         logger.info(f"Task {task_id} complete")
 
@@ -176,9 +173,7 @@ class LevelController:
 
         if level in self._levels:
             self._levels[level].failed_tasks += 1
-            self._levels[level].in_progress_tasks = max(
-                0, self._levels[level].in_progress_tasks - 1
-            )
+            self._levels[level].in_progress_tasks = max(0, self._levels[level].in_progress_tasks - 1)
 
         logger.error(f"Task {task_id} failed: {error or 'unknown error'}")
 
@@ -278,15 +273,9 @@ class LevelController:
             Status dictionary
         """
         total_tasks = len(self._tasks)
-        completed_tasks = sum(
-            1 for t in self._tasks.values() if t.get("status") == TaskStatus.COMPLETE.value
-        )
-        failed_tasks = sum(
-            1 for t in self._tasks.values() if t.get("status") == TaskStatus.FAILED.value
-        )
-        in_progress_tasks = sum(
-            1 for t in self._tasks.values() if t.get("status") == TaskStatus.IN_PROGRESS.value
-        )
+        completed_tasks = sum(1 for t in self._tasks.values() if t.get("status") == TaskStatus.COMPLETE.value)
+        failed_tasks = sum(1 for t in self._tasks.values() if t.get("status") == TaskStatus.FAILED.value)
+        in_progress_tasks = sum(1 for t in self._tasks.values() if t.get("status") == TaskStatus.IN_PROGRESS.value)
 
         return {
             "current_level": self._current_level,
@@ -295,9 +284,7 @@ class LevelController:
             "failed_tasks": failed_tasks,
             "in_progress_tasks": in_progress_tasks,
             "progress_percent": (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
-            "levels": {
-                level: status.to_dict() for level, status in self._levels.items()
-            },
+            "levels": {level: status.to_dict() for level, status in self._levels.items()},
             "is_complete": (completed_tasks + failed_tasks) == total_tasks,
         }
 

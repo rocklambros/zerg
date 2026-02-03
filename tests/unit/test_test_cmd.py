@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -31,11 +30,10 @@ from zerg.commands.test_cmd import (
     TestRunner,
     TestStubGenerator,
     _watch_loop,
-    test_cmd,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    pass
 
 
 # =============================================================================
@@ -828,9 +826,7 @@ class TestTestCommand:
         cmd = TestCommand()
 
         with patch.object(cmd.runner, "run") as mock_run:
-            mock_run.return_value = TestResult(
-                total=5, passed=5, failed=0, skipped=0
-            )
+            mock_run.return_value = TestResult(total=5, passed=5, failed=0, skipped=0)
             result = cmd.run(
                 framework=TestFramework.JEST,
                 path=str(tmp_path),
@@ -846,10 +842,8 @@ class TestTestCommand:
         cmd = TestCommand()
 
         with patch.object(cmd.runner, "run") as mock_run:
-            mock_run.return_value = TestResult(
-                total=3, passed=3, failed=0, skipped=0
-            )
-            result = cmd.run(path=str(tmp_path), dry_run=False)
+            mock_run.return_value = TestResult(total=3, passed=3, failed=0, skipped=0)
+            cmd.run(path=str(tmp_path), dry_run=False)
 
             # Should have detected and used Cargo
             mock_run.assert_called_once()
@@ -861,9 +855,7 @@ class TestTestCommand:
         cmd = TestCommand()
 
         with patch.object(cmd.runner, "run") as mock_run:
-            mock_run.return_value = TestResult(
-                total=1, passed=1, failed=0, skipped=0
-            )
+            mock_run.return_value = TestResult(total=1, passed=1, failed=0, skipped=0)
             cmd.run(path=str(tmp_path), dry_run=False)
 
             # Should fallback to pytest
@@ -1109,12 +1101,8 @@ class TestTestCmdCli:
         runner = CliRunner()
 
         # Patch the TestCommand.run to return a mock result
-        with patch(
-            "zerg.commands.test_cmd.TestCommand.run"
-        ) as mock_run:
-            mock_run.return_value = TestResult(
-                total=5, passed=5, failed=0, skipped=0
-            )
+        with patch("zerg.commands.test_cmd.TestCommand.run") as mock_run:
+            mock_run.return_value = TestResult(total=5, passed=5, failed=0, skipped=0)
             result = runner.invoke(cli, ["test", "--json", "--dry-run"])
 
             # With dry-run and json, output should contain dry run info
@@ -1128,9 +1116,7 @@ class TestTestCmdCli:
         test_dir.mkdir()
 
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["test", "--path", str(test_dir), "--dry-run"]
-        )
+        result = runner.invoke(cli, ["test", "--path", str(test_dir), "--dry-run"])
 
         # Command should accept the path
         assert result.exit_code == 0 or "Would run" in result.output
@@ -1141,12 +1127,8 @@ class TestTestCmdCli:
         runner = CliRunner()
 
         # Patch to avoid actually running tests
-        with patch(
-            "zerg.commands.test_cmd.TestCommand.run"
-        ) as mock_run:
-            mock_run.return_value = TestResult(
-                total=1, passed=1, failed=0, skipped=0, coverage_percentage=90.0
-            )
+        with patch("zerg.commands.test_cmd.TestCommand.run") as mock_run:
+            mock_run.return_value = TestResult(total=1, passed=1, failed=0, skipped=0, coverage_percentage=90.0)
             result = runner.invoke(cli, ["test", "--coverage", "--dry-run"])
 
             # Should work without error
@@ -1168,12 +1150,8 @@ class TestTestCmdCli:
 
         runner = CliRunner()
 
-        with patch(
-            "zerg.commands.test_cmd.TestCommand.run"
-        ) as mock_run:
-            mock_run.return_value = TestResult(
-                total=5, passed=5, failed=0, skipped=0
-            )
+        with patch("zerg.commands.test_cmd.TestCommand.run") as mock_run:
+            mock_run.return_value = TestResult(total=5, passed=5, failed=0, skipped=0)
 
             # Use mix_stderr to capture all output
             result = runner.invoke(cli, ["test"], catch_exceptions=False)
@@ -1188,12 +1166,8 @@ class TestTestCmdCli:
 
         runner = CliRunner()
 
-        with patch(
-            "zerg.commands.test_cmd.TestCommand.run"
-        ) as mock_run:
-            mock_run.return_value = TestResult(
-                total=5, passed=3, failed=2, skipped=0
-            )
+        with patch("zerg.commands.test_cmd.TestCommand.run") as mock_run:
+            mock_run.return_value = TestResult(total=5, passed=3, failed=2, skipped=0)
 
             result = runner.invoke(cli, ["test"], catch_exceptions=False)
 
@@ -1205,9 +1179,7 @@ class TestTestCmdCli:
 
         runner = CliRunner()
 
-        with patch(
-            "zerg.commands.test_cmd.TestCommand"
-        ) as mock_class:
+        with patch("zerg.commands.test_cmd.TestCommand") as mock_class:
             mock_class.side_effect = RuntimeError("Unexpected error")
 
             result = runner.invoke(cli, ["test"], catch_exceptions=False)
@@ -1221,9 +1193,7 @@ class TestTestCmdCli:
 
         runner = CliRunner()
 
-        with patch(
-            "zerg.commands.test_cmd.TestCommand"
-        ) as mock_class:
+        with patch("zerg.commands.test_cmd.TestCommand") as mock_class:
             mock_class.side_effect = KeyboardInterrupt()
 
             result = runner.invoke(cli, ["test"], catch_exceptions=False)
@@ -1247,9 +1217,7 @@ class TestTestCmdIntegration:
         # Set up a pytest project
         (tmp_path / "pytest.ini").write_text("[pytest]")
         (tmp_path / "tests").mkdir()
-        (tmp_path / "tests" / "test_example.py").write_text(
-            "def test_example(): assert True"
-        )
+        (tmp_path / "tests" / "test_example.py").write_text("def test_example(): assert True")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["test", "--dry-run"])

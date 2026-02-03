@@ -7,13 +7,9 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
-# ---------------------------------------------------------------------------
-# mermaid.py
-# ---------------------------------------------------------------------------
 
 from zerg.doc_engine.mermaid import (
     MermaidGenerator,
@@ -21,6 +17,12 @@ from zerg.doc_engine.mermaid import (
     _strip_common_prefix,
     _wrap,
 )
+from zerg.doc_engine.publisher import PublishResult, WikiPublisher
+from zerg.doc_engine.sidebar import SidebarConfig, SidebarGenerator, SidebarSection
+
+# ---------------------------------------------------------------------------
+# mermaid.py
+# ---------------------------------------------------------------------------
 
 
 class TestSanitizeId:
@@ -248,8 +250,6 @@ class TestMermaidClassDiagram:
 # publisher.py
 # ---------------------------------------------------------------------------
 
-from zerg.doc_engine.publisher import PublishResult, WikiPublisher
-
 
 class TestPublishResult:
     """Tests for the PublishResult dataclass."""
@@ -400,9 +400,9 @@ class TestWikiPublisherPublishReal:
         assert result.success is True
         assert result.commit_sha == ""  # no commit was made
 
-    @patch.object(WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(
-        128, "git", stderr="fatal: repo not found"
-    ))
+    @patch.object(
+        WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(128, "git", stderr="fatal: repo not found")
+    )
     @patch("zerg.doc_engine.publisher.tempfile.mkdtemp")
     def test_git_failure(
         self,
@@ -422,9 +422,9 @@ class TestWikiPublisherPublishReal:
         assert "Git operation failed" in result.error
         assert "repo not found" in result.error
 
-    @patch.object(WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(
-        1, "git", stderr=None, output="some output"
-    ))
+    @patch.object(
+        WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(1, "git", stderr=None, output="some output")
+    )
     @patch("zerg.doc_engine.publisher.tempfile.mkdtemp")
     def test_git_failure_no_stderr(
         self,
@@ -469,9 +469,7 @@ class TestWikiPublisherPublishReal:
     def test_default_commit_message(self, publisher: WikiPublisher) -> None:
         assert publisher.COMMIT_MESSAGE == "docs: update wiki pages via ZERG doc engine"
 
-    def test_custom_commit_message_in_publish(
-        self, publisher: WikiPublisher, wiki_dir: Path, tmp_path: Path
-    ) -> None:
+    def test_custom_commit_message_in_publish(self, publisher: WikiPublisher, wiki_dir: Path, tmp_path: Path) -> None:
         with (
             patch.object(WikiPublisher, "_rev_parse_head", return_value="sha"),
             patch.object(WikiPublisher, "_has_changes", return_value=True),
@@ -491,10 +489,7 @@ class TestWikiPublisherPublishReal:
             )
 
             # Check that commit used the custom message
-            commit_calls = [
-                c for c in mock_git.call_args_list
-                if len(c.args) > 0 and "commit" in c.args[0]
-            ]
+            commit_calls = [c for c in mock_git.call_args_list if len(c.args) > 0 and "commit" in c.args[0]]
             assert len(commit_calls) == 1
             assert "my custom message" in commit_calls[0].args[0]
 
@@ -504,10 +499,8 @@ class TestWikiPublisherGitHelpers:
 
     @patch("zerg.doc_engine.publisher.subprocess.run")
     def test_git_runs_command(self, mock_run: MagicMock) -> None:
-        mock_run.return_value = subprocess.CompletedProcess(
-            args=["git", "status"], returncode=0, stdout="", stderr=""
-        )
-        result = WikiPublisher._git(["status"])
+        mock_run.return_value = subprocess.CompletedProcess(args=["git", "status"], returncode=0, stdout="", stderr="")
+        WikiPublisher._git(["status"])
         mock_run.assert_called_once_with(
             ["git", "status"],
             cwd=None,
@@ -518,9 +511,7 @@ class TestWikiPublisherGitHelpers:
 
     @patch("zerg.doc_engine.publisher.subprocess.run")
     def test_git_with_cwd(self, mock_run: MagicMock) -> None:
-        mock_run.return_value = subprocess.CompletedProcess(
-            args=["git", "status"], returncode=0, stdout="", stderr=""
-        )
+        mock_run.return_value = subprocess.CompletedProcess(args=["git", "status"], returncode=0, stdout="", stderr="")
         cwd = Path("/some/dir")
         WikiPublisher._git(["status"], cwd=cwd)
         mock_run.assert_called_once_with(
@@ -533,31 +524,23 @@ class TestWikiPublisherGitHelpers:
 
     @patch("zerg.doc_engine.publisher.subprocess.run")
     def test_has_changes_true(self, mock_run: MagicMock) -> None:
-        mock_run.return_value = subprocess.CompletedProcess(
-            args=[], returncode=1, stdout="", stderr=""
-        )
+        mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="")
         assert WikiPublisher._has_changes(Path("/repo")) is True
 
     @patch("zerg.doc_engine.publisher.subprocess.run")
     def test_has_changes_false(self, mock_run: MagicMock) -> None:
-        mock_run.return_value = subprocess.CompletedProcess(
-            args=[], returncode=0, stdout="", stderr=""
-        )
+        mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
         assert WikiPublisher._has_changes(Path("/repo")) is False
 
     @patch("zerg.doc_engine.publisher.subprocess.run")
     def test_rev_parse_head(self, mock_run: MagicMock) -> None:
-        mock_run.return_value = subprocess.CompletedProcess(
-            args=[], returncode=0, stdout="  abc123  \n", stderr=""
-        )
+        mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="  abc123  \n", stderr="")
         assert WikiPublisher._rev_parse_head(Path("/repo")) == "abc123"
 
 
 # ---------------------------------------------------------------------------
 # sidebar.py
 # ---------------------------------------------------------------------------
-
-from zerg.doc_engine.sidebar import SidebarConfig, SidebarGenerator, SidebarSection
 
 
 class TestSidebarGeneratorEdgeCases:
@@ -694,9 +677,7 @@ class TestWikiPublisherCleanup:
         return d
 
     @patch("zerg.doc_engine.publisher.shutil.rmtree")
-    @patch.object(WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(
-        1, "git", stderr="fail"
-    ))
+    @patch.object(WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(1, "git", stderr="fail"))
     @patch("zerg.doc_engine.publisher.tempfile.mkdtemp")
     def test_tmpdir_cleaned_on_git_error(
         self,
@@ -715,9 +696,7 @@ class TestWikiPublisherCleanup:
 
         mock_rmtree.assert_called_once_with(clone_tmp, ignore_errors=True)
 
-    def test_publish_accepts_string_wiki_dir(
-        self, publisher: WikiPublisher, tmp_path: Path
-    ) -> None:
+    def test_publish_accepts_string_wiki_dir(self, publisher: WikiPublisher, tmp_path: Path) -> None:
         """wiki_dir should accept both str and Path."""
         result = publisher.publish(
             str(tmp_path / "nonexistent"),
@@ -726,9 +705,7 @@ class TestWikiPublisherCleanup:
         assert result.success is False
         assert "does not exist" in result.error
 
-    @patch.object(WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(
-        1, "git", stderr=None, output=None
-    ))
+    @patch.object(WikiPublisher, "_git", side_effect=subprocess.CalledProcessError(1, "git", stderr=None, output=None))
     @patch("zerg.doc_engine.publisher.tempfile.mkdtemp")
     def test_git_failure_no_stderr_no_stdout(
         self,

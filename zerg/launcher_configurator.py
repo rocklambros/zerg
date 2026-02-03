@@ -107,9 +107,7 @@ class LauncherConfigurator:
                         "creation failed. Check that Docker is running and accessible."
                     )
                 # Auto-detected container mode: fall back gracefully
-                logger.warning(
-                    "Docker network setup failed, falling back to subprocess"
-                )
+                logger.warning("Docker network setup failed, falling back to subprocess")
                 return SubprocessLauncher(config)
             logger.info("Using ContainerLauncher")
             return launcher
@@ -140,6 +138,7 @@ class LauncherConfigurator:
 
         try:
             import subprocess as _sp
+
             result = _sp.run(
                 ["docker", "image", "inspect", image_name],
                 capture_output=True,
@@ -172,9 +171,10 @@ class LauncherConfigurator:
         """Remove leftover zerg-worker containers from previous runs."""
         try:
             result = sp.run(
-                ["docker", "ps", "-a", "--filter", "name=zerg-worker",
-                 "--format", "{{.ID}}"],
-                capture_output=True, text=True, timeout=10,
+                ["docker", "ps", "-a", "--filter", "name=zerg-worker", "--format", "{{.ID}}"],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode != 0:
                 return
@@ -182,7 +182,8 @@ class LauncherConfigurator:
                 if cid:
                     sp.run(
                         ["docker", "rm", "-f", cid],
-                        capture_output=True, timeout=10,
+                        capture_output=True,
+                        timeout=10,
                     )
                     logger.info(f"Removed orphan container {cid[:12]}")
         except (sp.TimeoutExpired, FileNotFoundError):
@@ -211,8 +212,7 @@ class LauncherConfigurator:
                 elapsed = (datetime.now() - worker.started_at).total_seconds()
                 if elapsed > timeout_seconds:
                     logger.warning(
-                        f"Worker {worker_id} exceeded timeout "
-                        f"({elapsed:.0f}s > {timeout_seconds}s), terminating"
+                        f"Worker {worker_id} exceeded timeout ({elapsed:.0f}s > {timeout_seconds}s), terminating"
                     )
                     launcher.terminate(worker_id)
                     worker.status = WorkerStatus.CRASHED

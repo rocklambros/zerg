@@ -179,9 +179,7 @@ class DependencyMapper:
         """
         adj: dict[str, list[str]] = {}
         for module_name, node in graph.modules.items():
-            adj[module_name] = [
-                imp for imp in node.imports if imp in graph.modules
-            ]
+            adj[module_name] = [imp for imp in node.imports if imp in graph.modules]
         return adj
 
 
@@ -190,9 +188,7 @@ class DependencyMapper:
 # ---------------------------------------------------------------------------
 
 
-def _path_to_module(
-    py_file: Path, root_dir: Path, package: str
-) -> str | None:
+def _path_to_module(py_file: Path, root_dir: Path, package: str) -> str | None:
     """Derive a fully-qualified module name from a filesystem path.
 
     Returns ``None`` if the file does not live under a directory named
@@ -223,9 +219,7 @@ def _path_to_module(
     return ".".join(parts)
 
 
-def _extract_imports(
-    py_file: Path, module_name: str, package: str
-) -> list[str]:
+def _extract_imports(py_file: Path, module_name: str, package: str) -> list[str]:
     """Parse *py_file* with :mod:`ast` and return a list of imported module names.
 
     Relative imports are resolved to absolute names using *module_name* as
@@ -254,9 +248,7 @@ def _extract_imports(
             if node.module is None and node.level == 0:
                 continue
 
-            resolved = _resolve_import(
-                module_name, node.module, node.level, package
-            )
+            resolved = _resolve_import(module_name, node.module, node.level, package)
             if resolved is not None:
                 imports.append(resolved)
 
@@ -288,9 +280,7 @@ def _resolve_import(
     parts = current_module.split(".")
     # ``level`` dots means go up ``level`` package components.
     if level > len(parts):
-        logger.warning(
-            "Relative import level %d exceeds depth of %s", level, current_module
-        )
+        logger.warning("Relative import level %d exceeds depth of %s", level, current_module)
         return None
 
     base_parts = parts[: len(parts) - level]

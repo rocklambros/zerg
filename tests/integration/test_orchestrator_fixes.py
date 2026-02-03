@@ -4,11 +4,8 @@ End-to-end tests for worker lifecycle, level transitions,
 failure recovery, and initialization wait.
 """
 
-import json
-import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from typing import Any
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
@@ -268,7 +265,7 @@ class TestTaskGraphValidation:
 
     def test_valid_task_graph_passes(self) -> None:
         """Valid task graph should pass validation."""
-        from zerg.validation import validate_task_graph, validate_dependencies
+        from zerg.validation import validate_dependencies, validate_task_graph
 
         task_graph = {
             "feature": "test-feature",

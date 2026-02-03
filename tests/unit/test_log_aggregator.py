@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from zerg.log_aggregator import LogAggregator
 
 
@@ -152,10 +150,7 @@ class TestLogAggregatorQuery:
 
     def test_limit(self, tmp_path: Path) -> None:
         """Test limit parameter."""
-        entries = [
-            {"ts": f"2026-01-01T10:00:{i:02d}Z", "level": "info", "message": f"entry {i}"}
-            for i in range(10)
-        ]
+        entries = [{"ts": f"2026-01-01T10:00:{i:02d}Z", "level": "info", "message": f"entry {i}"} for i in range(10)]
         _write_jsonl(tmp_path / "workers" / "worker-0.jsonl", entries)
 
         agg = LogAggregator(tmp_path)

@@ -172,7 +172,4 @@ class PerformanceReport:
             key=lambda f: Severity.weight(f.severity),
             reverse=True,
         )
-        return [
-            f"[{f.severity.value.upper()}] {f.factor_name}: {f.message}"
-            for f in sorted_findings[:limit]
-        ]
+        return [f"[{f.severity.value.upper()}] {f.factor_name}: {f.message}" for f in sorted_findings[:limit]]

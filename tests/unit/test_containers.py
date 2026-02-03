@@ -115,7 +115,7 @@ class TestCheckDocker:
         """Test _check_docker when Docker is available."""
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
-            manager = ContainerManager()
+            ContainerManager()
             # No exception should be raised
 
     def test_check_docker_not_running(self) -> None:
@@ -123,21 +123,21 @@ class TestCheckDocker:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=1)
             # Should log warning but not raise
-            manager = ContainerManager()
+            ContainerManager()
 
     def test_check_docker_timeout(self) -> None:
         """Test _check_docker when Docker command times out."""
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired("docker info", 10)
             # Should log warning but not raise
-            manager = ContainerManager()
+            ContainerManager()
 
     def test_check_docker_not_found(self) -> None:
         """Test _check_docker when Docker is not installed."""
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError("docker not found")
             # Should log warning but not raise
-            manager = ContainerManager()
+            ContainerManager()
 
 
 class TestRunDocker:
@@ -145,8 +145,7 @@ class TestRunDocker:
 
     def test_run_docker_success(self) -> None:
         """Test _run_docker with successful command."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 returncode=0,
                 stdout="output",
@@ -161,8 +160,7 @@ class TestRunDocker:
 
     def test_run_docker_called_process_error(self) -> None:
         """Test _run_docker with CalledProcessError."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.CalledProcessError(
                 returncode=1,
                 cmd=["docker", "ps"],
@@ -179,8 +177,7 @@ class TestRunDocker:
 
     def test_run_docker_timeout(self) -> None:
         """Test _run_docker with timeout."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired("docker", 60)
 
             manager = ContainerManager()
@@ -193,8 +190,7 @@ class TestRunDocker:
 
     def test_run_docker_check_false(self) -> None:
         """Test _run_docker with check=False doesn't raise."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 returncode=1,
                 stdout="",
@@ -212,8 +208,7 @@ class TestRunCompose:
 
     def test_run_compose_success(self) -> None:
         """Test _run_compose with successful command."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
                 returncode=0,
                 stdout="output",
@@ -227,8 +222,7 @@ class TestRunCompose:
 
     def test_run_compose_with_env(self) -> None:
         """Test _run_compose with environment variables."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
 
             manager = ContainerManager()
@@ -239,8 +233,7 @@ class TestRunCompose:
 
     def test_run_compose_called_process_error(self) -> None:
         """Test _run_compose with CalledProcessError."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.CalledProcessError(
                 returncode=1,
                 cmd=["docker", "compose", "up"],
@@ -256,8 +249,7 @@ class TestRunCompose:
 
     def test_run_compose_timeout(self) -> None:
         """Test _run_compose with timeout."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch("subprocess.run") as mock_run:
+        with patch.object(ContainerManager, "_check_docker"), patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired("docker compose", 120)
 
             manager = ContainerManager()
@@ -273,8 +265,10 @@ class TestBuild:
 
     def test_build(self) -> None:
         """Test building worker image."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_compose") as mock_compose:
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_compose") as mock_compose,
+        ):
             mock_compose.return_value = MagicMock(returncode=0)
 
             manager = ContainerManager()
@@ -286,8 +280,10 @@ class TestBuild:
 
     def test_build_no_cache(self) -> None:
         """Test building with no cache."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_compose") as mock_compose:
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_compose") as mock_compose,
+        ):
             mock_compose.return_value = MagicMock(returncode=0)
 
             manager = ContainerManager()
@@ -302,11 +298,12 @@ class TestStartWorker:
 
     def test_start_worker(self) -> None:
         """Test starting a worker container."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker, \
-             patch.object(ContainerManager, "_run_compose") as mock_compose, \
-             patch("time.sleep"):
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+            patch.object(ContainerManager, "_run_compose") as mock_compose,
+            patch("time.sleep"),
+        ):
             # Mock docker ps to return container ID
             mock_docker.return_value = MagicMock(
                 returncode=0,
@@ -331,11 +328,12 @@ class TestStartWorker:
 
     def test_start_worker_removes_existing(self) -> None:
         """Test starting worker removes existing container."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker, \
-             patch.object(ContainerManager, "_run_compose") as mock_compose, \
-             patch("time.sleep"):
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+            patch.object(ContainerManager, "_run_compose") as mock_compose,
+            patch("time.sleep"),
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="abc123",
@@ -353,11 +351,12 @@ class TestStartWorker:
 
     def test_start_worker_no_container_id_fallback(self) -> None:
         """Test start_worker falls back to alternate naming when container ID not found."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker, \
-             patch.object(ContainerManager, "_run_compose") as mock_compose, \
-             patch("time.sleep"):
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+            patch.object(ContainerManager, "_run_compose") as mock_compose,
+            patch("time.sleep"),
+        ):
             # First call returns empty (no container by name)
             # Second call returns container from --latest
             mock_docker.side_effect = [
@@ -374,11 +373,12 @@ class TestStartWorker:
 
     def test_start_worker_no_container_id_unknown_fallback(self) -> None:
         """Test start_worker uses unknown fallback when no container found."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker, \
-             patch.object(ContainerManager, "_run_compose") as mock_compose, \
-             patch("time.sleep"):
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+            patch.object(ContainerManager, "_run_compose") as mock_compose,
+            patch("time.sleep"),
+        ):
             # Both lookups return empty
             mock_docker.side_effect = [
                 MagicMock(returncode=0, stdout="", stderr=""),  # rm -f
@@ -398,9 +398,10 @@ class TestStopWorker:
 
     def test_stop_worker(self) -> None:
         """Test stopping a worker."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
             manager = ContainerManager()
@@ -417,9 +418,10 @@ class TestStopWorker:
 
     def test_stop_worker_force(self) -> None:
         """Test force stopping a worker."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
             manager = ContainerManager()
@@ -438,18 +440,17 @@ class TestStopWorker:
 
     def test_stop_worker_not_found(self) -> None:
         """Test stopping non-existent worker."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker"):
-
+        with patch.object(ContainerManager, "_check_docker"), patch.object(ContainerManager, "_run_docker"):
             manager = ContainerManager()
             # Should not raise
             manager.stop_worker(99)
 
     def test_stop_worker_graceful(self) -> None:
         """Test graceful stop with custom timeout."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
             manager = ContainerManager()
@@ -473,9 +474,10 @@ class TestStopAll:
 
     def test_stop_all(self) -> None:
         """Test stopping all workers."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="",
@@ -495,9 +497,10 @@ class TestStopAll:
 
     def test_stop_all_with_orphans(self) -> None:
         """Test stopping all workers including orphaned containers."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             # Return orphaned container IDs from docker ps
             mock_docker.return_value = MagicMock(
                 returncode=0,
@@ -517,9 +520,10 @@ class TestStopAll:
 
     def test_stop_all_empty_orphans(self) -> None:
         """Test stopping all workers with empty orphan list."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="",
@@ -535,9 +539,10 @@ class TestStopAll:
 
     def test_stop_all_force(self) -> None:
         """Test force stopping all workers."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="",
@@ -560,9 +565,10 @@ class TestGetStatus:
 
     def test_get_status_running(self) -> None:
         """Test getting running status."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="running\n",
@@ -583,9 +589,10 @@ class TestGetStatus:
 
     def test_get_status_stopped(self) -> None:
         """Test getting stopped status."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="exited\n",
@@ -606,9 +613,10 @@ class TestGetStatus:
 
     def test_get_status_paused(self) -> None:
         """Test getting paused status (checkpointing)."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="paused\n",
@@ -629,9 +637,10 @@ class TestGetStatus:
 
     def test_get_status_dead(self) -> None:
         """Test getting dead status (crashed)."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="dead\n",
@@ -652,9 +661,10 @@ class TestGetStatus:
 
     def test_get_status_unknown(self) -> None:
         """Test getting unknown status defaults to STOPPED."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="unknown_status\n",
@@ -688,9 +698,10 @@ class TestGetLogs:
 
     def test_get_logs(self) -> None:
         """Test getting logs."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="Log line 1\nLog line 2\n",
@@ -712,9 +723,10 @@ class TestGetLogs:
 
     def test_get_logs_with_stderr(self) -> None:
         """Test getting logs includes stderr."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="stdout output",
@@ -736,9 +748,10 @@ class TestGetLogs:
 
     def test_get_logs_custom_tail(self) -> None:
         """Test getting logs with custom tail lines."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="output",
@@ -761,9 +774,10 @@ class TestGetLogs:
 
     def test_get_logs_follow(self) -> None:
         """Test getting logs with follow option."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="streaming output",
@@ -798,9 +812,10 @@ class TestHealthCheck:
 
     def test_health_check_healthy(self) -> None:
         """Test health check for healthy container."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="running\n",
@@ -821,9 +836,10 @@ class TestHealthCheck:
 
     def test_health_check_unhealthy(self) -> None:
         """Test health check for unhealthy container."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="exited\n",
@@ -857,9 +873,10 @@ class TestExecInWorker:
 
     def test_exec_allowed_command(self) -> None:
         """Test executing allowed command."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="output",
@@ -921,9 +938,10 @@ class TestExecInWorker:
 
     def test_exec_validation_disabled(self) -> None:
         """Test execution with validation disabled."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="output",
@@ -958,9 +976,10 @@ class TestExecInWorker:
 
     def test_exec_with_custom_timeout(self) -> None:
         """Test exec with custom timeout."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(
                 returncode=0,
                 stdout="output",
@@ -978,7 +997,11 @@ class TestExecInWorker:
             manager.exec_in_worker(0, "pytest tests/", timeout=120)
 
             mock_docker.assert_called_with(
-                "exec", "abc123", "sh", "-c", "pytest tests/",
+                "exec",
+                "abc123",
+                "sh",
+                "-c",
+                "pytest tests/",
                 check=False,
                 timeout=120,
             )
@@ -1135,9 +1158,10 @@ class TestCleanupVolumes:
 
     def test_cleanup_volumes(self) -> None:
         """Test cleaning up volumes."""
-        with patch.object(ContainerManager, "_check_docker"), \
-             patch.object(ContainerManager, "_run_docker") as mock_docker:
-
+        with (
+            patch.object(ContainerManager, "_check_docker"),
+            patch.object(ContainerManager, "_run_docker") as mock_docker,
+        ):
             mock_docker.return_value = MagicMock(returncode=0)
 
             manager = ContainerManager()

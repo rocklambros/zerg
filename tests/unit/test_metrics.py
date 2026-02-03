@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -305,9 +304,7 @@ class TestComputeWorkerMetrics(TestMetricsCollector):
         assert metrics.total_task_duration_ms == 0
         assert metrics.avg_task_duration_ms == 0.0
 
-    def test_compute_worker_metrics_missing_timestamps(
-        self, state_manager: StateManager
-    ) -> None:
+    def test_compute_worker_metrics_missing_timestamps(self, state_manager: StateManager) -> None:
         """Test computing metrics when worker has no timestamps."""
         worker = WorkerState(
             worker_id=6,
@@ -339,9 +336,7 @@ class TestComputeTaskMetrics(TestMetricsCollector):
         assert metrics.execution_duration_ms is not None
         assert metrics.total_duration_ms is not None
 
-    def test_compute_task_metrics_incomplete_task(
-        self, state_manager: StateManager
-    ) -> None:
+    def test_compute_task_metrics_incomplete_task(self, state_manager: StateManager) -> None:
         """Test computing metrics for task without completion."""
         now = datetime.now()
         state_manager._state["tasks"] = {
@@ -362,9 +357,7 @@ class TestComputeTaskMetrics(TestMetricsCollector):
         assert metrics.execution_duration_ms is None  # No completed_at
         assert metrics.total_duration_ms is None
 
-    def test_compute_task_metrics_nonexistent_task(
-        self, state_manager: StateManager
-    ) -> None:
+    def test_compute_task_metrics_nonexistent_task(self, state_manager: StateManager) -> None:
         """Test computing metrics for non-existent task."""
         collector = MetricsCollector(state_manager)
 
@@ -395,9 +388,7 @@ class TestComputeLevelMetrics(TestMetricsCollector):
         assert metrics.p50_duration_ms == 240000
         assert metrics.p95_duration_ms == 240000
 
-    def test_compute_level_metrics_with_failures(
-        self, populated_state: StateManager
-    ) -> None:
+    def test_compute_level_metrics_with_failures(self, populated_state: StateManager) -> None:
         """Test computing metrics for level with failed tasks."""
         collector = MetricsCollector(populated_state)
 
@@ -409,9 +400,7 @@ class TestComputeLevelMetrics(TestMetricsCollector):
         assert metrics.failed_count == 1
         assert metrics.duration_ms is None  # Level not complete
 
-    def test_compute_level_metrics_nonexistent_level(
-        self, state_manager: StateManager
-    ) -> None:
+    def test_compute_level_metrics_nonexistent_level(self, state_manager: StateManager) -> None:
         """Test computing metrics for non-existent level."""
         collector = MetricsCollector(state_manager)
 
@@ -442,9 +431,7 @@ class TestComputeFeatureMetrics(TestMetricsCollector):
         assert len(metrics.worker_metrics) == 2
         assert len(metrics.level_metrics) == 2
 
-    def test_compute_feature_metrics_empty_state(
-        self, state_manager: StateManager
-    ) -> None:
+    def test_compute_feature_metrics_empty_state(self, state_manager: StateManager) -> None:
         """Test computing feature metrics with empty state."""
         collector = MetricsCollector(state_manager)
 
@@ -457,9 +444,7 @@ class TestComputeFeatureMetrics(TestMetricsCollector):
         assert len(metrics.worker_metrics) == 0
         assert len(metrics.level_metrics) == 0
 
-    def test_feature_metrics_serialization(
-        self, populated_state: StateManager
-    ) -> None:
+    def test_feature_metrics_serialization(self, populated_state: StateManager) -> None:
         """Test that feature metrics can be serialized to dict."""
         collector = MetricsCollector(populated_state)
 
@@ -505,9 +490,7 @@ class TestExportJson(TestMetricsCollector):
         assert "workers_used" in data
         assert data["workers_used"] == 2
 
-    def test_export_json_creates_parent_dir(
-        self, populated_state: StateManager, tmp_path: Path
-    ) -> None:
+    def test_export_json_creates_parent_dir(self, populated_state: StateManager, tmp_path: Path) -> None:
         """Test export_json creates parent directories if needed."""
         collector = MetricsCollector(populated_state)
         output_path = tmp_path / "subdir" / "nested" / "metrics.json"
@@ -516,9 +499,7 @@ class TestExportJson(TestMetricsCollector):
 
         assert output_path.exists()
 
-    def test_export_json_with_string_path(
-        self, populated_state: StateManager, tmp_path: Path
-    ) -> None:
+    def test_export_json_with_string_path(self, populated_state: StateManager, tmp_path: Path) -> None:
         """Test export_json accepts string path."""
         collector = MetricsCollector(populated_state)
         output_path = str(tmp_path / "metrics_str.json")

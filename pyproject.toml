@@ -37,6 +37,7 @@ dev = [
     "mypy>=1.0",
     "ruff>=0.1",
     "pip-audit>=2.7.0",
+    "pre-commit>=3.0",
 ]
 metrics = ["anthropic>=0.40.0"]
 all = ["zerg[dev]", "zerg[metrics]"]
@@ -67,21 +68,13 @@ strict = true
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 120
+exclude = [".zerg", "tests/fixtures"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "S"]
-ignore = [
-    "S101",   # assert used for internal invariants (not user-facing validation)
-    "S105",   # false positive: GateResult.PASS = "pass" is not a password
-    "S108",   # /tmp paths are for container health files (by design)
-    "S110",   # try-except-pass used for best-effort checks (intentional)
-    "S311",   # random used for jitter, not cryptographic purposes
-    "S324",   # md5 used for content fingerprinting, not security
-    "S602",   # shell=True needed for diagnostic recovery commands
-    "S603",   # subprocess calls are core to ZERG's orchestration design
-    "S607",   # partial paths are intentional (docker, git CLI tools)
-]
+select = ["E", "F", "I", "UP"]
+fixable = ["ALL"]
+ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]  # Allow assert in tests

@@ -51,9 +51,7 @@ class WorkerProgress:
 
     @classmethod
     def from_dict(cls, data: dict) -> WorkerProgress:
-        tiers = [
-            TierProgress(**t) for t in data.get("tier_results", [])
-        ]
+        tiers = [TierProgress(**t) for t in data.get("tier_results", [])]
         return cls(
             worker_id=data["worker_id"],
             tasks_completed=data.get("tasks_completed", 0),
@@ -67,9 +65,7 @@ class WorkerProgress:
 class ProgressReporter:
     """Worker-side progress writer and orchestrator-side reader."""
 
-    def __init__(
-        self, worker_id: int, state_dir: str | Path | None = None
-    ) -> None:
+    def __init__(self, worker_id: int, state_dir: str | Path | None = None) -> None:
         self._worker_id = worker_id
         self._state_dir = Path(state_dir) if state_dir else Path(STATE_DIR)
         self._state_dir.mkdir(parents=True, exist_ok=True)
@@ -103,9 +99,7 @@ class ProgressReporter:
 
     def add_tier_result(self, tier: int, name: str, success: bool, retry: int = 0) -> None:
         """Record a verification tier result and write."""
-        self._progress.tier_results.append(
-            TierProgress(tier=tier, name=name, success=success, retry=retry)
-        )
+        self._progress.tier_results.append(TierProgress(tier=tier, name=name, success=success, retry=retry))
         self._write()
 
     def clear_tier_results(self) -> None:
@@ -116,9 +110,7 @@ class ProgressReporter:
         """Write progress file atomically."""
         target = self.progress_path
         try:
-            fd, tmp_path = tempfile.mkstemp(
-                dir=str(self._state_dir), suffix=".tmp"
-            )
+            fd, tmp_path = tempfile.mkstemp(dir=str(self._state_dir), suffix=".tmp")
             with os.fdopen(fd, "w") as f:
                 json.dump(self._progress.to_dict(), f)
             os.replace(tmp_path, str(target))

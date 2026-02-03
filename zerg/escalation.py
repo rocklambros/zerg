@@ -7,7 +7,7 @@ import os
 import sys
 import tempfile
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -50,9 +50,7 @@ class Escalation:
 class EscalationWriter:
     """Worker-side escalation writer. Appends to shared escalations file."""
 
-    def __init__(
-        self, worker_id: int, state_dir: str | Path | None = None
-    ) -> None:
+    def __init__(self, worker_id: int, state_dir: str | Path | None = None) -> None:
         self._worker_id = worker_id
         self._state_dir = Path(state_dir) if state_dir else Path(STATE_DIR)
         self._state_dir.mkdir(parents=True, exist_ok=True)
@@ -72,7 +70,7 @@ class EscalationWriter:
         esc = Escalation(
             worker_id=self._worker_id,
             task_id=task_id,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             category=category,
             message=message,
             context=context or {},
@@ -85,7 +83,9 @@ class EscalationWriter:
 
         logger.info(
             "Worker %d escalated task %s: %s",
-            self._worker_id, task_id, category,
+            self._worker_id,
+            task_id,
+            category,
         )
         return esc
 
@@ -102,9 +102,7 @@ class EscalationWriter:
     def _atomic_write(self, escalations: list[dict]) -> None:
         target = self.escalation_path
         try:
-            fd, tmp_path = tempfile.mkstemp(
-                dir=str(self._state_dir), suffix=".tmp"
-            )
+            fd, tmp_path = tempfile.mkstemp(dir=str(self._state_dir), suffix=".tmp")
             with os.fdopen(fd, "w") as f:
                 json.dump({"escalations": escalations}, f, indent=2)
             os.replace(tmp_path, str(target))
@@ -129,9 +127,7 @@ class EscalationMonitor:
             return []
         try:
             data = json.loads(path.read_text())
-            return [
-                Escalation.from_dict(e) for e in data.get("escalations", [])
-            ]
+            return [Escalation.from_dict(e) for e in data.get("escalations", [])]
         except (json.JSONDecodeError, OSError):
             return []
 
@@ -177,9 +173,7 @@ class EscalationMonitor:
     def _write_all(self, escalations: list[Escalation]) -> None:
         target = self.escalation_path
         try:
-            fd, tmp_path = tempfile.mkstemp(
-                dir=str(self._state_dir), suffix=".tmp"
-            )
+            fd, tmp_path = tempfile.mkstemp(dir=str(self._state_dir), suffix=".tmp")
             with os.fdopen(fd, "w") as f:
                 json.dump(
                     {"escalations": [e.to_dict() for e in escalations]},

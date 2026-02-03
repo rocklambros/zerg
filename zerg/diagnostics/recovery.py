@@ -18,10 +18,19 @@ logger = get_logger("diagnostics.recovery")
 SUBPROCESS_TIMEOUT = 10
 
 # Keywords in fix text that suggest architectural changes are needed
-ARCHITECTURAL_KEYWORDS = frozenset({
-    "refactor", "redesign", "new component", "restructure", "rearchitect",
-    "split module", "extract service", "new abstraction", "rewrite",
-})
+ARCHITECTURAL_KEYWORDS = frozenset(
+    {
+        "refactor",
+        "redesign",
+        "new component",
+        "restructure",
+        "rearchitect",
+        "split module",
+        "extract service",
+        "new abstraction",
+        "rewrite",
+    }
+)
 
 # Default threshold for multi-task failure escalation (configurable)
 DESIGN_ESCALATION_TASK_THRESHOLD = 3
@@ -255,21 +264,21 @@ class RecoveryPlanner:
                 worker_id=worker_id,
                 port="",
             )
-            steps.append(RecoveryStep(
-                description=tmpl.description,
-                command=cmd,
-                risk=tmpl.risk,
-                reversible=tmpl.reversible,
-            ))
+            steps.append(
+                RecoveryStep(
+                    description=tmpl.description,
+                    command=cmd,
+                    risk=tmpl.risk,
+                    reversible=tmpl.reversible,
+                )
+            )
 
         return steps
 
     def _get_verification(self, category: str, feature: str) -> str:
         """Get verification command for a category."""
         verifications = {
-            "state_corruption": (
-                f"python -c \"import json; json.load(open('.zerg/state/{feature}.json'))\""
-            ),
+            "state_corruption": (f"python -c \"import json; json.load(open('.zerg/state/{feature}.json'))\""),
             "worker_crash": "zerg status",
             "git_conflict": "git status",
             "port_conflict": "zerg status --ports",
@@ -313,16 +322,14 @@ class RecoveryPlanner:
                 if count >= threshold:
                     return (
                         True,
-                        f"{count} tasks failed at level {level} — "
-                        "task graph may have a design flaw",
+                        f"{count} tasks failed at level {level} — task graph may have a design flaw",
                     )
 
         # Heuristic 2: git_conflict category with health data → file ownership
         if category == "git_conflict" and health is not None:
             return (
                 True,
-                "Git conflicts with active health data — "
-                "file ownership needs redesign",
+                "Git conflicts with active health data — file ownership needs redesign",
             )
 
         # Heuristic 3: Fix text contains architectural keywords
@@ -331,8 +338,7 @@ class RecoveryPlanner:
             if keyword in combined_text:
                 return (
                     True,
-                    f"Root cause/recommendation mentions '{keyword}' — "
-                    "architectural change needed",
+                    f"Root cause/recommendation mentions '{keyword}' — architectural change needed",
                 )
 
         # Heuristic 4: Fix spans 3+ distinct files → wide blast radius
@@ -344,8 +350,7 @@ class RecoveryPlanner:
             if len(files) >= 3:
                 return (
                     True,
-                    f"Failures span {len(files)} files — "
-                    "wide blast radius needs coordinated design",
+                    f"Failures span {len(files)} files — wide blast radius needs coordinated design",
                 )
 
         return False, ""

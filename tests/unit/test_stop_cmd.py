@@ -116,17 +116,13 @@ class TestDetectFeature:
         result = detect_feature()
         assert result is None
 
-    def test_detect_feature_empty_state_dir(
-        self, zerg_state_dir: Path, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_detect_feature_empty_state_dir(self, zerg_state_dir: Path, tmp_path: Path, monkeypatch) -> None:
         """Test returns None when state directory is empty."""
         monkeypatch.chdir(tmp_path)
         result = detect_feature()
         assert result is None
 
-    def test_detect_feature_single_state_file(
-        self, zerg_state_dir: Path, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_detect_feature_single_state_file(self, zerg_state_dir: Path, tmp_path: Path, monkeypatch) -> None:
         """Test detects feature from single state file."""
         monkeypatch.chdir(tmp_path)
         state_file = zerg_state_dir / "my-feature.json"
@@ -176,35 +172,27 @@ class TestShowWorkersToStop:
         captured = capsys.readouterr()
         assert "CHECKPOINT" in captured.out or len(captured.out) > 0
 
-    def test_show_workers_displays_all_workers(
-        self, sample_workers: dict, capsys
-    ) -> None:
+    def test_show_workers_displays_all_workers(self, sample_workers: dict, capsys) -> None:
         """Test all workers are displayed in the table."""
         show_workers_to_stop(sample_workers, force=False)
         captured = capsys.readouterr()
         # Workers should be displayed
         assert "worker-0" in captured.out or "0" in captured.out
 
-    def test_show_workers_running_status_highlighted(
-        self, sample_workers: dict, capsys
-    ) -> None:
+    def test_show_workers_running_status_highlighted(self, sample_workers: dict, capsys) -> None:
         """Test RUNNING status is highlighted differently."""
         show_workers_to_stop(sample_workers, force=False)
         captured = capsys.readouterr()
         # Should contain status display
         assert "RUNNING" in captured.out.upper() or len(captured.out) > 0
 
-    def test_show_workers_idle_status_dimmed(
-        self, sample_workers: dict, capsys
-    ) -> None:
+    def test_show_workers_idle_status_dimmed(self, sample_workers: dict, capsys) -> None:
         """Test IDLE status is displayed with dim styling."""
         show_workers_to_stop(sample_workers, force=False)
         # Just verify no exception raised for idle workers
         assert True
 
-    def test_show_workers_current_task_displayed(
-        self, sample_workers: dict, capsys
-    ) -> None:
+    def test_show_workers_current_task_displayed(self, sample_workers: dict, capsys) -> None:
         """Test current task is shown or dash for no task."""
         show_workers_to_stop(sample_workers, force=False)
         captured = capsys.readouterr()
@@ -239,9 +227,7 @@ class TestStopWorkersGraceful:
         mock_time.sleep = MagicMock()
         mock_state_manager.get_all_workers.return_value = {}
 
-        stop_workers_graceful(
-            sample_workers, mock_state_manager, mock_config, timeout=30
-        )
+        stop_workers_graceful(sample_workers, mock_state_manager, mock_config, timeout=30)
 
         # Should call stop_worker for running workers
         assert mock_container.stop_worker.call_count >= 1
@@ -299,9 +285,7 @@ class TestStopWorkersGraceful:
         mock_ws = MagicMock()
         mock_state_manager.get_worker_state.return_value = mock_ws
 
-        stop_workers_graceful(
-            sample_workers, mock_state_manager, mock_config, timeout=30
-        )
+        stop_workers_graceful(sample_workers, mock_state_manager, mock_config, timeout=30)
 
         # Should get and set worker state for running workers
         assert mock_state_manager.get_worker_state.call_count >= 1
@@ -342,12 +326,10 @@ class TestStopWorkersGraceful:
         mock_state_manager.get_all_workers.side_effect = [
             stopping_workers,  # First check - still stopping
             stopping_workers,  # Second check - still stopping
-            stopped_workers,   # Third check - all stopped
+            stopped_workers,  # Third check - all stopped
         ]
 
-        stop_workers_graceful(
-            sample_workers, mock_state_manager, mock_config, timeout=30
-        )
+        stop_workers_graceful(sample_workers, mock_state_manager, mock_config, timeout=30)
 
         # Should poll for status and sleep between checks
         assert mock_time.sleep.called
@@ -383,9 +365,7 @@ class TestStopWorkersGraceful:
         }
         mock_state_manager.get_all_workers.return_value = remaining_workers
 
-        stop_workers_graceful(
-            sample_workers, mock_state_manager, mock_config, timeout=30
-        )
+        stop_workers_graceful(sample_workers, mock_state_manager, mock_config, timeout=30)
 
         # Should force stop remaining workers
         mock_force.assert_called_once()
@@ -410,9 +390,7 @@ class TestStopWorkersGraceful:
         mock_state_manager.get_all_workers.return_value = {}
 
         # Should not raise, just log warning
-        stop_workers_graceful(
-            sample_workers, mock_state_manager, mock_config, timeout=30
-        )
+        stop_workers_graceful(sample_workers, mock_state_manager, mock_config, timeout=30)
 
     @patch("zerg.commands.stop.ContainerManager")
     @patch("zerg.commands.stop.time")
@@ -445,9 +423,7 @@ class TestStopWorkersGraceful:
             )
         }
 
-        stop_workers_graceful(
-            sample_workers, mock_state_manager, mock_config, timeout=30
-        )
+        stop_workers_graceful(sample_workers, mock_state_manager, mock_config, timeout=30)
 
         # Should detect all stopped and return early
 
@@ -475,9 +451,7 @@ class TestStopWorkersGraceful:
         # This tests the "if remaining:" branch being False
         mock_state_manager.get_all_workers.return_value = {}
 
-        stop_workers_graceful(
-            sample_workers, mock_state_manager, mock_config, timeout=30
-        )
+        stop_workers_graceful(sample_workers, mock_state_manager, mock_config, timeout=30)
 
         # Should NOT call force stop since no remaining workers
         mock_force.assert_not_called()
@@ -633,9 +607,7 @@ class TestStopCommand:
         assert "--force" in result.output
         assert "--timeout" in result.output
 
-    def test_stop_no_feature_no_state_fails(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_stop_no_feature_no_state_fails(self, tmp_path: Path, monkeypatch) -> None:
         """Test fails when no feature specified and none detected."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -814,9 +786,7 @@ class TestStopCommand:
         mock_config_cls.load.return_value = MagicMock()
 
         runner = CliRunner()
-        runner.invoke(
-            cli, ["stop", "--feature", "test", "--worker", "0", "--force"]
-        )
+        runner.invoke(cli, ["stop", "--feature", "test", "--worker", "0", "--force"])
 
         # Should only stop worker 0
         call_args = mock_force.call_args
@@ -846,9 +816,7 @@ class TestStopCommand:
         mock_config_cls.load.return_value = MagicMock()
 
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["stop", "--feature", "test", "--worker", "99", "--force"]
-        )
+        result = runner.invoke(cli, ["stop", "--feature", "test", "--worker", "99", "--force"])
 
         assert result.exit_code != 0
         assert "Worker 99 not found" in result.output
@@ -879,9 +847,7 @@ class TestStopCommand:
         mock_config_cls.load.return_value = MagicMock()
 
         runner = CliRunner()
-        runner.invoke(
-            cli, ["stop", "--feature", "test", "--timeout", "60"], input="y\n"
-        )
+        runner.invoke(cli, ["stop", "--feature", "test", "--timeout", "60"], input="y\n")
 
         # Should pass timeout to graceful stop
         call_args = mock_graceful.call_args
@@ -922,9 +888,7 @@ class TestStopCommand:
         # Should use detected feature
         mock_state_cls.assert_called_once_with("detected-feature")
 
-    def test_stop_keyboard_interrupt_handled(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_stop_keyboard_interrupt_handled(self, tmp_path: Path, monkeypatch) -> None:
         """Test KeyboardInterrupt is handled gracefully."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg" / "state").mkdir(parents=True)
@@ -1073,9 +1037,7 @@ class TestStopIntegration:
         mock_time.sleep = MagicMock()
 
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["stop", "--feature", "test-feature"], input="y\n"
-        )
+        result = runner.invoke(cli, ["stop", "--feature", "test-feature"], input="y\n")
 
         assert result.exit_code == 0
         assert mock_container.stop_worker.called

@@ -46,9 +46,7 @@ class GitRescueConfig(BaseModel):
 class GitReviewConfig(BaseModel):
     """Configuration for code review analysis."""
 
-    domains: list[str] = Field(
-        default_factory=lambda: ["security", "performance", "quality", "architecture"]
-    )
+    domains: list[str] = Field(default_factory=lambda: ["security", "performance", "quality", "architecture"])
     confidence_threshold: float = Field(default=0.8, ge=0.5, le=1.0)
 
 
@@ -78,14 +76,8 @@ def detect_context(runner: GitRunner) -> str:
         One of "solo", "team", or "swarm"
     """
     try:
-        result = runner._run(
-            "branch", "--list", "zerg/*/worker-*", check=False
-        )
-        branches = [
-            line.strip()
-            for line in result.stdout.strip().split("\n")
-            if line.strip()
-        ]
+        result = runner._run("branch", "--list", "zerg/*/worker-*", check=False)
+        branches = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
         count = len(branches)
     except Exception:
         return "solo"

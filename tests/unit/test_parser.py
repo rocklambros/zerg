@@ -249,7 +249,13 @@ class TestCriticalPath:
             "tasks": [
                 {"id": "TASK-A1", "title": "A", "level": 1, "dependencies": [], "estimate_minutes": 30},
                 {"id": "TASK-B1", "title": "B", "level": 1, "dependencies": [], "estimate_minutes": 10},
-                {"id": "TASK-C2", "title": "C", "level": 2, "dependencies": ["TASK-A1", "TASK-B1"], "estimate_minutes": 20},
+                {
+                    "id": "TASK-C2",
+                    "title": "C",
+                    "level": 2,
+                    "dependencies": ["TASK-A1", "TASK-B1"],
+                    "estimate_minutes": 20,
+                },
                 {"id": "TASK-D3", "title": "D", "level": 3, "dependencies": ["TASK-C2"], "estimate_minutes": 15},
             ],
         }
@@ -267,7 +273,13 @@ class TestCriticalPath:
             "tasks": [
                 {"id": "TASK-A1", "title": "A", "level": 1, "dependencies": [], "estimate_minutes": 30},
                 {"id": "TASK-B1", "title": "B", "level": 1, "dependencies": [], "estimate_minutes": 10},
-                {"id": "TASK-C2", "title": "C", "level": 2, "dependencies": ["TASK-A1", "TASK-B1"], "estimate_minutes": 20},
+                {
+                    "id": "TASK-C2",
+                    "title": "C",
+                    "level": 2,
+                    "dependencies": ["TASK-A1", "TASK-B1"],
+                    "estimate_minutes": 20,
+                },
             ],
         }
 

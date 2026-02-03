@@ -2,10 +2,7 @@
 
 import json
 import threading
-import time
 from pathlib import Path
-
-import pytest
 
 from zerg.config import LoggingConfig
 from zerg.log_aggregator import LogAggregator
@@ -25,9 +22,7 @@ class TestConcurrentWorkerLogging:
 
         def worker_fn(worker_id: int) -> None:
             try:
-                writer = StructuredLogWriter(
-                    log_dir, worker_id=worker_id, feature="test-feature"
-                )
+                writer = StructuredLogWriter(log_dir, worker_id=worker_id, feature="test-feature")
                 for i in range(10):
                     writer.emit(
                         "info",
@@ -41,9 +36,7 @@ class TestConcurrentWorkerLogging:
                 errors.append(f"Worker {worker_id}: {e}")
 
         # Run 3 workers concurrently
-        threads = [
-            threading.Thread(target=worker_fn, args=(w,)) for w in range(3)
-        ]
+        threads = [threading.Thread(target=worker_fn, args=(w,)) for w in range(3)]
         for t in threads:
             t.start()
         for t in threads:
@@ -94,9 +87,7 @@ class TestConcurrentWorkerLogging:
         assert "git_diff.patch" in artifacts
         assert "execution.jsonl" in artifacts
 
-    def test_retention_cleanup_prunes_success_artifacts(
-        self, tmp_path: Path
-    ) -> None:
+    def test_retention_cleanup_prunes_success_artifacts(self, tmp_path: Path) -> None:
         """Verify retention cleanup prunes successful task artifacts."""
         log_dir = tmp_path / "logs"
         config = LoggingConfig(
@@ -124,9 +115,7 @@ class TestConcurrentWorkerLogging:
         log_dir = tmp_path / "logs"
 
         # Simulate orchestrator writing events
-        writer = StructuredLogWriter(
-            log_dir, worker_id="orchestrator", feature="test-feature"
-        )
+        writer = StructuredLogWriter(log_dir, worker_id="orchestrator", feature="test-feature")
         writer.emit("info", "Level 1 started", event="level_started", data={"level": 1})
         writer.emit("info", "Merge started for level 1", event="merge_started")
         writer.emit("info", "Merge complete", event="merge_complete")
@@ -144,9 +133,7 @@ class TestConcurrentWorkerLogging:
         assert "merge_complete" in events
         assert "level_complete" in events
 
-    def test_aggregated_query_across_workers_and_orchestrator(
-        self, tmp_path: Path
-    ) -> None:
+    def test_aggregated_query_across_workers_and_orchestrator(self, tmp_path: Path) -> None:
         """Test query merges worker and orchestrator logs correctly."""
         log_dir = tmp_path / "logs"
 
@@ -163,13 +150,18 @@ class TestConcurrentWorkerLogging:
         orch_file = log_dir / "orchestrator.jsonl"
         orch_file.parent.mkdir(parents=True, exist_ok=True)
         with open(orch_file, "w") as f:
-            f.write(json.dumps({
-                "ts": "2026-01-01T12:00:00Z",
-                "level": "info",
-                "worker_id": "orchestrator",
-                "message": "Level started",
-                "event": "level_started",
-            }) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "ts": "2026-01-01T12:00:00Z",
+                        "level": "info",
+                        "worker_id": "orchestrator",
+                        "message": "Level started",
+                        "event": "level_started",
+                    }
+                )
+                + "\n"
+            )
 
         aggregator = LogAggregator(log_dir)
         all_entries = aggregator.query()

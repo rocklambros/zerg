@@ -6,13 +6,10 @@ methods of ContainerLauncher using mocks for Docker subprocess calls.
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import ContainerLauncher, LauncherConfig, WorkerHandle
-
+from zerg.launcher import ContainerLauncher, WorkerHandle
 
 # =============================================================================
 # _exec_worker_entry Tests
@@ -524,11 +521,12 @@ class TestSpawnFlowWithExecVerification:
         """Spawn should fail and cleanup when worker process fails to start."""
         launcher = ContainerLauncher()
 
-        with patch.object(launcher, "_start_container", return_value="container-123"), \
-             patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_verify_worker_process", return_value=False), \
-             patch.object(launcher, "_cleanup_failed_container") as mock_cleanup:
-
+        with (
+            patch.object(launcher, "_start_container", return_value="container-123"),
+            patch.object(launcher, "_wait_ready", return_value=True),
+            patch.object(launcher, "_verify_worker_process", return_value=False),
+            patch.object(launcher, "_cleanup_failed_container") as mock_cleanup,
+        ):
             result = launcher.spawn(
                 worker_id=0,
                 feature="test",
@@ -544,12 +542,13 @@ class TestSpawnFlowWithExecVerification:
         """Spawn should fail and cleanup when _verify_worker_process fails."""
         launcher = ContainerLauncher()
 
-        with patch.object(launcher, "_start_container", return_value="container-123"), \
-             patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_exec_worker_entry", return_value=True), \
-             patch.object(launcher, "_verify_worker_process", return_value=False), \
-             patch.object(launcher, "_cleanup_failed_container") as mock_cleanup:
-
+        with (
+            patch.object(launcher, "_start_container", return_value="container-123"),
+            patch.object(launcher, "_wait_ready", return_value=True),
+            patch.object(launcher, "_exec_worker_entry", return_value=True),
+            patch.object(launcher, "_verify_worker_process", return_value=False),
+            patch.object(launcher, "_cleanup_failed_container") as mock_cleanup,
+        ):
             result = launcher.spawn(
                 worker_id=0,
                 feature="test",
@@ -565,11 +564,12 @@ class TestSpawnFlowWithExecVerification:
         """Spawn should succeed when all verification steps pass."""
         launcher = ContainerLauncher()
 
-        with patch.object(launcher, "_start_container", return_value="container-123"), \
-             patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_exec_worker_entry", return_value=True), \
-             patch.object(launcher, "_verify_worker_process", return_value=True):
-
+        with (
+            patch.object(launcher, "_start_container", return_value="container-123"),
+            patch.object(launcher, "_wait_ready", return_value=True),
+            patch.object(launcher, "_exec_worker_entry", return_value=True),
+            patch.object(launcher, "_verify_worker_process", return_value=True),
+        ):
             result = launcher.spawn(
                 worker_id=0,
                 feature="test",
@@ -586,9 +586,10 @@ class TestSpawnFlowWithExecVerification:
         """No cleanup should happen if container fails to start."""
         launcher = ContainerLauncher()
 
-        with patch.object(launcher, "_start_container", return_value=None), \
-             patch.object(launcher, "_cleanup_failed_container") as mock_cleanup:
-
+        with (
+            patch.object(launcher, "_start_container", return_value=None),
+            patch.object(launcher, "_cleanup_failed_container") as mock_cleanup,
+        ):
             result = launcher.spawn(
                 worker_id=0,
                 feature="test",
@@ -607,11 +608,12 @@ class TestSpawnFlowWithExecVerification:
         """
         launcher = ContainerLauncher()
 
-        with patch.object(launcher, "_start_container", return_value="container-123"), \
-             patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_verify_worker_process", return_value=False), \
-             patch.object(launcher, "_cleanup_failed_container") as mock_cleanup:
-
+        with (
+            patch.object(launcher, "_start_container", return_value="container-123"),
+            patch.object(launcher, "_wait_ready", return_value=True),
+            patch.object(launcher, "_verify_worker_process", return_value=False),
+            patch.object(launcher, "_cleanup_failed_container") as mock_cleanup,
+        ):
             result = launcher.spawn(
                 worker_id=0,
                 feature="test",
@@ -628,10 +630,12 @@ class TestSpawnFlowWithExecVerification:
         launcher = ContainerLauncher()
 
         # Use a mock that simulates successful docker rm but doesn't block
-        with patch.object(launcher, "_start_container", return_value="container-123"), \
-             patch.object(launcher, "_wait_ready", return_value=True), \
-             patch.object(launcher, "_verify_worker_process", return_value=False), \
-             patch("subprocess.run") as mock_docker_run:
+        with (
+            patch.object(launcher, "_start_container", return_value="container-123"),
+            patch.object(launcher, "_wait_ready", return_value=True),
+            patch.object(launcher, "_verify_worker_process", return_value=False),
+            patch("subprocess.run") as mock_docker_run,
+        ):
             # Mock the subprocess.run used by _cleanup_failed_container
             mock_docker_run.return_value = MagicMock(returncode=0)
 

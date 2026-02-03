@@ -282,9 +282,7 @@ class PluginRegistry:
         # importlib.metadata.entry_points() returns a dict-like on older
         # Python and a SelectableGroups on 3.12+.  Handle both.
         discovered = (
-            eps.select(group=group)
-            if hasattr(eps, "select")
-            else eps.get(group, [])  # type: ignore[attr-defined]
+            eps.select(group=group) if hasattr(eps, "select") else eps.get(group, [])  # type: ignore[attr-defined]
         )
 
         for ep in discovered:

@@ -101,10 +101,7 @@ class WorkerAssignment:
             assignments=entries,
         )
 
-        logger.info(
-            f"Assigned {len(tasks)} tasks to {self.worker_count} workers "
-            f"for feature {feature}"
-        )
+        logger.info(f"Assigned {len(tasks)} tasks to {self.worker_count} workers for feature {feature}")
 
         return result
 
@@ -180,9 +177,7 @@ class WorkerAssignment:
         for worker_id in range(self.worker_count):
             tasks = self._worker_tasks.get(worker_id, [])
             pending_minutes = sum(
-                self._get_task_minutes(tid)
-                for tid in tasks
-                if tid not in completed_tasks and tid not in failed_tasks
+                self._get_task_minutes(tid) for tid in tasks if tid not in completed_tasks and tid not in failed_tasks
             )
             worker_capacity[worker_id] = 60 - pending_minutes  # Assume 60 min max
 

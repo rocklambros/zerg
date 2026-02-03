@@ -1,29 +1,28 @@
 """Tests for ZERG orchestrator worker coordination (TC-009)."""
 
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.constants import TaskStatus, WorkerStatus
+from zerg.constants import WorkerStatus
 from zerg.orchestrator import Orchestrator
-from zerg.types import WorkerState
 
 
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock orchestrator dependencies."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner") as gates_mock,
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager") as container_mock,
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state.get_task_status.return_value = None
@@ -110,9 +109,7 @@ def mock_orchestrator_deps():
 class TestWorkerSpawning:
     """Tests for worker spawning."""
 
-    def test_spawn_single_worker(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_spawn_single_worker(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test spawning a single worker."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -125,9 +122,7 @@ class TestWorkerSpawning:
         assert worker_state.branch == "zerg/test/worker-0"
         mock_orchestrator_deps["launcher"].spawn.assert_called_once()
 
-    def test_spawn_multiple_workers(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_spawn_multiple_workers(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test spawning multiple workers."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -138,9 +133,7 @@ class TestWorkerSpawning:
         assert mock_orchestrator_deps["launcher"].spawn.call_count == 3
         assert len(orch._workers) == 3
 
-    def test_spawn_worker_allocates_port(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_spawn_worker_allocates_port(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test that spawning allocates a port."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -151,9 +144,7 @@ class TestWorkerSpawning:
         mock_orchestrator_deps["ports"].allocate_one.assert_called_once()
         assert worker_state.port == 49152
 
-    def test_spawn_worker_creates_worktree(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_spawn_worker_creates_worktree(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test that spawning creates a worktree."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -161,13 +152,9 @@ class TestWorkerSpawning:
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
 
-        mock_orchestrator_deps["worktree"].create.assert_called_once_with(
-            "test-feature", 0
-        )
+        mock_orchestrator_deps["worktree"].create.assert_called_once_with("test-feature", 0)
 
-    def test_spawn_worker_failure_raises(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_spawn_worker_failure_raises(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test that spawn failure raises exception."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -182,9 +169,7 @@ class TestWorkerSpawning:
         with pytest.raises(RuntimeError, match="Failed to spawn"):
             orch._spawn_worker(0)
 
-    def test_spawn_worker_records_state(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_spawn_worker_records_state(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test that spawn records worker state."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -207,9 +192,7 @@ class TestWorkerSpawning:
 class TestWorkerTermination:
     """Tests for worker termination."""
 
-    def test_terminate_worker(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_terminate_worker(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test terminating a worker."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -221,9 +204,7 @@ class TestWorkerTermination:
 
         mock_orchestrator_deps["launcher"].terminate.assert_called_with(0, force=False)
 
-    def test_terminate_worker_force(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_terminate_worker_force(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test force terminating a worker."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -235,9 +216,7 @@ class TestWorkerTermination:
 
         mock_orchestrator_deps["launcher"].terminate.assert_called_with(0, force=True)
 
-    def test_terminate_worker_deletes_worktree(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_terminate_worker_deletes_worktree(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test that termination deletes worktree."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -249,9 +228,7 @@ class TestWorkerTermination:
 
         mock_orchestrator_deps["worktree"].delete.assert_called()
 
-    def test_terminate_worker_releases_port(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_terminate_worker_releases_port(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test that termination releases port."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -263,9 +240,7 @@ class TestWorkerTermination:
 
         mock_orchestrator_deps["ports"].release.assert_called_with(49152)
 
-    def test_terminate_nonexistent_worker(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_terminate_nonexistent_worker(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test terminating nonexistent worker does nothing."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -281,9 +256,7 @@ class TestWorkerTermination:
 class TestWorkerPolling:
     """Tests for worker status polling."""
 
-    def test_poll_workers_checks_status(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_poll_workers_checks_status(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test polling checks worker status."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -296,9 +269,7 @@ class TestWorkerPolling:
 
         assert mock_orchestrator_deps["launcher"].monitor.call_count >= 2
 
-    def test_poll_detects_crashed_worker(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_poll_detects_crashed_worker(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test polling detects crashed workers."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -316,9 +287,7 @@ class TestWorkerPolling:
         # State was updated with crashed status before removal
         mock_orchestrator_deps["state"].set_worker_state.assert_called()
 
-    def test_poll_detects_checkpointing(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_poll_detects_checkpointing(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test polling detects checkpointing worker."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -338,9 +307,7 @@ class TestWorkerPolling:
 class TestWorkerCallbacks:
     """Tests for worker event callbacks."""
 
-    def test_on_task_complete_callback(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_on_task_complete_callback(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test task completion callbacks."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -352,9 +319,7 @@ class TestWorkerCallbacks:
 
         assert callback in orch._on_task_complete
 
-    def test_on_level_complete_callback(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_on_level_complete_callback(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion callbacks."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -370,9 +335,7 @@ class TestWorkerCallbacks:
 class TestWorkerAssignment:
     """Tests for worker task assignment."""
 
-    def test_start_level_assigns_tasks(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_start_level_assigns_tasks(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test starting a level assigns tasks to workers."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -389,16 +352,12 @@ class TestWorkerAssignment:
         mock_orchestrator_deps["state"].set_current_level.assert_called_with(1)
         orch.assigner.get_task_worker.assert_called()
 
-    def test_get_remaining_tasks_for_level(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_get_remaining_tasks_for_level(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test getting remaining tasks for a level."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "TASK-001", "TASK-003"
-        ]
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-001", "TASK-003"]
 
         orch = Orchestrator("test-feature")
 
@@ -410,9 +369,7 @@ class TestWorkerAssignment:
 class TestWorkerExit:
     """Tests for handling worker exits."""
 
-    def test_handle_worker_exit_completes_task(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_handle_worker_exit_completes_task(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test handling worker exit marks task complete."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -457,9 +414,7 @@ class TestWorkerExit:
 class TestStop:
     """Tests for stopping orchestration."""
 
-    def test_stop_terminates_all_workers(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_stop_terminates_all_workers(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test stop terminates all workers."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -474,9 +429,7 @@ class TestStop:
         assert orch._running is False
         mock_orchestrator_deps["launcher"].terminate.assert_called()
 
-    def test_stop_releases_all_ports(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_stop_releases_all_ports(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test stop releases all ports."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -489,9 +442,7 @@ class TestStop:
 
         mock_orchestrator_deps["ports"].release_all.assert_called()
 
-    def test_stop_saves_state(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_stop_saves_state(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test stop saves final state."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -502,13 +453,9 @@ class TestStop:
         orch.stop()
 
         mock_orchestrator_deps["state"].save.assert_called()
-        mock_orchestrator_deps["state"].append_event.assert_called_with(
-            "rush_stopped", {"force": False}
-        )
+        mock_orchestrator_deps["state"].append_event.assert_called_with("rush_stopped", {"force": False})
 
-    def test_stop_force(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_stop_force(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test force stop."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()

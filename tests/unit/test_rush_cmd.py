@@ -186,9 +186,7 @@ def mock_orchestrator_incomplete() -> MagicMock:
 class TestFindTaskGraph:
     """Tests for find_task_graph() function."""
 
-    def test_find_task_graph_with_feature_in_specs(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_find_task_graph_with_feature_in_specs(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test finding task graph in .gsd/specs/<feature>/ directory."""
         monkeypatch.chdir(tmp_path)
 
@@ -203,9 +201,7 @@ class TestFindTaskGraph:
         assert result is not None
         assert result.resolve() == task_graph.resolve()
 
-    def test_find_task_graph_in_gsd_tasks(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_find_task_graph_in_gsd_tasks(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test finding task graph in .gsd/tasks/ directory."""
         monkeypatch.chdir(tmp_path)
 
@@ -220,9 +216,7 @@ class TestFindTaskGraph:
         assert result is not None
         assert result.resolve() == task_graph.resolve()
 
-    def test_find_task_graph_in_root(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_find_task_graph_in_root(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test finding task graph in project root."""
         monkeypatch.chdir(tmp_path)
 
@@ -235,9 +229,7 @@ class TestFindTaskGraph:
         assert result is not None
         assert result.resolve() == task_graph.resolve()
 
-    def test_find_task_graph_priority_feature_over_tasks(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_find_task_graph_priority_feature_over_tasks(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test that feature-specific path takes priority over general path."""
         monkeypatch.chdir(tmp_path)
 
@@ -257,9 +249,7 @@ class TestFindTaskGraph:
         assert result is not None
         assert result.resolve() == feature_graph.resolve()
 
-    def test_find_task_graph_search_gsd_recursively(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_find_task_graph_search_gsd_recursively(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test recursive search in .gsd directory when specific paths don't exist."""
         monkeypatch.chdir(tmp_path)
 
@@ -273,9 +263,7 @@ class TestFindTaskGraph:
         assert result is not None
         assert result.name == "task-graph.json"
 
-    def test_find_task_graph_not_found(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_find_task_graph_not_found(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test returns None when no task graph found."""
         monkeypatch.chdir(tmp_path)
 
@@ -283,9 +271,7 @@ class TestFindTaskGraph:
         result = find_task_graph(None)
         assert result is None
 
-    def test_find_task_graph_no_gsd_directory(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_find_task_graph_no_gsd_directory(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test returns None when .gsd directory doesn't exist."""
         monkeypatch.chdir(tmp_path)
 
@@ -301,9 +287,7 @@ class TestFindTaskGraph:
 class TestShowSummary:
     """Tests for show_summary() function."""
 
-    def test_show_summary_basic(
-        self, minimal_task_graph: dict[str, Any], capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_summary_basic(self, minimal_task_graph: dict[str, Any], capsys: pytest.CaptureFixture[str]) -> None:
         """Test basic summary display."""
         show_summary(minimal_task_graph, workers=5)
 
@@ -372,9 +356,7 @@ class TestShowSummary:
         captured = capsys.readouterr()
         assert "2" in captured.out  # max_parallelization is 2
 
-    def test_show_summary_no_critical_path(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_summary_no_critical_path(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test summary without critical path minutes."""
         data = {
             "feature": "no-critical",
@@ -397,9 +379,7 @@ class TestShowSummary:
 class TestShowDryRun:
     """Tests for show_dry_run() function."""
 
-    def test_show_dry_run_basic(
-        self, minimal_task_graph: dict[str, Any], capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_dry_run_basic(self, minimal_task_graph: dict[str, Any], capsys: pytest.CaptureFixture[str]) -> None:
         """Test basic dry run display."""
         show_dry_run(minimal_task_graph, workers=3, feature="test-feature")
 
@@ -470,15 +450,11 @@ class TestShowDryRun:
         assert "foundation" in captured.out
         assert "core" in captured.out
 
-    def test_show_dry_run_missing_level_info(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_dry_run_missing_level_info(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test dry run handles missing level info gracefully."""
         data = {
             "feature": "simple",
-            "tasks": [
-                {"id": "T1", "title": "Task One", "level": 1, "estimate_minutes": 10}
-            ],
+            "tasks": [{"id": "T1", "title": "Task One", "level": 1, "estimate_minutes": 10}],
             "levels": {},  # Empty levels
         }
 
@@ -513,9 +489,7 @@ class TestRushCommand:
         assert "mode" in result.output
         assert "verbose" in result.output
 
-    def test_rush_no_task_graph_error(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_rush_no_task_graph_error(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test rush fails gracefully when no task graph found."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -882,9 +856,7 @@ class TestRushExecution:
 
         # Should have started with level 2
         call_kwargs = mock_orchestrator.start.call_args
-        assert call_kwargs[1].get("start_level") == 2 or (
-            len(call_kwargs[0]) > 2 and call_kwargs[0][2] == 2
-        )
+        assert call_kwargs[1].get("start_level") == 2 or (len(call_kwargs[0]) > 2 and call_kwargs[0][2] == 2)
 
     def test_rush_shows_complete_status(
         self,
@@ -1136,9 +1108,7 @@ class TestRushErrorHandling:
         # Verbose mode should show more error details
         assert "Error" in result.output
 
-    def test_rush_invalid_task_graph(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_rush_invalid_task_graph(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test rush handles invalid task graph."""
         monkeypatch.chdir(tmp_path)
 
@@ -1158,9 +1128,7 @@ class TestRushErrorHandling:
         assert result.exit_code == 1
         assert "Error" in result.output
 
-    def test_rush_task_graph_not_exists(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_rush_task_graph_not_exists(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test rush handles non-existent task graph path."""
         monkeypatch.chdir(tmp_path)
 
@@ -1373,7 +1341,7 @@ class TestRushDryRunEnhanced:
             mock_config_cls.load.return_value = mock_config
             mock_orch_cls.return_value = mock_orchestrator
 
-            result = runner.invoke(
+            runner.invoke(
                 cli,
                 [
                     "rush",
@@ -1477,9 +1445,7 @@ class TestRushBacklog:
         backlog_dir = tmp_path / "tasks"
         backlog_dir.mkdir()
         backlog_file = backlog_dir / "TEST-FEATURE-BACKLOG.md"
-        backlog_file.write_text(
-            "| **L1-001** | First Task | src/a.py | - | TODO | cmd |\n"
-        )
+        backlog_file.write_text("| **L1-001** | First Task | src/a.py | - | TODO | cmd |\n")
 
         runner = CliRunner()
         with (
@@ -1500,9 +1466,7 @@ class TestRushBacklog:
             callback = mock_orchestrator.on_task_complete.call_args[0][0]
             callback("L1-001")
 
-        mock_update.assert_called_once_with(
-            Path("tasks/TEST-FEATURE-BACKLOG.md"), "L1-001", "COMPLETE"
-        )
+        mock_update.assert_called_once_with(Path("tasks/TEST-FEATURE-BACKLOG.md"), "L1-001", "COMPLETE")
 
     def test_backlog_update_on_complete(
         self,

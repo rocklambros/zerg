@@ -157,10 +157,7 @@ class TestContextTracker:
 
         # Should include file, task, and tool tokens
         min_expected = (
-            int(1000 * TOKENS_PER_CHAR) +
-            TOKENS_PER_FILE_READ +
-            TOKENS_PER_TASK +
-            50  # tool call tokens
+            int(1000 * TOKENS_PER_CHAR) + TOKENS_PER_FILE_READ + TOKENS_PER_TASK + 50  # tool call tokens
         )
         assert tokens >= min_expected
 

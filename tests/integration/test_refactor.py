@@ -30,9 +30,7 @@ class TestRefactorCommand:
     def test_refactor_all_transforms(self) -> None:
         """Test refactor with all transforms."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["refactor", "--transforms", "dead-code,simplify,types,patterns,naming"]
-        )
+        result = runner.invoke(cli, ["refactor", "--transforms", "dead-code,simplify,types,patterns,naming"])
         assert "Invalid value" not in result.output
 
     def test_refactor_dry_run_flag(self) -> None:
@@ -145,9 +143,7 @@ class TestRefactorFunctional:
     def test_refactor_multiple_transforms(self) -> None:
         """Test refactor with multiple transforms."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["refactor", "--transforms", "dead-code,simplify,types", "--dry-run"]
-        )
+        result = runner.invoke(cli, ["refactor", "--transforms", "dead-code,simplify,types", "--dry-run"])
         assert result.exit_code in [0, 1]
 
     def test_refactor_all_transforms_combined(self) -> None:
@@ -157,7 +153,8 @@ class TestRefactorFunctional:
             cli,
             [
                 "refactor",
-                "--transforms", "dead-code,simplify,types,patterns,naming",
+                "--transforms",
+                "dead-code,simplify,types,patterns,naming",
                 "--dry-run",
             ],
         )

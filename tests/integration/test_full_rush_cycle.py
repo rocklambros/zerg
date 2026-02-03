@@ -8,17 +8,16 @@ End-to-end tests verifying the complete orchestrator-fixes feature works:
 """
 
 import json
-import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import SubprocessLauncher, SpawnResult, WorkerHandle
+from zerg.launcher import SubprocessLauncher
 from zerg.validation import (
-    validate_task_graph,
     validate_dependencies,
     validate_file_ownership,
+    validate_task_graph,
     validate_task_id,
 )
 
@@ -30,9 +29,7 @@ class TestSchemaValidationFixes:
         """Level 0 should be rejected by validate_task_graph."""
         task_graph = {
             "feature": "test-feature",
-            "tasks": [
-                {"id": "T-001", "title": "Test", "level": 0, "dependencies": []}
-            ],
+            "tasks": [{"id": "T-001", "title": "Test", "level": 0, "dependencies": []}],
         }
         is_valid, errors = validate_task_graph(task_graph)
 
@@ -43,9 +40,7 @@ class TestSchemaValidationFixes:
         """Level 1 should be accepted by validate_task_graph."""
         task_graph = {
             "feature": "test-feature",
-            "tasks": [
-                {"id": "T-001", "title": "Test", "level": 1, "dependencies": []}
-            ],
+            "tasks": [{"id": "T-001", "title": "Test", "level": 1, "dependencies": []}],
         }
         is_valid, errors = validate_task_graph(task_graph)
 
@@ -60,12 +55,7 @@ class TestSchemaValidationFixes:
             schema = json.load(f)
 
         # Navigate to level definition
-        level_def = (
-            schema.get("definitions", {})
-            .get("task", {})
-            .get("properties", {})
-            .get("level", {})
-        )
+        level_def = schema.get("definitions", {}).get("task", {}).get("properties", {}).get("level", {})
 
         assert level_def.get("minimum") == 1, "Schema level minimum must be 1"
 
@@ -86,9 +76,7 @@ class TestWorkerLifecycleFixes:
     """Verify worker lifecycle fixes from OFX-002, OFX-007, OFX-008."""
 
     @patch("subprocess.Popen")
-    def test_terminate_removes_worker_from_tracking(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_terminate_removes_worker_from_tracking(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Terminate should remove worker from launcher tracking."""
         mock_process = MagicMock(pid=12345)
         mock_process.poll.return_value = 0
@@ -115,9 +103,7 @@ class TestWorkerLifecycleFixes:
         assert launcher.get_handle(0) is None
 
     @patch("subprocess.Popen")
-    def test_sync_state_cleans_up_stopped_workers(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_sync_state_cleans_up_stopped_workers(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """sync_state should remove stopped workers from tracking."""
         mock_process = MagicMock(pid=12345)
         mock_process.poll.return_value = None  # Running initially
@@ -143,9 +129,7 @@ class TestWorkerLifecycleFixes:
         assert launcher.get_handle(0) is None
 
     @patch("subprocess.Popen")
-    def test_no_respawn_loop_when_stopped(
-        self, mock_popen: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_no_respawn_loop_when_stopped(self, mock_popen: MagicMock, tmp_path: Path) -> None:
         """Stopped workers should not cause respawn loops."""
         mock_process = MagicMock(pid=12345)
         mock_process.poll.return_value = 0  # Already stopped

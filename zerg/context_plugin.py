@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Any
 
 from zerg.command_splitter import CommandSplitter
 from zerg.efficiency import CompactFormatter
@@ -128,9 +127,7 @@ class ContextEngineeringPlugin(ContextPlugin):
                 result.extend(entries)
         return result
 
-    def _build_context_inner(
-        self, task: dict, task_graph: dict, feature: str
-    ) -> str:
+    def _build_context_inner(self, task: dict, task_graph: dict, feature: str) -> str:
         """Core context-building logic (may raise)."""
         budget = self._config.task_context_budget_tokens
         file_paths = self._collect_task_files(task)
@@ -218,9 +215,7 @@ class ContextEngineeringPlugin(ContextPlugin):
 
         return assembled
 
-    def _record_token_metrics(
-        self, task: dict, context_components: dict[str, str]
-    ) -> None:
+    def _record_token_metrics(self, task: dict, context_components: dict[str, str]) -> None:
         """Record per-component token counts for monitoring.
 
         This is purely informational. Failures are silently ignored
@@ -338,14 +333,10 @@ class ContextEngineeringPlugin(ContextPlugin):
             if section:
                 return f"## Engineering Rules (task-scoped)\n\n{section}"
         except Exception:
-            logger.debug(
-                "Engineering rules injection failed; skipping section", exc_info=True
-            )
+            logger.debug("Engineering rules injection failed; skipping section", exc_info=True)
         return ""
 
-    def _build_security_section(
-        self, file_paths: list[str], max_tokens: int
-    ) -> str:
+    def _build_security_section(self, file_paths: list[str], max_tokens: int) -> str:
         """Filter and summarize security rules relevant to the task files."""
         if not self._config.security_rule_filtering:
             return ""
@@ -358,9 +349,7 @@ class ContextEngineeringPlugin(ContextPlugin):
         try:
             filtered_paths = filter_rules_for_files(file_paths, rules_dir)
         except Exception:
-            logger.debug(
-                "Security rule filtering failed; skipping section", exc_info=True
-            )
+            logger.debug("Security rule filtering failed; skipping section", exc_info=True)
             return ""
 
         if not filtered_paths:
@@ -372,17 +361,13 @@ class ContextEngineeringPlugin(ContextPlugin):
 
         return f"## Security Rules (task-scoped)\n\n{summary}"
 
-    def _build_spec_section(
-        self, task: dict, feature: str, max_tokens: int
-    ) -> str:
+    def _build_spec_section(self, task: dict, feature: str, max_tokens: int) -> str:
         """Load feature specs scoped to this task's keywords."""
         try:
             loader = SpecLoader()
             return loader.format_task_context(task, feature, max_tokens=max_tokens)
         except Exception:
-            logger.debug(
-                "Spec context loading failed; skipping section", exc_info=True
-            )
+            logger.debug("Spec context loading failed; skipping section", exc_info=True)
             return ""
 
     def _build_repo_map_section(self, task: dict, max_tokens: int) -> str:
@@ -427,9 +412,7 @@ class ContextEngineeringPlugin(ContextPlugin):
 
             router = MCPRouter()
             file_paths = self._collect_task_files(task)
-            extensions = list(
-                {Path(f).suffix for f in file_paths if Path(f).suffix}
-            )
+            extensions = list({Path(f).suffix for f in file_paths if Path(f).suffix})
 
             # Use resolved depth tier if available
             depth_tier = os.environ.get("ZERG_ANALYSIS_DEPTH")

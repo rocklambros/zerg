@@ -3,7 +3,6 @@
 Tests the MergeCoordinator with mocked git operations.
 """
 
-from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +12,6 @@ from zerg.config import QualityGate, ZergConfig
 from zerg.constants import MergeStatus
 from zerg.exceptions import MergeConflictError
 from zerg.merge import MergeCoordinator, MergeFlowResult
-from zerg.types import GateRunResult
 
 
 @pytest.fixture
@@ -78,9 +76,7 @@ class TestMergeCoordinatorInit:
 class TestPrepareMerge:
     """Tests for merge preparation."""
 
-    def test_prepare_merge_creates_staging(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_prepare_merge_creates_staging(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test prepare_merge creates staging branch."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -89,9 +85,7 @@ class TestPrepareMerge:
         assert staging == "zerg/test-feature/staging-1"
         mock_git_ops.create_staging_branch.assert_called_with("test-feature", "main")
 
-    def test_prepare_merge_custom_target(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_prepare_merge_custom_target(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test prepare_merge with custom target branch."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -103,9 +97,7 @@ class TestPrepareMerge:
 class TestPreMergeGates:
     """Tests for pre-merge quality gates."""
 
-    def test_run_pre_merge_gates_pass(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_run_pre_merge_gates_pass(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test pre-merge gates passing."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -114,9 +106,7 @@ class TestPreMergeGates:
         assert passed is True
         mock_gates.run_all_gates.assert_called()
 
-    def test_run_pre_merge_gates_fail(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_run_pre_merge_gates_fail(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test pre-merge gates failing."""
         mock_gates.run_all_gates.return_value = (False, [])
 
@@ -126,9 +116,7 @@ class TestPreMergeGates:
 
         assert passed is False
 
-    def test_run_pre_merge_gates_with_cwd(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_run_pre_merge_gates_with_cwd(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test pre-merge gates with custom cwd."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -144,9 +132,7 @@ class TestPreMergeGates:
 class TestExecuteMerge:
     """Tests for merge execution."""
 
-    def test_execute_merge_success(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_execute_merge_success(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test successful merge execution."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
         source_branches = ["zerg/test/worker-0", "zerg/test/worker-1"]
@@ -156,9 +142,7 @@ class TestExecuteMerge:
         assert len(results) == 2
         assert all(r.status == MergeStatus.MERGED for r in results)
 
-    def test_execute_merge_checkouts_staging(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_execute_merge_checkouts_staging(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test merge checks out staging branch."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -166,9 +150,7 @@ class TestExecuteMerge:
 
         mock_git_ops.checkout.assert_called_with("staging")
 
-    def test_execute_merge_conflict_raises(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_execute_merge_conflict_raises(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test merge conflict raises exception."""
         mock_git_ops.merge.side_effect = MergeConflictError(
             "Merge conflict",
@@ -186,9 +168,7 @@ class TestExecuteMerge:
 class TestPostMergeGates:
     """Tests for post-merge quality gates."""
 
-    def test_run_post_merge_gates(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_run_post_merge_gates(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test running post-merge gates."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -201,9 +181,7 @@ class TestPostMergeGates:
 class TestFinalize:
     """Tests for merge finalization."""
 
-    def test_finalize_merges_to_target(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_finalize_merges_to_target(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test finalize merges staging to target."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -220,9 +198,7 @@ class TestFinalize:
 class TestAbort:
     """Tests for aborting merge."""
 
-    def test_abort_calls_git_abort(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_abort_calls_git_abort(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test abort calls git abort."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -230,9 +206,7 @@ class TestAbort:
 
         mock_git_ops.abort_merge.assert_called()
 
-    def test_abort_deletes_staging_branch(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_abort_deletes_staging_branch(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test abort deletes staging branch."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -244,9 +218,7 @@ class TestAbort:
 class TestFullMergeFlow:
     """Tests for complete merge flow."""
 
-    def test_full_merge_flow_success(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_full_merge_flow_success(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test successful full merge flow."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -260,9 +232,7 @@ class TestFullMergeFlow:
         assert result.level == 1
         assert result.merge_commit == "abc123def456"
 
-    def test_full_merge_flow_no_branches(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_full_merge_flow_no_branches(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test merge flow with no branches."""
         mock_git_ops.list_worker_branches.return_value = []
 
@@ -283,9 +253,7 @@ class TestFullMergeFlow:
 
         mock_git_ops.list_worker_branches.assert_called_with("test-feature")
 
-    def test_full_merge_flow_pre_gates_fail(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_full_merge_flow_pre_gates_fail(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test merge flow fails on pre-merge gates."""
         mock_gates.run_all_gates.return_value = (False, [])
 
@@ -299,9 +267,7 @@ class TestFullMergeFlow:
         assert result.success is False
         assert "Pre-merge gates failed" in result.error
 
-    def test_full_merge_flow_post_gates_fail(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_full_merge_flow_post_gates_fail(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test merge flow fails on post-merge gates."""
         # First call (pre-merge) passes, second (post-merge) fails
         mock_gates.run_all_gates.side_effect = [(True, []), (False, [])]
@@ -317,9 +283,7 @@ class TestFullMergeFlow:
         assert "Post-merge gates failed" in result.error
         mock_git_ops.abort_merge.assert_called()
 
-    def test_full_merge_flow_conflict(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_full_merge_flow_conflict(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test merge flow handles conflict."""
         mock_git_ops.merge.side_effect = MergeConflictError(
             "Conflict",
@@ -338,9 +302,7 @@ class TestFullMergeFlow:
         assert result.success is False
         assert "conflict" in result.error.lower()
 
-    def test_full_merge_flow_skip_gates(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_full_merge_flow_skip_gates(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test merge flow with gates skipped."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -353,9 +315,7 @@ class TestFullMergeFlow:
         assert result.success is True
         mock_gates.run_all_gates.assert_not_called()
 
-    def test_full_merge_flow_cleans_staging(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_full_merge_flow_cleans_staging(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test successful merge cleans up staging branch."""
         coordinator = MergeCoordinator("test-feature", sample_config, tmp_path)
 
@@ -394,9 +354,7 @@ class TestMergeFlowResult:
 class TestHelperMethods:
     """Tests for helper methods."""
 
-    def test_get_mergeable_branches(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_get_mergeable_branches(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test getting mergeable branches."""
         mock_git_ops.list_worker_branches.return_value = ["worker-0", "worker-1"]
 
@@ -406,9 +364,7 @@ class TestHelperMethods:
 
         assert branches == ["worker-0", "worker-1"]
 
-    def test_cleanup_feature_branches(
-        self, mock_git_ops, mock_gates, sample_config, tmp_path: Path
-    ) -> None:
+    def test_cleanup_feature_branches(self, mock_git_ops, mock_gates, sample_config, tmp_path: Path) -> None:
         """Test cleaning up feature branches."""
         mock_git_ops.delete_feature_branches.return_value = 3
 

@@ -473,11 +473,7 @@ class StateManager:
         status_str = status.value if isinstance(status, TaskStatus) else status
 
         with self._lock:
-            return [
-                tid
-                for tid, task in self._state.get("tasks", {}).items()
-                if task.get("status") == status_str
-            ]
+            return [tid for tid, task in self._state.get("tasks", {}).items() if task.get("status") == status_str]
 
     def set_paused(self, paused: bool) -> None:
         """Set paused state.
@@ -711,12 +707,14 @@ class StateManager:
                 if started_at <= cutoff_iso:
                     started_dt = datetime.fromisoformat(started_at)
                     elapsed = (datetime.now() - started_dt).total_seconds()
-                    stale.append({
-                        "task_id": task_id,
-                        "worker_id": task_state.get("worker_id"),
-                        "started_at": started_at,
-                        "elapsed_seconds": round(elapsed),
-                    })
+                    stale.append(
+                        {
+                            "task_id": task_id,
+                            "worker_id": task_state.get("worker_id"),
+                            "started_at": started_at,
+                            "elapsed_seconds": round(elapsed),
+                        }
+                    )
             return stale
 
     def get_failed_tasks(self) -> list[dict[str, Any]]:
@@ -729,12 +727,14 @@ class StateManager:
             failed = []
             for task_id, task_state in self._state.get("tasks", {}).items():
                 if task_state.get("status") == TaskStatus.FAILED.value:
-                    failed.append({
-                        "task_id": task_id,
-                        "retry_count": task_state.get("retry_count", 0),
-                        "error": task_state.get("error"),
-                        "last_retry_at": task_state.get("last_retry_at"),
-                    })
+                    failed.append(
+                        {
+                            "task_id": task_id,
+                            "retry_count": task_state.get("retry_count", 0),
+                            "error": task_state.get("error"),
+                            "last_retry_at": task_state.get("last_retry_at"),
+                        }
+                    )
             return failed
 
     # === Worker Ready Status ===
@@ -813,6 +813,7 @@ class StateManager:
 
             # Import here to avoid circular import
             from zerg.types import FeatureMetrics
+
             return FeatureMetrics.from_dict(metrics_data)
 
     def get_ready_workers(self) -> list[int]:

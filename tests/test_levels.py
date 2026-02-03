@@ -72,7 +72,7 @@ class TestLevelController:
         controller.initialize(sample_task_graph["tasks"])
         controller.start_level(1)
 
-        level_completed = controller.mark_task_complete("TASK-001")
+        controller.mark_task_complete("TASK-001")
 
         status = controller.get_task_status("TASK-001")
         assert status == TaskStatus.COMPLETE.value

@@ -202,9 +202,7 @@ class BuildRunner:
         commands = self.COMMANDS.get(system, {})
         return commands.get(mode, commands.get("dev", "make"))
 
-    def run(
-        self, system: BuildSystem, config: BuildConfig, cwd: str = "."
-    ) -> BuildResult:
+    def run(self, system: BuildSystem, config: BuildConfig, cwd: str = ".") -> BuildResult:
         """Run build."""
         command = self.get_command(system, config.mode)
         start = time.time()
@@ -352,16 +350,15 @@ def _build_docker_image() -> None:
         # Show image size
         try:
             inspect = subprocess.run(
-                ["docker", "image", "inspect", "--format",
-                 "{{.Size}}", "zerg-worker"],
-                capture_output=True, text=True, timeout=10,
+                ["docker", "image", "inspect", "--format", "{{.Size}}", "zerg-worker"],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if inspect.returncode == 0:
                 size_bytes = int(inspect.stdout.strip())
                 size_mb = size_bytes / (1024 * 1024)
-                console.print(
-                    f"[green]Image built: zerg-worker ({size_mb:.0f} MB)[/green]"
-                )
+                console.print(f"[green]Image built: zerg-worker ({size_mb:.0f} MB)[/green]")
             else:
                 console.print("[green]Image built: zerg-worker[/green]")
         except Exception as e:
@@ -399,10 +396,7 @@ def _watch_loop(builder: BuildCommand, system: BuildSystem | None, cwd: str) -> 
             current_hashes = get_file_hashes(Path(cwd))
 
             if current_hashes != last_hashes and time.time() - last_build_time > 2:
-                changed = [
-                    f for f in current_hashes
-                    if f not in last_hashes or current_hashes[f] != last_hashes[f]
-                ]
+                changed = [f for f in current_hashes if f not in last_hashes or current_hashes[f] != last_hashes[f]]
                 console.print(f"\n[yellow]Changes detected in {len(changed)} files[/yellow]")
 
                 result = builder.run(system=system, cwd=cwd)

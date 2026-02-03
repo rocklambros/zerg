@@ -184,12 +184,8 @@ class TestRuleLoaderLoadAll:
         assert result == []
 
     def test_load_multiple_files(self, tmp_path: Path) -> None:
-        (tmp_path / "a.yaml").write_text(
-            "name: alpha\nrules:\n  - id: a1\n    title: Alpha rule\n"
-        )
-        (tmp_path / "b.yaml").write_text(
-            "name: beta\nrules:\n  - id: b1\n    title: Beta rule\n"
-        )
+        (tmp_path / "a.yaml").write_text("name: alpha\nrules:\n  - id: a1\n    title: Alpha rule\n")
+        (tmp_path / "b.yaml").write_text("name: beta\nrules:\n  - id: b1\n    title: Beta rule\n")
 
         loader = RuleLoader(tmp_path)
         rulesets = loader.load_all()
@@ -199,9 +195,7 @@ class TestRuleLoaderLoadAll:
         assert names == {"alpha", "beta"}
 
     def test_load_skips_invalid_files(self, tmp_path: Path) -> None:
-        (tmp_path / "good.yaml").write_text(
-            "name: good\nrules:\n  - id: g1\n    title: Good\n"
-        )
+        (tmp_path / "good.yaml").write_text("name: good\nrules:\n  - id: g1\n    title: Good\n")
         (tmp_path / "bad.yaml").write_text("- just a list\n")
 
         loader = RuleLoader(tmp_path)
@@ -211,9 +205,7 @@ class TestRuleLoaderLoadAll:
         assert rulesets[0].name == "good"
 
     def test_load_yml_extension(self, tmp_path: Path) -> None:
-        (tmp_path / "rules.yml").write_text(
-            "name: yml-set\nrules:\n  - id: y1\n    title: YML rule\n"
-        )
+        (tmp_path / "rules.yml").write_text("name: yml-set\nrules:\n  - id: y1\n    title: YML rule\n")
 
         loader = RuleLoader(tmp_path)
         rulesets = loader.load_all()
@@ -245,9 +237,7 @@ class TestRuleLoaderFilterByFiles:
 
     def test_filter_python_files(self) -> None:
         loader = RuleLoader()
-        rules = loader.get_rules_for_files(
-            ["src/main.py"], rulesets=self._make_rulesets()
-        )
+        rules = loader.get_rules_for_files(["src/main.py"], rulesets=self._make_rulesets())
         rule_ids = {r.id for r in rules}
         assert "py-rule" in rule_ids
         assert "all-rule" in rule_ids
@@ -255,9 +245,7 @@ class TestRuleLoaderFilterByFiles:
 
     def test_filter_js_files(self) -> None:
         loader = RuleLoader()
-        rules = loader.get_rules_for_files(
-            ["app.js"], rulesets=self._make_rulesets()
-        )
+        rules = loader.get_rules_for_files(["app.js"], rulesets=self._make_rulesets())
         rule_ids = {r.id for r in rules}
         assert "js-rule" in rule_ids
         assert "all-rule" in rule_ids
@@ -265,9 +253,7 @@ class TestRuleLoaderFilterByFiles:
 
     def test_filter_excludes_disabled(self) -> None:
         loader = RuleLoader()
-        rules = loader.get_rules_for_files(
-            ["test.py"], rulesets=self._make_rulesets()
-        )
+        rules = loader.get_rules_for_files(["test.py"], rulesets=self._make_rulesets())
         rule_ids = {r.id for r in rules}
         assert "disabled-rule" not in rule_ids
 

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import ContainerLauncher, SpawnResult, LauncherConfig
+from zerg.launcher import ContainerLauncher, LauncherConfig, SpawnResult
 from zerg.orchestrator import Orchestrator
 
 
@@ -51,23 +51,13 @@ def container_e2e_setup(tmp_path: Path, monkeypatch):
     # Create devcontainer
     devcontainer_dir = tmp_path / ".devcontainer"
     devcontainer_dir.mkdir()
-    (devcontainer_dir / "devcontainer.json").write_text(json.dumps({
-        "image": "python:3.11",
-        "features": {}
-    }))
+    (devcontainer_dir / "devcontainer.json").write_text(json.dumps({"image": "python:3.11", "features": {}}))
 
     # Create task graph
     task_graph = {
         "feature": "container-test",
         "levels": {"1": ["TASK-001"]},
-        "tasks": {
-            "TASK-001": {
-                "id": "TASK-001",
-                "title": "Container task",
-                "level": 1,
-                "files": ["app.py"]
-            }
-        }
+        "tasks": {"TASK-001": {"id": "TASK-001", "title": "Container task", "level": 1, "files": ["app.py"]}},
     }
     (zerg_dir / "task-graph.json").write_text(json.dumps(task_graph))
 
@@ -77,17 +67,18 @@ def container_e2e_setup(tmp_path: Path, monkeypatch):
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock all orchestrator dependencies."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as subprocess_launcher_mock, \
-         patch("zerg.orchestrator.ContainerLauncher") as container_launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner"),
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager"),
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator"),
+        patch("zerg.orchestrator.SubprocessLauncher") as subprocess_launcher_mock,
+        patch("zerg.orchestrator.ContainerLauncher") as container_launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state_mock.return_value = state
@@ -139,9 +130,7 @@ def mock_orchestrator_deps():
 class TestContainerSpawning:
     """Tests for container worker spawning."""
 
-    def test_spawn_container_worker(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_spawn_container_worker(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test spawning a container worker."""
         orch = Orchestrator("container-test")
 
@@ -151,9 +140,7 @@ class TestContainerSpawning:
         assert 0 in orch._workers
         assert worker_state is not None
 
-    def test_container_id_tracked(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_container_id_tracked(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test container ID is tracked in worker state."""
         # Set up mock to return container ID
         mock_orchestrator_deps["launcher"].spawn.return_value.handle.container_id = "abc123def456"
@@ -183,9 +170,7 @@ class TestContainerNetworking:
 class TestContainerVolumes:
     """Tests for container volume mounting configuration."""
 
-    def test_worktree_path_passed_to_spawn(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_worktree_path_passed_to_spawn(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test worktree path is passed to launcher spawn."""
         orch = Orchestrator("container-test")
         orch._spawn_worker(0)
@@ -198,9 +183,7 @@ class TestContainerVolumes:
 class TestContainerLifecycle:
     """Tests for container lifecycle management."""
 
-    def test_container_monitoring(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_container_monitoring(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test container status monitoring."""
         orch = Orchestrator("container-test")
 
@@ -209,9 +192,7 @@ class TestContainerLifecycle:
 
         mock_orchestrator_deps["launcher"].monitor.assert_called()
 
-    def test_container_termination(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_container_termination(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test container termination."""
         orch = Orchestrator("container-test")
 
@@ -220,9 +201,7 @@ class TestContainerLifecycle:
 
         mock_orchestrator_deps["launcher"].terminate.assert_called()
 
-    def test_container_crash_detection(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_container_crash_detection(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test container crash detection."""
         # Container crashes
         mock_orchestrator_deps["launcher"].monitor.return_value = WorkerStatus.CRASHED
@@ -239,9 +218,7 @@ class TestContainerLifecycle:
 class TestContainerEnvironment:
     """Tests for container environment setup."""
 
-    def test_environment_passed_to_spawn(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_environment_passed_to_spawn(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test environment is passed to launcher spawn."""
         orch = Orchestrator("container-test")
         orch._spawn_worker(0)
@@ -254,9 +231,7 @@ class TestContainerEnvironment:
 class TestContainerCleanup:
     """Tests for container cleanup."""
 
-    def test_cleanup_on_stop(
-        self, container_e2e_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_cleanup_on_stop(self, container_e2e_setup: Path, mock_orchestrator_deps) -> None:
         """Test containers are cleaned up on stop."""
         mock_orchestrator_deps["ports"].allocate_one.side_effect = [49152, 49153]
 

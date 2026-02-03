@@ -123,9 +123,7 @@ class TestPluginLifecycle:
         event = LifecycleEvent(event_type="test_event", data={})
         registry.emit_event(event)
 
-        mock_run.assert_called_once_with(
-            ["echo", "hello"], check=False, timeout=300
-        )
+        mock_run.assert_called_once_with(["echo", "hello"], check=False, timeout=300)
 
     def test_exception_in_hook_doesnt_crash(self) -> None:
         """A hook raising an exception does not propagate to the caller."""

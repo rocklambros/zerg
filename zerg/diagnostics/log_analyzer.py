@@ -41,9 +41,7 @@ class LogAnalyzer:
     ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
     # Lines that indicate errors
-    ERROR_INDICATORS = re.compile(
-        r"(?i)(error|exception|traceback|failed|fatal|panic|abort|segfault)"
-    )
+    ERROR_INDICATORS = re.compile(r"(?i)(error|exception|traceback|failed|fatal|panic|abort|segfault)")
 
     def __init__(self, logs_dir: Path | str = Path(".zerg/logs")) -> None:
         self.logs_dir = Path(logs_dir)
@@ -141,11 +139,13 @@ class LogAnalyzer:
             for i, line in enumerate(content.splitlines()):
                 stripped = line.strip()
                 if stripped and self.ERROR_INDICATORS.search(stripped):
-                    timeline.append({
-                        "line_number": i + 1,
-                        "worker_id": wid,
-                        "error_line": stripped[:200],
-                    })
+                    timeline.append(
+                        {
+                            "line_number": i + 1,
+                            "worker_id": wid,
+                            "error_line": stripped[:200],
+                        }
+                    )
 
         return timeline
 

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from zerg.token_tracker import TokenTracker
 
 

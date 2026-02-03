@@ -259,7 +259,6 @@ class TestEdgeCases:
         allocator = PortAllocator(range_start=50000, range_end=50010)
 
         # Mock is_available to return True only for ports not already allocated
-        original_is_available = allocator.is_available
 
         def tracking_is_available(port: int) -> bool:
             if port in allocator._allocated:

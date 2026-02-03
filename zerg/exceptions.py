@@ -26,9 +26,7 @@ class ConfigurationError(ZergError):
 class TaskError(ZergError):
     """Base error for task-related issues."""
 
-    def __init__(
-        self, message: str, task_id: str | None = None, details: dict[str, Any] | None = None
-    ) -> None:
+    def __init__(self, message: str, task_id: str | None = None, details: dict[str, Any] | None = None) -> None:
         super().__init__(message, details)
         self.task_id = task_id
 
@@ -71,9 +69,7 @@ class TaskTimeoutError(TaskError):
 class WorkerError(ZergError):
     """Base error for worker-related issues."""
 
-    def __init__(
-        self, message: str, worker_id: int | None = None, details: dict[str, Any] | None = None
-    ) -> None:
+    def __init__(self, message: str, worker_id: int | None = None, details: dict[str, Any] | None = None) -> None:
         super().__init__(message, details)
         self.worker_id = worker_id
 
@@ -93,9 +89,7 @@ class WorkerCommunicationError(WorkerError):
 class WorktreeError(ZergError):
     """Error in worktree operations."""
 
-    def __init__(
-        self, message: str, worktree_path: str | None = None, details: dict[str, Any] | None = None
-    ) -> None:
+    def __init__(self, message: str, worktree_path: str | None = None, details: dict[str, Any] | None = None) -> None:
         super().__init__(message, details)
         self.worktree_path = worktree_path
 
@@ -141,9 +135,7 @@ class MergeConflictError(GitError):
 class GateError(ZergError):
     """Base error for quality gate issues."""
 
-    def __init__(
-        self, message: str, gate_name: str | None = None, details: dict[str, Any] | None = None
-    ) -> None:
+    def __init__(self, message: str, gate_name: str | None = None, details: dict[str, Any] | None = None) -> None:
         super().__init__(message, details)
         self.gate_name = gate_name
 
@@ -160,9 +152,7 @@ class GateFailureError(GateError):
         stdout: str = "",
         stderr: str = "",
     ) -> None:
-        super().__init__(
-            message, gate_name, {"command": command, "exit_code": exit_code, "stdout": stdout}
-        )
+        super().__init__(message, gate_name, {"command": command, "exit_code": exit_code, "stdout": stdout})
         self.command = command
         self.exit_code = exit_code
         self.stdout = stdout
@@ -193,9 +183,7 @@ class ContainerError(ZergError):
 class ValidationError(ZergError):
     """Error in data validation."""
 
-    def __init__(
-        self, message: str, field: str | None = None, details: dict[str, Any] | None = None
-    ) -> None:
+    def __init__(self, message: str, field: str | None = None, details: dict[str, Any] | None = None) -> None:
         super().__init__(message, details)
         self.field = field
 
@@ -209,9 +197,7 @@ class StateError(ZergError):
 class LevelError(ZergError):
     """Error in level management."""
 
-    def __init__(
-        self, message: str, level: int | None = None, details: dict[str, Any] | None = None
-    ) -> None:
+    def __init__(self, message: str, level: int | None = None, details: dict[str, Any] | None = None) -> None:
         super().__init__(message, details)
         self.level = level
 

@@ -42,11 +42,7 @@ class GateResult:
             "timestamp": self.timestamp.isoformat(),
             "is_fresh": self.is_fresh,
             "artifact_path": str(self.artifact_path) if self.artifact_path else None,
-            "verification": (
-                self.verification_result.to_dict()
-                if self.verification_result
-                else None
-            ),
+            "verification": (self.verification_result.to_dict() if self.verification_result else None),
         }
 
 
@@ -87,9 +83,7 @@ class ArtifactStore:
         artifact_dir = self.base_dir / task_id / gate_name
         artifact_dir.mkdir(parents=True, exist_ok=True)
 
-        artifact_path = (
-            artifact_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        )
+        artifact_path = artifact_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         artifact_data = {
             "gate_name": gate_name,
             "task_id": task_id,
@@ -109,9 +103,7 @@ class ArtifactStore:
             return None
         return json.loads(artifacts[0].read_text())
 
-    def is_fresh(
-        self, gate_name: str, task_id: str, max_age_seconds: int = 300
-    ) -> bool:
+    def is_fresh(self, gate_name: str, task_id: str, max_age_seconds: int = 300) -> bool:
         """Check if the latest artifact is still fresh."""
         latest = self.get_latest(gate_name, task_id)
         if not latest:
@@ -149,9 +141,7 @@ class GatePipeline:
     ) -> GateResult:
         """Run a single verification gate."""
         # Check freshness first
-        if self.artifact_store.is_fresh(
-            gate_name, task_id, self.staleness_threshold
-        ):
+        if self.artifact_store.is_fresh(gate_name, task_id, self.staleness_threshold):
             latest = self.artifact_store.get_latest(gate_name, task_id)
             if latest and latest["result"]["success"]:
                 return GateResult(
@@ -204,21 +194,13 @@ class GatePipeline:
             )
             results.append(gate_result)
 
-            if (
-                stop_on_required_failure
-                and gate.get("required", False)
-                and gate_result.status == GateStatus.FAILED
-            ):
+            if stop_on_required_failure and gate.get("required", False) and gate_result.status == GateStatus.FAILED:
                 # Skip remaining gates
                 break
 
         total_ms = int((time.time() - start) * 1000)
         all_passed = all(r.status == GateStatus.PASSED for r in results)
-        required_passed = all(
-            r.status == GateStatus.PASSED
-            for r, g in zip(results, gates)
-            if g.get("required", False)
-        )
+        required_passed = all(r.status == GateStatus.PASSED for r, g in zip(results, gates) if g.get("required", False))
 
         return PipelineResult(
             gate_results=results,
@@ -229,6 +211,4 @@ class GatePipeline:
 
     def check_staleness(self, gate_name: str, task_id: str) -> bool:
         """Check if a gate result is stale and needs re-running."""
-        return not self.artifact_store.is_fresh(
-            gate_name, task_id, self.staleness_threshold
-        )
+        return not self.artifact_store.is_fresh(gate_name, task_id, self.staleness_threshold)

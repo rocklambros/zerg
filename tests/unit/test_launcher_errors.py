@@ -23,17 +23,14 @@ class TestDockerDaemonNotRunning:
     """Tests for spawn behavior when Docker daemon is not running."""
 
     @patch("subprocess.run")
-    def test_spawn_docker_daemon_connection_refused(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_docker_daemon_connection_refused(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails gracefully when Docker daemon connection is refused."""
         # Simulate Docker daemon not running - connection refused error
         mock_run.side_effect = subprocess.CalledProcessError(
             returncode=1,
             cmd=["docker", "run"],
             stderr=(
-                "Cannot connect to the Docker daemon at "
-                "unix:///var/run/docker.sock. Is the docker daemon running?"
+                "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?"
             ),
         )
 
@@ -51,17 +48,13 @@ class TestDockerDaemonNotRunning:
         assert 0 not in launcher._container_ids
 
     @patch("subprocess.run")
-    def test_spawn_docker_socket_permission_denied(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_docker_socket_permission_denied(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when Docker socket permission denied.
 
         Note: PermissionError is caught by spawn's outer exception handler
         and the actual error message is returned in the result.
         """
-        mock_run.side_effect = PermissionError(
-            "Permission denied: /var/run/docker.sock"
-        )
+        mock_run.side_effect = PermissionError("Permission denied: /var/run/docker.sock")
 
         launcher = ContainerLauncher()
         result = launcher.spawn(
@@ -76,9 +69,7 @@ class TestDockerDaemonNotRunning:
         assert 0 not in launcher._workers
 
     @patch("subprocess.run")
-    def test_spawn_docker_daemon_not_found(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_docker_daemon_not_found(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when docker command not found.
 
         Note: FileNotFoundError is caught by spawn's outer exception handler
@@ -98,15 +89,12 @@ class TestDockerDaemonNotRunning:
         assert result.error is not None
 
     @patch("subprocess.run")
-    def test_spawn_docker_daemon_error_return_code(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_docker_daemon_error_return_code(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when docker returns error code indicating daemon issues."""
         mock_run.return_value = MagicMock(
             returncode=1,
             stdout="",
-            stderr="Cannot connect to the Docker daemon at unix:///var/run/docker.sock. "
-                   "Is the docker daemon running?",
+            stderr="Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
         )
 
         launcher = ContainerLauncher()
@@ -125,16 +113,14 @@ class TestImagePullFailure:
     """Tests for spawn behavior when image pull fails."""
 
     @patch("subprocess.run")
-    def test_spawn_image_not_found(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_image_not_found(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when Docker image does not exist."""
         # Docker run returns error when image not found
         mock_run.return_value = MagicMock(
             returncode=1,
             stdout="",
             stderr="Unable to find image 'zerg-worker:latest' locally\n"
-                   "Error response from daemon: pull access denied for zerg-worker",
+            "Error response from daemon: pull access denied for zerg-worker",
         )
 
         launcher = ContainerLauncher()
@@ -149,9 +135,7 @@ class TestImagePullFailure:
         assert "Failed to start container" in result.error
 
     @patch("subprocess.run")
-    def test_spawn_image_pull_timeout(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_image_pull_timeout(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when image pull times out."""
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="docker run", timeout=60)
 
@@ -167,9 +151,7 @@ class TestImagePullFailure:
         # _start_container returns None on timeout
 
     @patch("subprocess.run")
-    def test_spawn_registry_authentication_error(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_registry_authentication_error(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when registry authentication fails."""
         mock_run.return_value = MagicMock(
             returncode=1,
@@ -189,17 +171,12 @@ class TestImagePullFailure:
         assert "Failed to start container" in result.error
 
     @patch("subprocess.run")
-    def test_spawn_network_error_during_pull(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_network_error_during_pull(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when network error occurs during image pull."""
         mock_run.return_value = MagicMock(
             returncode=1,
             stdout="",
-            stderr=(
-                "Error response from daemon: net/http: "
-                "request canceled while waiting for connection"
-            ),
+            stderr=("Error response from daemon: net/http: request canceled while waiting for connection"),
         )
 
         launcher = ContainerLauncher()
@@ -374,9 +351,7 @@ class TestContainerStartFailureCleanup:
         mock_cleanup.assert_called_once_with("container-abc123", 0)
 
     @patch("subprocess.run")
-    def test_cleanup_failed_container_removes_tracking(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_cleanup_failed_container_removes_tracking(self, mock_run: MagicMock) -> None:
         """Test _cleanup_failed_container removes worker from tracking."""
         mock_run.return_value = MagicMock(returncode=0)
 
@@ -397,9 +372,7 @@ class TestContainerStartFailureCleanup:
         assert "-f" in call_args
 
     @patch("subprocess.run")
-    def test_cleanup_failed_container_handles_docker_error(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_cleanup_failed_container_handles_docker_error(self, mock_run: MagicMock) -> None:
         """Test _cleanup_failed_container handles docker rm failure gracefully."""
         mock_run.side_effect = Exception("Docker error during cleanup")
 
@@ -414,9 +387,7 @@ class TestContainerStartFailureCleanup:
         assert 0 not in launcher._workers
 
     @patch("subprocess.run")
-    def test_cleanup_failed_container_timeout(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_cleanup_failed_container_timeout(self, mock_run: MagicMock) -> None:
         """Test _cleanup_failed_container handles timeout during cleanup."""
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="docker rm", timeout=10)
 
@@ -435,9 +406,7 @@ class TestResourceLimitErrors:
     """Tests for resource limit related errors during container spawn."""
 
     @patch("subprocess.run")
-    def test_spawn_out_of_memory_error(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_out_of_memory_error(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when system is out of memory."""
         mock_run.return_value = MagicMock(
             returncode=125,
@@ -457,9 +426,7 @@ class TestResourceLimitErrors:
         assert "Failed to start container" in result.error
 
     @patch("subprocess.run")
-    def test_spawn_disk_quota_exceeded(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_disk_quota_exceeded(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when disk quota is exceeded."""
         mock_run.return_value = MagicMock(
             returncode=125,
@@ -479,9 +446,7 @@ class TestResourceLimitErrors:
         assert "Failed to start container" in result.error
 
     @patch("subprocess.run")
-    def test_spawn_container_limit_reached(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_container_limit_reached(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when container limit is reached."""
         mock_run.return_value = MagicMock(
             returncode=125,
@@ -500,15 +465,13 @@ class TestResourceLimitErrors:
         assert result.success is False
 
     @patch("subprocess.run")
-    def test_spawn_port_already_in_use(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_port_already_in_use(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when required port is already in use."""
         mock_run.return_value = MagicMock(
             returncode=125,
             stdout="",
             stderr="Error response from daemon: driver failed programming external connectivity: "
-                   "Bind for 0.0.0.0:8080 failed: port is already allocated",
+            "Bind for 0.0.0.0:8080 failed: port is already allocated",
         )
 
         launcher = ContainerLauncher()
@@ -522,15 +485,12 @@ class TestResourceLimitErrors:
         assert result.success is False
 
     @patch("subprocess.run")
-    def test_spawn_cgroup_limit_error(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_spawn_cgroup_limit_error(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test spawn fails when cgroup resource limit is hit."""
         mock_run.return_value = MagicMock(
             returncode=125,
             stdout="",
-            stderr="Error response from daemon: cgroup error: "
-                   "unable to create cgroup memory path",
+            stderr="Error response from daemon: cgroup error: unable to create cgroup memory path",
         )
 
         launcher = ContainerLauncher()
@@ -677,9 +637,7 @@ class TestExecWorkerEntryErrors:
         assert result is False
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_container_not_running(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_exec_worker_entry_container_not_running(self, mock_run: MagicMock) -> None:
         """Test _exec_worker_entry fails when container stopped."""
         mock_run.return_value = MagicMock(
             returncode=1,
@@ -693,9 +651,7 @@ class TestExecWorkerEntryErrors:
         assert result is False
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_script_not_found(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_exec_worker_entry_script_not_found(self, mock_run: MagicMock) -> None:
         """Test _exec_worker_entry fails when entry script missing."""
         mock_run.return_value = MagicMock(
             returncode=126,
@@ -709,9 +665,7 @@ class TestExecWorkerEntryErrors:
         assert result is False
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_permission_denied(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_exec_worker_entry_permission_denied(self, mock_run: MagicMock) -> None:
         """Test _exec_worker_entry fails when script not executable."""
         mock_run.return_value = MagicMock(
             returncode=126,
@@ -729,15 +683,13 @@ class TestStartContainerErrors:
     """Tests for _start_container error handling."""
 
     @patch("subprocess.run")
-    def test_start_container_name_conflict(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_name_conflict(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test _start_container fails when container name already exists."""
         mock_run.return_value = MagicMock(
             returncode=125,
             stdout="",
             stderr='Error response from daemon: Conflict. The container name "/zerg-worker-0" '
-                   'is already in use by container',
+            "is already in use by container",
         )
 
         launcher = ContainerLauncher()
@@ -750,15 +702,12 @@ class TestStartContainerErrors:
         assert result is None
 
     @patch("subprocess.run")
-    def test_start_container_mount_path_not_found(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_mount_path_not_found(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test _start_container fails when mount path doesn't exist."""
         mock_run.return_value = MagicMock(
             returncode=125,
             stdout="",
-            stderr="Error response from daemon: invalid mount config: "
-                   "source path does not exist",
+            stderr="Error response from daemon: invalid mount config: source path does not exist",
         )
 
         launcher = ContainerLauncher()
@@ -771,14 +720,12 @@ class TestStartContainerErrors:
         assert result is None
 
     @patch("subprocess.run")
-    def test_start_container_network_not_found(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_network_not_found(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test _start_container fails when network doesn't exist."""
         mock_run.return_value = MagicMock(
             returncode=125,
             stdout="",
-            stderr='Error response from daemon: network custom-network not found',
+            stderr="Error response from daemon: network custom-network not found",
         )
 
         launcher = ContainerLauncher(network="custom-network")
@@ -791,9 +738,7 @@ class TestStartContainerErrors:
         assert result is None
 
     @patch("subprocess.run")
-    def test_start_container_invalid_env_var(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_start_container_invalid_env_var(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test _start_container behavior with invalid env var format (Docker handles)."""
         # Docker would reject invalid env var syntax
         mock_run.return_value = MagicMock(
@@ -837,9 +782,7 @@ class TestMonitorErrors:
     @patch("subprocess.run")
     def test_monitor_docker_inspect_timeout(self, mock_run: MagicMock) -> None:
         """Test monitor handles docker inspect timeout."""
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd="docker inspect", timeout=10
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd="docker inspect", timeout=10)
 
         launcher = ContainerLauncher()
         handle = WorkerHandle(

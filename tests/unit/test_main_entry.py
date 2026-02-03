@@ -37,12 +37,12 @@ class TestMainEntryPoint:
 
         # We need to inject the mock before executing
         with patch.dict(sys.modules, {"zerg.cli": mock_cli_module}):
-            code = '''
+            code = """
 from zerg.cli import cli
 
 if __name__ == "__main__":
     cli()
-'''
+"""
             exec(compile(code, "zerg/__main__.py", "exec"), exec_globals)
 
         # cli should have been called once
@@ -167,7 +167,9 @@ class TestMainBlockExecution:
         )
 
         assert result.returncode != 0
-        assert "No such command" in result.stderr or "Error" in result.stderr or "no such command" in result.stderr.lower()
+        assert (
+            "No such command" in result.stderr or "Error" in result.stderr or "no such command" in result.stderr.lower()
+        )
 
 
 class TestCLIIntegrationFromMain:
@@ -222,7 +224,6 @@ class TestDirectMainBlockCoverage:
         import zerg.__main__
 
         # Get the actual cli from the module
-        cli_func = zerg.__main__.cli
 
         # Mock the cli to prevent actual execution
         with patch.object(zerg.__main__, "cli") as mock_cli:

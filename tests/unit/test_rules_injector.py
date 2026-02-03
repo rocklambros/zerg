@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from zerg.rules.injector import CHARS_PER_TOKEN, RuleInjector
-from zerg.rules.loader import Rule, RuleLoader, RulePriority, RuleSet
+from zerg.rules.loader import Rule, RuleLoader, RulePriority
 
 
 def _make_loader_with_rules(tmp_path: Path, rules: list[Rule]) -> RuleLoader:

@@ -124,9 +124,7 @@ class TestPerformanceAuditor:
         ]
         mock_registry_cls.return_value = mock_registry
 
-        critical_finding = _make_finding(
-            category="TestCat", severity=Severity.CRITICAL, factor_id=1
-        )
+        critical_finding = _make_finding(category="TestCat", severity=Severity.CRITICAL, factor_id=1)
 
         # Create mock catalog with 5 static factors in TestCat
         # cli_tools must contain a name from STATIC_TOOLS for counting
@@ -178,9 +176,7 @@ class TestPerformanceAuditor:
         ]
         mock_registry_cls.return_value = mock_registry
 
-        low_finding = _make_finding(
-            category="BigCat", severity=Severity.LOW, factor_id=2
-        )
+        low_finding = _make_finding(category="BigCat", severity=Severity.LOW, factor_id=2)
 
         mock_factor = MagicMock()
         mock_factor.cli_tools = ["semgrep"]

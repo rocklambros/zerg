@@ -120,17 +120,13 @@ class TestDetectFeature:
         result = detect_feature()
         assert result is None
 
-    def test_detect_feature_empty_state_dir(
-        self, tmp_path: Path, zerg_state_dir: Path, monkeypatch
-    ) -> None:
+    def test_detect_feature_empty_state_dir(self, tmp_path: Path, zerg_state_dir: Path, monkeypatch) -> None:
         """Test detect_feature returns None when state dir is empty."""
         monkeypatch.chdir(tmp_path)
         result = detect_feature()
         assert result is None
 
-    def test_detect_feature_single_state_file(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_detect_feature_single_state_file(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test detect_feature returns feature name from single state file."""
         monkeypatch.chdir(tmp_path)
         result = detect_feature()
@@ -181,9 +177,7 @@ class TestCreateMergePlan:
         assert plan["skip_gates"] is True
         assert plan["gates"] == []
 
-    def test_create_merge_plan_includes_branches(
-        self, mock_state_manager: MagicMock
-    ) -> None:
+    def test_create_merge_plan_includes_branches(self, mock_state_manager: MagicMock) -> None:
         """Test create_merge_plan includes worker branches."""
         plan = create_merge_plan(
             state=mock_state_manager,
@@ -315,9 +309,7 @@ class TestRunQualityGates:
 class TestMergeCmdNoFeature:
     """Tests for merge_cmd when no feature is found."""
 
-    def test_merge_cmd_no_feature_no_state_dir(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_no_feature_no_state_dir(self, tmp_path: Path, monkeypatch) -> None:
         """Test merge_cmd fails when no feature can be detected."""
         monkeypatch.chdir(tmp_path)
         runner = CliRunner()
@@ -325,9 +317,7 @@ class TestMergeCmdNoFeature:
         assert result.exit_code == 1
         assert "No active feature found" in result.output
 
-    def test_merge_cmd_no_feature_empty_state_dir(
-        self, tmp_path: Path, zerg_state_dir: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_no_feature_empty_state_dir(self, tmp_path: Path, zerg_state_dir: Path, monkeypatch) -> None:
         """Test merge_cmd fails when state dir is empty."""
         monkeypatch.chdir(tmp_path)
         runner = CliRunner()
@@ -339,9 +329,7 @@ class TestMergeCmdNoFeature:
 class TestMergeCmdFeatureNotFound:
     """Tests for merge_cmd when specified feature does not exist."""
 
-    def test_merge_cmd_feature_not_found(
-        self, tmp_path: Path, zerg_state_dir: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_feature_not_found(self, tmp_path: Path, zerg_state_dir: Path, monkeypatch) -> None:
         """Test merge_cmd fails when specified feature has no state."""
         monkeypatch.chdir(tmp_path)
         runner = CliRunner()
@@ -353,22 +341,16 @@ class TestMergeCmdFeatureNotFound:
 class TestMergeCmdDryRun:
     """Tests for merge_cmd dry run mode."""
 
-    def test_merge_cmd_dry_run_shows_plan(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_dry_run_shows_plan(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd dry run shows plan without changes."""
         monkeypatch.chdir(tmp_path)
         with patch("zerg.commands.merge_cmd.MergeCoordinator"):
             runner = CliRunner()
-            result = runner.invoke(
-                merge_cmd, ["--feature", "test-feature", "--dry-run"]
-            )
+            result = runner.invoke(merge_cmd, ["--feature", "test-feature", "--dry-run"])
             assert result.exit_code == 0
             assert "dry run" in result.output.lower()
 
-    def test_merge_cmd_dry_run_exits_early(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_dry_run_exits_early(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd dry run exits without merging."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -383,9 +365,7 @@ class TestMergeCmdDryRun:
 class TestMergeCmdGateFails:
     """Tests for merge_cmd when quality gates fail."""
 
-    def test_merge_cmd_gate_failure_exits(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_gate_failure_exits(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd exits when quality gates fail."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -394,15 +374,11 @@ class TestMergeCmdGateFails:
         ):
             mock_gates.return_value = GateResult.FAIL
             runner = CliRunner()
-            result = runner.invoke(
-                merge_cmd, ["--feature", "test-feature", "--level", "1"]
-            )
+            result = runner.invoke(merge_cmd, ["--feature", "test-feature", "--level", "1"])
             assert result.exit_code == 1
             assert "Quality gates failed" in result.output
 
-    def test_merge_cmd_skip_gates_bypasses_check(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_skip_gates_bypasses_check(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd with --skip-gates bypasses gate check."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -431,9 +407,7 @@ class TestMergeCmdGateFails:
 class TestMergeCmdSuccess:
     """Tests for successful merge_cmd execution."""
 
-    def test_merge_cmd_successful_merge(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_successful_merge(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd completes successfully."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -465,9 +439,7 @@ class TestMergeCmdSuccess:
 class TestMergeCmdFailure:
     """Tests for merge_cmd failure scenarios."""
 
-    def test_merge_cmd_merge_fails_with_error(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_merge_fails_with_error(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd handles merge failure with error message."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -502,9 +474,7 @@ class TestMergeCmdFailure:
             assert result.exit_code == 1
             assert "Merge failed" in result.output
 
-    def test_merge_cmd_merge_fails_with_conflicts(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_merge_fails_with_conflicts(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd handles merge failure with conflicts."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -562,9 +532,7 @@ class TestMergeCmdFailure:
             )
             assert "merged successfully" in result.output
 
-    def test_merge_cmd_fallback_fails(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_fallback_fails(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd handles fallback MergeCoordinator failure."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -594,9 +562,7 @@ class TestMergeCmdFailure:
             assert result.exit_code == 1
             assert "Merge failed" in result.output
 
-    def test_merge_cmd_fallback_with_conflicts(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_fallback_with_conflicts(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd handles fallback with conflicts."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -627,9 +593,7 @@ class TestMergeCmdFailure:
 class TestMergeCmdUserAbort:
     """Tests for merge_cmd user abort scenarios."""
 
-    def test_merge_cmd_user_aborts(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_user_aborts(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd handles user abort."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -638,18 +602,14 @@ class TestMergeCmdUserAbort:
         ):
             mock_gates.return_value = GateResult.PASS
             runner = CliRunner()
-            result = runner.invoke(
-                merge_cmd, ["--feature", "test-feature"], input="n\n"
-            )
+            result = runner.invoke(merge_cmd, ["--feature", "test-feature"], input="n\n")
             assert "Aborted" in result.output
 
 
 class TestMergeCmdTargetBranch:
     """Tests for merge_cmd target branch handling."""
 
-    def test_merge_cmd_default_target(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_default_target(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd uses main as default target."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -668,14 +628,10 @@ class TestMergeCmdTargetBranch:
             )
             mock_orch_cls.return_value = mock_orch
             runner = CliRunner()
-            result = runner.invoke(
-                merge_cmd, ["--feature", "test-feature"], input="y\n"
-            )
+            result = runner.invoke(merge_cmd, ["--feature", "test-feature"], input="y\n")
             assert "main" in result.output
 
-    def test_merge_cmd_custom_target(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_custom_target(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd with custom target branch."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -705,9 +661,7 @@ class TestMergeCmdTargetBranch:
 class TestMergeCmdAutoDetectLevel:
     """Tests for merge_cmd auto-detecting level from state."""
 
-    def test_merge_cmd_auto_detects_level(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_auto_detects_level(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd auto-detects level when not specified."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -740,9 +694,7 @@ class TestMergeCmdAutoDetectLevel:
 class TestMergeCmdExceptionHandling:
     """Tests for merge_cmd exception handling."""
 
-    def test_merge_cmd_general_exception(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_general_exception(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd handles general exceptions."""
         monkeypatch.chdir(tmp_path)
         with patch("zerg.commands.merge_cmd.StateManager") as mock_state_cls:
@@ -782,18 +734,14 @@ class TestMergeCmdExceptionHandling:
             )
             mock_orch_cls.return_value = mock_orch
             runner = CliRunner()
-            result = runner.invoke(
-                merge_cmd, ["--feature", "test-feature"], input="y\n"
-            )
+            result = runner.invoke(merge_cmd, ["--feature", "test-feature"], input="y\n")
             assert result.exit_code == 0
 
 
 class TestMergeCmdSuccessNoCommit:
     """Tests for merge_cmd when merge succeeds but no commit is generated."""
 
-    def test_merge_cmd_success_no_merge_commit(
-        self, tmp_path: Path, feature_state_file: Path, monkeypatch
-    ) -> None:
+    def test_merge_cmd_success_no_merge_commit(self, tmp_path: Path, feature_state_file: Path, monkeypatch) -> None:
         """Test merge_cmd handles success with no merge commit."""
         monkeypatch.chdir(tmp_path)
         with (
@@ -812,8 +760,6 @@ class TestMergeCmdSuccessNoCommit:
             )
             mock_orch_cls.return_value = mock_orch
             runner = CliRunner()
-            result = runner.invoke(
-                merge_cmd, ["--feature", "test-feature"], input="y\n"
-            )
+            result = runner.invoke(merge_cmd, ["--feature", "test-feature"], input="y\n")
             assert result.exit_code == 0
             assert "merged successfully" in result.output

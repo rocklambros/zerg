@@ -223,9 +223,7 @@ class DynamicDevcontainerGenerator:
 
         # Add Claude CLI installation if requested
         if self.install_claude:
-            post_create_commands.append(
-                "npm install -g @anthropic-ai/claude-code || true"
-            )
+            post_create_commands.append("npm install -g @anthropic-ai/claude-code || true")
 
         # Add ZERG ready signal
         post_create_commands.append("echo 'ZERG worker ready'")
@@ -370,7 +368,7 @@ class DynamicDevcontainerGenerator:
         output_dir = output_dir or Path(".zerg")
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        script_content = '''#!/bin/bash
+        script_content = """#!/bin/bash
 # ZERG Worker Entry - Invokes Claude with native task list
 set -e
 
@@ -396,7 +394,7 @@ fi
 exec claude --task-list "$TASK_LIST_ID" \\
      --dangerously-skip-permissions \\
      --env ZERG_WORKER_ID="$WORKER_ID"
-'''
+"""
 
         script_path = output_dir / "worker_entry.sh"
         with open(script_path, "w") as f:

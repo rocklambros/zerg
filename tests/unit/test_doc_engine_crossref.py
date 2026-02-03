@@ -6,11 +6,7 @@ for both modules with >=80% line coverage target.
 
 from __future__ import annotations
 
-import textwrap
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 from zerg.doc_engine.crossref import (
     CrossRefBuilder,
@@ -28,7 +24,6 @@ from zerg.doc_engine.dependencies import (
     _path_to_module,
     _resolve_import,
 )
-
 
 # ======================================================================
 # crossref.py -- helper functions
@@ -264,9 +259,7 @@ class TestCrossRefBuilderInjectLinks:
 
     def test_first_occurrence_only(self) -> None:
         glossary = [GlossaryEntry(term="Widget", definition=".", page="other")]
-        result = self.builder.inject_links(
-            "Widget first. Widget second.", glossary, "mypage"
-        )
+        result = self.builder.inject_links("Widget first. Widget second.", glossary, "mypage")
         assert result.count("[[Widget|Widget]]") == 1
 
     def test_longer_term_takes_priority(self) -> None:
@@ -309,11 +302,7 @@ class TestCrossRefBuilderInjectLinks:
         assert "[[Widget|widget]]" in result
 
     def test_aliases_linked(self) -> None:
-        glossary = [
-            GlossaryEntry(
-                term="CLI", definition=".", page="other", aliases=["command-line"]
-            )
-        ]
+        glossary = [GlossaryEntry(term="CLI", definition=".", page="other", aliases=["command-line"])]
         content = "The command-line interface."
         result = self.builder.inject_links(content, glossary, "mypage")
         assert "[[CLI|command-line]]" in result
@@ -388,7 +377,7 @@ class TestCrossRefBuilderSeeAlso:
         assert self.builder.see_also("nonexistent", pages) == []
 
     def test_max_related_limits_output(self) -> None:
-        pages = {f"page{i}": f"## Shared\n\nCommon keyword content." for i in range(20)}
+        pages = {f"page{i}": "## Shared\n\nCommon keyword content." for i in range(20)}
         related = self.builder.see_also("page0", pages, max_related=3)
         assert len(related) <= 3
 
@@ -481,9 +470,7 @@ class TestCrossRefBuilderGenerateGlossaryPage:
 
     def test_aliases_rendered(self) -> None:
         glossary = [
-            GlossaryEntry(
-                term="CLI", definition=".", page="p1", aliases=["cmd", "terminal"]
-            ),
+            GlossaryEntry(term="CLI", definition=".", page="p1", aliases=["cmd", "terminal"]),
         ]
         page = self.builder.generate_glossary_page(glossary)
         assert "*Aliases: cmd, terminal*" in page
@@ -703,9 +690,7 @@ class TestDependencyGraph:
     def test_get_importers_existing_module(self) -> None:
         graph = DependencyGraph(
             modules={
-                "pkg.b": ModuleNode(
-                    name="pkg.b", imported_by=["pkg.a", "pkg.c"]
-                ),
+                "pkg.b": ModuleNode(name="pkg.b", imported_by=["pkg.a", "pkg.c"]),
             }
         )
         result = graph.get_importers("pkg.b")
@@ -740,9 +725,7 @@ class TestDependencyGraph:
         assert isinstance(chain, list)
 
     def test_get_dependency_chain_no_deps(self) -> None:
-        graph = DependencyGraph(
-            modules={"a": ModuleNode(name="a")}
-        )
+        graph = DependencyGraph(modules={"a": ModuleNode(name="a")})
         assert graph.get_dependency_chain("a") == []
 
     def test_get_dependency_chain_missing_module(self) -> None:

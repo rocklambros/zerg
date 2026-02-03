@@ -294,9 +294,7 @@ class TestZergConfig:
         data = {
             "project": {"name": "test-project"},
             "workers": {"max_concurrent": 3},
-            "quality_gates": [
-                {"name": "lint", "command": "ruff check", "required": True}
-            ],
+            "quality_gates": [{"name": "lint", "command": "ruff check", "required": True}],
         }
         config = ZergConfig.from_dict(data)
         assert config.project.name == "test-project"

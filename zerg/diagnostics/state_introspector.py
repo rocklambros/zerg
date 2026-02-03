@@ -105,12 +105,14 @@ class ZergStateIntrospector:
             total += 1
 
             if status == "failed":
-                failed_tasks.append({
-                    "task_id": task_id,
-                    "error": task_data.get("error", ""),
-                    "retry_count": task_data.get("retry_count", 0),
-                    "worker_id": task_data.get("worker_id"),
-                })
+                failed_tasks.append(
+                    {
+                        "task_id": task_id,
+                        "error": task_data.get("error", ""),
+                        "retry_count": task_data.get("retry_count", 0),
+                        "worker_id": task_data.get("worker_id"),
+                    }
+                )
 
         # Extract worker summary
         workers = state.get("workers", {})
@@ -125,11 +127,13 @@ class ZergStateIntrospector:
         stale_tasks: list[dict[str, Any]] = []
         for task_id, task_data in tasks.items():
             if task_data.get("status") in ("in_progress", "claimed"):
-                stale_tasks.append({
-                    "task_id": task_id,
-                    "status": task_data.get("status"),
-                    "worker_id": task_data.get("worker_id"),
-                })
+                stale_tasks.append(
+                    {
+                        "task_id": task_id,
+                        "status": task_data.get("status"),
+                        "worker_id": task_data.get("worker_id"),
+                    }
+                )
 
         # Collect recent errors
         recent_errors: list[str] = []
@@ -214,13 +218,9 @@ class ZergStateIntrospector:
                 missing_state = graph_tasks - state_tasks
 
                 if orphaned_state:
-                    issues.append(
-                        f"Tasks in state but not in graph: {sorted(orphaned_state)}"
-                    )
+                    issues.append(f"Tasks in state but not in graph: {sorted(orphaned_state)}")
                 if missing_state:
-                    issues.append(
-                        f"Tasks in graph but not in state: {sorted(missing_state)}"
-                    )
+                    issues.append(f"Tasks in graph but not in state: {sorted(missing_state)}")
             except (json.JSONDecodeError, OSError) as e:
                 issues.append(f"Cannot parse task graph: {e}")
         else:

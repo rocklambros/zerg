@@ -88,9 +88,7 @@ class TrivyAdapter(BaseToolAdapter):
     # Parsers
     # ------------------------------------------------------------------
 
-    def _parse_vulnerabilities(
-        self, entry: dict, target: str
-    ) -> list[PerformanceFinding]:
+    def _parse_vulnerabilities(self, entry: dict, target: str) -> list[PerformanceFinding]:
         """Extract vulnerability findings from a single result entry."""
         vulns = entry.get("Vulnerabilities")
         if not isinstance(vulns, list):
@@ -159,9 +157,7 @@ class TrivyAdapter(BaseToolAdapter):
             )
         return findings
 
-    def _parse_misconfigurations(
-        self, entry: dict, target: str
-    ) -> list[PerformanceFinding]:
+    def _parse_misconfigurations(self, entry: dict, target: str) -> list[PerformanceFinding]:
         """Extract misconfiguration findings from a single result entry."""
         misconfigs = entry.get("Misconfigurations")
         if not isinstance(misconfigs, list):

@@ -97,9 +97,7 @@ def config_with_gates() -> ZergConfig:
 class TestBasicSimulation:
     """Tests for the happy-path simulation."""
 
-    def test_basic_simulation(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig
-    ) -> None:
+    def test_basic_simulation(self, valid_task_graph: dict[str, Any], default_config: ZergConfig) -> None:
         """A valid task graph produces a report with no errors."""
         sim = DryRunSimulator(
             task_data=valid_task_graph,
@@ -109,9 +107,7 @@ class TestBasicSimulation:
         )
         # Mock preflight so environment-specific checks (Docker image
         # availability, disk space) don't cause spurious failures in CI.
-        mock_preflight = PreflightReport(
-            checks=[CheckResult(name="mock", passed=True, message="ok", severity="error")]
-        )
+        mock_preflight = PreflightReport(checks=[CheckResult(name="mock", passed=True, message="ok", severity="error")])
         with patch.object(sim, "_run_preflight", return_value=mock_preflight):
             report = sim.run()
 
@@ -141,12 +137,24 @@ class TestLevelStructureValidation:
         task_data = {
             "feature": "gap-test",
             "tasks": [
-                {"id": "T1", "title": "A", "level": 1, "dependencies": [],
-                 "files": {"create": ["a.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 5},
-                {"id": "T3", "title": "B", "level": 3, "dependencies": ["T1"],
-                 "files": {"create": ["b.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 5},
+                {
+                    "id": "T1",
+                    "title": "A",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["a.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 5,
+                },
+                {
+                    "id": "T3",
+                    "title": "B",
+                    "level": 3,
+                    "dependencies": ["T1"],
+                    "files": {"create": ["b.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 5,
+                },
             ],
             "levels": {
                 "1": {"name": "first", "tasks": ["T1"]},
@@ -154,7 +162,10 @@ class TestLevelStructureValidation:
             },
         }
         sim = DryRunSimulator(
-            task_data=task_data, workers=1, feature="gap-test", config=default_config,
+            task_data=task_data,
+            workers=1,
+            feature="gap-test",
+            config=default_config,
         )
         issues = sim._validate_level_structure()
         assert any("Gap" in i or "missing" in i.lower() for i in issues)
@@ -173,17 +184,32 @@ class TestFileOwnershipValidation:
         task_data = {
             "feature": "conflict-test",
             "tasks": [
-                {"id": "T1", "title": "A", "level": 1, "dependencies": [],
-                 "files": {"create": ["shared.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 5},
-                {"id": "T2", "title": "B", "level": 1, "dependencies": [],
-                 "files": {"create": [], "modify": ["shared.py"], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 5},
+                {
+                    "id": "T1",
+                    "title": "A",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["shared.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 5,
+                },
+                {
+                    "id": "T2",
+                    "title": "B",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": [], "modify": ["shared.py"], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 5,
+                },
             ],
             "levels": {"1": {"name": "first", "tasks": ["T1", "T2"]}},
         }
         sim = DryRunSimulator(
-            task_data=task_data, workers=2, feature="conflict-test", config=default_config,
+            task_data=task_data,
+            workers=2,
+            feature="conflict-test",
+            config=default_config,
         )
         issues = sim._validate_file_ownership()
         assert len(issues) > 0
@@ -203,17 +229,32 @@ class TestDependencyValidation:
         task_data = {
             "feature": "cycle-test",
             "tasks": [
-                {"id": "T1", "title": "A", "level": 1, "dependencies": ["T2"],
-                 "files": {"create": ["a.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 5},
-                {"id": "T2", "title": "B", "level": 1, "dependencies": ["T1"],
-                 "files": {"create": ["b.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 5},
+                {
+                    "id": "T1",
+                    "title": "A",
+                    "level": 1,
+                    "dependencies": ["T2"],
+                    "files": {"create": ["a.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 5,
+                },
+                {
+                    "id": "T2",
+                    "title": "B",
+                    "level": 1,
+                    "dependencies": ["T1"],
+                    "files": {"create": ["b.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 5,
+                },
             ],
             "levels": {"1": {"name": "first", "tasks": ["T1", "T2"]}},
         }
         sim = DryRunSimulator(
-            task_data=task_data, workers=2, feature="cycle-test", config=default_config,
+            task_data=task_data,
+            workers=2,
+            feature="cycle-test",
+            config=default_config,
         )
         issues = sim._validate_dependencies()
         assert len(issues) > 0
@@ -233,18 +274,31 @@ class TestMissingVerifications:
         task_data = {
             "feature": "no-verify",
             "tasks": [
-                {"id": "T1", "title": "A", "level": 1, "dependencies": [],
-                 "files": {"create": ["a.py"], "modify": [], "read": []},
-                 "estimate_minutes": 5},
-                {"id": "T2", "title": "B", "level": 1, "dependencies": [],
-                 "files": {"create": ["b.py"], "modify": [], "read": []},
-                 "verification": {},
-                 "estimate_minutes": 5},
+                {
+                    "id": "T1",
+                    "title": "A",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["a.py"], "modify": [], "read": []},
+                    "estimate_minutes": 5,
+                },
+                {
+                    "id": "T2",
+                    "title": "B",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["b.py"], "modify": [], "read": []},
+                    "verification": {},
+                    "estimate_minutes": 5,
+                },
             ],
             "levels": {"1": {"name": "first", "tasks": ["T1", "T2"]}},
         }
         sim = DryRunSimulator(
-            task_data=task_data, workers=1, feature="no-verify", config=default_config,
+            task_data=task_data,
+            workers=1,
+            feature="no-verify",
+            config=default_config,
         )
         warnings = sim._check_missing_verifications()
         assert len(warnings) == 2
@@ -265,17 +319,32 @@ class TestTimeline:
         task_data = {
             "feature": "single-level",
             "tasks": [
-                {"id": "T1", "title": "A", "level": 1, "dependencies": [],
-                 "files": {"create": ["a.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 10},
-                {"id": "T2", "title": "B", "level": 1, "dependencies": [],
-                 "files": {"create": ["b.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 20},
+                {
+                    "id": "T1",
+                    "title": "A",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["a.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 10,
+                },
+                {
+                    "id": "T2",
+                    "title": "B",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["b.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 20,
+                },
             ],
             "levels": {"1": {"name": "first", "tasks": ["T1", "T2"]}},
         }
         sim = DryRunSimulator(
-            task_data=task_data, workers=2, feature="single-level", config=default_config,
+            task_data=task_data,
+            workers=2,
+            feature="single-level",
+            config=default_config,
         )
         from zerg.assign import WorkerAssignment
 
@@ -287,12 +356,13 @@ class TestTimeline:
         assert timeline.estimated_wall_minutes == 20
         assert timeline.total_sequential_minutes == 30
 
-    def test_timeline_multi_level(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig
-    ) -> None:
+    def test_timeline_multi_level(self, valid_task_graph: dict[str, Any], default_config: ZergConfig) -> None:
         """Wall time across levels sums per-level max."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="multi", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="multi",
+            config=default_config,
         )
         from zerg.assign import WorkerAssignment
 
@@ -310,17 +380,32 @@ class TestTimeline:
         task_data = {
             "feature": "efficiency",
             "tasks": [
-                {"id": "T1", "title": "A", "level": 1, "dependencies": [],
-                 "files": {"create": ["a.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 10},
-                {"id": "T2", "title": "B", "level": 1, "dependencies": [],
-                 "files": {"create": ["b.py"], "modify": [], "read": []},
-                 "verification": {"command": "true"}, "estimate_minutes": 10},
+                {
+                    "id": "T1",
+                    "title": "A",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["a.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 10,
+                },
+                {
+                    "id": "T2",
+                    "title": "B",
+                    "level": 1,
+                    "dependencies": [],
+                    "files": {"create": ["b.py"], "modify": [], "read": []},
+                    "verification": {"command": "true"},
+                    "estimate_minutes": 10,
+                },
             ],
             "levels": {"1": {"name": "first", "tasks": ["T1", "T2"]}},
         }
         sim = DryRunSimulator(
-            task_data=task_data, workers=2, feature="eff", config=default_config,
+            task_data=task_data,
+            workers=2,
+            feature="eff",
+            config=default_config,
         )
         from zerg.assign import WorkerAssignment
 
@@ -341,14 +426,20 @@ class TestResourceChecks:
     """Tests for _check_resources."""
 
     def test_resource_no_git(
-        self, default_config: ZergConfig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+        self,
+        default_config: ZergConfig,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Missing .git directory is an error."""
         monkeypatch.chdir(tmp_path)
 
         task_data = {"feature": "no-git", "tasks": [], "levels": {}}
         sim = DryRunSimulator(
-            task_data=task_data, workers=1, feature="no-git", config=default_config,
+            task_data=task_data,
+            workers=1,
+            feature="no-git",
+            config=default_config,
         )
         issues = sim._check_resources()
         assert any(".git" in i for i in issues)
@@ -366,8 +457,11 @@ class TestQualityGates:
         """Default (run_gates=False) lists gates as not_run."""
         task_data = {"feature": "gates", "tasks": [], "levels": {}}
         sim = DryRunSimulator(
-            task_data=task_data, workers=1, feature="gates",
-            config=config_with_gates, run_gates=False,
+            task_data=task_data,
+            workers=1,
+            feature="gates",
+            config=config_with_gates,
+            run_gates=False,
         )
         results = sim._check_quality_gates()
         assert len(results) == 2
@@ -378,9 +472,7 @@ class TestQualityGates:
         assert results[1].required is False
 
     @patch("zerg.dryrun.GateRunner")
-    def test_gates_run(
-        self, mock_runner_cls: MagicMock, config_with_gates: ZergConfig
-    ) -> None:
+    def test_gates_run(self, mock_runner_cls: MagicMock, config_with_gates: ZergConfig) -> None:
         """run_gates=True calls GateRunner."""
         mock_runner = MagicMock()
         mock_runner_cls.return_value = mock_runner
@@ -410,8 +502,11 @@ class TestQualityGates:
 
         task_data = {"feature": "gates", "tasks": [], "levels": {}}
         sim = DryRunSimulator(
-            task_data=task_data, workers=1, feature="gates",
-            config=config_with_gates, run_gates=True,
+            task_data=task_data,
+            workers=1,
+            feature="gates",
+            config=config_with_gates,
+            run_gates=True,
         )
         results = sim._check_quality_gates()
 
@@ -435,7 +530,9 @@ class TestReportProperties:
 
     def test_report_has_errors_on_file_ownership(self) -> None:
         report = DryRunReport(
-            feature="x", workers=1, mode="auto",
+            feature="x",
+            workers=1,
+            mode="auto",
             file_ownership_issues=["conflict"],
         )
         assert report.has_errors
@@ -450,7 +547,9 @@ class TestReportProperties:
 
     def test_report_has_errors_on_required_gate_failure(self) -> None:
         report = DryRunReport(
-            feature="x", workers=1, mode="auto",
+            feature="x",
+            workers=1,
+            mode="auto",
             gate_results=[
                 GateCheckResult(name="lint", command="x", required=True, status="failed"),
             ],
@@ -459,11 +558,15 @@ class TestReportProperties:
 
     def test_report_no_error_on_optional_gate_failure(self) -> None:
         report = DryRunReport(
-            feature="x", workers=1, mode="auto",
+            feature="x",
+            workers=1,
+            mode="auto",
             gate_results=[
                 GateCheckResult(
-                    name="lint", command="x",
-                    required=False, status="failed",
+                    name="lint",
+                    command="x",
+                    required=False,
+                    status="failed",
                 ),
             ],
         )
@@ -485,12 +588,17 @@ class TestRender:
     """Tests for _render_report output."""
 
     def test_render_sections(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig,
+        self,
+        valid_task_graph: dict[str, Any],
+        default_config: ZergConfig,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Output contains panel headers for all sections."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="render-test", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="render-test",
+            config=default_config,
         )
         sim.run()
 
@@ -503,12 +611,17 @@ class TestRender:
         assert "ready to rush" in captured.out.lower()
 
     def test_render_includes_preflight(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig,
+        self,
+        valid_task_graph: dict[str, Any],
+        default_config: ZergConfig,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Output contains Pre-flight panel."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="pf-test", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="pf-test",
+            config=default_config,
         )
         sim.run()
 
@@ -516,12 +629,17 @@ class TestRender:
         assert "Pre-flight" in captured.out
 
     def test_render_includes_risk(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig,
+        self,
+        valid_task_graph: dict[str, Any],
+        default_config: ZergConfig,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Output contains Risk Assessment panel."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="risk-test", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="risk-test",
+            config=default_config,
         )
         sim.run()
 
@@ -529,12 +647,17 @@ class TestRender:
         assert "Risk Assessment" in captured.out
 
     def test_render_includes_gantt(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig,
+        self,
+        valid_task_graph: dict[str, Any],
+        default_config: ZergConfig,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Output contains Gantt Timeline panel."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="gantt-test", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="gantt-test",
+            config=default_config,
         )
         sim.run()
 
@@ -542,12 +665,17 @@ class TestRender:
         assert "Gantt Timeline" in captured.out
 
     def test_render_includes_snapshots(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig,
+        self,
+        valid_task_graph: dict[str, Any],
+        default_config: ZergConfig,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Output contains Projected Snapshots panel."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="snap-test", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="snap-test",
+            config=default_config,
         )
         sim.run()
 
@@ -564,11 +692,16 @@ class TestPreflightIntegration:
     """Tests for preflight integration in DryRunSimulator."""
 
     def test_preflight_report_included(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig,
+        self,
+        valid_task_graph: dict[str, Any],
+        default_config: ZergConfig,
     ) -> None:
         """Simulator populates preflight report."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="pf-test", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="pf-test",
+            config=default_config,
         )
         report = sim.run()
         assert report.preflight is not None
@@ -576,11 +709,15 @@ class TestPreflightIntegration:
 
     def test_preflight_failure_causes_error(self) -> None:
         """Report has_errors when preflight fails."""
-        pf = PreflightReport(checks=[
-            CheckResult(name="test", passed=False, message="fail", severity="error"),
-        ])
+        pf = PreflightReport(
+            checks=[
+                CheckResult(name="test", passed=False, message="fail", severity="error"),
+            ]
+        )
         report = DryRunReport(
-            feature="x", workers=1, mode="auto",
+            feature="x",
+            workers=1,
+            mode="auto",
             preflight=pf,
         )
         assert report.has_errors
@@ -595,11 +732,16 @@ class TestRiskIntegration:
     """Tests for risk scoring integration in DryRunSimulator."""
 
     def test_risk_report_included(
-        self, valid_task_graph: dict[str, Any], default_config: ZergConfig,
+        self,
+        valid_task_graph: dict[str, Any],
+        default_config: ZergConfig,
     ) -> None:
         """Simulator populates risk report."""
         sim = DryRunSimulator(
-            task_data=valid_task_graph, workers=2, feature="risk-test", config=default_config,
+            task_data=valid_task_graph,
+            workers=2,
+            feature="risk-test",
+            config=default_config,
         )
         report = sim.run()
         assert report.risk is not None
@@ -609,7 +751,9 @@ class TestRiskIntegration:
         """Report has_warnings when risk grade is C or D."""
         risk = RiskReport(grade="C", overall_score=0.7)
         report = DryRunReport(
-            feature="x", workers=1, mode="auto",
+            feature="x",
+            workers=1,
+            mode="auto",
             risk=risk,
         )
         assert report.has_warnings

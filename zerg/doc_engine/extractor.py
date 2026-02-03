@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -65,13 +65,9 @@ def _unparse_node(node: ast.expr) -> str:
 
 def _extract_docstring(node: ast.AST) -> str | None:
     """Extract docstring from a module, class, or function node."""
-    if not isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+    if not isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
         return None
-    if (
-        node.body
-        and isinstance(node.body[0], ast.Expr)
-        and isinstance(node.body[0].value, ast.Constant)
-    ):
+    if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
         value = node.body[0].value
         if isinstance(value, ast.Constant) and isinstance(value.value, str):
             return value.value
@@ -198,7 +194,7 @@ class SymbolExtractor:
             if isinstance(node, ast.ClassDef):
                 classes.append(self._extract_class(node))
 
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 functions.append(_extract_function(node, is_method=False))
 
             elif isinstance(node, ast.Import):
@@ -248,7 +244,7 @@ class SymbolExtractor:
         """Extract ClassInfo from a class AST node."""
         methods: list[FunctionInfo] = []
         for child in node.body:
-            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
                 methods.append(_extract_function(child, is_method=True))
 
         bases = [_unparse_node(base) for base in node.bases]

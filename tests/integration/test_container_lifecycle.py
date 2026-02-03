@@ -3,22 +3,16 @@
 Tests ContainerLauncher spawn, monitor, terminate cycle.
 """
 
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from zerg.constants import WorkerStatus
 from zerg.launcher import (
     ContainerLauncher,
     LauncherConfig,
     LauncherType,
-    SpawnResult,
     WorkerHandle,
     validate_env_vars,
-    ALLOWED_ENV_VARS,
-    DANGEROUS_ENV_VARS,
 )
 
 
@@ -233,7 +227,7 @@ class TestContainerSpawn:
 
         launcher = ContainerLauncher()
 
-        result = launcher.spawn(
+        launcher.spawn(
             worker_id=0,
             feature="test-feature",
             worktree_path=tmp_path,

@@ -7,11 +7,9 @@ Uses MockContainerLauncher to avoid real Docker dependencies.
 
 from pathlib import Path
 
-import pytest
-
+from tests.mocks.mock_launcher import MockContainerLauncher
 from zerg.constants import WorkerStatus
 from zerg.launcher import LauncherConfig, WorkerHandle
-from tests.mocks.mock_launcher import MockContainerLauncher
 
 
 class TestSpawnToTerminateLifecycle:
@@ -815,11 +813,7 @@ class TestEdgeCases:
 
     def test_configure_returns_self_for_chaining(self, tmp_path: Path) -> None:
         """Test that configure returns self for method chaining."""
-        launcher = (
-            MockContainerLauncher()
-            .configure(exec_fail_workers={1})
-            .configure(spawn_fail_workers={2})
-        )
+        launcher = MockContainerLauncher().configure(exec_fail_workers={1}).configure(spawn_fail_workers={2})
 
         # Last configure should win
         assert 2 in launcher._spawn_fail_workers

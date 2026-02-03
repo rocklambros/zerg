@@ -635,7 +635,7 @@ class TestIntegration:
 
         # Simulate task execution
         for i, worker in enumerate(workers):
-            task_id = f"L1-T{i*2+1}"
+            task_id = f"L1-T{i * 2 + 1}"
             worker.start_task(task_id, context_usage=0.1)
             time.sleep(0.01)
             worker.complete_task(
@@ -646,7 +646,7 @@ class TestIntegration:
             )
             collector.record_task_completion(level=1, success=True)
 
-            task_id = f"L1-T{i*2+2}"
+            task_id = f"L1-T{i * 2 + 2}"
             worker.start_task(task_id, context_usage=0.2)
             time.sleep(0.01)
             if i == 2:  # Last worker has a failure

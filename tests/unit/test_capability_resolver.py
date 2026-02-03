@@ -7,7 +7,6 @@ import pytest
 from zerg.capability_resolver import CapabilityResolver, ResolvedCapabilities
 from zerg.config import ZergConfig
 
-
 # ---------------------------------------------------------------------------
 # ResolvedCapabilities dataclass tests
 # ---------------------------------------------------------------------------
@@ -132,16 +131,12 @@ class TestCapabilityResolverResolve:
 
     def test_resolve_loop_off(self, resolver, default_config):
         """CLI loop=False disables improvement loops."""
-        rc = resolver.resolve(
-            cli_flags={"loop": False}, config=default_config, command="rush"
-        )
+        rc = resolver.resolve(cli_flags={"loop": False}, config=default_config, command="rush")
         assert rc.loop_enabled is False
 
     def test_resolve_iterations_override(self, resolver, default_config):
         """CLI iterations value overrides config default."""
-        rc = resolver.resolve(
-            cli_flags={"iterations": 10}, config=default_config
-        )
+        rc = resolver.resolve(cli_flags={"iterations": 10}, config=default_config)
         assert rc.loop_iterations == 10
 
     def test_resolve_deepest_wins_from_task_graph(self, resolver, default_config):
@@ -156,14 +151,9 @@ class TestCapabilityResolverResolve:
                 {
                     "id": "TASK-002",
                     "description": (
-                        "complex architectural refactor spanning security, "
-                        "performance, and database migration layers"
+                        "complex architectural refactor spanning security, performance, and database migration layers"
                     ),
-                    "files": {
-                        "modify": [
-                            f"src/module_{i}.py" for i in range(15)
-                        ]
-                    },
+                    "files": {"modify": [f"src/module_{i}.py" for i in range(15)]},
                 },
             ]
         }

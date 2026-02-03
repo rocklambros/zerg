@@ -1,6 +1,5 @@
 """Tests for GitConfig and sub-config models."""
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest

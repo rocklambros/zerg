@@ -123,9 +123,7 @@ class ComponentDetector:
             return True
 
         # Python files with "config" in the name
-        if suffix_lower == ".py" and any(
-            token in stem_lower for token in _CONFIG_STEMS
-        ):
+        if suffix_lower == ".py" and any(token in stem_lower for token in _CONFIG_STEMS):
             return True
 
         return False
@@ -152,17 +150,11 @@ class ComponentDetector:
         except (OSError, SyntaxError):
             return False
 
-        top_level = [
-            node
-            for node in tree.body
-            if not isinstance(node, (ast.Import, ast.ImportFrom))
-        ]
+        top_level = [node for node in tree.body if not isinstance(node, ast.Import | ast.ImportFrom)]
         if not top_level:
             return False
 
-        type_def_count = sum(
-            1 for node in top_level if isinstance(node, _TYPE_DEF_NODES)
-        )
+        type_def_count = sum(1 for node in top_level if isinstance(node, _TYPE_DEF_NODES))
         return type_def_count / len(top_level) > 0.5
 
     @staticmethod

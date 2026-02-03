@@ -1,7 +1,6 @@
 """ZERG stop command - stop execution gracefully or forcefully."""
 
 import time
-from pathlib import Path
 from typing import Any
 
 import click
@@ -196,10 +195,7 @@ def stop_workers_graceful(
         workers = state.get_all_workers()
 
         # Check if all stopped
-        still_running = [
-            wid for wid, w in workers.items()
-            if w.status in (WorkerStatus.RUNNING, WorkerStatus.STOPPING)
-        ]
+        still_running = [wid for wid, w in workers.items() if w.status in (WorkerStatus.RUNNING, WorkerStatus.STOPPING)]
 
         if not still_running:
             console.print("[green]All workers stopped gracefully[/green]")
@@ -212,7 +208,8 @@ def stop_workers_graceful(
     console.print("[yellow]Timeout reached, forcing remaining workers...[/yellow]")
     state.load()
     remaining = {
-        wid: w for wid, w in state.get_all_workers().items()
+        wid: w
+        for wid, w in state.get_all_workers().items()
         if w.status in (WorkerStatus.RUNNING, WorkerStatus.STOPPING)
     }
 
@@ -249,10 +246,13 @@ def stop_workers_force(
                 state.set_worker_state(worker_state)
 
             # Log event
-            state.append_event("worker_killed", {
-                "worker_id": worker_id,
-                "force": True,
-            })
+            state.append_event(
+                "worker_killed",
+                {
+                    "worker_id": worker_id,
+                    "force": True,
+                },
+            )
 
         except Exception as e:
             logger.error(f"Failed to kill worker {worker_id}: {e}")

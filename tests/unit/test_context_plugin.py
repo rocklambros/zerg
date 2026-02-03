@@ -1,7 +1,7 @@
 """Tests for ZERG context engineering plugin module."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -59,14 +59,11 @@ class TestBuildTaskContext:
             },
         }
 
-        with patch(
-            "zerg.context_plugin.DEFAULT_RULES_DIR", rules_dir
-        ), patch(
-            "zerg.context_plugin.SpecLoader"
-        ) as mock_loader_cls:
-            mock_loader_cls.return_value.format_task_context.return_value = (
-                "## Spec: user API endpoint"
-            )
+        with (
+            patch("zerg.context_plugin.DEFAULT_RULES_DIR", rules_dir),
+            patch("zerg.context_plugin.SpecLoader") as mock_loader_cls,
+        ):
+            mock_loader_cls.return_value.format_task_context.return_value = "## Spec: user API endpoint"
             result = plugin.build_task_context(task, {}, "user-auth")
 
         # Should include security section and spec section
@@ -109,14 +106,12 @@ class TestBuildTaskContext:
         py_dir = rules_dir / "languages" / "python"
         py_dir.mkdir(parents=True)
         (py_dir / "CLAUDE.md").write_text(
-            "### Rule: Safe subprocess\n**Level**: `strict`\n"
-            "**When**: Executing system commands.\n"
+            "### Rule: Safe subprocess\n**Level**: `strict`\n**When**: Executing system commands.\n"
         )
         core_dir = rules_dir / "_core"
         core_dir.mkdir(parents=True)
         (core_dir / "owasp-2025.md").write_text(
-            "### Rule: Parameterized Queries\n**Level**: `strict`\n"
-            "**When**: Constructing queries.\n"
+            "### Rule: Parameterized Queries\n**Level**: `strict`\n**When**: Constructing queries.\n"
         )
 
         # Task has only .py files -- should get python rules
@@ -126,9 +121,10 @@ class TestBuildTaskContext:
             "description": "Python task",
         }
 
-        with patch(
-            "zerg.context_plugin.DEFAULT_RULES_DIR", rules_dir
-        ), patch("zerg.context_plugin.SpecLoader") as mock_loader_cls:
+        with (
+            patch("zerg.context_plugin.DEFAULT_RULES_DIR", rules_dir),
+            patch("zerg.context_plugin.SpecLoader") as mock_loader_cls,
+        ):
             mock_loader_cls.return_value.format_task_context.return_value = ""
             result = plugin.build_task_context(task, {}, "feat")
 
@@ -151,14 +147,10 @@ class TestBuildTaskContext:
         core_dir = rules_dir / "_core"
         core_dir.mkdir(parents=True)
         # Write a rule file that would be large
-        (core_dir / "owasp-2025.md").write_text(
-            ("### Rule: Test Rule\n**Level**: `strict`\n**When**: Always.\n" * 100)
-        )
+        (core_dir / "owasp-2025.md").write_text("### Rule: Test Rule\n**Level**: `strict`\n**When**: Always.\n" * 100)
         py_dir = rules_dir / "languages" / "python"
         py_dir.mkdir(parents=True)
-        (py_dir / "CLAUDE.md").write_text(
-            ("### Rule: PY Rule\n**Level**: `strict`\n**When**: Always.\n" * 100)
-        )
+        (py_dir / "CLAUDE.md").write_text("### Rule: PY Rule\n**Level**: `strict`\n**When**: Always.\n" * 100)
 
         task = {
             "id": "T-4",
@@ -166,9 +158,10 @@ class TestBuildTaskContext:
             "description": "Test",
         }
 
-        with patch(
-            "zerg.context_plugin.DEFAULT_RULES_DIR", rules_dir
-        ), patch("zerg.context_plugin.SpecLoader") as mock_loader_cls:
+        with (
+            patch("zerg.context_plugin.DEFAULT_RULES_DIR", rules_dir),
+            patch("zerg.context_plugin.SpecLoader") as mock_loader_cls,
+        ):
             mock_loader_cls.return_value.format_task_context.return_value = ""
             result = plugin.build_task_context(task, {}, "feat")
 
@@ -183,9 +176,7 @@ class TestBuildTaskContext:
 
         task = {"id": "T-5", "description": "test", "files": {"create": ["a.py"]}}
 
-        with patch.object(
-            plugin, "_build_context_inner", side_effect=RuntimeError("boom")
-        ):
+        with patch.object(plugin, "_build_context_inner", side_effect=RuntimeError("boom")):
             result = plugin.build_task_context(task, {}, "feat")
 
         assert result == ""
@@ -197,9 +188,7 @@ class TestBuildTaskContext:
 
         task = {"id": "T-6", "description": "test", "files": {"create": ["a.py"]}}
 
-        with patch.object(
-            plugin, "_build_context_inner", side_effect=RuntimeError("boom")
-        ):
+        with patch.object(plugin, "_build_context_inner", side_effect=RuntimeError("boom")):
             with pytest.raises(RuntimeError, match="boom"):
                 plugin.build_task_context(task, {}, "feat")
 

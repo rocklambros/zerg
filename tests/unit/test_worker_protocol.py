@@ -6,12 +6,9 @@ communication and task execution.
 
 import os
 import subprocess
-import sys
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from zerg.constants import DEFAULT_CONTEXT_THRESHOLD, ExitCode, TaskStatus
 from zerg.worker_protocol import (
@@ -1192,9 +1189,7 @@ class TestWorkerProtocolInvokeClaudeCode:
         mock_spec_loader.specs_exist.return_value = False
         mock_spec_loader_cls.return_value = mock_spec_loader
 
-        mock_subprocess_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["claude"], timeout=30
-        )
+        mock_subprocess_run.side_effect = subprocess.TimeoutExpired(cmd=["claude"], timeout=30)
 
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
@@ -1930,9 +1925,7 @@ class TestWorkerProtocolReporting:
 
         assert protocol.tasks_completed == 1
         assert protocol.current_task is None
-        mock_state.set_task_status.assert_called_with(
-            "TASK-001", TaskStatus.COMPLETE, worker_id=1
-        )
+        mock_state.set_task_status.assert_called_with("TASK-001", TaskStatus.COMPLETE, worker_id=1)
         mock_state.append_event.assert_called()
 
     @patch("zerg.worker_protocol.StateManager")
@@ -2383,10 +2376,12 @@ class TestWorkerProtocolStart:
         """Test start when no tasks available."""
         # Make time.time() return values that quickly exceed max_wait
         call_count = 0
+
         def mock_time_fn():
             nonlocal call_count
             call_count += 1
             return call_count * 200.0
+
         mock_time.time.side_effect = mock_time_fn
         mock_time.sleep = MagicMock()
 
@@ -2436,10 +2431,12 @@ class TestWorkerProtocolStart:
         """Test start executes available tasks."""
         # Make time.time() return values that quickly exceed max_wait
         call_count = 0
+
         def mock_time_fn():
             nonlocal call_count
             call_count += 1
             return call_count * 200.0
+
         mock_time.time.side_effect = mock_time_fn
         mock_time.sleep = MagicMock()
 
@@ -2459,12 +2456,14 @@ class TestWorkerProtocolStart:
         mock_context_cls.return_value = mock_context
 
         mock_state = MagicMock()
+
         # First call returns tasks, subsequent calls return empty (infinite iterator)
         def get_tasks_side_effect(*args):
-            if not hasattr(get_tasks_side_effect, 'called'):
+            if not hasattr(get_tasks_side_effect, "called"):
                 get_tasks_side_effect.called = True
                 return ["TASK-001"]
             return []
+
         mock_state.get_tasks_by_status.side_effect = get_tasks_side_effect
         mock_state.claim_task.return_value = True
         mock_state_cls.return_value = mock_state
@@ -2501,10 +2500,12 @@ class TestWorkerProtocolStart:
         """Test start handles task execution failure and calls report_failed."""
         # Make time.time() return values that quickly exceed max_wait
         call_count = 0
+
         def mock_time_fn():
             nonlocal call_count
             call_count += 1
             return call_count * 200.0
+
         mock_time.time.side_effect = mock_time_fn
         mock_time.sleep = MagicMock()
 
@@ -2524,12 +2525,14 @@ class TestWorkerProtocolStart:
         mock_context_cls.return_value = mock_context
 
         mock_state = MagicMock()
+
         # First call returns task, subsequent calls return empty (infinite iterator)
         def get_tasks_side_effect(*args):
-            if not hasattr(get_tasks_side_effect, 'called'):
+            if not hasattr(get_tasks_side_effect, "called"):
                 get_tasks_side_effect.called = True
                 return ["TASK-001"]
             return []
+
         mock_state.get_tasks_by_status.side_effect = get_tasks_side_effect
         mock_state.claim_task.return_value = True
         mock_state_cls.return_value = mock_state
@@ -2546,9 +2549,7 @@ class TestWorkerProtocolStart:
         # Verify execute_task was called
         protocol.execute_task.assert_called_once()
         # Verify report_failed was called with the task ID and error message
-        protocol.report_failed.assert_called_once_with(
-            "TASK-001", "Task execution failed"
-        )
+        protocol.report_failed.assert_called_once_with("TASK-001", "Task execution failed")
         mock_exit.assert_called_with(ExitCode.SUCCESS)
 
     @patch("zerg.worker_protocol.sys.exit")

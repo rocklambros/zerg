@@ -177,11 +177,7 @@ class WhatIfEngine:
         overhead = self.MODE_OVERHEAD.get(mode, 1.0)
         estimated_wall = int(raw_wall * overhead)
 
-        efficiency = (
-            total_sequential / (estimated_wall * workers)
-            if estimated_wall > 0 and workers > 0
-            else 0.0
-        )
+        efficiency = total_sequential / (estimated_wall * workers) if estimated_wall > 0 and workers > 0 else 0.0
 
         # Worker load range
         summary = assigner.get_workload_summary()
@@ -213,7 +209,4 @@ class WhatIfEngine:
             key=lambda s: s.estimated_wall_minutes * (1.0 + max(0, 0.5 - s.efficiency)),
         )
 
-        return (
-            f"{best.label}: {best.estimated_wall_minutes}m wall time, "
-            f"{best.efficiency:.0%} efficiency"
-        )
+        return f"{best.label}: {best.estimated_wall_minutes}m wall time, {best.efficiency:.0%} efficiency"

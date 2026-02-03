@@ -1,14 +1,13 @@
 """Tests for LauncherConfigurator component."""
 
 from datetime import datetime, timedelta
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import LauncherType, SubprocessLauncher, ContainerLauncher
+from zerg.launcher import ContainerLauncher, LauncherType, SubprocessLauncher
 from zerg.launcher_configurator import LauncherConfigurator
 from zerg.plugins import PluginRegistry
 from zerg.types import WorkerState
@@ -58,9 +57,7 @@ class TestCreateLauncher:
         assert isinstance(launcher, SubprocessLauncher)
 
     @patch("zerg.launcher_configurator.ContainerLauncher")
-    def test_create_launcher_container_raises_on_docker_failure(
-        self, mock_container_cls, configurator
-    ):
+    def test_create_launcher_container_raises_on_docker_failure(self, mock_container_cls, configurator):
         """Container mode raises RuntimeError when Docker network fails."""
         mock_instance = MagicMock()
         mock_instance.ensure_network.return_value = False
@@ -70,9 +67,7 @@ class TestCreateLauncher:
             configurator.create_launcher(mode="container")
 
     @patch("zerg.launcher_configurator.ContainerLauncher")
-    def test_create_launcher_container_success(
-        self, mock_container_cls, configurator
-    ):
+    def test_create_launcher_container_success(self, mock_container_cls, configurator):
         """Container mode returns ContainerLauncher when Docker works."""
         mock_instance = MagicMock(spec=ContainerLauncher)
         mock_instance.ensure_network.return_value = True
@@ -111,9 +106,7 @@ class TestAutoDetect:
         result = configurator._auto_detect_launcher_type()
         assert result == LauncherType.SUBPROCESS
 
-    def test_auto_detect_with_devcontainer_and_image(
-        self, tmp_path, mock_config, mock_plugin_registry
-    ):
+    def test_auto_detect_with_devcontainer_and_image(self, tmp_path, mock_config, mock_plugin_registry):
         """devcontainer.json + image exists -> CONTAINER."""
         (tmp_path / ".devcontainer").mkdir()
         (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")
@@ -126,9 +119,7 @@ class TestAutoDetect:
 
         assert result == LauncherType.CONTAINER
 
-    def test_auto_detect_docker_failure_falls_back(
-        self, tmp_path, mock_config, mock_plugin_registry
-    ):
+    def test_auto_detect_docker_failure_falls_back(self, tmp_path, mock_config, mock_plugin_registry):
         """Docker check failure -> SUBPROCESS."""
         (tmp_path / ".devcontainer").mkdir()
         (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")

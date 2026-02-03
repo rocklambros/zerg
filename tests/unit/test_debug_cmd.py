@@ -1087,9 +1087,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_debug_with_error(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_debug_with_error(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test debug with --error."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1138,9 +1136,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug._load_stacktrace_file")
     @patch("zerg.commands.debug.console")
-    def test_debug_stacktrace_not_found(
-        self, mock_console: MagicMock, mock_load: MagicMock
-    ) -> None:
+    def test_debug_stacktrace_not_found(self, mock_console: MagicMock, mock_load: MagicMock) -> None:
         """Test debug warns when stacktrace file not found."""
         mock_load.return_value = ""
 
@@ -1152,9 +1148,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_debug_json_output(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_debug_json_output(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test debug --json."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1176,9 +1170,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_debug_verbose(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_debug_verbose(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test debug --verbose."""
         hypothesis = Hypothesis(
             description="Test hypothesis",
@@ -1204,9 +1196,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_debug_with_hypotheses(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_debug_with_hypotheses(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test debug displays hypotheses."""
         hypotheses = [
             Hypothesis(description="Hyp 1", likelihood="high"),
@@ -1232,9 +1222,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_debug_with_parsed_error_location(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_debug_with_parsed_error_location(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test debug displays parsed error with location."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1280,9 +1268,7 @@ class TestDebugCLI:
         output_file = tmp_path / "report.txt"
 
         runner = CliRunner()
-        result = runner.invoke(
-            debug, ["--error", "Error", "--output", str(output_file)]
-        )
+        result = runner.invoke(debug, ["--error", "Error", "--output", str(output_file)])
 
         assert result.exit_code == 0
         assert output_file.exists()
@@ -1314,9 +1300,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_debug_confidence_colors(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_debug_confidence_colors(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test debug displays confidence with appropriate colors."""
         # High confidence (green)
         mock_command = MagicMock()
@@ -1352,9 +1336,7 @@ class TestDebugCLI:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_debug_no_hypotheses(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_debug_no_hypotheses(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test debug with no hypotheses generated."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1398,9 +1380,7 @@ class TestDiagnosticResultExtended:
 
     def test_to_dict_includes_zerg_health(self) -> None:
         """Test to_dict includes zerg_health when set."""
-        health = ZergHealthReport(
-            feature="test", state_exists=True, total_tasks=5
-        )
+        health = ZergHealthReport(feature="test", state_exists=True, total_tasks=5)
         result = DiagnosticResult(
             symptom="Error",
             hypotheses=[],
@@ -1507,9 +1487,7 @@ class TestDebugCommandDeep:
             mock_zerg.side_effect = lambda r, f, w: r
             with patch.object(debugger, "_plan_recovery") as mock_plan:
                 mock_plan.side_effect = lambda r: r
-                debugger.run(
-                    error="test error", feature="my-feat"
-                )
+                debugger.run(error="test error", feature="my-feat")
         mock_zerg.assert_called_once()
         mock_plan.assert_called_once()
 
@@ -1520,9 +1498,7 @@ class TestDebugCommandDeep:
             mock_sys.side_effect = lambda r: r
             with patch.object(debugger, "_plan_recovery") as mock_plan:
                 mock_plan.side_effect = lambda r: r
-                debugger.run(
-                    error="test error", deep=True, auto_fix=True
-                )
+                debugger.run(error="test error", deep=True, auto_fix=True)
         mock_sys.assert_called_once()
 
     def test_run_without_feature_or_deep(self) -> None:
@@ -1552,9 +1528,7 @@ class TestDebugCommandDeep:
             root_cause="unknown",
             recommendation="fix",
         )
-        with patch(
-            "zerg.diagnostics.state_introspector.ZergStateIntrospector"
-        ) as mock_intr_cls:
+        with patch("zerg.diagnostics.state_introspector.ZergStateIntrospector") as mock_intr_cls:
             mock_intr = mock_intr_cls.return_value
             mock_intr.get_health_report.return_value = ZergHealthReport(
                 feature="feat",
@@ -1562,13 +1536,9 @@ class TestDebugCommandDeep:
                 total_tasks=1,
                 failed_tasks=[{"task_id": "T1", "error": "err"}],
             )
-            with patch(
-                "zerg.diagnostics.log_analyzer.LogAnalyzer"
-            ) as mock_log_cls:
+            with patch("zerg.diagnostics.log_analyzer.LogAnalyzer") as mock_log_cls:
                 mock_log_cls.return_value.scan_worker_logs.return_value = []
-                result = debugger._run_zerg_diagnostics(
-                    result, "feat", None
-                )
+                result = debugger._run_zerg_diagnostics(result, "feat", None)
 
         assert result.zerg_health is not None
         assert "1 failed task" in result.evidence[0]
@@ -1733,9 +1703,7 @@ class TestDebugCommandDeep:
             hypotheses=[],
             root_cause="Cause",
             recommendation="Fix",
-            zerg_health=ZergHealthReport(
-                feature="test", state_exists=True, total_tasks=1
-            ),
+            zerg_health=ZergHealthReport(feature="test", state_exists=True, total_tasks=1),
             evidence=["ev1"],
         )
         output = debugger.format_result(result, fmt="json")
@@ -1764,9 +1732,7 @@ class TestDebugCLIExtended:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_feature_only_no_error(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_feature_only_no_error(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test --feature without --error sets default symptom."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1790,9 +1756,7 @@ class TestDebugCLIExtended:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_feature_with_worker(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_feature_with_worker(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test --feature with --worker passes worker_id."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1807,9 +1771,7 @@ class TestDebugCLIExtended:
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(
-            debug, ["--feature", "test", "--worker", "3"]
-        )
+        result = runner.invoke(debug, ["--feature", "test", "--worker", "3"])
 
         assert result.exit_code == 0
         call_kwargs = mock_command.run.call_args
@@ -1817,9 +1779,7 @@ class TestDebugCLIExtended:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_deep_flag(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_deep_flag(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test --deep triggers system diagnostics."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1834,13 +1794,9 @@ class TestDebugCLIExtended:
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        with patch(
-            "zerg.diagnostics.state_introspector.ZergStateIntrospector"
-        ) as mock_intr_cls:
+        with patch("zerg.diagnostics.state_introspector.ZergStateIntrospector") as mock_intr_cls:
             mock_intr_cls.return_value.find_latest_feature.return_value = None
-            result = runner.invoke(
-                debug, ["--error", "test", "--deep"]
-            )
+            result = runner.invoke(debug, ["--error", "test", "--deep"])
 
         assert result.exit_code == 0
         call_kwargs = mock_command.run.call_args
@@ -1848,9 +1804,7 @@ class TestDebugCLIExtended:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_auto_fix_flag(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_auto_fix_flag(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test --auto-fix triggers recovery."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1865,13 +1819,9 @@ class TestDebugCLIExtended:
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        with patch(
-            "zerg.diagnostics.state_introspector.ZergStateIntrospector"
-        ) as mock_intr_cls:
+        with patch("zerg.diagnostics.state_introspector.ZergStateIntrospector") as mock_intr_cls:
             mock_intr_cls.return_value.find_latest_feature.return_value = "auto-feat"
-            result = runner.invoke(
-                debug, ["--error", "test", "--auto-fix"]
-            )
+            result = runner.invoke(debug, ["--error", "test", "--auto-fix"])
 
         assert result.exit_code == 0
         call_kwargs = mock_command.run.call_args
@@ -1886,9 +1836,7 @@ class TestDebugCLIExtended:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_cli_displays_zerg_health(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_cli_displays_zerg_health(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test CLI displays ZERG health section."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1915,9 +1863,7 @@ class TestDebugCLIExtended:
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_cli_displays_system_health(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_cli_displays_system_health(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test CLI displays system health section."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(
@@ -1938,16 +1884,12 @@ class TestDebugCLIExtended:
         mock_command_class.return_value = mock_command
 
         runner = CliRunner()
-        result = runner.invoke(
-            debug, ["--error", "test", "--deep"]
-        )
+        result = runner.invoke(debug, ["--error", "test", "--deep"])
         assert result.exit_code == 0
 
     @patch("zerg.commands.debug.DebugCommand")
     @patch("zerg.commands.debug.console")
-    def test_cli_displays_recovery_plan(
-        self, mock_console: MagicMock, mock_command_class: MagicMock
-    ) -> None:
+    def test_cli_displays_recovery_plan(self, mock_console: MagicMock, mock_command_class: MagicMock) -> None:
         """Test CLI displays recovery plan section."""
         mock_command = MagicMock()
         mock_command.run.return_value = DiagnosticResult(

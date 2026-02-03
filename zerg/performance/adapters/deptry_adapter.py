@@ -95,10 +95,7 @@ class DeptryAdapter(BaseToolAdapter):
         suggestions: dict[str, str] = {
             "DEP001": f"Add '{module}' to project dependencies",
             "DEP002": f"Remove unused dependency '{module}'",
-            "DEP003": (
-                f"Add '{module}' as a direct dependency"
-                " instead of relying on transitive install"
-            ),
+            "DEP003": (f"Add '{module}' as a direct dependency instead of relying on transitive install"),
             "DEP004": f"Move '{module}' from dev to main dependencies (or vice versa)",
         }
         return suggestions.get(error_code, f"Review dependency '{module}'")

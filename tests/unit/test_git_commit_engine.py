@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from zerg.git.commit_engine import (
     CommitEngine,
@@ -17,7 +14,6 @@ from zerg.git.commit_engine import (
 )
 from zerg.git.config import GitCommitConfig, GitConfig
 from zerg.git.types import CommitType, DiffAnalysis
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -378,9 +374,7 @@ class TestCommitEngine:
         assert result == 0
 
         # Verify commit was called
-        commit_calls = [
-            c for c in runner._run.call_args_list if "commit" in c.args
-        ]
+        commit_calls = [c for c in runner._run.call_args_list if "commit" in c.args]
         assert len(commit_calls) == 1
 
     def test_mode_override(self):

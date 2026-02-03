@@ -6,6 +6,7 @@ and token-aggregation data into ASCII table strings for the /zerg:status dashboa
 
 from __future__ import annotations
 
+from datetime import UTC
 from typing import Any
 
 # Dashboard width matching existing status.core.md format
@@ -44,7 +45,7 @@ def _build_separator(widths: list[int], left: str, mid: str, right: str) -> str:
 
 def _determine_status(heartbeat: dict[str, Any], stall_timeout: int = 120) -> str:
     """Determine worker status from heartbeat data."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     timestamp = heartbeat.get("timestamp", "")
     if not timestamp:
@@ -53,8 +54,8 @@ def _determine_status(heartbeat: dict[str, Any], stall_timeout: int = 120) -> st
     try:
         ts = datetime.fromisoformat(timestamp)
         if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
+            ts = ts.replace(tzinfo=UTC)
+        now = datetime.now(UTC)
         age = (now - ts).total_seconds()
     except (ValueError, TypeError):
         return "unknown"
@@ -64,9 +65,7 @@ def _determine_status(heartbeat: dict[str, Any], stall_timeout: int = 120) -> st
     return "active"
 
 
-def _count_restarts(
-    progress_data: list[dict[str, Any]], worker_id: int
-) -> int:
+def _count_restarts(progress_data: list[dict[str, Any]], worker_id: int) -> int:
     """Count retry attempts from progress tier results for a worker."""
     for p in progress_data:
         if p.get("worker_id") == worker_id:
@@ -163,7 +162,7 @@ def format_escalations(escalations: list[dict[str, Any]]) -> str:
         if message:
             # Wrap long messages at dashboard width minus indent
             max_msg = DASHBOARD_WIDTH - 7
-            display_msg = message if len(message) <= max_msg else message[:max_msg - 3] + "..."
+            display_msg = message if len(message) <= max_msg else message[: max_msg - 3] + "..."
             lines.append(f"     {display_msg!r}")
 
     lines.append(f"  Total: {len(unresolved)} unresolved, {resolved_count} resolved")
@@ -173,6 +172,7 @@ def format_escalations(escalations: list[dict[str, Any]]) -> str:
 # ---------------------------------------------------------------------------
 # Repository map stats
 # ---------------------------------------------------------------------------
+
 
 def format_repo_map_stats(index_data: dict[str, Any] | None) -> str:
     """Format IncrementalIndex.get_stats() output for the status dashboard.
@@ -283,6 +283,7 @@ def format_token_table(worker_tokens: dict[str, Any] | None) -> str:
 # Token savings
 # ---------------------------------------------------------------------------
 
+
 def format_savings(savings_data: Any | None) -> str:
     """Format token savings data for the status dashboard.
 
@@ -329,9 +330,7 @@ def format_savings(savings_data: Any | None) -> str:
             if isinstance(detail, dict):
                 comp_injected = detail.get("injected", 0)
                 comp_saved = detail.get("saved", 0)
-                lines.append(
-                    f"    {component:<20s}  injected: {comp_injected:>7,}  saved: {comp_saved:>7,}"
-                )
+                lines.append(f"    {component:<20s}  injected: {comp_injected:>7,}  saved: {comp_saved:>7,}")
             else:
                 lines.append(f"    {component}: {detail}")
 

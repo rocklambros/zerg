@@ -7,7 +7,6 @@ execution and merge using the E2EHarness with MockWorker.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -117,9 +116,7 @@ class TestFullPipeline:
         assert repo_path is not None
 
         # Verify task graph is intact and readable
-        graph_path = (
-            repo_path / ".gsd" / "specs" / e2e_harness.feature / "task-graph.json"
-        )
+        graph_path = repo_path / ".gsd" / "specs" / e2e_harness.feature / "task-graph.json"
         assert graph_path.exists()
 
         with open(graph_path) as f:
@@ -133,9 +130,7 @@ class TestFullPipeline:
         for task in task_graph["tasks"]:
             for filepath in task["files"].get("create", []):
                 full_path = repo_path / filepath
-                assert full_path.exists(), (
-                    f"Task {task['id']} file {filepath} not created"
-                )
+                assert full_path.exists(), f"Task {task['id']} file {filepath} not created"
 
     def test_mock_pipeline_handles_task_failure(
         self,
@@ -153,9 +148,7 @@ class TestFullPipeline:
         # Patch MockWorker inside the harness module so run() creates a
         # worker that will fail task L1-002.
         failing_worker_cls = _make_failing_worker_factory(fail_tasks={"L1-002"})
-        monkeypatch.setattr(
-            "tests.e2e.mock_worker.MockWorker", failing_worker_cls
-        )
+        monkeypatch.setattr("tests.e2e.mock_worker.MockWorker", failing_worker_cls)
 
         result = e2e_harness.run(workers=5)
 

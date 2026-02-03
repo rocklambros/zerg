@@ -116,10 +116,7 @@ class WorkerManager:
             RuntimeError: If the worker fails to spawn or circuit is open
         """
         # Check circuit breaker before spawning
-        if (
-            self._circuit_breaker is not None
-            and not self._circuit_breaker.can_accept_task(worker_id)
-        ):
+        if self._circuit_breaker is not None and not self._circuit_breaker.can_accept_task(worker_id):
             logger.warning(f"Worker {worker_id} circuit is open, skipping spawn")
             raise RuntimeError(f"Worker {worker_id} circuit breaker is open")
 
@@ -164,19 +161,24 @@ class WorkerManager:
 
         self._workers[worker_id] = worker_state
         self.state.set_worker_state(worker_state)
-        self.state.append_event("worker_started", {
-            "worker_id": worker_id,
-            "port": port,
-            "container_id": container_id,
-            "mode": "container" if container_id else "subprocess",
-        })
+        self.state.append_event(
+            "worker_started",
+            {
+                "worker_id": worker_id,
+                "port": port,
+                "container_id": container_id,
+                "mode": "container" if container_id else "subprocess",
+            },
+        )
 
         # Emit plugin lifecycle event
         with contextlib.suppress(Exception):
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.WORKER_SPAWNED.value,
-                data={"worker_id": worker_id, "feature": self.feature},
-            ))
+            self._plugin_registry.emit_event(
+                LifecycleEvent(
+                    event_type=PluginHookEvent.WORKER_SPAWNED.value,
+                    data={"worker_id": worker_id, "feature": self.feature},
+                )
+            )
 
         return worker_state
 
@@ -232,11 +234,14 @@ class WorkerManager:
                     if worker.ready_at is None:
                         worker.ready_at = datetime.now()
                         self.state.set_worker_ready(worker_id)
-                        self.state.append_event("worker_ready", {
-                            "worker_id": worker_id,
-                            "worktree": worker.worktree_path,
-                            "branch": worker.branch,
-                        })
+                        self.state.append_event(
+                            "worker_ready",
+                            {
+                                "worker_id": worker_id,
+                                "worktree": worker.worktree_path,
+                                "branch": worker.branch,
+                            },
+                        )
                     worker.status = status
                     continue
                 elif status in (WorkerStatus.CRASHED, WorkerStatus.STOPPED):
@@ -319,16 +324,16 @@ class WorkerManager:
 
         # Emit plugin lifecycle event
         with contextlib.suppress(Exception):
-            self._plugin_registry.emit_event(LifecycleEvent(
-                event_type=PluginHookEvent.WORKER_EXITED.value,
-                data={"worker_id": worker_id, "feature": self.feature},
-            ))
+            self._plugin_registry.emit_event(
+                LifecycleEvent(
+                    event_type=PluginHookEvent.WORKER_EXITED.value,
+                    data={"worker_id": worker_id, "feature": self.feature},
+                )
+            )
 
         # Record crash in circuit breaker
         if worker.status == WorkerStatus.CRASHED and self._circuit_breaker is not None:
-            self._circuit_breaker.record_failure(
-                worker_id, task_id=worker.current_task, error="Worker crashed"
-            )
+            self._circuit_breaker.record_failure(worker_id, task_id=worker.current_task, error="Worker crashed")
 
         # Check exit code (would need to get from container)
         # For now, assume clean exit means task complete
@@ -406,8 +411,7 @@ class WorkerManager:
 
         # Count still-active workers
         active = [
-            wid for wid, w in self._workers.items()
-            if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
+            wid for wid, w in self._workers.items() if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
         ]
 
         # Determine target worker count from original assignments
@@ -417,10 +421,7 @@ class WorkerManager:
         if need <= 0:
             return 0
 
-        logger.info(
-            f"Respawning {need} workers for level {level} "
-            f"({len(remaining)} tasks remaining)"
-        )
+        logger.info(f"Respawning {need} workers for level {level} ({len(remaining)} tasks remaining)")
 
         spawned = 0
         # Find available worker IDs (prefer reusing IDs from stopped workers)
@@ -429,8 +430,7 @@ class WorkerManager:
 
         # Also add IDs from stopped/crashed workers after cleaning them out
         stopped_ids = [
-            wid for wid, w in list(self._workers.items())
-            if w.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
+            wid for wid, w in list(self._workers.items()) if w.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
         ]
         for wid in stopped_ids:
             del self._workers[wid]

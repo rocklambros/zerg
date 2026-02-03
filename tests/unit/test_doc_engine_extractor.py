@@ -12,11 +12,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.doc_engine.detector import (
-    ComponentDetector,
-    ComponentType,
     _API_MARKERS,
     _CONFIG_STEMS,
     _TYPES_STEMS,
+    ComponentDetector,
+    ComponentType,
 )
 from zerg.doc_engine.extractor import (
     ClassInfo,
@@ -33,7 +33,6 @@ from zerg.doc_engine.extractor import (
     _is_type_alias,
     _unparse_node,
 )
-
 
 # ======================================================================
 # extractor.py - _unparse_node
@@ -383,17 +382,13 @@ class TestSymbolExtractorComprehensive:
         assert "join" in table.imports[0].names
         assert "exists" in table.imports[0].names
 
-    def test_extract_from_import_with_asname(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_from_import_with_asname(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("from os.path import join as j\n", encoding="utf-8")
         table = extractor.extract(src)
         assert table.imports[0].names == ["j"]
 
-    def test_extract_from_import_no_module(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_from_import_no_module(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         """Relative import like 'from . import foo' has module=None in AST."""
         src = tmp_path / "mod.py"
         src.write_text("from . import foo\n", encoding="utf-8")
@@ -401,9 +396,7 @@ class TestSymbolExtractorComprehensive:
         assert table.imports[0].module == ""
         assert table.imports[0].is_from is True
 
-    def test_extract_multiple_constants(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_multiple_constants(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("MAX = 10\nMIN = 0\nlower = 5\n", encoding="utf-8")
         table = extractor.extract(src)
@@ -411,26 +404,20 @@ class TestSymbolExtractorComprehensive:
         assert "MIN" in table.constants
         assert "lower" not in table.constants
 
-    def test_extract_annotated_constant(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_annotated_constant(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         """AnnAssign with uppercase name that is not a TypeAlias -> constant."""
         src = tmp_path / "mod.py"
         src.write_text("TIMEOUT: int = 30\n", encoding="utf-8")
         table = extractor.extract(src)
         assert "TIMEOUT" in table.constants
 
-    def test_extract_annotated_non_constant(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_annotated_non_constant(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("timeout: int = 30\n", encoding="utf-8")
         table = extractor.extract(src)
         assert "timeout" not in table.constants
 
-    def test_extract_class_with_bases(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_class_with_bases(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("class Dog(Animal, Pet):\n    pass\n", encoding="utf-8")
         table = extractor.extract(src)
@@ -438,25 +425,19 @@ class TestSymbolExtractorComprehensive:
         assert "Animal" in table.classes[0].bases
         assert "Pet" in table.classes[0].bases
 
-    def test_extract_class_no_bases(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_class_no_bases(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("class Bare:\n    pass\n", encoding="utf-8")
         table = extractor.extract(src)
         assert table.classes[0].bases == []
 
-    def test_extract_class_no_docstring(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_class_no_docstring(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("class NoDocs:\n    x = 1\n", encoding="utf-8")
         table = extractor.extract(src)
         assert table.classes[0].docstring is None
 
-    def test_extract_class_with_async_method(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_class_with_async_method(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text(
             "class Svc:\n    async def run(self) -> None:\n        pass\n",
@@ -468,9 +449,7 @@ class TestSymbolExtractorComprehensive:
         assert method.is_async is True
         assert method.is_method is True
 
-    def test_extract_class_with_multiple_methods(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_class_with_multiple_methods(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text(
             "class Svc:\n"
@@ -483,9 +462,7 @@ class TestSymbolExtractorComprehensive:
         method_names = [m.name for m in table.classes[0].methods]
         assert method_names == ["a", "b", "c"]
 
-    def test_extract_class_non_method_body(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_class_non_method_body(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         """Class body with non-function statements should not produce methods."""
         src = tmp_path / "mod.py"
         src.write_text(
@@ -495,9 +472,7 @@ class TestSymbolExtractorComprehensive:
         table = extractor.extract(src)
         assert table.classes[0].methods == []
 
-    def test_extract_async_top_level_function(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_async_top_level_function(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("async def main():\n    pass\n", encoding="utf-8")
         table = extractor.extract(src)
@@ -505,66 +480,49 @@ class TestSymbolExtractorComprehensive:
         assert table.functions[0].is_async is True
         assert table.functions[0].is_method is False
 
-    def test_extract_no_module_docstring(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_no_module_docstring(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("x = 1\n", encoding="utf-8")
         table = extractor.extract(src)
         assert table.module_docstring is None
 
-    def test_extract_syntax_error(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_syntax_error(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "bad.py"
         src.write_text("def (:\n", encoding="utf-8")
         with pytest.raises(SyntaxError):
             extractor.extract(src)
 
-    def test_extract_missing_file(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_missing_file(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "nope.py"
         with pytest.raises(OSError):
             extractor.extract(src)
 
-    def test_extract_multiple_type_aliases(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_multiple_type_aliases(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text(
-            "from typing import TypeAlias\n"
-            "A: TypeAlias = int\n"
-            "B: TypeAlias = str\n",
+            "from typing import TypeAlias\nA: TypeAlias = int\nB: TypeAlias = str\n",
             encoding="utf-8",
         )
         table = extractor.extract(src)
         assert "A" in table.type_aliases
         assert "B" in table.type_aliases
 
-    def test_extract_class_with_decorators(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_class_with_decorators(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text(
-            "from dataclasses import dataclass\n\n"
-            "@dataclass\nclass Pt:\n    x: int\n",
+            "from dataclasses import dataclass\n\n@dataclass\nclass Pt:\n    x: int\n",
             encoding="utf-8",
         )
         table = extractor.extract(src)
         assert "dataclass" in table.classes[0].decorators
 
-    def test_extract_function_with_no_return_type(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_function_with_no_return_type(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("def noop():\n    pass\n", encoding="utf-8")
         table = extractor.extract(src)
         assert table.functions[0].return_type is None
 
-    def test_symbol_table_path(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_symbol_table_path(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "mod.py"
         src.write_text("", encoding="utf-8")
         table = extractor.extract(src)
@@ -646,34 +604,26 @@ class TestComponentDetectorComprehensive:
 
     # --- _is_command_file ---
 
-    def test_command_md_in_data_commands(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_command_md_in_data_commands(self, detector: ComponentDetector, tmp_path: Path) -> None:
         cmd_dir = tmp_path / "data" / "commands"
         cmd_dir.mkdir(parents=True)
         md = cmd_dir / "init.md"
         md.write_text("# Init\n", encoding="utf-8")
         assert detector.detect(md) == ComponentType.COMMAND
 
-    def test_md_not_in_data_commands(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_md_not_in_data_commands(self, detector: ComponentDetector, tmp_path: Path) -> None:
         md = tmp_path / "readme.md"
         md.write_text("# Readme\n", encoding="utf-8")
         assert detector.detect(md) != ComponentType.COMMAND
 
-    def test_non_md_in_data_commands(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_non_md_in_data_commands(self, detector: ComponentDetector, tmp_path: Path) -> None:
         cmd_dir = tmp_path / "data" / "commands"
         cmd_dir.mkdir(parents=True)
         txt = cmd_dir / "notes.txt"
         txt.write_text("notes\n", encoding="utf-8")
         assert detector.detect(txt) != ComponentType.COMMAND
 
-    def test_md_in_only_data_dir(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_md_in_only_data_dir(self, detector: ComponentDetector, tmp_path: Path) -> None:
         """Markdown in data/ but not data/commands/ is not a COMMAND."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
@@ -708,23 +658,17 @@ class TestComponentDetectorComprehensive:
         f.write_text("[section]\n", encoding="utf-8")
         assert detector.detect(f) == ComponentType.CONFIG
 
-    def test_py_with_config_stem(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_py_with_config_stem(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "configuration.py"
         f.write_text("x = 1\n", encoding="utf-8")
         assert detector.detect(f) == ComponentType.CONFIG
 
-    def test_py_with_settings_stem(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_py_with_settings_stem(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "settings.py"
         f.write_text("x = 1\n", encoding="utf-8")
         assert detector.detect(f) == ComponentType.CONFIG
 
-    def test_py_without_config_stem(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_py_without_config_stem(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "utils.py"
         f.write_text("x = 1\n", encoding="utf-8")
         assert detector.detect(f) != ComponentType.CONFIG
@@ -752,9 +696,7 @@ class TestComponentDetectorComprehensive:
         f.write_text("export type X = string;\n", encoding="utf-8")
         assert detector.detect(f) == ComponentType.TYPES
 
-    def test_types_by_ast_majority_classes(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_types_by_ast_majority_classes(self, detector: ComponentDetector, tmp_path: Path) -> None:
         """File with >50% class defs detected as TYPES."""
         f = tmp_path / "models.py"
         f.write_text(
@@ -763,9 +705,7 @@ class TestComponentDetectorComprehensive:
         )
         assert detector.detect(f) == ComponentType.TYPES
 
-    def test_types_by_ast_not_majority(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_types_by_ast_not_majority(self, detector: ComponentDetector, tmp_path: Path) -> None:
         """File with <=50% class defs NOT detected as TYPES."""
         f = tmp_path / "mixed.py"
         f.write_text(
@@ -777,9 +717,7 @@ class TestComponentDetectorComprehensive:
 
     # --- _ast_dominated_by_type_defs ---
 
-    def test_ast_dominated_syntax_error(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_ast_dominated_syntax_error(self, detector: ComponentDetector, tmp_path: Path) -> None:
         """SyntaxError during AST parse returns False."""
         f = tmp_path / "bad.py"
         f.write_text("def (:\n", encoding="utf-8")
@@ -834,9 +772,7 @@ class TestComponentDetectorComprehensive:
         f.write_text("router = APIRouter(prefix='/v1')\n", encoding="utf-8")
         assert detector.detect(f) == ComponentType.API
 
-    def test_api_non_py_not_detected(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_api_non_py_not_detected(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "routes.txt"
         f.write_text("@app.route\n", encoding="utf-8")
         assert detector.detect(f) != ComponentType.API
@@ -849,16 +785,12 @@ class TestComponentDetectorComprehensive:
 
     # --- detect (fallthrough to MODULE) ---
 
-    def test_detect_plain_py_is_module(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_plain_py_is_module(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "utils.py"
         f.write_text("def helper():\n    pass\n", encoding="utf-8")
         assert detector.detect(f) == ComponentType.MODULE
 
-    def test_detect_unknown_extension_is_module(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_unknown_extension_is_module(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "data.dat"
         f.write_text("binary-ish\n", encoding="utf-8")
         assert detector.detect(f) == ComponentType.MODULE
@@ -871,9 +803,7 @@ class TestComponentDetectorComprehensive:
         results = detector.detect_all(tmp_path)
         assert len(results) == 2
 
-    def test_detect_all_skips_hidden(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_skips_hidden(self, detector: ComponentDetector, tmp_path: Path) -> None:
         (tmp_path / ".hidden.py").write_text("x = 1\n", encoding="utf-8")
         (tmp_path / "visible.py").write_text("x = 1\n", encoding="utf-8")
         results = detector.detect_all(tmp_path)
@@ -881,9 +811,7 @@ class TestComponentDetectorComprehensive:
         assert all(".hidden" not in str(p) for p in paths)
         assert len(results) == 1
 
-    def test_detect_all_skips_pycache(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_skips_pycache(self, detector: ComponentDetector, tmp_path: Path) -> None:
         cache_dir = tmp_path / "__pycache__"
         cache_dir.mkdir()
         (cache_dir / "mod.pyc").write_text("", encoding="utf-8")
@@ -891,9 +819,7 @@ class TestComponentDetectorComprehensive:
         results = detector.detect_all(tmp_path)
         assert len(results) == 1
 
-    def test_detect_all_skips_directories(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_skips_directories(self, detector: ComponentDetector, tmp_path: Path) -> None:
         sub = tmp_path / "subdir"
         sub.mkdir()
         (sub / "mod.py").write_text("x = 1\n", encoding="utf-8")
@@ -901,9 +827,7 @@ class TestComponentDetectorComprehensive:
         # subdir itself is skipped (is_dir), but subdir/mod.py is included
         assert any("mod.py" in str(p) for p in results)
 
-    def test_detect_all_exception_fallback_to_module(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_exception_fallback_to_module(self, detector: ComponentDetector, tmp_path: Path) -> None:
         """If detect() raises for a file, detect_all falls back to MODULE."""
         f = tmp_path / "weird.py"
         f.write_text("x = 1\n", encoding="utf-8")
@@ -917,15 +841,11 @@ class TestComponentDetectorComprehensive:
         assert len(results) == 1
         assert list(results.values())[0] == ComponentType.MODULE
 
-    def test_detect_all_empty_directory(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_empty_directory(self, detector: ComponentDetector, tmp_path: Path) -> None:
         results = detector.detect_all(tmp_path)
         assert results == {}
 
-    def test_detect_all_recursive(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_recursive(self, detector: ComponentDetector, tmp_path: Path) -> None:
         sub = tmp_path / "pkg" / "sub"
         sub.mkdir(parents=True)
         (sub / "deep.py").write_text("x = 1\n", encoding="utf-8")
@@ -934,9 +854,7 @@ class TestComponentDetectorComprehensive:
 
     # --- Priority tests: command > config > types > api > module ---
 
-    def test_priority_command_over_config(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_priority_command_over_config(self, detector: ComponentDetector, tmp_path: Path) -> None:
         """A .md file in data/commands/ with 'config' in name is still COMMAND."""
         cmd_dir = tmp_path / "data" / "commands"
         cmd_dir.mkdir(parents=True)
@@ -944,9 +862,7 @@ class TestComponentDetectorComprehensive:
         md.write_text("# Config command\n", encoding="utf-8")
         assert detector.detect(md) == ComponentType.COMMAND
 
-    def test_config_takes_priority_over_types(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_config_takes_priority_over_types(self, detector: ComponentDetector, tmp_path: Path) -> None:
         """A .yaml file named 'types.yaml' is CONFIG (yaml extension wins)."""
         f = tmp_path / "types.yaml"
         f.write_text("key: val\n", encoding="utf-8")

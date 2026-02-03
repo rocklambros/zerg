@@ -11,9 +11,7 @@ class TestLogPattern:
     """Tests for LogPattern dataclass."""
 
     def test_default_values(self) -> None:
-        pat = LogPattern(
-            pattern="error", count=1, first_seen="1", last_seen="1"
-        )
+        pat = LogPattern(pattern="error", count=1, first_seen="1", last_seen="1")
         assert pat.sample_lines == []
         assert pat.worker_ids == []
 
@@ -67,11 +65,7 @@ class TestLogAnalyzer:
     def test_scan_worker_logs_finds_errors(self, tmp_path: Path) -> None:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir()
-        (logs_dir / "worker-1.stderr.log").write_text(
-            "Starting up\n"
-            "RuntimeError: something failed\n"
-            "more context\n"
-        )
+        (logs_dir / "worker-1.stderr.log").write_text("Starting up\nRuntimeError: something failed\nmore context\n")
         analyzer = LogAnalyzer(logs_dir=logs_dir)
         patterns = analyzer.scan_worker_logs()
 
@@ -83,11 +77,7 @@ class TestLogAnalyzer:
     def test_scan_worker_logs_groups_same_error(self, tmp_path: Path) -> None:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir()
-        (logs_dir / "worker-1.stderr.log").write_text(
-            "Error: connection refused\n"
-            "ok\n"
-            "Error: connection refused\n"
-        )
+        (logs_dir / "worker-1.stderr.log").write_text("Error: connection refused\nok\nError: connection refused\n")
         analyzer = LogAnalyzer(logs_dir=logs_dir)
         patterns = analyzer.scan_worker_logs()
 
@@ -131,9 +121,7 @@ class TestLogAnalyzer:
     def test_scan_worker_logs_strips_ansi(self, tmp_path: Path) -> None:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir()
-        (logs_dir / "worker-1.stderr.log").write_text(
-            "\x1b[31mError: colored\x1b[0m\n"
-        )
+        (logs_dir / "worker-1.stderr.log").write_text("\x1b[31mError: colored\x1b[0m\n")
         analyzer = LogAnalyzer(logs_dir=logs_dir)
         patterns = analyzer.scan_worker_logs()
 
@@ -143,12 +131,7 @@ class TestLogAnalyzer:
     def test_scan_worker_logs_sorted_by_count(self, tmp_path: Path) -> None:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir()
-        (logs_dir / "worker-1.stderr.log").write_text(
-            "Error: rare\n"
-            "Error: common\n"
-            "Error: common\n"
-            "Error: common\n"
-        )
+        (logs_dir / "worker-1.stderr.log").write_text("Error: rare\nError: common\nError: common\nError: common\n")
         analyzer = LogAnalyzer(logs_dir=logs_dir)
         patterns = analyzer.scan_worker_logs()
 

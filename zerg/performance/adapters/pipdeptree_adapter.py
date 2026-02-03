@@ -49,9 +49,7 @@ class PipdeptreeAdapter(BaseToolAdapter):
 
         return self._analyze_tree(data, result.stderr or "")
 
-    def _analyze_tree(
-        self, packages: list[object], stderr: str
-    ) -> list[PerformanceFinding]:
+    def _analyze_tree(self, packages: list[object], stderr: str) -> list[PerformanceFinding]:
         """Analyze the dependency tree for depth, size, and conflicts."""
         findings: list[PerformanceFinding] = []
 
@@ -75,16 +73,10 @@ class PipdeptreeAdapter(BaseToolAdapter):
                     factor_name="Transitive dependency blindness",
                     category="Dependencies",
                     severity=Severity.HIGH,
-                    message=(
-                        f"Very large transitive dependency tree:"
-                        f" {total_transitive} transitive dependencies"
-                    ),
+                    message=(f"Very large transitive dependency tree: {total_transitive} transitive dependencies"),
                     tool=self.name,
                     rule_id="transitive-count-high",
-                    suggestion=(
-                        "Audit dependencies and remove unnecessary"
-                        " packages to reduce supply-chain risk"
-                    ),
+                    suggestion=("Audit dependencies and remove unnecessary packages to reduce supply-chain risk"),
                 )
             )
         elif total_transitive > 100:
@@ -94,10 +86,7 @@ class PipdeptreeAdapter(BaseToolAdapter):
                     factor_name="Transitive dependency blindness",
                     category="Dependencies",
                     severity=Severity.MEDIUM,
-                    message=(
-                        f"Large transitive dependency tree:"
-                        f" {total_transitive} transitive dependencies"
-                    ),
+                    message=(f"Large transitive dependency tree: {total_transitive} transitive dependencies"),
                     tool=self.name,
                     rule_id="transitive-count-medium",
                     suggestion="Review dependency tree for redundant or replaceable packages",
@@ -132,10 +121,7 @@ class PipdeptreeAdapter(BaseToolAdapter):
                     message=f"Deep dependency chain: max depth {max_depth}",
                     tool=self.name,
                     rule_id="depth-medium",
-                    suggestion=(
-                        "Review deeply-nested dependency chains"
-                        " for potential simplification"
-                    ),
+                    suggestion=("Review deeply-nested dependency chains for potential simplification"),
                 )
             )
 

@@ -119,8 +119,11 @@ class MultiLangErrorParser:
 
     def _parse_python(self, text: str) -> ErrorFingerprint:
         fp = ErrorFingerprint(
-            hash="", language="python", error_type="",
-            message_template="", file="",
+            hash="",
+            language="python",
+            error_type="",
+            message_template="",
+            file="",
         )
 
         # Extract file/line/function
@@ -144,8 +147,11 @@ class MultiLangErrorParser:
 
     def _parse_javascript(self, text: str) -> ErrorFingerprint:
         fp = ErrorFingerprint(
-            hash="", language="javascript", error_type="",
-            message_template="", file="",
+            hash="",
+            language="javascript",
+            error_type="",
+            message_template="",
+            file="",
         )
 
         # Extract error type
@@ -250,8 +256,11 @@ class MultiLangErrorParser:
 
     def _parse_unknown(self, text: str) -> ErrorFingerprint:
         fp = ErrorFingerprint(
-            hash="", language="unknown", error_type="unknown",
-            message_template="", file="",
+            hash="",
+            language="unknown",
+            error_type="unknown",
+            message_template="",
+            file="",
         )
         # Use first non-empty line as message
         for line in text.strip().split("\n"):

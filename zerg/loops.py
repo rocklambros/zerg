@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 from zerg.logging import get_logger
 
@@ -160,8 +161,7 @@ class LoopController:
             iterations.append(result)
 
             logger.info(
-                f"Iteration {i}: score={score:.4f} delta={delta:+.4f} "
-                f"{'improved' if improved else 'no improvement'}"
+                f"Iteration {i}: score={score:.4f} delta={delta:+.4f} {'improved' if improved else 'no improvement'}"
             )
 
             # Track best
@@ -171,9 +171,7 @@ class LoopController:
 
             # Check regression
             if delta < -self.convergence_threshold and self.rollback_on_regression:
-                logger.warning(
-                    f"Regression detected at iteration {i}: {delta:+.4f}"
-                )
+                logger.warning(f"Regression detected at iteration {i}: {delta:+.4f}")
                 status = LoopStatus.REGRESSED
                 break
 
@@ -181,10 +179,7 @@ class LoopController:
             if not improved:
                 plateau_count += 1
                 if plateau_count >= self.plateau_threshold:
-                    logger.info(
-                        f"Plateau reached after {plateau_count} "
-                        f"non-improving iterations"
-                    )
+                    logger.info(f"Plateau reached after {plateau_count} non-improving iterations")
                     status = LoopStatus.PLATEAU
                     break
             else:

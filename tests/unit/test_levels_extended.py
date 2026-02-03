@@ -5,7 +5,7 @@ Tests edge cases and error conditions for LevelController.
 
 import pytest
 
-from zerg.constants import Level, TaskStatus
+from zerg.constants import TaskStatus
 from zerg.exceptions import LevelError
 from zerg.levels import LevelController
 

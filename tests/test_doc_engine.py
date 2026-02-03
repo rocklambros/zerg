@@ -18,7 +18,6 @@ from zerg.doc_engine.mermaid import MermaidGenerator
 from zerg.doc_engine.renderer import DocRenderer
 from zerg.doc_engine.sidebar import SidebarConfig, SidebarGenerator, SidebarSection
 
-
 # ======================================================================
 # Fixtures
 # ======================================================================
@@ -206,25 +205,19 @@ class TestComponentDetector:
     def test_detect_command(self, detector: ComponentDetector, command_md: Path) -> None:
         assert detector.detect(command_md) == ComponentType.COMMAND
 
-    def test_detect_regular_md_is_not_command(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_regular_md_is_not_command(self, detector: ComponentDetector, tmp_path: Path) -> None:
         md = tmp_path / "readme.md"
         md.write_text("# Readme\n", encoding="utf-8")
         assert detector.detect(md) != ComponentType.COMMAND
 
-    def test_detect_all_returns_dict(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_returns_dict(self, detector: ComponentDetector, tmp_path: Path) -> None:
         (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
         (tmp_path / "b.yaml").write_text("key: 1\n", encoding="utf-8")
         results = detector.detect_all(tmp_path)
         assert isinstance(results, dict)
         assert len(results) == 2
 
-    def test_detect_all_skips_hidden_and_pycache(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_all_skips_hidden_and_pycache(self, detector: ComponentDetector, tmp_path: Path) -> None:
         (tmp_path / ".hidden.py").write_text("x = 1\n", encoding="utf-8")
         cache_dir = tmp_path / "__pycache__"
         cache_dir.mkdir()
@@ -233,16 +226,12 @@ class TestComponentDetector:
         results = detector.detect_all(tmp_path)
         assert len(results) == 1
 
-    def test_detect_empty_py_file(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_empty_py_file(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "empty.py"
         f.write_text("", encoding="utf-8")
         assert detector.detect(f) == ComponentType.MODULE
 
-    def test_detect_syntax_error_py(
-        self, detector: ComponentDetector, tmp_path: Path
-    ) -> None:
+    def test_detect_syntax_error_py(self, detector: ComponentDetector, tmp_path: Path) -> None:
         f = tmp_path / "bad.py"
         f.write_text("def (broken:\n", encoding="utf-8")
         # Should not raise; falls through to MODULE
@@ -258,15 +247,11 @@ class TestSymbolExtractor:
     def test_instantiation(self, extractor: SymbolExtractor) -> None:
         assert extractor is not None
 
-    def test_extract_module_docstring(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_module_docstring(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         assert table.module_docstring == "A simple test module."
 
-    def test_extract_classes(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_classes(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         assert len(table.classes) == 1
         cls = table.classes[0]
@@ -276,46 +261,34 @@ class TestSymbolExtractor:
         assert cls.methods[0].name == "greet"
         assert cls.methods[0].is_method is True
 
-    def test_extract_functions(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_functions(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         func_names = [f.name for f in table.functions]
         assert "add" in func_names
         assert "fetch" in func_names
 
-    def test_extract_async_function(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_async_function(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         fetch_fn = [f for f in table.functions if f.name == "fetch"][0]
         assert fetch_fn.is_async is True
 
-    def test_extract_return_type(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_return_type(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         add_fn = [f for f in table.functions if f.name == "add"][0]
         assert add_fn.return_type == "int"
 
-    def test_extract_imports(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_imports(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         assert len(table.imports) == 2
         modules = {imp.module for imp in table.imports}
         assert "os" in modules
         assert "pathlib" in modules
 
-    def test_extract_constants(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_constants(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         assert "MAX_RETRIES" in table.constants
 
-    def test_extract_type_alias(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_type_alias(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "aliases.py"
         src.write_text(
             "from typing import TypeAlias\n\nMyType: TypeAlias = dict[str, int]\n",
@@ -324,9 +297,7 @@ class TestSymbolExtractor:
         table = extractor.extract(src)
         assert "MyType" in table.type_aliases
 
-    def test_extract_empty_file(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_empty_file(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         f = tmp_path / "empty.py"
         f.write_text("", encoding="utf-8")
         table = extractor.extract(f)
@@ -334,36 +305,27 @@ class TestSymbolExtractor:
         assert not table.classes
         assert not table.functions
 
-    def test_extract_syntax_error_raises(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_syntax_error_raises(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         f = tmp_path / "bad.py"
         f.write_text("def (broken:\n", encoding="utf-8")
         with pytest.raises(SyntaxError):
             extractor.extract(f)
 
-    def test_extract_missing_file_raises(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_missing_file_raises(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         f = tmp_path / "nonexistent.py"
         with pytest.raises(OSError):
             extractor.extract(f)
 
-    def test_extract_decorators(
-        self, extractor: SymbolExtractor, tmp_path: Path
-    ) -> None:
+    def test_extract_decorators(self, extractor: SymbolExtractor, tmp_path: Path) -> None:
         src = tmp_path / "decorated.py"
         src.write_text(
-            "from dataclasses import dataclass\n\n"
-            "@dataclass\nclass Cfg:\n    x: int = 1\n",
+            "from dataclasses import dataclass\n\n@dataclass\nclass Cfg:\n    x: int = 1\n",
             encoding="utf-8",
         )
         table = extractor.extract(src)
         assert "dataclass" in table.classes[0].decorators
 
-    def test_extract_function_args(
-        self, extractor: SymbolExtractor, simple_py: Path
-    ) -> None:
+    def test_extract_function_args(self, extractor: SymbolExtractor, simple_py: Path) -> None:
         table = extractor.extract(simple_py)
         add_fn = [f for f in table.functions if f.name == "add"][0]
         assert "a: int" in add_fn.args
@@ -587,9 +549,7 @@ class TestDocRenderer:
         assert "(API)" in md
         assert "health" in md
 
-    def test_render_with_override_type(
-        self, tmp_path: Path, simple_py: Path
-    ) -> None:
+    def test_render_with_override_type(self, tmp_path: Path, simple_py: Path) -> None:
         renderer = DocRenderer(project_root=tmp_path)
         md = renderer.render(simple_py, component_type="MODULE")
         assert "Module Info" in md
@@ -601,9 +561,7 @@ class TestDocRenderer:
         md = renderer.render(f)
         assert "No module docstring" in md
 
-    def test_render_module_contains_see_also(
-        self, tmp_path: Path, simple_py: Path
-    ) -> None:
+    def test_render_module_contains_see_also(self, tmp_path: Path, simple_py: Path) -> None:
         renderer = DocRenderer(project_root=tmp_path)
         md = renderer.render(simple_py)
         assert "See Also" in md
@@ -628,9 +586,7 @@ class TestCrossRefBuilder:
     def test_instantiation(self, crossref: CrossRefBuilder) -> None:
         assert crossref is not None
 
-    def test_build_glossary_from_headings(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_build_glossary_from_headings(self, crossref: CrossRefBuilder) -> None:
         pages = {
             "page1": "## Term One\n\nDefinition of term one.\n\n## Term Two\n\nAnother definition.",
         }
@@ -639,9 +595,7 @@ class TestCrossRefBuilder:
         assert "Term One" in terms
         assert "Term Two" in terms
 
-    def test_build_glossary_from_bold_defs(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_build_glossary_from_bold_defs(self, crossref: CrossRefBuilder) -> None:
         pages = {
             "page1": "Some text.\n\n**Widget**: A reusable component.\n",
         }
@@ -658,9 +612,7 @@ class TestCrossRefBuilder:
         dup_entries = [e for e in glossary if e.term == "Dup"]
         assert len(dup_entries) == 1
 
-    def test_build_glossary_empty_pages(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_build_glossary_empty_pages(self, crossref: CrossRefBuilder) -> None:
         assert crossref.build_glossary({}) == []
 
     def test_inject_links_basic(self, crossref: CrossRefBuilder) -> None:
@@ -671,9 +623,7 @@ class TestCrossRefBuilder:
         result = crossref.inject_links(content, glossary, current_page="mypage")
         assert "[[Widget|Widget]]" in result
 
-    def test_inject_links_no_self_link(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_inject_links_no_self_link(self, crossref: CrossRefBuilder) -> None:
         glossary = [
             GlossaryEntry(term="Widget", definition="A component.", page="mypage"),
         ]
@@ -681,9 +631,7 @@ class TestCrossRefBuilder:
         result = crossref.inject_links(content, glossary, current_page="mypage")
         assert "[[" not in result
 
-    def test_inject_links_skips_code_blocks(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_inject_links_skips_code_blocks(self, crossref: CrossRefBuilder) -> None:
         glossary = [
             GlossaryEntry(term="Widget", definition="A component.", page="other"),
         ]
@@ -692,9 +640,7 @@ class TestCrossRefBuilder:
         # The link should appear for the occurrence outside the code block
         assert "[[Widget|Widget]]" in result
 
-    def test_inject_links_skips_headings(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_inject_links_skips_headings(self, crossref: CrossRefBuilder) -> None:
         glossary = [
             GlossaryEntry(term="Widget", definition="A component.", page="other"),
         ]
@@ -717,7 +663,7 @@ class TestCrossRefBuilder:
         assert crossref.see_also("nonexistent", pages) == []
 
     def test_see_also_respects_max(self, crossref: CrossRefBuilder) -> None:
-        pages = {f"page{i}": f"## Shared\n\nCommon content." for i in range(10)}
+        pages = {f"page{i}": "## Shared\n\nCommon content." for i in range(10)}
         related = crossref.see_also("page0", pages, max_related=3)
         assert len(related) <= 3
 
@@ -733,9 +679,7 @@ class TestCrossRefBuilder:
         beta_pos = page.index("Beta")
         assert alpha_pos < beta_pos
 
-    def test_generate_glossary_page_with_aliases(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_generate_glossary_page_with_aliases(self, crossref: CrossRefBuilder) -> None:
         glossary = [
             GlossaryEntry(
                 term="CLI",
@@ -748,9 +692,7 @@ class TestCrossRefBuilder:
         assert "Aliases:" in page
         assert "command-line interface" in page
 
-    def test_generate_glossary_page_empty(
-        self, crossref: CrossRefBuilder
-    ) -> None:
+    def test_generate_glossary_page_empty(self, crossref: CrossRefBuilder) -> None:
         page = crossref.generate_glossary_page([])
         assert "# Glossary" in page
 
@@ -770,9 +712,7 @@ class TestSidebarGenerator:
         assert "**Home**" in result
         assert "Getting Started" in result
 
-    def test_generate_with_page_filter(
-        self, sidebar: SidebarGenerator
-    ) -> None:
+    def test_generate_with_page_filter(self, sidebar: SidebarGenerator) -> None:
         result = sidebar.generate(pages=["Home", "Glossary"])
         assert "[[Home|Home]]" in result
         # Pages not in the filter should be marked coming soon
@@ -788,18 +728,14 @@ class TestSidebarGenerator:
         assert "**Docs**" in result
         assert "PageA" in result
 
-    def test_generate_config_empty_sections_uses_defaults(
-        self, sidebar: SidebarGenerator
-    ) -> None:
+    def test_generate_config_empty_sections_uses_defaults(self, sidebar: SidebarGenerator) -> None:
         config = SidebarConfig(title="Custom Title", sections=[])
         result = sidebar.generate(config=config)
         assert "## Custom Title" in result
         # Falls back to default sections
         assert "Home" in result
 
-    def test_generate_section_with_icon(
-        self, sidebar: SidebarGenerator
-    ) -> None:
+    def test_generate_section_with_icon(self, sidebar: SidebarGenerator) -> None:
         config = SidebarConfig(
             title="Wiki",
             sections=[
@@ -815,15 +751,11 @@ class TestSidebarGenerator:
         assert "[[Home]]" in footer
         assert "GitHub" in footer
 
-    def test_filter_pages_all_available(
-        self, sidebar: SidebarGenerator
-    ) -> None:
+    def test_filter_pages_all_available(self, sidebar: SidebarGenerator) -> None:
         result = sidebar._filter_pages(["A", "B"], existing={"A", "B", "C"})
         assert all(available for _, available in result)
 
-    def test_filter_pages_none_existing(
-        self, sidebar: SidebarGenerator
-    ) -> None:
+    def test_filter_pages_none_existing(self, sidebar: SidebarGenerator) -> None:
         result = sidebar._filter_pages(["A", "B"], existing=None)
         assert all(available for _, available in result)
 
@@ -880,9 +812,7 @@ class TestDataClasses:
         assert not table.classes
 
     def test_glossary_entry(self) -> None:
-        entry = GlossaryEntry(
-            term="Test", definition="A test.", page="p1", aliases=["t"]
-        )
+        entry = GlossaryEntry(term="Test", definition="A test.", page="p1", aliases=["t"])
         assert entry.term == "Test"
         assert entry.aliases == ["t"]
 

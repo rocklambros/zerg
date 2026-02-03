@@ -161,9 +161,7 @@ class TestPluginRegistry:
         assert retrieved is launcher
 
     @patch("zerg.plugins.subprocess.run")
-    def test_load_yaml_hooks_registers_shell_commands(
-        self, mock_subprocess_run: MagicMock
-    ) -> None:
+    def test_load_yaml_hooks_registers_shell_commands(self, mock_subprocess_run: MagicMock) -> None:
         """Test providing HookConfig list, emit, verify subprocess called."""
         registry = PluginRegistry()
         hooks_config = [{"event": "test_event", "command": "echo hello"}]
@@ -172,14 +170,10 @@ class TestPluginRegistry:
         event = LifecycleEvent(event_type="test_event", data={})
         registry.emit_event(event)
 
-        mock_subprocess_run.assert_called_once_with(
-            ["echo", "hello"], check=False, timeout=300
-        )
+        mock_subprocess_run.assert_called_once_with(["echo", "hello"], check=False, timeout=300)
 
     @patch("zerg.plugins.subprocess.run")
-    def test_load_yaml_hooks_multiple_events(
-        self, mock_subprocess_run: MagicMock
-    ) -> None:
+    def test_load_yaml_hooks_multiple_events(self, mock_subprocess_run: MagicMock) -> None:
         """Test multiple YAML hooks for different events."""
         registry = PluginRegistry()
         hooks_config = [
@@ -192,9 +186,7 @@ class TestPluginRegistry:
         event1 = LifecycleEvent(event_type="task_started", data={})
         registry.emit_event(event1)
 
-        mock_subprocess_run.assert_called_with(
-            ["notify-send", "start"], check=False, timeout=300
-        )
+        mock_subprocess_run.assert_called_with(["notify-send", "start"], check=False, timeout=300)
 
         mock_subprocess_run.reset_mock()
 
@@ -202,9 +194,7 @@ class TestPluginRegistry:
         event2 = LifecycleEvent(event_type="task_completed", data={})
         registry.emit_event(event2)
 
-        mock_subprocess_run.assert_called_with(
-            ["notify-send", "done"], check=False, timeout=300
-        )
+        mock_subprocess_run.assert_called_with(["notify-send", "done"], check=False, timeout=300)
 
     def test_multiple_hooks_same_event(self) -> None:
         """Test multiple callbacks registered for same event type."""
@@ -243,9 +233,7 @@ class TestEntryPointDiscovery:
     """Tests for load_entry_points discovering plugins from installed packages."""
 
     @patch("zerg.plugins.importlib.metadata.entry_points")
-    def test_load_entry_points_quality_gate(
-        self, mock_entry_points: MagicMock
-    ) -> None:
+    def test_load_entry_points_quality_gate(self, mock_entry_points: MagicMock) -> None:
         """Test loading QualityGatePlugin from entry points."""
         mock_ep = MagicMock()
         mock_ep.name = "custom_gate"
@@ -265,9 +253,7 @@ class TestEntryPointDiscovery:
         assert result.result is GateResult.PASS
 
     @patch("zerg.plugins.importlib.metadata.entry_points")
-    def test_load_entry_points_lifecycle_hook(
-        self, mock_entry_points: MagicMock
-    ) -> None:
+    def test_load_entry_points_lifecycle_hook(self, mock_entry_points: MagicMock) -> None:
         """Test loading LifecycleHookPlugin from entry points."""
 
         class TestHook(LifecycleHookPlugin):
@@ -318,9 +304,7 @@ class TestEntryPointDiscovery:
         assert isinstance(launcher, StubLauncherPlugin)
 
     @patch("zerg.plugins.importlib.metadata.entry_points")
-    def test_load_entry_points_fallback_dict_interface(
-        self, mock_entry_points: MagicMock
-    ) -> None:
+    def test_load_entry_points_fallback_dict_interface(self, mock_entry_points: MagicMock) -> None:
         """Test entry points using dict interface (Python <3.12)."""
         mock_ep = MagicMock()
         mock_ep.name = "legacy_plugin"
@@ -337,9 +321,7 @@ class TestEntryPointDiscovery:
         assert result.result is GateResult.PASS
 
     @patch("zerg.plugins.importlib.metadata.entry_points")
-    def test_load_entry_points_unknown_type_warns(
-        self, mock_entry_points: MagicMock
-    ) -> None:
+    def test_load_entry_points_unknown_type_warns(self, mock_entry_points: MagicMock) -> None:
         """Test entry point that doesn't implement plugin ABC logs warning."""
 
         class NotAPlugin:
@@ -363,9 +345,7 @@ class TestEntryPointDiscovery:
         assert "did not produce a recognised plugin type" in warn_msg
 
     @patch("zerg.plugins.importlib.metadata.entry_points")
-    def test_load_entry_points_load_failure_warns(
-        self, mock_entry_points: MagicMock
-    ) -> None:
+    def test_load_entry_points_load_failure_warns(self, mock_entry_points: MagicMock) -> None:
         """Test entry point that fails to load logs warning and continues."""
         mock_ep = MagicMock()
         mock_ep.name = "broken"
@@ -385,9 +365,7 @@ class TestEntryPointDiscovery:
         assert "Failed to load entry point" in warn_msg
 
     @patch("zerg.plugins.importlib.metadata.entry_points")
-    def test_load_entry_points_custom_group(
-        self, mock_entry_points: MagicMock
-    ) -> None:
+    def test_load_entry_points_custom_group(self, mock_entry_points: MagicMock) -> None:
         """Test loading from custom entry point group."""
         mock_ep = MagicMock()
         mock_ep.name = "custom"

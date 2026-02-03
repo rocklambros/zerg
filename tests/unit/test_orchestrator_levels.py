@@ -5,23 +5,24 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
+from zerg.constants import LevelMergeStatus, WorkerStatus
 from zerg.orchestrator import Orchestrator
 
 
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock orchestrator dependencies for level tests."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner") as gates_mock,
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager") as container_mock,
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state.get_task_status.return_value = None
@@ -111,9 +112,7 @@ def mock_orchestrator_deps():
 class TestLevelStarting:
     """Tests for starting levels."""
 
-    def test_start_level_sets_state(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_start_level_sets_state(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test starting a level sets correct state."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -124,9 +123,7 @@ class TestLevelStarting:
         mock_orchestrator_deps["state"].set_current_level.assert_called_with(1)
         mock_orchestrator_deps["state"].set_level_status.assert_called_with(1, "running")
 
-    def test_start_level_emits_event(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_start_level_emits_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test starting a level emits an event."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -136,13 +133,9 @@ class TestLevelStarting:
         orch = Orchestrator("test-feature")
         orch._start_level(1)
 
-        mock_orchestrator_deps["state"].append_event.assert_called_with(
-            "level_started", {"level": 1, "tasks": 2}
-        )
+        mock_orchestrator_deps["state"].append_event.assert_called_with("level_started", {"level": 1, "tasks": 2})
 
-    def test_start_level_assigns_to_workers(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_start_level_assigns_to_workers(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test starting a level assigns tasks."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -162,9 +155,7 @@ class TestLevelStarting:
 class TestLevelCompletion:
     """Tests for level completion handling."""
 
-    def test_on_level_complete_triggers_merge(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_on_level_complete_triggers_merge(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion triggers merge."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -177,9 +168,7 @@ class TestLevelCompletion:
 
         mock_orchestrator_deps["merge"].full_merge_flow.assert_called()
 
-    def test_on_level_complete_sets_merge_status(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_on_level_complete_sets_merge_status(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion sets merge status."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -207,13 +196,9 @@ class TestLevelCompletion:
 
         orch._on_level_complete_handler(1)
 
-        mock_orchestrator_deps["state"].set_level_status.assert_called_with(
-            1, "complete", merge_commit="abc123def"
-        )
+        mock_orchestrator_deps["state"].set_level_status.assert_called_with(1, "complete", merge_commit="abc123def")
 
-    def test_on_level_complete_emits_event(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_on_level_complete_emits_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion emits event."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -228,9 +213,7 @@ class TestLevelCompletion:
             "level_complete", {"level": 1, "merge_commit": "abc123def"}
         )
 
-    def test_on_level_complete_invokes_callbacks(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_on_level_complete_invokes_callbacks(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion invokes registered callbacks."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -304,26 +287,22 @@ class TestMergeFailure:
 class TestLevelAdvancement:
     """Tests for level advancement."""
 
-    def test_can_advance_check(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_can_advance_check(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test checking if level can advance."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        orch = Orchestrator("test-feature")
+        Orchestrator("test-feature")
 
         # levels.can_advance is mocked to return True
         assert mock_orchestrator_deps["levels"].can_advance() is True
 
-    def test_advance_level_returns_next(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_advance_level_returns_next(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test advancing level returns next level."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        orch = Orchestrator("test-feature")
+        Orchestrator("test-feature")
 
         next_level = mock_orchestrator_deps["levels"].advance_level()
 
@@ -333,9 +312,7 @@ class TestLevelAdvancement:
 class TestStatus:
     """Tests for status reporting."""
 
-    def test_status_returns_correct_structure(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_status_returns_correct_structure(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test status returns correct structure."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -353,9 +330,7 @@ class TestStatus:
         assert "levels" in status
         assert "is_complete" in status
 
-    def test_status_includes_progress(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_status_includes_progress(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test status includes progress info."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -368,9 +343,7 @@ class TestStatus:
         assert status["progress"]["completed"] == 5
         assert status["progress"]["percent"] == 50
 
-    def test_status_includes_worker_info(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_status_includes_worker_info(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test status includes worker information."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -388,9 +361,7 @@ class TestStatus:
 class TestRebase:
     """Tests for worker branch rebasing."""
 
-    def test_rebase_all_workers_sets_status(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_rebase_all_workers_sets_status(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test rebasing sets correct status."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -400,17 +371,13 @@ class TestRebase:
 
         orch._rebase_all_workers(1)
 
-        mock_orchestrator_deps["state"].set_level_merge_status.assert_called_with(
-            1, LevelMergeStatus.REBASING
-        )
+        mock_orchestrator_deps["state"].set_level_merge_status.assert_called_with(1, LevelMergeStatus.REBASING)
 
 
 class TestPauseResume:
     """Tests for pause/resume functionality."""
 
-    def test_pause_for_intervention(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_pause_for_intervention(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test pausing for intervention."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -421,9 +388,7 @@ class TestPauseResume:
         assert orch._paused is True
         mock_orchestrator_deps["state"].set_paused.assert_called_with(True)
 
-    def test_pause_emits_event(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_pause_emits_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test pause emits event."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -435,9 +400,7 @@ class TestPauseResume:
             "paused_for_intervention", {"reason": "Test reason"}
         )
 
-    def test_resume_from_pause(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_from_pause(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resuming from pause."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -450,9 +413,7 @@ class TestPauseResume:
         assert orch._paused is False
         mock_orchestrator_deps["state"].set_paused.assert_called_with(False)
 
-    def test_resume_when_not_paused(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_when_not_paused(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resume when not paused does nothing."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -465,9 +426,7 @@ class TestPauseResume:
         # set_paused should not be called
         mock_orchestrator_deps["state"].set_paused.assert_not_called()
 
-    def test_resume_emits_event(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume_emits_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resume emits event."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()

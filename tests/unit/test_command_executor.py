@@ -1,7 +1,6 @@
 """Tests for ZERG command executor module."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -369,10 +368,12 @@ class TestValidateEnvVars:
         """Test dangerous environment variables are blocked."""
         executor = CommandExecutor()
 
-        validated = executor._validate_env_vars({
-            "LD_PRELOAD": "/evil.so",
-            "SAFE_VAR": "ok",
-        })
+        validated = executor._validate_env_vars(
+            {
+                "LD_PRELOAD": "/evil.so",
+                "SAFE_VAR": "ok",
+            }
+        )
 
         assert "LD_PRELOAD" not in validated
         assert "SAFE_VAR" in validated
@@ -381,10 +382,12 @@ class TestValidateEnvVars:
         """Test env vars with shell chars are blocked."""
         executor = CommandExecutor()
 
-        validated = executor._validate_env_vars({
-            "BAD_VAR": "value; rm -rf /",
-            "GOOD_VAR": "safe_value",
-        })
+        validated = executor._validate_env_vars(
+            {
+                "BAD_VAR": "value; rm -rf /",
+                "GOOD_VAR": "safe_value",
+            }
+        )
 
         assert "BAD_VAR" not in validated
         assert "GOOD_VAR" in validated

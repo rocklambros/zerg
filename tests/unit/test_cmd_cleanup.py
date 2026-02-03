@@ -127,9 +127,7 @@ class TestExecuteCleanup:
     @patch("zerg.commands.cleanup.WorktreeManager")
     @patch("zerg.commands.cleanup.ContainerManager")
     @patch("zerg.commands.cleanup.GitOps")
-    def test_execute_handles_empty_plan(
-        self, mock_git, mock_container, mock_worktree
-    ) -> None:
+    def test_execute_handles_empty_plan(self, mock_git, mock_container, mock_worktree) -> None:
         """Test execute handles empty plan."""
         mock_config = MagicMock()
         plan = {

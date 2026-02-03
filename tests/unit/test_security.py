@@ -3,8 +3,6 @@
 import os
 from pathlib import Path
 
-import pytest
-
 from zerg.security import (
     SECRET_PATTERNS,
     SENSITIVE_FILES,
@@ -85,11 +83,11 @@ class TestCheckForSecrets:
 
     def test_multiline_content(self) -> None:
         """Test checking multiline content."""
-        content = '''
+        content = """
 line1 = "normal"
 password = "secretpassword123"
 line3 = "also normal"
-'''
+"""
 
         findings = check_for_secrets(content)
 

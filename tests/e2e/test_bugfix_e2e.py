@@ -12,22 +12,23 @@ import pytest
 from tests.mocks.mock_git import MockGitOps
 from tests.mocks.mock_launcher import MockContainerLauncher
 from tests.mocks.mock_merge import MockMergeCoordinator
-from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
+from zerg.constants import WorkerStatus
 
 
 @pytest.fixture
 def mock_full_deps():
     """Mock all dependencies for E2E orchestrator test."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner"),
+        patch("zerg.orchestrator.WorktreeManager"),
+        patch("zerg.orchestrator.ContainerManager"),
+        patch("zerg.orchestrator.PortAllocator"),
+        patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state.get_task_status.return_value = None
@@ -40,7 +41,7 @@ def mock_full_deps():
         levels.is_level_complete.return_value = False
         levels.is_level_resolved.return_value = False
         levels.can_advance.return_value = True
-        levels.advance_level.side_effect = lambda: setattr(levels, 'current_level', levels.current_level + 1)
+        levels.advance_level.side_effect = lambda: setattr(levels, "current_level", levels.current_level + 1)
         levels.start_level.return_value = ["TASK-001"]
         levels.get_pending_tasks_for_level.return_value = []
         levels.get_level_task_ids.return_value = ["TASK-001", "TASK-002"]
@@ -79,9 +80,7 @@ def mock_full_deps():
 class TestE2EMultiLevelExecution:
     """E2E tests for multi-level ZERG execution with all fixes."""
 
-    def test_full_execution_flow_success(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_full_execution_flow_success(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test complete successful execution across 3 levels.
 
         Verifies:
@@ -111,9 +110,7 @@ class TestE2EMultiLevelExecution:
         assert len(merger.get_successful_attempts()) >= 3
         assert len(merger.get_failed_attempts()) == 0
 
-    def test_merge_retry_then_success(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_merge_retry_then_success(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test merge retry at level 2, then success.
 
         Verifies BF-007: Merge timeout and retry mechanism.
@@ -148,9 +145,7 @@ class TestE2EMultiLevelExecution:
 
     @pytest.mark.e2e
     @pytest.mark.timeout(60)
-    def test_recoverable_error_allows_resume(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_recoverable_error_allows_resume(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test recoverable error pauses, then allows resume.
 
         Verifies BF-007: Recoverable error state (pause instead of stop).
@@ -196,9 +191,7 @@ class TestE2EMultiLevelExecution:
 class TestE2EWorkerLifecycle:
     """E2E tests for worker lifecycle with exec verification."""
 
-    def test_worker_spawn_exec_verify_success(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_worker_spawn_exec_verify_success(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test worker spawn with exec verification.
 
         Verifies BF-008: Launcher checks exec return value and verifies process.
@@ -229,9 +222,7 @@ class TestE2EWorkerLifecycle:
             assert attempt.exec_success
             assert attempt.process_verified
 
-    def test_worker_exec_failure_cleanup(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_worker_exec_failure_cleanup(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test cleanup when exec fails.
 
         Verifies BF-008: Resources cleaned up on exec failure.
@@ -316,9 +307,7 @@ class TestE2ECommitVerification:
 class TestE2EAllFixesTogether:
     """E2E test verifying all three fixes work together."""
 
-    def test_complete_bugfix_scenario(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_complete_bugfix_scenario(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test scenario exercising all three bug fixes.
 
         Scenario:
@@ -386,9 +375,7 @@ class TestE2EAllFixesTogether:
 class TestE2EMetrics:
     """E2E tests for metrics collection."""
 
-    def test_metrics_collected_after_merge(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_metrics_collected_after_merge(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test metrics collection after merge completion."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -408,9 +395,7 @@ class TestE2EMetrics:
         assert merger.get_attempt_count() >= 1
         assert len(merger.get_successful_attempts()) >= 1
 
-    def test_event_emission_throughout_flow(
-        self, mock_full_deps, tmp_path: Path, monkeypatch
-    ):
+    def test_event_emission_throughout_flow(self, mock_full_deps, tmp_path: Path, monkeypatch):
         """Test events are emitted at each stage."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()

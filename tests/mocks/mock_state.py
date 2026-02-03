@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
 from zerg.types import ExecutionEvent, WorkerState
@@ -164,10 +164,12 @@ class MockStateManager:
 
         if self._fail_on_load:
             from zerg.exceptions import StateError
+
             raise StateError("Simulated load failure")
 
         if self._corrupt_on_load:
             from zerg.exceptions import StateError
+
             raise StateError("Failed to parse state file: Simulated corruption")
 
         self._load_count += 1
@@ -176,10 +178,13 @@ class MockStateManager:
         if not self._file_exists:
             self._state = self._create_initial_state()
 
-        self._record_mock_event("state_loaded", {
-            "path": str(self._state_file),
-            "load_count": self._load_count,
-        })
+        self._record_mock_event(
+            "state_loaded",
+            {
+                "path": str(self._state_file),
+                "load_count": self._load_count,
+            },
+        )
 
         return self._state.copy()
 
@@ -193,16 +198,19 @@ class MockStateManager:
             time.sleep(self._save_delay)
 
         if self._fail_on_save:
-            raise IOError("Simulated save failure")
+            raise OSError("Simulated save failure")
 
         self._save_count += 1
         self._last_save_time = datetime.now()
         self._file_exists = True
 
-        self._record_mock_event("state_saved", {
-            "path": str(self._state_file),
-            "save_count": self._save_count,
-        })
+        self._record_mock_event(
+            "state_saved",
+            {
+                "path": str(self._state_file),
+                "save_count": self._save_count,
+            },
+        )
 
     # === Task State Methods ===
 
@@ -268,11 +276,14 @@ class MockStateManager:
 
         self.save()
 
-        self._record_mock_event("task_status_changed", {
-            "task_id": task_id,
-            "status": status_str,
-            "worker_id": worker_id,
-        })
+        self._record_mock_event(
+            "task_status_changed",
+            {
+                "task_id": task_id,
+                "status": status_str,
+                "worker_id": worker_id,
+            },
+        )
 
     def get_tasks_by_status(self, status: TaskStatus | str) -> list[str]:
         """Get task IDs with a specific status.
@@ -285,11 +296,7 @@ class MockStateManager:
         """
         status_str = status.value if isinstance(status, TaskStatus) else status
 
-        return [
-            tid
-            for tid, task in self._state.get("tasks", {}).items()
-            if task.get("status") == status_str
-        ]
+        return [tid for tid, task in self._state.get("tasks", {}).items() if task.get("status") == status_str]
 
     def claim_task(self, task_id: str, worker_id: int) -> bool:
         """Attempt to claim a task for a worker.
@@ -379,10 +386,13 @@ class MockStateManager:
 
         self.save()
 
-        self._record_mock_event("worker_state_changed", {
-            "worker_id": worker_state.worker_id,
-            "status": worker_state.status.value,
-        })
+        self._record_mock_event(
+            "worker_state_changed",
+            {
+                "worker_id": worker_state.worker_id,
+                "status": worker_state.status.value,
+            },
+        )
 
     def get_all_workers(self) -> dict[int, WorkerState]:
         """Get all worker states.
@@ -682,12 +692,14 @@ class MockStateManager:
         failed = []
         for task_id, task_state in self._state.get("tasks", {}).items():
             if task_state.get("status") == TaskStatus.FAILED.value:
-                failed.append({
-                    "task_id": task_id,
-                    "retry_count": task_state.get("retry_count", 0),
-                    "error": task_state.get("error"),
-                    "last_retry_at": task_state.get("last_retry_at"),
-                })
+                failed.append(
+                    {
+                        "task_id": task_id,
+                        "retry_count": task_state.get("retry_count", 0),
+                        "error": task_state.get("error"),
+                        "last_retry_at": task_state.get("last_retry_at"),
+                    }
+                )
         return failed
 
     # === Metrics Methods ===
@@ -722,7 +734,7 @@ class MockStateManager:
 
         self.save()
 
-    def store_metrics(self, metrics: "FeatureMetrics") -> None:
+    def store_metrics(self, metrics: FeatureMetrics) -> None:
         """Store computed metrics to state.
 
         Args:
@@ -731,7 +743,7 @@ class MockStateManager:
         self._state["metrics"] = metrics.to_dict()
         self.save()
 
-    def get_metrics(self) -> "FeatureMetrics | None":
+    def get_metrics(self) -> FeatureMetrics | None:
         """Retrieve stored metrics.
 
         Returns:
@@ -742,6 +754,7 @@ class MockStateManager:
             return None
 
         from zerg.types import FeatureMetrics
+
         return FeatureMetrics.from_dict(metrics_data)
 
     # === File Operations ===
@@ -768,14 +781,16 @@ class MockStateManager:
             event_type: Type of event
             details: Event details
         """
-        self._mock_events.append(StateEvent(
-            event_type=event_type,
-            details=details,
-        ))
+        self._mock_events.append(
+            StateEvent(
+                event_type=event_type,
+                details=details,
+            )
+        )
 
         # Truncate if over limit
         if len(self._mock_events) > self._max_events:
-            self._mock_events = self._mock_events[-self._max_events:]
+            self._mock_events = self._mock_events[-self._max_events :]
 
     def get_mock_events(self, event_type: str | None = None) -> list[StateEvent]:
         """Get recorded mock events.

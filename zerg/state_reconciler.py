@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from zerg.constants import TaskStatus
@@ -52,7 +52,7 @@ class ReconciliationResult:
     """Result of a reconciliation operation."""
 
     reconciliation_type: str  # "periodic" or "level_transition"
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     fixes_applied: list[ReconciliationFix] = field(default_factory=list)
     divergences_found: int = 0
     tasks_checked: int = 0
@@ -154,10 +154,7 @@ class StateReconciler:
                 f"({result.divergences_found} divergences found)"
             )
         else:
-            logger.debug(
-                f"Periodic reconciliation: {result.tasks_checked} tasks checked, "
-                f"no fixes needed"
-            )
+            logger.debug(f"Periodic reconciliation: {result.tasks_checked} tasks checked, no fixes needed")
 
         return result
 
@@ -198,15 +195,10 @@ class StateReconciler:
 
         except Exception as e:
             result.errors.append(f"Level transition reconciliation failed: {e}")
-            logger.error(
-                f"Level {level} transition reconciliation failed", exc_info=True
-            )
+            logger.error(f"Level {level} transition reconciliation failed", exc_info=True)
 
         if result.had_fixes:
-            logger.info(
-                f"Level {level} transition reconciliation applied "
-                f"{len(result.fixes_applied)} fixes"
-            )
+            logger.info(f"Level {level} transition reconciliation applied {len(result.fixes_applied)} fixes")
         else:
             logger.info(f"Level {level} transition reconciliation: all checks passed")
 
@@ -234,9 +226,7 @@ class StateReconciler:
                 return None
         return None
 
-    def _reconcile_task_states(
-        self, result: ReconciliationResult, level_filter: int | None = None
-    ) -> None:
+    def _reconcile_task_states(self, result: ReconciliationResult, level_filter: int | None = None) -> None:
         """Reconcile task states between disk and LevelController.
 
         Args:
@@ -345,9 +335,7 @@ class StateReconciler:
         if any(f.fix_type == "level_parsed" for f in result.fixes_applied):
             self._state.save()
 
-    def _fix_stuck_in_progress_tasks(
-        self, result: ReconciliationResult, level_filter: int | None = None
-    ) -> None:
+    def _fix_stuck_in_progress_tasks(self, result: ReconciliationResult, level_filter: int | None = None) -> None:
         """Fix tasks stuck in_progress with no active worker.
 
         Args:
@@ -359,9 +347,7 @@ class StateReconciler:
 
         # Build set of active worker IDs
         active_workers = {
-            int(wid)
-            for wid, w in workers_state.items()
-            if w.get("status") in ("ready", "running", "idle")
+            int(wid) for wid, w in workers_state.items() if w.get("status") in ("ready", "running", "idle")
         }
 
         for task_id, task_state in tasks_state.items():
@@ -381,9 +367,7 @@ class StateReconciler:
                         TaskStatus.FAILED.value,
                         error_message="worker_crash",
                     )
-                    self._levels.mark_task_failed(
-                        task_id, error=f"Worker {worker_id} crashed/stopped"
-                    )
+                    self._levels.mark_task_failed(task_id, error=f"Worker {worker_id} crashed/stopped")
 
                     # Reset retry count since this is a crash, not a task bug
                     # (the task_retry_manager will handle requeueing)
@@ -400,14 +384,9 @@ class StateReconciler:
                             reason=f"Worker {worker_id} no longer active, marking failed for reassignment",
                         )
                     )
-                    logger.warning(
-                        f"Task {task_id} stuck on dead worker {worker_id}, "
-                        "marked failed for reassignment"
-                    )
+                    logger.warning(f"Task {task_id} stuck on dead worker {worker_id}, marked failed for reassignment")
 
-    def _check_stale_workers(
-        self, result: ReconciliationResult, timeout_seconds: int = 120
-    ) -> None:
+    def _check_stale_workers(self, result: ReconciliationResult, timeout_seconds: int = 120) -> None:
         """Check for workers with stale heartbeats.
 
         Args:
@@ -420,9 +399,7 @@ class StateReconciler:
         workers_state = self._state._state.get("workers", {})
         worker_ids = [int(wid) for wid in workers_state.keys()]
 
-        stale_workers = self._heartbeat_monitor.get_stalled_workers(
-            worker_ids, timeout_seconds
-        )
+        stale_workers = self._heartbeat_monitor.get_stalled_workers(worker_ids, timeout_seconds)
 
         for worker_id in stale_workers:
             result.workers_checked += 1
@@ -440,19 +417,11 @@ class StateReconciler:
         # Get actual task states from disk
         tasks_state = self._state._state.get("tasks", {})
 
-        level_tasks = [
-            (tid, ts)
-            for tid, ts in tasks_state.items()
-            if ts.get("level") == level
-        ]
+        level_tasks = [(tid, ts) for tid, ts in tasks_state.items() if ts.get("level") == level]
 
         total = len(level_tasks)
-        complete = sum(
-            1 for _, ts in level_tasks if ts.get("status") == TaskStatus.COMPLETE.value
-        )
-        failed = sum(
-            1 for _, ts in level_tasks if ts.get("status") == TaskStatus.FAILED.value
-        )
+        complete = sum(1 for _, ts in level_tasks if ts.get("status") == TaskStatus.COMPLETE.value)
+        failed = sum(1 for _, ts in level_tasks if ts.get("status") == TaskStatus.FAILED.value)
         resolved = complete + failed
 
         # Check if level status matches reality
@@ -467,8 +436,7 @@ class StateReconciler:
 
             if level_status.failed_tasks != failed:
                 logger.warning(
-                    f"Level {level} failed_tasks mismatch: "
-                    f"LevelController={level_status.failed_tasks}, disk={failed}"
+                    f"Level {level} failed_tasks mismatch: LevelController={level_status.failed_tasks}, disk={failed}"
                 )
                 result.divergences_found += 1
 
@@ -522,9 +490,6 @@ class StateReconciler:
         if stuck_tasks:
             for task_id, status in stuck_tasks:
                 logger.error(
-                    f"Task {task_id} still in '{status}' status at level {level} "
-                    "transition - this should not happen"
+                    f"Task {task_id} still in '{status}' status at level {level} transition - this should not happen"
                 )
-                result.errors.append(
-                    f"Task {task_id} not in terminal state at level transition"
-                )
+                result.errors.append(f"Task {task_id} not in terminal state at level transition")

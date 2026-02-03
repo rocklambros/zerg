@@ -84,6 +84,7 @@ def plan(
 
         # Write start timestamp
         from datetime import datetime
+
         started_file = spec_dir / ".started"
         started_file.write_text(datetime.now(UTC).isoformat())
 
@@ -140,6 +141,7 @@ def sanitize_feature_name(name: str) -> str:
         Sanitized feature name
     """
     import re
+
     # Lowercase, replace spaces with hyphens, remove invalid chars
     name = name.lower().replace(" ", "-")
     name = re.sub(r"[^a-z0-9-]", "", name)
@@ -173,6 +175,7 @@ def import_from_github_issue(url: str) -> str | None:
             return None
 
         import json
+
         data = json.loads(result.stdout)
 
         # Extract feature name from title
@@ -506,6 +509,7 @@ def write_requirements(spec_dir: Path, feature: str, requirements: dict[str, Any
         requirements: Requirements dictionary
     """
     from datetime import datetime
+
     timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
 
     # Check if socratic mode was used
@@ -608,36 +612,36 @@ def format_standard_requirements(feature: str, timestamp: str, req: dict[str, An
 
 ## 1. Problem Statement
 
-{req.get('problem', '_To be defined_')}
+{req.get("problem", "_To be defined_")}
 
 ---
 
 ## 2. Users
 
-{req.get('users', '_To be defined_')}
+{req.get("users", "_To be defined_")}
 
 ---
 
 ## 3. Functional Requirements
 
 ### 3.1 Inputs
-{req.get('inputs', '_To be defined_')}
+{req.get("inputs", "_To be defined_")}
 
 ### 3.2 Outputs
-{req.get('outputs', '_To be defined_')}
+{req.get("outputs", "_To be defined_")}
 
 ---
 
 ## 4. Scope
 
 ### 4.1 Out of Scope
-{req.get('out_of_scope', '_To be defined_')}
+{req.get("out_of_scope", "_To be defined_")}
 
 ---
 
 ## 5. Acceptance Criteria
 
-{req.get('acceptance', '_To be defined_')}
+{req.get("acceptance", "_To be defined_")}
 
 - [ ] All requirements implemented
 - [ ] Tests passing

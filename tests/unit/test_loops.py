@@ -38,23 +38,17 @@ class TestIterationResult:
 
     def test_is_regression_negative_delta(self) -> None:
         """Negative delta is a regression."""
-        result = IterationResult(
-            iteration=2, score=0.3, improved=False, delta=-0.2, duration_seconds=1.0
-        )
+        result = IterationResult(iteration=2, score=0.3, improved=False, delta=-0.2, duration_seconds=1.0)
         assert result.is_regression is True
 
     def test_is_regression_positive_delta(self) -> None:
         """Positive delta is not a regression."""
-        result = IterationResult(
-            iteration=1, score=0.5, improved=True, delta=0.5, duration_seconds=1.0
-        )
+        result = IterationResult(iteration=1, score=0.5, improved=True, delta=0.5, duration_seconds=1.0)
         assert result.is_regression is False
 
     def test_is_regression_zero_delta(self) -> None:
         """Zero delta is not a regression."""
-        result = IterationResult(
-            iteration=2, score=0.5, improved=False, delta=0.0, duration_seconds=0.5
-        )
+        result = IterationResult(iteration=2, score=0.5, improved=False, delta=0.0, duration_seconds=0.5)
         assert result.is_regression is False
 
     def test_to_dict(self) -> None:
@@ -91,9 +85,7 @@ class TestIterationResult:
 
     def test_default_details_empty(self) -> None:
         """Default details is an empty dict."""
-        result = IterationResult(
-            iteration=1, score=0.5, improved=True, delta=0.5, duration_seconds=0.1
-        )
+        result = IterationResult(iteration=1, score=0.5, improved=True, delta=0.5, duration_seconds=0.1)
         assert result.details == {}
 
 
@@ -168,20 +160,14 @@ class TestLoopControllerRun:
         """Loop detects convergence when delta is small but positive."""
         # Scores: 0.5, 0.8, 0.95, 0.96 (delta=0.01 < threshold=0.02)
         scores = [0.5, 0.8, 0.95, 0.96]
-        controller = LoopController(
-            max_iterations=10, convergence_threshold=0.02
-        )
-        summary = controller.run(
-            lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0
-        )
+        controller = LoopController(max_iterations=10, convergence_threshold=0.02)
+        summary = controller.run(lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0)
         assert summary.status == LoopStatus.CONVERGED
         assert summary.best_score >= 0.95
 
     def test_plateau(self) -> None:
         """Loop detects plateau when score stays the same."""
-        controller = LoopController(
-            max_iterations=10, plateau_threshold=2, convergence_threshold=0.02
-        )
+        controller = LoopController(max_iterations=10, plateau_threshold=2, convergence_threshold=0.02)
         summary = controller.run(lambda i: 0.5, initial_score=0.5)
         assert summary.status == LoopStatus.PLATEAU
         assert len(summary.iterations) == 2
@@ -194,9 +180,7 @@ class TestLoopControllerRun:
             rollback_on_regression=True,
             convergence_threshold=0.02,
         )
-        summary = controller.run(
-            lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0
-        )
+        summary = controller.run(lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0)
         # First iteration: 0.0 -> 0.8 (improved)
         # Second iteration: 0.8 -> 0.5 (regression, delta=-0.3)
         assert summary.status == LoopStatus.REGRESSED
@@ -212,9 +196,7 @@ class TestLoopControllerRun:
             convergence_threshold=0.02,
             plateau_threshold=10,
         )
-        summary = controller.run(
-            lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0
-        )
+        summary = controller.run(lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0)
         assert summary.status == LoopStatus.MAX_ITERATIONS
         assert summary.best_score == 0.9
 
@@ -252,9 +234,7 @@ class TestLoopControllerRun:
             convergence_threshold=0.02,
             plateau_threshold=10,
         )
-        summary = controller.run(
-            lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0
-        )
+        summary = controller.run(lambda i: scores[min(i - 1, len(scores) - 1)], initial_score=0.0)
         assert summary.best_score == 0.9
         assert summary.best_iteration == 2
 
@@ -286,9 +266,7 @@ class TestLoopControllerShouldContinue:
 
     def test_plateau_returns_false(self) -> None:
         """Returns False after plateau_threshold non-improving iterations."""
-        controller = LoopController(
-            max_iterations=10, plateau_threshold=2
-        )
+        controller = LoopController(max_iterations=10, plateau_threshold=2)
         iterations = [
             IterationResult(1, 0.5, True, 0.5, 1.0),
             IterationResult(2, 0.5, False, 0.0, 1.0),
@@ -298,9 +276,7 @@ class TestLoopControllerShouldContinue:
 
     def test_regression_returns_false(self) -> None:
         """Returns False after regression when rollback enabled."""
-        controller = LoopController(
-            max_iterations=10, rollback_on_regression=True
-        )
+        controller = LoopController(max_iterations=10, rollback_on_regression=True)
         iterations = [
             IterationResult(1, 0.5, True, 0.5, 1.0),
             IterationResult(2, 0.3, False, -0.2, 1.0),

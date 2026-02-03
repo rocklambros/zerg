@@ -76,9 +76,7 @@ class TestReviewModes:
     def test_review_combined_options(self) -> None:
         """Test review with combined options."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["review", "--mode", "prepare", "--files", "src/", "--output", "out.md"]
-        )
+        result = runner.invoke(cli, ["review", "--mode", "prepare", "--files", "src/", "--output", "out.md"])
         assert "Invalid value" not in result.output
 
 
@@ -128,9 +126,7 @@ class TestReviewFunctional:
         runner = CliRunner()
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = Path(tmpdir) / "review.md"
-            result = runner.invoke(
-                cli, ["review", "--output", str(output_file)]
-            )
+            result = runner.invoke(cli, ["review", "--output", str(output_file)])
             assert result.exit_code in [0, 1]
 
     def test_review_specific_files(self) -> None:

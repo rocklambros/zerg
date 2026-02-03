@@ -4,8 +4,6 @@ import json
 import threading
 from pathlib import Path
 
-import pytest
-
 from zerg.constants import LogEvent, LogPhase
 from zerg.log_writer import StructuredLogWriter, TaskArtifactCapture
 
@@ -110,9 +108,7 @@ class TestStructuredLogWriter:
     def test_log_rotation(self, tmp_path: Path) -> None:
         """Test log file rotation when max size exceeded."""
         # Set very small max size (1 byte) to trigger rotation
-        writer = StructuredLogWriter(
-            tmp_path, worker_id=0, feature="test", max_size_mb=0
-        )
+        writer = StructuredLogWriter(tmp_path, worker_id=0, feature="test", max_size_mb=0)
         # max_size_bytes will be 0, so first write triggers rotation
         writer.emit("info", "first entry")
         writer.emit("info", "second entry after rotation")
@@ -125,9 +121,7 @@ class TestStructuredLogWriter:
 
     def test_orchestrator_worker_id(self, tmp_path: Path) -> None:
         """Test writer with string worker_id for orchestrator."""
-        writer = StructuredLogWriter(
-            tmp_path, worker_id="orchestrator", feature="test"
-        )
+        writer = StructuredLogWriter(tmp_path, worker_id="orchestrator", feature="test")
         writer.emit("info", "orchestrator event")
         writer.close()
 
@@ -153,7 +147,7 @@ class TestTaskArtifactCapture:
 
     def test_creates_task_directory(self, tmp_path: Path) -> None:
         """Test artifact capture creates tasks/{task_id}/ directory."""
-        capture = TaskArtifactCapture(tmp_path, "T1.1")
+        TaskArtifactCapture(tmp_path, "T1.1")
         assert (tmp_path / "tasks" / "T1.1").is_dir()
 
     def test_capture_claude_output(self, tmp_path: Path) -> None:
@@ -172,9 +166,7 @@ class TestTaskArtifactCapture:
         capture = TaskArtifactCapture(tmp_path, "T1.1")
         capture.capture_verification("pass output", "warn output", 0)
 
-        output = (
-            tmp_path / "tasks" / "T1.1" / "verification_output.txt"
-        ).read_text()
+        output = (tmp_path / "tasks" / "T1.1" / "verification_output.txt").read_text()
         assert "Exit code: 0" in output
         assert "pass output" in output
 

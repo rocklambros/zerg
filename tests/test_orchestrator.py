@@ -5,24 +5,24 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.config import ZergConfig
-from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
+from zerg.constants import TaskStatus, WorkerStatus
 from zerg.orchestrator import Orchestrator
 
 
 @pytest.fixture
 def mock_deps():
     """Mock orchestrator dependencies."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner") as gates_mock,
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager") as container_mock,
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state.get_task_status.return_value = None
@@ -130,9 +130,7 @@ class TestOrchestrator:
 class TestExecute:
     """Tests for worker execution (L2-001)."""
 
-    def test_spawn_worker_subprocess(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_spawn_worker_subprocess(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test spawning worker with subprocess launcher."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -145,9 +143,7 @@ class TestExecute:
         assert worker_state.status == WorkerStatus.RUNNING
         mock_deps["launcher"].spawn.assert_called_once()
 
-    def test_poll_workers_uses_launcher(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_poll_workers_uses_launcher(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test polling uses launcher for status."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -159,9 +155,7 @@ class TestExecute:
 
         mock_deps["launcher"].monitor.assert_called()
 
-    def test_terminate_worker_uses_launcher(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_terminate_worker_uses_launcher(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test terminating uses launcher."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -177,9 +171,7 @@ class TestExecute:
 class TestMerge:
     """Tests for merge protocol (L2-002)."""
 
-    def test_merge_level_success(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_merge_level_success(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test successful level merge."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -192,9 +184,7 @@ class TestMerge:
         assert result.success is True
         mock_deps["merge"].full_merge_flow.assert_called_once()
 
-    def test_on_level_complete_triggers_merge(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_on_level_complete_triggers_merge(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion triggers merge."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -205,9 +195,7 @@ class TestMerge:
 
         mock_deps["state"].set_level_merge_status.assert_called()
 
-    def test_pause_for_intervention(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_pause_for_intervention(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test pausing for intervention."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -219,9 +207,7 @@ class TestMerge:
         assert orch._paused is True
         mock_deps["state"].set_paused.assert_called_with(True)
 
-    def test_resume(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_resume(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test resuming from pause."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -238,9 +224,7 @@ class TestMerge:
 class TestRetry:
     """Tests for retry logic (L2-003)."""
 
-    def test_handle_task_failure_retries(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_handle_task_failure_retries(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test task failure triggers retry when under limit."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -256,9 +240,7 @@ class TestRetry:
         assert mock_deps["state"].increment_task_retry.call_args[0][0] == "TASK-001"
         mock_deps["state"].set_task_status.assert_called_with("TASK-001", "waiting_retry")
 
-    def test_handle_task_failure_exceeds_limit(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_handle_task_failure_exceeds_limit(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test task failure fails permanently when over limit."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -272,9 +254,7 @@ class TestRetry:
         assert will_retry is False
         mock_deps["levels"].mark_task_failed.assert_called()
 
-    def test_retry_task(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_retry_task(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test manual task retry."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -289,9 +269,7 @@ class TestRetry:
         mock_deps["state"].reset_task_retry.assert_called_with("TASK-001")
         mock_deps["state"].set_task_status.assert_called_with("TASK-001", TaskStatus.PENDING)
 
-    def test_retry_task_not_failed(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_retry_task_not_failed(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test retry fails for non-failed task."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -304,9 +282,7 @@ class TestRetry:
 
         assert result is False
 
-    def test_retry_all_failed(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_retry_all_failed(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test retrying all failed tasks."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -325,9 +301,7 @@ class TestRetry:
         assert "TASK-001" in retried
         assert "TASK-002" in retried
 
-    def test_verify_with_retry_success(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_verify_with_retry_success(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test verification with retry succeeds on first try."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -343,9 +317,7 @@ class TestRetry:
 
             assert success is True
 
-    def test_verify_with_retry_fails_then_succeeds(
-        self, mock_deps, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_verify_with_retry_fails_then_succeeds(self, mock_deps, tmp_path: Path, monkeypatch) -> None:
         """Test verification retries and succeeds."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()

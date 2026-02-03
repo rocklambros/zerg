@@ -6,14 +6,10 @@ inconsistency detection and fixes.
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from zerg.constants import TaskStatus
 from zerg.state_reconciler import (
     ReconciliationFix,
     ReconciliationResult,
@@ -210,9 +206,7 @@ class TestReconcileTaskStates:
         return MagicMock()
 
     @pytest.fixture
-    def reconciler(
-        self, mock_state: MagicMock, mock_levels: MagicMock
-    ) -> StateReconciler:
+    def reconciler(self, mock_state: MagicMock, mock_levels: MagicMock) -> StateReconciler:
         """Create a StateReconciler with mocked dependencies."""
         return StateReconciler(state=mock_state, levels=mock_levels)
 
@@ -333,9 +327,7 @@ class TestFixMissingTaskLevels:
         mock_levels.get_task_status.return_value = None
         return StateReconciler(state=mock_state, levels=mock_levels)
 
-    def test_parses_and_fixes_missing_level(
-        self, reconciler: StateReconciler, mock_state: MagicMock
-    ) -> None:
+    def test_parses_and_fixes_missing_level(self, reconciler: StateReconciler, mock_state: MagicMock) -> None:
         """Test that tasks with missing level get it parsed from ID."""
         mock_state._state = {
             "tasks": {
@@ -358,9 +350,7 @@ class TestFixMissingTaskLevels:
         assert len(level_fixes) == 1
         assert level_fixes[0].new_value == 3
 
-    def test_no_fix_when_level_cannot_be_parsed(
-        self, reconciler: StateReconciler, mock_state: MagicMock
-    ) -> None:
+    def test_no_fix_when_level_cannot_be_parsed(self, reconciler: StateReconciler, mock_state: MagicMock) -> None:
         """Test no fix when level cannot be parsed from task ID."""
         mock_state._state = {
             "tasks": {
@@ -380,9 +370,7 @@ class TestFixMissingTaskLevels:
         level_fixes = [f for f in result.fixes_applied if f.fix_type == "level_parsed"]
         assert len(level_fixes) == 0
 
-    def test_no_fix_when_level_already_set(
-        self, reconciler: StateReconciler, mock_state: MagicMock
-    ) -> None:
+    def test_no_fix_when_level_already_set(self, reconciler: StateReconciler, mock_state: MagicMock) -> None:
         """Test no fix when level is already set."""
         mock_state._state = {
             "tasks": {
@@ -419,9 +407,7 @@ class TestFixStuckInProgressTasks:
         return mock
 
     @pytest.fixture
-    def reconciler(
-        self, mock_state: MagicMock, mock_levels: MagicMock
-    ) -> StateReconciler:
+    def reconciler(self, mock_state: MagicMock, mock_levels: MagicMock) -> StateReconciler:
         """Create a StateReconciler with mocked dependencies."""
         return StateReconciler(state=mock_state, levels=mock_levels)
 
@@ -450,16 +436,12 @@ class TestFixStuckInProgressTasks:
         result = reconciler.reconcile_level_transition(1)
 
         # Task should be marked failed
-        mock_state.set_task_status.assert_called_with(
-            "A-L1-001", "failed", error_message="worker_crash"
-        )
+        mock_state.set_task_status.assert_called_with("A-L1-001", "failed", error_message="worker_crash")
         mock_levels.mark_task_failed.assert_called()
         # Retry count should be reset (crash, not task bug)
         mock_state.reset_task_retry.assert_called_with("A-L1-001")
         # Fix should be recorded
-        stuck_fixes = [
-            f for f in result.fixes_applied if f.fix_type == "stuck_task_recovered"
-        ]
+        stuck_fixes = [f for f in result.fixes_applied if f.fix_type == "stuck_task_recovered"]
         assert len(stuck_fixes) == 1
         assert stuck_fixes[0].worker_id == 5
 
@@ -487,9 +469,7 @@ class TestFixStuckInProgressTasks:
         result = reconciler.reconcile_level_transition(1)
 
         mock_state.set_task_status.assert_not_called()
-        stuck_fixes = [
-            f for f in result.fixes_applied if f.fix_type == "stuck_task_recovered"
-        ]
+        stuck_fixes = [f for f in result.fixes_applied if f.fix_type == "stuck_task_recovered"]
         assert len(stuck_fixes) == 0
 
     def test_handles_worker_status_variants(
@@ -519,9 +499,7 @@ class TestFixStuckInProgressTasks:
         result = reconciler.reconcile_level_transition(1)
 
         # Only worker 4's task should be marked stuck
-        stuck_fixes = [
-            f for f in result.fixes_applied if f.fix_type == "stuck_task_recovered"
-        ]
+        stuck_fixes = [f for f in result.fixes_applied if f.fix_type == "stuck_task_recovered"]
         assert len(stuck_fixes) == 1
         assert stuck_fixes[0].task_id == "A-L1-004"
 
@@ -544,9 +522,7 @@ class TestLevelTransitionReconciliation:
         return mock
 
     @pytest.fixture
-    def reconciler(
-        self, mock_state: MagicMock, mock_levels: MagicMock
-    ) -> StateReconciler:
+    def reconciler(self, mock_state: MagicMock, mock_levels: MagicMock) -> StateReconciler:
         """Create a StateReconciler with mocked dependencies."""
         return StateReconciler(state=mock_state, levels=mock_levels)
 
@@ -638,15 +614,11 @@ class TestPeriodicVsThoroughReconciliation:
         return MagicMock()
 
     @pytest.fixture
-    def reconciler(
-        self, mock_state: MagicMock, mock_levels: MagicMock
-    ) -> StateReconciler:
+    def reconciler(self, mock_state: MagicMock, mock_levels: MagicMock) -> StateReconciler:
         """Create a StateReconciler with mocked dependencies."""
         return StateReconciler(state=mock_state, levels=mock_levels)
 
-    def test_periodic_does_not_check_level_filter(
-        self, reconciler: StateReconciler, mock_state: MagicMock
-    ) -> None:
+    def test_periodic_does_not_check_level_filter(self, reconciler: StateReconciler, mock_state: MagicMock) -> None:
         """Test periodic reconciliation checks all tasks."""
         mock_state._state = {
             "tasks": {
@@ -723,9 +695,7 @@ class TestStaleWorkerDetection:
         """Create a mock HeartbeatMonitor."""
         return MagicMock()
 
-    def test_detects_stale_workers(
-        self, mock_state: MagicMock, mock_heartbeat_monitor: MagicMock
-    ) -> None:
+    def test_detects_stale_workers(self, mock_state: MagicMock, mock_heartbeat_monitor: MagicMock) -> None:
         """Test stale workers are detected via heartbeat monitor."""
         mock_levels = MagicMock()
         mock_levels.get_task_status.return_value = None
@@ -770,9 +740,7 @@ class TestLevelCompletionVerification:
         return MagicMock()
 
     @pytest.fixture
-    def reconciler(
-        self, mock_state: MagicMock, mock_levels: MagicMock
-    ) -> StateReconciler:
+    def reconciler(self, mock_state: MagicMock, mock_levels: MagicMock) -> StateReconciler:
         """Create a StateReconciler with mocked dependencies."""
         return StateReconciler(state=mock_state, levels=mock_levels)
 
@@ -806,9 +774,7 @@ class TestLevelCompletionVerification:
         assert level_status.failed_tasks == 1
 
         # Fix should be recorded
-        count_fixes = [
-            f for f in result.fixes_applied if f.fix_type == "level_counts_corrected"
-        ]
+        count_fixes = [f for f in result.fixes_applied if f.fix_type == "level_counts_corrected"]
         assert len(count_fixes) == 1
 
     def test_no_fix_when_counts_match(
@@ -835,9 +801,7 @@ class TestLevelCompletionVerification:
 
         result = reconciler.reconcile_level_transition(1)
 
-        count_fixes = [
-            f for f in result.fixes_applied if f.fix_type == "level_counts_corrected"
-        ]
+        count_fixes = [f for f in result.fixes_applied if f.fix_type == "level_counts_corrected"]
         assert len(count_fixes) == 0
 
 

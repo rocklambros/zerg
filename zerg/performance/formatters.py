@@ -210,10 +210,7 @@ def format_sarif(report: PerformanceReport) -> str:
         results.append(entry)
 
     sarif = {
-        "$schema": (
-            "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/"
-            "master/Schemata/sarif-schema-2.1.0.json"
-        ),
+        "$schema": ("https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"),
         "version": "2.1.0",
         "runs": [
             {
@@ -253,8 +250,7 @@ def format_markdown(report: PerformanceReport) -> str:
     lines.append("# Performance Analysis Report")
     lines.append("")
     lines.append(
-        f"**Overall Score**: {score_display}/100 | "
-        f"**Factors Checked**: {report.factors_checked}/{report.factors_total}"
+        f"**Overall Score**: {score_display}/100 | **Factors Checked**: {report.factors_checked}/{report.factors_total}"
     )
     lines.append("")
 

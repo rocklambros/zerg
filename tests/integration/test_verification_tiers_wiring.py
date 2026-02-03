@@ -1,12 +1,8 @@
 """Integration tests for verification tiers wiring into verify.py."""
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.config import VerificationTiersConfig
-from zerg.verification_tiers import VerificationTiers
 from zerg.verify import VerificationExecutor
 
 

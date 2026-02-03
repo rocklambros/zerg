@@ -2,7 +2,6 @@
 
 from datetime import datetime
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -15,7 +14,6 @@ from zerg.tdd import (
     TDDReport,
     TestFirstValidator,
 )
-
 
 # ── Enum Tests ──────────────────────────────────────────────────────
 
@@ -220,78 +218,126 @@ class TestTestFirstValidator:
 
     def test_validate_correct_red_green_refactor(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=False,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.REFACTOR, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.REFACTOR,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
         valid, errors = v.validate_red_green_order()
         assert valid is True
         assert errors == []
 
     def test_validate_red_green_without_refactor(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=False,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
         valid, errors = v.validate_red_green_order()
         assert valid is True
         assert errors == []
 
     def test_validate_red_with_passing_tests_fails(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=True,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=True,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
         valid, errors = v.validate_red_green_order()
         assert valid is False
         assert any("RED phase has passing tests" in e for e in errors)
 
     def test_validate_green_with_failing_tests_fails(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=False,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=False,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=False,
+            )
+        )
         valid, errors = v.validate_red_green_order()
         assert valid is False
         assert any("GREEN phase has failing tests" in e for e in errors)
 
     def test_validate_refactor_breaking_tests_fails(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=False,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.REFACTOR, test_file="t.py",
-            implementation_file="impl.py", tests_passing=False,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.REFACTOR,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=False,
+            )
+        )
         valid, errors = v.validate_red_green_order()
         assert valid is False
         assert any("REFACTOR phase broke tests" in e for e in errors)
@@ -299,10 +345,14 @@ class TestTestFirstValidator:
     def test_validate_wrong_phase_order_fails(self) -> None:
         v = TestFirstValidator()
         # Start with GREEN instead of RED
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
         valid, errors = v.validate_red_green_order()
         assert valid is False
         assert any("Expected RED phase" in e for e in errors)
@@ -310,27 +360,47 @@ class TestTestFirstValidator:
     def test_validate_multiple_complete_cycles(self) -> None:
         v = TestFirstValidator()
         # Cycle 1
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t1.py",
-            implementation_file=None, tests_passing=False,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t1.py",
-            implementation_file="impl1.py", tests_passing=True,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.REFACTOR, test_file="t1.py",
-            implementation_file="impl1.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t1.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t1.py",
+                implementation_file="impl1.py",
+                tests_passing=True,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.REFACTOR,
+                test_file="t1.py",
+                implementation_file="impl1.py",
+                tests_passing=True,
+            )
+        )
         # Cycle 2
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t2.py",
-            implementation_file=None, tests_passing=False,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t2.py",
-            implementation_file="impl2.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t2.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t2.py",
+                implementation_file="impl2.py",
+                tests_passing=True,
+            )
+        )
         valid, errors = v.validate_red_green_order()
         assert valid is True
         assert errors == []
@@ -339,59 +409,69 @@ class TestTestFirstValidator:
 
     def test_detect_mock_heavy(self) -> None:
         v = TestFirstValidator()
-        code = "\n".join([
-            "from unittest.mock import Mock, patch",
-            "mock1 = Mock()",
-            "mock2 = Mock()",
-            "mock3 = Mock()",
-            "mock4 = Mock()",
-            "mock5 = Mock()",
-            "mock6 = Mock()",
-        ])
+        code = "\n".join(
+            [
+                "from unittest.mock import Mock, patch",
+                "mock1 = Mock()",
+                "mock2 = Mock()",
+                "mock3 = Mock()",
+                "mock4 = Mock()",
+                "mock5 = Mock()",
+                "mock6 = Mock()",
+            ]
+        )
         # "mock" appears many times, "Mock" counts via lower()
         detected = v.detect_anti_patterns(code)
         assert TDDAntiPattern.MOCK_HEAVY in detected
 
     def test_detect_no_assertions(self) -> None:
         v = TestFirstValidator()
-        code = "\n".join([
-            "def test_something():",
-            "    x = 1 + 1",
-            "def test_another():",
-            "    assert x == 2",
-        ])
+        code = "\n".join(
+            [
+                "def test_something():",
+                "    x = 1 + 1",
+                "def test_another():",
+                "    assert x == 2",
+            ]
+        )
         detected = v.detect_anti_patterns(code)
         assert TDDAntiPattern.NO_ASSERTIONS in detected
 
     def test_detect_testing_impl(self) -> None:
         v = TestFirstValidator()
-        code = "\n".join([
-            "obj._private_method()",
-            "obj.__internal()",
-            "mock.called_with(x)",
-            "assert mock.call_count == 3",
-        ])
+        code = "\n".join(
+            [
+                "obj._private_method()",
+                "obj.__internal()",
+                "mock.called_with(x)",
+                "assert mock.call_count == 3",
+            ]
+        )
         detected = v.detect_anti_patterns(code)
         assert TDDAntiPattern.TESTING_IMPL in detected
 
     def test_detect_clean_code_returns_empty(self) -> None:
         v = TestFirstValidator()
-        code = "\n".join([
-            "def test_addition():",
-            "    result = add(1, 2)",
-            "    assert result == 3",
-        ])
+        code = "\n".join(
+            [
+                "def test_addition():",
+                "    result = add(1, 2)",
+                "    assert result == 3",
+            ]
+        )
         detected = v.detect_anti_patterns(code)
         assert detected == []
 
     def test_detect_with_custom_filter(self) -> None:
         v = TestFirstValidator(anti_patterns=["mock_heavy"])
-        code = "\n".join([
-            "def test_something():",
-            "    x = 1 + 1",
-            "def test_another():",
-            "    assert x == 2",
-        ])
+        code = "\n".join(
+            [
+                "def test_something():",
+                "    x = 1 + 1",
+                "def test_another():",
+                "    assert x == 2",
+            ]
+        )
         detected = v.detect_anti_patterns(code)
         # no_assertions is not in the filter, so should not be detected
         assert TDDAntiPattern.NO_ASSERTIONS not in detected
@@ -406,14 +486,22 @@ class TestTestFirstValidator:
 
     def test_report_compliant_when_valid_no_anti_patterns(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=False,
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
         report = v.get_report()
         assert report.compliant is True
         assert report.red_green_enforced is True
@@ -422,25 +510,37 @@ class TestTestFirstValidator:
 
     def test_report_non_compliant_with_anti_patterns(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=False,
-            anti_patterns_found=[TDDAntiPattern.MOCK_HEAVY],
-        ))
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=False,
+                anti_patterns_found=[TDDAntiPattern.MOCK_HEAVY],
+            )
+        )
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
         report = v.get_report()
         assert report.compliant is False
         assert report.anti_patterns_total == 1
 
     def test_report_non_compliant_with_order_violation(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.GREEN, test_file="t.py",
-            implementation_file="impl.py", tests_passing=True,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.GREEN,
+                test_file="t.py",
+                implementation_file="impl.py",
+                tests_passing=True,
+            )
+        )
         report = v.get_report()
         assert report.compliant is False
         assert report.red_green_enforced is False
@@ -449,10 +549,14 @@ class TestTestFirstValidator:
 
     def test_clear_resets_state(self) -> None:
         v = TestFirstValidator()
-        v.record_cycle(TDDCycleResult(
-            phase=TDDPhase.RED, test_file="t.py",
-            implementation_file=None, tests_passing=False,
-        ))
+        v.record_cycle(
+            TDDCycleResult(
+                phase=TDDPhase.RED,
+                test_file="t.py",
+                implementation_file=None,
+                tests_passing=False,
+            )
+        )
         assert len(v.cycles) == 1
         v.clear()
         assert len(v.cycles) == 0

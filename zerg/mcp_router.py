@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -108,9 +108,7 @@ class MCPRouter:
         """
         self.cost_aware = cost_aware
         self.max_servers = max_servers
-        self._telemetry: RoutingTelemetry | None = (
-            RoutingTelemetry() if telemetry_enabled else None
-        )
+        self._telemetry: RoutingTelemetry | None = RoutingTelemetry() if telemetry_enabled else None
 
         if available_servers is not None:
             self.available: list[MCPServer] = []

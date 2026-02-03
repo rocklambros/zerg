@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from zerg.claude_tasks_reader import ClaudeTasksReader
 from zerg.constants import TaskStatus
 

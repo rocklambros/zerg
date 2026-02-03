@@ -82,9 +82,7 @@ class TestTestOptions:
         """Test test with combined options."""
         runner = CliRunner()
         # Use --dry-run to avoid actually running tests
-        result = runner.invoke(
-            cli, ["test", "--coverage", "--parallel", "4", "--framework", "pytest", "--dry-run"]
-        )
+        result = runner.invoke(cli, ["test", "--coverage", "--parallel", "4", "--framework", "pytest", "--dry-run"])
         assert "Invalid value" not in result.output
 
     def test_test_watch_and_coverage(self) -> None:
@@ -246,9 +244,12 @@ class TestTestAllOptions:
             [
                 "test",
                 "--coverage",
-                "--parallel", "4",
-                "--framework", "pytest",
-                "--path", "tests/",
+                "--parallel",
+                "4",
+                "--framework",
+                "pytest",
+                "--path",
+                "tests/",
                 "--dry-run",
             ],
         )

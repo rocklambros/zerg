@@ -16,21 +16,18 @@ import asyncio
 import json
 import logging
 import os
-import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from zerg.constants import (
-    LevelMergeStatus,
     TaskStatus,
     WorkerStatus,
 )
 from zerg.types import WorkerState
-
 
 # ============================================================================
 # worker_manager.py coverage
@@ -154,9 +151,7 @@ class TestWorkerManagerHandleExit:
         w = workers or {}
         state = MagicMock()
         # Make state._state behave like a real dict for direct attribute access
-        state._state = {
-            "tasks": {}
-        }
+        state._state = {"tasks": {}}
         return WorkerManager(
             feature="f",
             config=MagicMock(),
@@ -199,7 +194,7 @@ class TestWorkerManagerHandleExit:
         }
         mgr.levels.get_pending_tasks_for_level.return_value = []
 
-        with patch('zerg.worker_manager.duration_ms', return_value=1000):
+        with patch("zerg.worker_manager.duration_ms", return_value=1000):
             mgr.handle_worker_exit(0)
         assert mgr.state.record_task_duration.called
 
@@ -303,10 +298,14 @@ class TestWorkerManagerRespawn:
 class TestWorkerProtocolPluginInit:
     """Cover lines 193-195: plugin registry init failure."""
 
-    @patch.dict(os.environ, {
-        "ZERG_WORKER_ID": "1",
-        "ZERG_FEATURE": "test",
-    }, clear=False)
+    @patch.dict(
+        os.environ,
+        {
+            "ZERG_WORKER_ID": "1",
+            "ZERG_FEATURE": "test",
+        },
+        clear=False,
+    )
     @patch("zerg.worker_protocol.ZergConfig")
     @patch("zerg.worker_protocol.StateManager")
     @patch("zerg.worker_protocol.VerificationExecutor")
@@ -402,9 +401,7 @@ class TestWorkerProtocolAsyncWaitReady:
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             wp._is_ready = True
 
-            result = asyncio.get_event_loop().run_until_complete(
-                wp.wait_for_ready_async(timeout=1.0)
-            )
+            result = asyncio.get_event_loop().run_until_complete(wp.wait_for_ready_async(timeout=1.0))
             assert result is True
 
     def test_wait_for_ready_async_timeout(self):
@@ -431,9 +428,7 @@ class TestWorkerProtocolAsyncWaitReady:
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             wp._is_ready = False
 
-            result = asyncio.get_event_loop().run_until_complete(
-                wp.wait_for_ready_async(timeout=0.2)
-            )
+            result = asyncio.get_event_loop().run_until_complete(wp.wait_for_ready_async(timeout=0.2))
             assert result is False
 
 
@@ -560,7 +555,7 @@ class TestWorkerProtocolExecuteTaskFailedClaude:
             cfg_cls.load.return_value = cfg
             sl_cls.return_value.specs_exist.return_value = False
 
-            from zerg.worker_protocol import WorkerProtocol, ClaudeInvocationResult
+            from zerg.worker_protocol import ClaudeInvocationResult, WorkerProtocol
 
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             return wp, ClaudeInvocationResult
@@ -572,17 +567,22 @@ class TestWorkerProtocolExecuteTaskFailedClaude:
         wp._plugin_registry = None
 
         # Mock invoke_claude_code to return failure
-        wp.invoke_claude_code = MagicMock(return_value=CIR(
-            success=False, exit_code=1, stdout="", stderr="error",
-            duration_ms=100, task_id="t1",
-        ))
+        wp.invoke_claude_code = MagicMock(
+            return_value=CIR(
+                success=False,
+                exit_code=1,
+                stdout="",
+                stderr="error",
+                duration_ms=100,
+                task_id="t1",
+            )
+        )
 
         task = {"id": "t1", "title": "Test"}
         result = wp.execute_task(task)
         assert result is False
         # Check structured writer was called with error
-        calls = [c for c in wp._structured_writer.emit.call_args_list
-                 if "failed" in str(c).lower()]
+        calls = [c for c in wp._structured_writer.emit.call_args_list if "failed" in str(c).lower()]
         assert len(calls) >= 1
 
     def test_execute_task_verification_fails_with_writer(self):
@@ -592,10 +592,16 @@ class TestWorkerProtocolExecuteTaskFailedClaude:
         wp._plugin_registry = None
 
         # Mock invoke_claude_code to return success
-        wp.invoke_claude_code = MagicMock(return_value=CIR(
-            success=True, exit_code=0, stdout="ok", stderr="",
-            duration_ms=100, task_id="t1",
-        ))
+        wp.invoke_claude_code = MagicMock(
+            return_value=CIR(
+                success=True,
+                exit_code=0,
+                stdout="ok",
+                stderr="",
+                duration_ms=100,
+                task_id="t1",
+            )
+        )
         # Mock verification to fail
         wp.run_verification = MagicMock(return_value=False)
 
@@ -834,13 +840,11 @@ class TestLoggingFormatters:
 
     def test_json_formatter_with_worker_context(self):
         """Line 42: worker context added to JSON."""
-        from zerg.logging import JsonFormatter, set_worker_context, clear_worker_context
+        from zerg.logging import JsonFormatter, clear_worker_context, set_worker_context
 
         set_worker_context(worker_id=5, feature="test")
         formatter = JsonFormatter()
-        record = logging.LogRecord(
-            "test", logging.INFO, "test.py", 1, "test message", (), None
-        )
+        record = logging.LogRecord("test", logging.INFO, "test.py", 1, "test message", (), None)
         output = formatter.format(record)
         data = json.loads(output)
         assert data["worker_id"] == 5
@@ -848,13 +852,11 @@ class TestLoggingFormatters:
 
     def test_console_formatter_with_task_id(self):
         """Line 85: task_id in console formatter."""
-        from zerg.logging import ConsoleFormatter, set_worker_context, clear_worker_context
+        from zerg.logging import ConsoleFormatter, clear_worker_context, set_worker_context
 
         set_worker_context(worker_id=3)
         formatter = ConsoleFormatter()
-        record = logging.LogRecord(
-            "test", logging.INFO, "test.py", 1, "test message", (), None
-        )
+        record = logging.LogRecord("test", logging.INFO, "test.py", 1, "test message", (), None)
         record.task_id = "task-99"  # type: ignore[attr-defined]
         output = formatter.format(record)
         assert "W3" in output
@@ -881,9 +883,7 @@ class TestLoggingFormatters:
         handler = StructuredFileHandler(writer)
         handler.handleError = MagicMock()
 
-        record = logging.LogRecord(
-            "test", logging.INFO, "test.py", 1, "test message", (), None
-        )
+        record = logging.LogRecord("test", logging.INFO, "test.py", 1, "test message", (), None)
         handler.emit(record)
         handler.handleError.assert_called_once()
 
@@ -926,8 +926,8 @@ class TestDryRunRendering:
     """Cover scattered render lines."""
 
     def _make_report(self, **overrides):
-        from zerg.dryrun import DryRunReport, TimelineEstimate, LevelTimeline, GateCheckResult
-        from zerg.preflight import PreflightReport, CheckResult
+        from zerg.dryrun import DryRunReport, LevelTimeline, TimelineEstimate
+        from zerg.preflight import CheckResult, PreflightReport
 
         defaults = dict(
             feature="test",
@@ -951,10 +951,20 @@ class TestDryRunRendering:
             gate_results=[],
             task_data={
                 "tasks": [
-                    {"id": "t1", "title": "Task 1", "level": 1, "estimate_minutes": 15,
-                     "verification": {"command": "pytest"}},
-                    {"id": "t2", "title": "Task 2", "level": 1, "estimate_minutes": 10,
-                     "verification": {"command": "pytest"}},
+                    {
+                        "id": "t1",
+                        "title": "Task 1",
+                        "level": 1,
+                        "estimate_minutes": 15,
+                        "verification": {"command": "pytest"},
+                    },
+                    {
+                        "id": "t2",
+                        "title": "Task 2",
+                        "level": 1,
+                        "estimate_minutes": 10,
+                        "verification": {"command": "pytest"},
+                    },
                 ],
                 "levels": {"1": {"name": "foundation"}, "2": {"name": "core"}},
             },
@@ -1015,7 +1025,7 @@ class TestDryRunRendering:
     def test_render_summary_with_errors(self):
         """Lines 651-678: summary with errors and warnings."""
         from zerg.dryrun import DryRunSimulator, GateCheckResult
-        from zerg.preflight import PreflightReport, CheckResult
+        from zerg.preflight import CheckResult, PreflightReport
 
         report = self._make_report(
             level_issues=["Gap in levels"],
@@ -1040,7 +1050,7 @@ class TestDryRunRendering:
     def test_render_preflight_warning(self):
         """Lines 374: preflight check with warning severity."""
         from zerg.dryrun import DryRunSimulator
-        from zerg.preflight import PreflightReport, CheckResult
+        from zerg.preflight import CheckResult, PreflightReport
 
         report = self._make_report(
             preflight=PreflightReport(
@@ -1109,7 +1119,7 @@ class TestDryRunRendering:
     def test_has_warnings_property(self):
         """Lines 104-109: has_warnings property."""
         from zerg.dryrun import GateCheckResult
-        from zerg.risk_scoring import RiskReport, TaskRisk
+        from zerg.risk_scoring import RiskReport
 
         report = self._make_report(
             missing_verifications=["t1 missing"],
@@ -1183,9 +1193,12 @@ class TestLogCorrelatorEngine:
         with tempfile.TemporaryDirectory() as tmpdir:
             log_file = Path(tmpdir) / "worker-0.stderr.log"
             log_file.write_text(
-                json.dumps({"timestamp": "2024-01-01T00:00:00Z", "level": "error", "message": "fail"}) + "\n"
-                + json.dumps({"timestamp": "2024-01-01T00:00:01Z", "level": "warning", "message": "warn"}) + "\n"
-                + json.dumps({"ts": "2024-01-01T00:00:02Z", "level": "info", "msg": "ok"}) + "\n"
+                json.dumps({"timestamp": "2024-01-01T00:00:00Z", "level": "error", "message": "fail"})
+                + "\n"
+                + json.dumps({"timestamp": "2024-01-01T00:00:01Z", "level": "warning", "message": "warn"})
+                + "\n"
+                + json.dumps({"ts": "2024-01-01T00:00:02Z", "level": "info", "msg": "ok"})
+                + "\n"
                 + "\n"  # empty line
             )
             tb = TimelineBuilder()
@@ -1256,8 +1269,12 @@ class TestLogCorrelatorEngine:
         from zerg.diagnostics.types import TimelineEvent
 
         events = [
-            TimelineEvent(timestamp="t1", worker_id=0, event_type="error", message="connection timeout to database server"),
-            TimelineEvent(timestamp="t2", worker_id=1, event_type="error", message="connection timeout to database server"),
+            TimelineEvent(
+                timestamp="t1", worker_id=0, event_type="error", message="connection timeout to database server"
+            ),
+            TimelineEvent(
+                timestamp="t2", worker_id=1, event_type="error", message="connection timeout to database server"
+            ),
             TimelineEvent(timestamp="t3", worker_id=0, event_type="info", message="all good"),
         ]
         correlator = CrossWorkerCorrelator()
@@ -1267,16 +1284,22 @@ class TestLogCorrelatorEngine:
 
     def test_error_evolution_tracker(self):
         """Track error evolution over time."""
-        from zerg.diagnostics.log_correlator import ErrorEvolutionTracker
         from zerg.diagnostics.log_analyzer import LogPattern
+        from zerg.diagnostics.log_correlator import ErrorEvolutionTracker
 
         patterns = [
-            LogPattern(pattern="timeout", count=5, first_seen="1", last_seen="10",
-                       sample_lines=["timeout"], worker_ids=[0, 1, 2]),
-            LogPattern(pattern="rare", count=1, first_seen="5", last_seen="5",
-                       sample_lines=["rare"], worker_ids=[0]),
-            LogPattern(pattern="sparse", count=2, first_seen="1", last_seen="100",
-                       sample_lines=["sparse"], worker_ids=[0]),
+            LogPattern(
+                pattern="timeout",
+                count=5,
+                first_seen="1",
+                last_seen="10",
+                sample_lines=["timeout"],
+                worker_ids=[0, 1, 2],
+            ),
+            LogPattern(pattern="rare", count=1, first_seen="5", last_seen="5", sample_lines=["rare"], worker_ids=[0]),
+            LogPattern(
+                pattern="sparse", count=2, first_seen="1", last_seen="100", sample_lines=["sparse"], worker_ids=[0]
+            ),
         ]
         tracker = ErrorEvolutionTracker()
         results = tracker.track(patterns)
@@ -1606,7 +1629,7 @@ class TestEnvDiagnostics:
             config_path = Path(tmpdir) / "config.yaml"
             config_path.write_text(":\n  - :\n    bad: [")
             validator = ConfigValidator()
-            issues = validator.validate(config_path)
+            validator.validate(config_path)
             # Should have some issues
 
     def test_env_engine_run_all(self):
@@ -1615,14 +1638,39 @@ class TestEnvDiagnostics:
 
         engine = EnvDiagnosticsEngine()
         with (
-            patch.object(engine._python, "check_venv", return_value={"active": False, "path": "/usr", "python_version": "3.12", "executable": "/usr/bin/python3"}),
+            patch.object(
+                engine._python,
+                "check_venv",
+                return_value={
+                    "active": False,
+                    "path": "/usr",
+                    "python_version": "3.12",
+                    "executable": "/usr/bin/python3",
+                },
+            ),
             patch.object(engine._docker, "check_health", return_value=None),
-            patch.object(engine._docker, "check_containers", return_value={"running": 0, "stopped": 0, "containers": []}),
+            patch.object(
+                engine._docker, "check_containers", return_value={"running": 0, "stopped": 0, "containers": []}
+            ),
             patch.object(engine._docker, "check_images", return_value={"total": 0, "dangling": 0, "images": []}),
-            patch.object(engine._resources, "check_memory", return_value={"total_gb": 16.0, "available_gb": 1.0, "used_percent": 93.0}),
-            patch.object(engine._resources, "check_cpu", return_value={"load_avg_1m": 1.0, "load_avg_5m": 1.0, "load_avg_15m": 1.0, "cpu_count": 8}),
-            patch.object(engine._resources, "check_file_descriptors", return_value={"soft_limit": 1024, "hard_limit": 1024}),
-            patch.object(engine._resources, "check_disk_detailed", return_value={"total_gb": 500.0, "used_gb": 460.0, "free_gb": 40.0, "used_percent": 92.0}),
+            patch.object(
+                engine._resources,
+                "check_memory",
+                return_value={"total_gb": 16.0, "available_gb": 1.0, "used_percent": 93.0},
+            ),
+            patch.object(
+                engine._resources,
+                "check_cpu",
+                return_value={"load_avg_1m": 1.0, "load_avg_5m": 1.0, "load_avg_15m": 1.0, "cpu_count": 8},
+            ),
+            patch.object(
+                engine._resources, "check_file_descriptors", return_value={"soft_limit": 1024, "hard_limit": 1024}
+            ),
+            patch.object(
+                engine._resources,
+                "check_disk_detailed",
+                return_value={"total_gb": 500.0, "used_gb": 460.0, "free_gb": 40.0, "used_percent": 92.0},
+            ),
             patch.object(engine._config, "validate", return_value=["Missing key: workers"]),
         ):
             result = engine.run_all()

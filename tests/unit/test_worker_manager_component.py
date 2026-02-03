@@ -1,13 +1,11 @@
 """Tests for WorkerManager component."""
 
-from datetime import datetime
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from zerg.config import ZergConfig
-from zerg.constants import TaskStatus, WorkerStatus
+from zerg.constants import WorkerStatus
 from zerg.launcher import WorkerLauncher
 from zerg.levels import LevelController
 from zerg.parser import TaskParser
@@ -135,7 +133,9 @@ class TestSpawnWorkers:
         fail_result.error = "Failed"
 
         mock_deps["launcher"].spawn.side_effect = [
-            success_result, fail_result, success_result,
+            success_result,
+            fail_result,
+            success_result,
         ]
 
         count = worker_manager.spawn_workers(3)

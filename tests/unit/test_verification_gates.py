@@ -4,9 +4,7 @@ import json
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from zerg.verification_gates import (
     ArtifactStore,
@@ -16,7 +14,6 @@ from zerg.verification_gates import (
     PipelineResult,
 )
 from zerg.verify import VerificationExecutionResult, VerificationExecutor
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -306,9 +303,7 @@ class TestGatePipelineRunGate:
         exec_result = _make_exec_result(success=True)
         executor = _mock_executor([exec_result])
         store = ArtifactStore(base_dir=tmp_path)
-        pipeline = GatePipeline(
-            executor=executor, artifact_store=store, store_artifacts=False
-        )
+        pipeline = GatePipeline(executor=executor, artifact_store=store, store_artifacts=False)
 
         gate = pipeline.run_gate("lint", "echo ok", "T1", cwd=tmp_path)
 
@@ -385,9 +380,7 @@ class TestGatePipelineRunGate:
 
         pipeline.run_gate("lint", "echo ok", "T1", timeout=60, cwd=tmp_path)
 
-        executor.verify.assert_called_once_with(
-            "echo ok", "T1", timeout=60, cwd=tmp_path
-        )
+        executor.verify.assert_called_once_with("echo ok", "T1", timeout=60, cwd=tmp_path)
 
 
 # ===========================================================================
@@ -482,9 +475,7 @@ class TestGatePipelineRunPipeline:
             {"name": "lint", "command": "lint cmd", "required": True},
             {"name": "test", "command": "test cmd"},
         ]
-        pr = pipeline.run_pipeline(
-            gates, "T1", cwd=tmp_path, stop_on_required_failure=False
-        )
+        pr = pipeline.run_pipeline(gates, "T1", cwd=tmp_path, stop_on_required_failure=False)
 
         assert len(pr.gate_results) == 2
         assert pr.required_passed is False
@@ -518,9 +509,7 @@ class TestGatePipelineRunPipeline:
         gates = [{"name": "slow", "command": "cmd", "timeout": 600}]
         pipeline.run_pipeline(gates, "T1", cwd=tmp_path)
 
-        executor.verify.assert_called_once_with(
-            "cmd", "T1", timeout=600, cwd=tmp_path
-        )
+        executor.verify.assert_called_once_with("cmd", "T1", timeout=600, cwd=tmp_path)
 
     def test_pipeline_result_to_dict(self, tmp_path: Path) -> None:
         results = [_make_exec_result(success=True)]
@@ -553,9 +542,7 @@ class TestGatePipelineStaleness:
         store = ArtifactStore(base_dir=tmp_path)
         result = _make_exec_result()
         store.store("lint", "T1", result)
-        pipeline = GatePipeline(
-            artifact_store=store, staleness_threshold_seconds=300
-        )
+        pipeline = GatePipeline(artifact_store=store, staleness_threshold_seconds=300)
         assert pipeline.check_staleness("lint", "T1") is False
 
     def test_stale_when_old(self, tmp_path: Path) -> None:
@@ -567,9 +554,7 @@ class TestGatePipelineStaleness:
         data["stored_at"] = (datetime.now() - timedelta(seconds=600)).isoformat()
         path.write_text(json.dumps(data))
 
-        pipeline = GatePipeline(
-            artifact_store=store, staleness_threshold_seconds=300
-        )
+        pipeline = GatePipeline(artifact_store=store, staleness_threshold_seconds=300)
         assert pipeline.check_staleness("lint", "T1") is True
 
 

@@ -81,10 +81,7 @@ class RadonAdapter(BaseToolAdapter):
                         factor_name="Algorithm complexity",
                         category="CPU / Compute",
                         severity=severity,
-                        message=(
-                            f"{block_type} '{name}' has cyclomatic complexity "
-                            f"{complexity} (rank {rank})"
-                        ),
+                        message=(f"{block_type} '{name}' has cyclomatic complexity {complexity} (rank {rank})"),
                         file=filepath,
                         line=block.get("lineno", 0),
                         tool=self.name,
@@ -127,9 +124,7 @@ class RadonAdapter(BaseToolAdapter):
                     factor_name="Maintainability index",
                     category="Code-Level Patterns",
                     severity=severity,
-                    message=(
-                        f"File has maintainability index {mi_score:.1f} (rank {rank})"
-                    ),
+                    message=(f"File has maintainability index {mi_score:.1f} (rank {rank})"),
                     file=filepath,
                     line=0,
                     tool=self.name,

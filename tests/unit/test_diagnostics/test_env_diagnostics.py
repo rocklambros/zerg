@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from zerg.diagnostics.env_diagnostics import (
     ConfigValidator,
@@ -42,9 +38,7 @@ class TestPythonEnvDiagnostics:
             {"name": "requests", "version": "2.28.0"},
             {"name": "pytest", "version": "7.4.0"},
         ]
-        mock_result = MagicMock(
-            stdout=json.dumps(packages), returncode=0
-        )
+        mock_result = MagicMock(stdout=json.dumps(packages), returncode=0)
 
         diag = PythonEnvDiagnostics()
         with patch("subprocess.run", return_value=mock_result):

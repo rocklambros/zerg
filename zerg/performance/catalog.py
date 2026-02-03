@@ -67,11 +67,7 @@ class FactorCatalog:
     @classmethod
     def load(cls) -> FactorCatalog:
         """Load factors from the bundled JSON file via importlib.resources."""
-        text = (
-            importlib.resources.files("zerg.performance.data")
-            .joinpath("factors.json")
-            .read_text(encoding="utf-8")
-        )
+        text = importlib.resources.files("zerg.performance.data").joinpath("factors.json").read_text(encoding="utf-8")
         raw = json.loads(text)
         factors = [
             PerformanceFactor(
@@ -89,9 +85,7 @@ class FactorCatalog:
     def filter_static_only(self) -> list[PerformanceFactor]:
         """Return factors where at least one cli_tool is a static analysis tool."""
         static_set = set(STATIC_TOOLS)
-        return [
-            f for f in self.factors if any(t in static_set for t in f.cli_tools)
-        ]
+        return [f for f in self.factors if any(t in static_set for t in f.cli_tools)]
 
     def get_tool_factor_mapping(self) -> dict[str, list[int]]:
         """Map each static tool name to the factor IDs it covers."""

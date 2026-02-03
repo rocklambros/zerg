@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -22,10 +21,10 @@ from zerg.git.bisect_engine import (
 from zerg.git.config import GitConfig
 from zerg.git.types import CommitInfo, CommitType
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def _make_commit(
     sha: str = "abc123",
@@ -77,6 +76,7 @@ def bisect_runner(
 # Helper tests
 # ---------------------------------------------------------------------------
 
+
 class TestHelpers:
     def test_detect_commit_type_conventional_prefix(self) -> None:
         assert _detect_commit_type_from_message("feat: add login") == CommitType.FEAT
@@ -109,10 +109,9 @@ class TestHelpers:
 # CommitRanker tests
 # ---------------------------------------------------------------------------
 
+
 class TestCommitRanker:
-    def test_get_commits_in_range_parses_log(
-        self, ranker: CommitRanker, mock_runner: MagicMock
-    ) -> None:
+    def test_get_commits_in_range_parses_log(self, ranker: CommitRanker, mock_runner: MagicMock) -> None:
         log_output = (
             "abc123|||feat: add feature|||Dev|||2025-01-15 10:00:00 +0000\n"
             "src/main.py\n"
@@ -132,9 +131,7 @@ class TestCommitRanker:
         assert commits[1].sha == "def456"
         assert commits[1].files == ("src/bug.py",)
 
-    def test_get_commits_empty_output(
-        self, ranker: CommitRanker, mock_runner: MagicMock
-    ) -> None:
+    def test_get_commits_empty_output(self, ranker: CommitRanker, mock_runner: MagicMock) -> None:
         mock_runner._run.return_value = MagicMock(stdout="")
         commits = ranker.get_commits_in_range("good", "bad")
         assert commits == []
@@ -143,9 +140,7 @@ class TestCommitRanker:
         commit_with_overlap = _make_commit(
             sha="aaa", files=("src/main.py", "src/utils.py"), commit_type=CommitType.CHORE
         )
-        commit_without_overlap = _make_commit(
-            sha="bbb", files=("docs/readme.md",), commit_type=CommitType.CHORE
-        )
+        commit_without_overlap = _make_commit(sha="bbb", files=("docs/readme.md",), commit_type=CommitType.CHORE)
         commits = [commit_without_overlap, commit_with_overlap]
 
         ranked = ranker.rank(commits, "test failure", failing_files=["src/main.py"])
@@ -196,6 +191,7 @@ class TestCommitRanker:
 # ---------------------------------------------------------------------------
 # SemanticTester tests
 # ---------------------------------------------------------------------------
+
 
 class TestSemanticTester:
     @patch("zerg.git.bisect_engine.subprocess.run")
@@ -255,19 +251,15 @@ class TestSemanticTester:
 # BisectRunner tests
 # ---------------------------------------------------------------------------
 
+
 class TestBisectRunner:
-    def test_run_predictive_finds_culprit(
-        self, bisect_runner: BisectRunner, mock_runner: MagicMock
-    ) -> None:
-        culprit = _make_commit(
+    def test_run_predictive_finds_culprit(self, bisect_runner: BisectRunner, mock_runner: MagicMock) -> None:
+        _make_commit(
             sha="culprit123",
             files=("src/broken.py",),
             commit_type=CommitType.FEAT,
         )
-        log_output = (
-            "culprit123|||feat: add feature|||Dev|||2025-01-15 10:00:00 +0000\n"
-            "src/broken.py\n"
-        )
+        log_output = "culprit123|||feat: add feature|||Dev|||2025-01-15 10:00:00 +0000\nsrc/broken.py\n"
         mock_runner._run.return_value = MagicMock(stdout=log_output)
 
         # Mock the tester to return failure
@@ -278,9 +270,7 @@ class TestBisectRunner:
                 "stderr": "",
                 "passed": False,
             }
-            result = bisect_runner.run_predictive(
-                "good", "bad", "broken feature", "pytest -x"
-            )
+            result = bisect_runner.run_predictive("good", "bad", "broken feature", "pytest -x")
 
         assert result is not None
         assert result["culprit"].sha == "culprit123"
@@ -291,55 +281,38 @@ class TestBisectRunner:
     ) -> None:
         mock_runner._run.return_value = MagicMock(stdout="")
 
-        result = bisect_runner.run_predictive(
-            "good", "bad", "unknown issue", "pytest -x"
-        )
+        result = bisect_runner.run_predictive("good", "bad", "unknown issue", "pytest -x")
         assert result is None
 
-    def test_run_git_bisect(
-        self, bisect_runner: BisectRunner, mock_runner: MagicMock
-    ) -> None:
+    def test_run_git_bisect(self, bisect_runner: BisectRunner, mock_runner: MagicMock) -> None:
         sha = "a1b2c3d4e5" * 4  # 40 hex chars
-        bisect_output = (
-            f"{sha} is the first bad commit\n"
-            "commit message: feat: add broken thing\n"
-        )
-        mock_runner._run.return_value = MagicMock(
-            stdout=bisect_output, returncode=0
-        )
+        bisect_output = f"{sha} is the first bad commit\ncommit message: feat: add broken thing\n"
+        mock_runner._run.return_value = MagicMock(stdout=bisect_output, returncode=0)
 
         result = bisect_runner.run_git_bisect("good", "bad", "pytest -x")
 
         assert result is not None
         assert result["culprit_sha"] == sha
 
-    def test_run_git_bisect_no_match(
-        self, bisect_runner: BisectRunner, mock_runner: MagicMock
-    ) -> None:
+    def test_run_git_bisect_no_match(self, bisect_runner: BisectRunner, mock_runner: MagicMock) -> None:
         mock_runner._run.return_value = MagicMock(stdout="no result", returncode=1)
 
         result = bisect_runner.run_git_bisect("good", "bad", "pytest -x")
         assert result is None
 
-    def test_run_orchestration_uses_predictive_first(
-        self, bisect_runner: BisectRunner
-    ) -> None:
+    def test_run_orchestration_uses_predictive_first(self, bisect_runner: BisectRunner) -> None:
         predictive_result = {
             "culprit": _make_commit(sha="found_it"),
             "score": 0.95,
             "test_result": {"passed": False, "exit_code": 1, "stdout": "", "stderr": ""},
         }
-        with patch.object(
-            bisect_runner, "run_predictive", return_value=predictive_result
-        ):
+        with patch.object(bisect_runner, "run_predictive", return_value=predictive_result):
             result = bisect_runner.run("good", "bad", "symptom", "pytest -x")
 
         assert result["method"] == "predictive"
         assert result["culprit"].sha == "found_it"
 
-    def test_run_orchestration_falls_back_to_git_bisect(
-        self, bisect_runner: BisectRunner
-    ) -> None:
+    def test_run_orchestration_falls_back_to_git_bisect(self, bisect_runner: BisectRunner) -> None:
         with (
             patch.object(bisect_runner, "run_predictive", return_value=None),
             patch.object(
@@ -352,9 +325,7 @@ class TestBisectRunner:
 
         assert result["method"] == "git_bisect"
 
-    def test_run_orchestration_both_fail(
-        self, bisect_runner: BisectRunner
-    ) -> None:
+    def test_run_orchestration_both_fail(self, bisect_runner: BisectRunner) -> None:
         with (
             patch.object(bisect_runner, "run_predictive", return_value=None),
             patch.object(bisect_runner, "run_git_bisect", return_value=None),
@@ -368,11 +339,10 @@ class TestBisectRunner:
 # RootCauseAnalyzer tests
 # ---------------------------------------------------------------------------
 
+
 class TestRootCauseAnalyzer:
     def test_analyze_produces_report(self, mock_runner: MagicMock) -> None:
-        mock_runner._run.return_value = MagicMock(
-            stdout=" src/main.py | 10 +++++++---\n 1 file changed"
-        )
+        mock_runner._run.return_value = MagicMock(stdout=" src/main.py | 10 +++++++---\n 1 file changed")
         culprit = _make_commit(
             sha="abc123",
             message="refactor: restructure module",
@@ -406,6 +376,7 @@ class TestRootCauseAnalyzer:
 # BisectEngine integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestBisectEngine:
     def test_full_run(self, mock_runner: MagicMock, tmp_path: Path) -> None:
         mock_runner.repo_path = tmp_path
@@ -415,24 +386,27 @@ class TestBisectEngine:
 
         engine = BisectEngine(mock_runner, config)
 
-        with patch.object(
-            engine._bisect_runner,
-            "run",
-            return_value={
-                "method": "predictive",
-                "culprit": culprit,
-                "score": 0.95,
-                "test_result": {"passed": False},
-            },
-        ), patch.object(
-            engine._analyzer,
-            "analyze",
-            return_value={
-                "commit": culprit,
-                "diff_summary": "1 file changed",
-                "likely_cause": "feature regression",
-                "suggestion": "Review changes in src/main.py",
-            },
+        with (
+            patch.object(
+                engine._bisect_runner,
+                "run",
+                return_value={
+                    "method": "predictive",
+                    "culprit": culprit,
+                    "score": 0.95,
+                    "test_result": {"passed": False},
+                },
+            ),
+            patch.object(
+                engine._analyzer,
+                "analyze",
+                return_value={
+                    "commit": culprit,
+                    "diff_summary": "1 file changed",
+                    "likely_cause": "feature regression",
+                    "suggestion": "Review changes in src/main.py",
+                },
+            ),
         ):
             exit_code = engine.run(
                 symptom="tests broken",
@@ -450,9 +424,7 @@ class TestBisectEngine:
         content = reports[0].read_text()
         assert "tests broken" in content
 
-    def test_run_with_no_test_cmd_auto_detect(
-        self, mock_runner: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_run_with_no_test_cmd_auto_detect(self, mock_runner: MagicMock, tmp_path: Path) -> None:
         mock_runner.repo_path = tmp_path
         # Create a pyproject.toml with pytest config
         pyproject = tmp_path / "pyproject.toml"
@@ -475,9 +447,7 @@ class TestBisectEngine:
         # Should have auto-detected pytest and proceeded (method=failed -> exit 1)
         assert exit_code == 1
 
-    def test_run_no_good_ref_defaults(
-        self, mock_runner: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_run_no_good_ref_defaults(self, mock_runner: MagicMock, tmp_path: Path) -> None:
         mock_runner.repo_path = tmp_path
         config = GitConfig()
         engine = BisectEngine(mock_runner, config)
@@ -513,9 +483,7 @@ class TestBisectEngine:
 
         assert exit_code == 0
 
-    def test_run_no_test_cmd_no_detection_fails(
-        self, mock_runner: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_run_no_test_cmd_no_detection_fails(self, mock_runner: MagicMock, tmp_path: Path) -> None:
         mock_runner.repo_path = tmp_path
         config = GitConfig()
         engine = BisectEngine(mock_runner, config)
@@ -527,20 +495,14 @@ class TestBisectEngine:
         )
         assert exit_code == 1
 
-    def test_find_good_default_tag(
-        self, mock_runner: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_find_good_default_tag(self, mock_runner: MagicMock, tmp_path: Path) -> None:
         mock_runner.repo_path = tmp_path
-        mock_runner._run.return_value = MagicMock(
-            stdout="v1.2.3\n", returncode=0
-        )
+        mock_runner._run.return_value = MagicMock(stdout="v1.2.3\n", returncode=0)
         config = GitConfig()
         engine = BisectEngine(mock_runner, config)
         assert engine._find_good_default() == "v1.2.3"
 
-    def test_find_good_default_first_commit(
-        self, mock_runner: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_find_good_default_first_commit(self, mock_runner: MagicMock, tmp_path: Path) -> None:
         mock_runner.repo_path = tmp_path
 
         def side_effect(*args, **kwargs):

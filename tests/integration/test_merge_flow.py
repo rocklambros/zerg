@@ -133,9 +133,7 @@ class TestMergeFlowConflict:
 class TestMergeFlowGateFailure:
     """Tests for merge gate failure scenarios."""
 
-    def test_gate_failure_before_merge(
-        self, tmp_repo: Path, sample_config: ZergConfig
-    ) -> None:
+    def test_gate_failure_before_merge(self, tmp_repo: Path, sample_config: ZergConfig) -> None:
         """Test quality gate failure before merge."""
         sample_config.quality_gates = [
             QualityGate(name="fail", command="exit 1", required=True),
@@ -147,9 +145,7 @@ class TestMergeFlowGateFailure:
         assert all_passed is False
         assert results[0].result == GateResult.FAIL
 
-    def test_optional_gate_failure_allows_merge(
-        self, tmp_repo: Path, sample_config: ZergConfig
-    ) -> None:
+    def test_optional_gate_failure_allows_merge(self, tmp_repo: Path, sample_config: ZergConfig) -> None:
         """Test optional gate failure does not block merge."""
         sample_config.quality_gates = [
             QualityGate(name="lint", command="exit 1", required=False),
@@ -157,16 +153,12 @@ class TestMergeFlowGateFailure:
         ]
 
         runner = GateRunner(sample_config)
-        all_passed, results = runner.run_all_gates(
-            cwd=tmp_repo, stop_on_failure=False
-        )
+        all_passed, results = runner.run_all_gates(cwd=tmp_repo, stop_on_failure=False)
 
         # All passed because lint is optional
         assert all_passed is True
 
-    def test_required_gate_failure_blocks_merge(
-        self, tmp_repo: Path, sample_config: ZergConfig
-    ) -> None:
+    def test_required_gate_failure_blocks_merge(self, tmp_repo: Path, sample_config: ZergConfig) -> None:
         """Test required gate failure blocks merge."""
         sample_config.quality_gates = [
             QualityGate(name="test", command="exit 1", required=True),
@@ -179,9 +171,7 @@ class TestMergeFlowGateFailure:
         with pytest.raises(GateFailureError):
             runner.check_result(result, raise_on_failure=True)
 
-    def test_gate_run_order(
-        self, tmp_repo: Path, sample_config: ZergConfig
-    ) -> None:
+    def test_gate_run_order(self, tmp_repo: Path, sample_config: ZergConfig) -> None:
         """Test gates run in correct order."""
         sample_config.quality_gates = [
             QualityGate(name="first", command="echo first", required=True),
@@ -199,9 +189,7 @@ class TestMergeFlowGateFailure:
 class TestMergeFlowIntegration:
     """Integration tests combining merge and gate flows."""
 
-    def test_full_merge_workflow(
-        self, tmp_repo: Path, sample_config: ZergConfig
-    ) -> None:
+    def test_full_merge_workflow(self, tmp_repo: Path, sample_config: ZergConfig) -> None:
         """Test complete merge workflow with gates."""
         ops = GitOps(tmp_repo)
         main_branch = ops.current_branch()

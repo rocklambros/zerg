@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.config import ZergConfig
-from zerg.constants import LevelMergeStatus, TaskStatus
+from zerg.constants import LevelMergeStatus
 from zerg.level_coordinator import LevelCoordinator
 from zerg.levels import LevelController
 from zerg.merge import MergeCoordinator, MergeFlowResult
@@ -98,8 +98,11 @@ class TestHandleLevelComplete:
     def test_succeeds_with_merge(self, mock_sleep, coordinator, mock_deps):
         """Level completion succeeds when merge passes."""
         merge_result = MergeFlowResult(
-            success=True, level=1, source_branches=["b1"],
-            target_branch="main", merge_commit="abc123",
+            success=True,
+            level=1,
+            source_branches=["b1"],
+            target_branch="main",
+            merge_commit="abc123",
         )
         mock_deps["merger"].full_merge_flow.return_value = merge_result
 
@@ -111,19 +114,18 @@ class TestHandleLevelComplete:
         result = coordinator.handle_level_complete(1)
 
         assert result is True
-        mock_deps["state"].set_level_status.assert_any_call(
-            1, "complete", merge_commit="abc123"
-        )
-        mock_deps["state"].set_level_merge_status.assert_any_call(
-            1, LevelMergeStatus.COMPLETE
-        )
+        mock_deps["state"].set_level_status.assert_any_call(1, "complete", merge_commit="abc123")
+        mock_deps["state"].set_level_merge_status.assert_any_call(1, LevelMergeStatus.COMPLETE)
 
     @patch("time.sleep")
     def test_fails_with_merge_failure(self, mock_sleep, coordinator, mock_deps):
         """Level completion fails when merge fails."""
         merge_result = MergeFlowResult(
-            success=False, level=1, source_branches=["b1"],
-            target_branch="main", error="Pre-merge gate failed",
+            success=False,
+            level=1,
+            source_branches=["b1"],
+            target_branch="main",
+            error="Pre-merge gate failed",
         )
         mock_deps["merger"].full_merge_flow.return_value = merge_result
 
@@ -134,16 +136,17 @@ class TestHandleLevelComplete:
         result = coordinator.handle_level_complete(1)
 
         assert result is False
-        mock_deps["state"].set_level_merge_status.assert_any_call(
-            1, LevelMergeStatus.FAILED
-        )
+        mock_deps["state"].set_level_merge_status.assert_any_call(1, LevelMergeStatus.FAILED)
 
     @patch("time.sleep")
     def test_conflict_pauses_for_intervention(self, mock_sleep, coordinator, mock_deps):
         """Merge conflict triggers pause for intervention."""
         merge_result = MergeFlowResult(
-            success=False, level=1, source_branches=["b1"],
-            target_branch="main", error="CONFLICT in file.py",
+            success=False,
+            level=1,
+            source_branches=["b1"],
+            target_branch="main",
+            error="CONFLICT in file.py",
         )
         mock_deps["merger"].full_merge_flow.return_value = merge_result
 
@@ -169,7 +172,9 @@ class TestMergeLevel:
         mock_deps["workers"][0] = ws
 
         merge_result = MergeFlowResult(
-            success=True, level=1, source_branches=["zerg/test/worker-0"],
+            success=True,
+            level=1,
+            source_branches=["zerg/test/worker-0"],
             target_branch="main",
         )
         mock_deps["merger"].full_merge_flow.return_value = merge_result
@@ -201,9 +206,7 @@ class TestPauseAndError:
 
         assert coordinator.paused is True
         mock_deps["state"].set_paused.assert_called_with(True)
-        mock_deps["state"].append_event.assert_called_with(
-            "paused_for_intervention", {"reason": "Merge conflict"}
-        )
+        mock_deps["state"].append_event.assert_called_with("paused_for_intervention", {"reason": "Merge conflict"})
 
     def test_set_recoverable_error_sets_paused(self, coordinator, mock_deps):
         """set_recoverable_error pauses and records error."""
@@ -212,9 +215,7 @@ class TestPauseAndError:
         assert coordinator.paused is True
         mock_deps["state"].set_error.assert_called_with("Merge failed after retries")
         mock_deps["state"].set_paused.assert_called_with(True)
-        mock_deps["state"].append_event.assert_called_with(
-            "recoverable_error", {"error": "Merge failed after retries"}
-        )
+        mock_deps["state"].append_event.assert_called_with("recoverable_error", {"error": "Merge failed after retries"})
 
     def test_paused_property_default(self, coordinator):
         """Paused property defaults to False."""

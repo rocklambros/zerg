@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from zerg.escalation import Escalation, EscalationMonitor, EscalationWriter
 
 
@@ -86,36 +84,71 @@ class TestEscalationMonitor:
     """Tests for EscalationMonitor."""
 
     def _write_escalations(self, tmp_path: Path, escalations: list) -> None:
-        (tmp_path / "escalations.json").write_text(
-            json.dumps({"escalations": escalations})
-        )
+        (tmp_path / "escalations.json").write_text(json.dumps({"escalations": escalations}))
 
     def test_read_all(self, tmp_path: Path) -> None:
-        self._write_escalations(tmp_path, [
-            {"worker_id": 1, "task_id": "T1", "timestamp": "", "category": "ambiguous_spec",
-             "message": "msg", "context": {}, "resolved": False},
-        ])
+        self._write_escalations(
+            tmp_path,
+            [
+                {
+                    "worker_id": 1,
+                    "task_id": "T1",
+                    "timestamp": "",
+                    "category": "ambiguous_spec",
+                    "message": "msg",
+                    "context": {},
+                    "resolved": False,
+                },
+            ],
+        )
         monitor = EscalationMonitor(state_dir=tmp_path)
         all_esc = monitor.read_all()
         assert len(all_esc) == 1
 
     def test_get_unresolved(self, tmp_path: Path) -> None:
-        self._write_escalations(tmp_path, [
-            {"worker_id": 1, "task_id": "T1", "timestamp": "", "category": "x",
-             "message": "msg", "context": {}, "resolved": False},
-            {"worker_id": 2, "task_id": "T2", "timestamp": "", "category": "y",
-             "message": "msg", "context": {}, "resolved": True},
-        ])
+        self._write_escalations(
+            tmp_path,
+            [
+                {
+                    "worker_id": 1,
+                    "task_id": "T1",
+                    "timestamp": "",
+                    "category": "x",
+                    "message": "msg",
+                    "context": {},
+                    "resolved": False,
+                },
+                {
+                    "worker_id": 2,
+                    "task_id": "T2",
+                    "timestamp": "",
+                    "category": "y",
+                    "message": "msg",
+                    "context": {},
+                    "resolved": True,
+                },
+            ],
+        )
         monitor = EscalationMonitor(state_dir=tmp_path)
         unresolved = monitor.get_unresolved()
         assert len(unresolved) == 1
         assert unresolved[0].task_id == "T1"
 
     def test_resolve(self, tmp_path: Path) -> None:
-        self._write_escalations(tmp_path, [
-            {"worker_id": 1, "task_id": "T1", "timestamp": "", "category": "x",
-             "message": "msg", "context": {}, "resolved": False},
-        ])
+        self._write_escalations(
+            tmp_path,
+            [
+                {
+                    "worker_id": 1,
+                    "task_id": "T1",
+                    "timestamp": "",
+                    "category": "x",
+                    "message": "msg",
+                    "context": {},
+                    "resolved": False,
+                },
+            ],
+        )
         monitor = EscalationMonitor(state_dir=tmp_path)
         result = monitor.resolve("T1", 1)
         assert result is True
@@ -125,12 +158,29 @@ class TestEscalationMonitor:
         assert all_esc[0].resolved is True
 
     def test_resolve_all(self, tmp_path: Path) -> None:
-        self._write_escalations(tmp_path, [
-            {"worker_id": 1, "task_id": "T1", "timestamp": "", "category": "x",
-             "message": "msg", "context": {}, "resolved": False},
-            {"worker_id": 2, "task_id": "T2", "timestamp": "", "category": "y",
-             "message": "msg", "context": {}, "resolved": False},
-        ])
+        self._write_escalations(
+            tmp_path,
+            [
+                {
+                    "worker_id": 1,
+                    "task_id": "T1",
+                    "timestamp": "",
+                    "category": "x",
+                    "message": "msg",
+                    "context": {},
+                    "resolved": False,
+                },
+                {
+                    "worker_id": 2,
+                    "task_id": "T2",
+                    "timestamp": "",
+                    "category": "y",
+                    "message": "msg",
+                    "context": {},
+                    "resolved": False,
+                },
+            ],
+        )
         monitor = EscalationMonitor(state_dir=tmp_path)
         count = monitor.resolve_all()
         assert count == 2

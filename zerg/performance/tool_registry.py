@@ -142,15 +142,9 @@ class ToolRegistry:
 
     def get_available(self) -> list[str]:
         """Return names of tools that are currently available on the system."""
-        return [
-            status.name
-            for status in self.check_availability()
-            if status.available
-        ]
+        return [status.name for status in self.check_availability() if status.available]
 
-    def print_advisory(
-        self, console: Console, missing: list[ToolStatus]
-    ) -> None:
+    def print_advisory(self, console: Console, missing: list[ToolStatus]) -> None:
         """Print a Rich panel advising on missing tools and how to install them.
 
         Args:

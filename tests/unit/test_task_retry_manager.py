@@ -1,6 +1,5 @@
 """Tests for TaskRetryManager component."""
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -79,8 +78,11 @@ class TestHandleTaskFailure:
         """Structured writer emits warning on retry."""
         writer = MagicMock()
         manager = TaskRetryManager(
-            config=mock_config, state=mock_state, levels=mock_levels,
-            repo_path=tmp_path, structured_writer=writer,
+            config=mock_config,
+            state=mock_state,
+            levels=mock_levels,
+            repo_path=tmp_path,
+            structured_writer=writer,
         )
         mock_state.get_task_retry_count.return_value = 0
 
@@ -179,9 +181,7 @@ class TestCheckStaleTasks:
         del mock_config.workers.task_stale_timeout_seconds
         mock_state.get_stale_in_progress_tasks.return_value = []
 
-        manager = TaskRetryManager(
-            config=mock_config, state=mock_state, levels=mock_levels, repo_path=tmp_path
-        )
+        manager = TaskRetryManager(config=mock_config, state=mock_state, levels=mock_levels, repo_path=tmp_path)
         manager.check_stale_tasks()
 
         mock_state.get_stale_in_progress_tasks.assert_called_once_with(DEFAULT_STALE_TIMEOUT_SECONDS)
@@ -191,9 +191,7 @@ class TestCheckStaleTasks:
         mock_config.workers.task_stale_timeout_seconds = 900
         mock_state.get_stale_in_progress_tasks.return_value = []
 
-        manager = TaskRetryManager(
-            config=mock_config, state=mock_state, levels=mock_levels, repo_path=tmp_path
-        )
+        manager = TaskRetryManager(config=mock_config, state=mock_state, levels=mock_levels, repo_path=tmp_path)
         manager.check_stale_tasks()
 
         mock_state.get_stale_in_progress_tasks.assert_called_once_with(900)
@@ -225,8 +223,7 @@ class TestCheckStaleTasks:
         mock_state.get_task_retry_count.return_value = 0
 
         manager = TaskRetryManager(
-            config=mock_config, state=mock_state, levels=mock_levels,
-            repo_path=tmp_path, structured_writer=writer
+            config=mock_config, state=mock_state, levels=mock_levels, repo_path=tmp_path, structured_writer=writer
         )
         manager.check_stale_tasks(timeout_seconds=600)
 

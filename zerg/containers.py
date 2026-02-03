@@ -201,7 +201,10 @@ class ContainerManager:
 
         # Get container ID
         result = self._run_docker(
-            "ps", "-q", "-f", f"name={container_name}",
+            "ps",
+            "-q",
+            "-f",
+            f"name={container_name}",
             check=False,
         )
         container_id = result.stdout.strip()
@@ -270,7 +273,10 @@ class ContainerManager:
 
         # Also stop any orphaned zerg containers
         result = self._run_docker(
-            "ps", "-q", "-f", "name=zerg-worker-",
+            "ps",
+            "-q",
+            "-f",
+            "name=zerg-worker-",
             check=False,
         )
         for container_id in result.stdout.strip().split("\n"):
@@ -295,7 +301,10 @@ class ContainerManager:
             return WorkerStatus.STOPPED
 
         result = self._run_docker(
-            "inspect", "-f", "{{.State.Status}}", info.container_id,
+            "inspect",
+            "-f",
+            "{{.State.Status}}",
+            info.container_id,
             check=False,
         )
         status = result.stdout.strip()
@@ -356,15 +365,33 @@ class ContainerManager:
     # Allowlist of commands that can be executed in containers
     ALLOWED_EXEC_COMMANDS = {
         # Test commands
-        "pytest", "python -m pytest", "npm test", "cargo test", "go test",
+        "pytest",
+        "python -m pytest",
+        "npm test",
+        "cargo test",
+        "go test",
         # Lint commands
-        "ruff", "ruff check", "flake8", "mypy", "eslint", "prettier",
+        "ruff",
+        "ruff check",
+        "flake8",
+        "mypy",
+        "eslint",
+        "prettier",
         # Build commands
-        "make", "npm run build", "cargo build", "go build",
+        "make",
+        "npm run build",
+        "cargo build",
+        "go build",
         # Git commands (read-only)
-        "git status", "git diff", "git log",
+        "git status",
+        "git diff",
+        "git log",
         # Info commands
-        "pwd", "ls", "cat", "echo", "which",
+        "pwd",
+        "ls",
+        "cat",
+        "echo",
+        "which",
     }
 
     def _validate_exec_command(self, command: str) -> tuple[bool, str | None]:
@@ -424,7 +451,11 @@ class ContainerManager:
                 return -1, "", f"Command validation failed: {error}"
 
         result = self._run_docker(
-            "exec", info.container_id, "sh", "-c", command,
+            "exec",
+            info.container_id,
+            "sh",
+            "-c",
+            command,
             check=False,
             timeout=timeout,
         )
@@ -464,9 +495,7 @@ class ContainerManager:
             stderr=asyncio.subprocess.PIPE,
         )
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(), timeout=timeout
-            )
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=timeout)
             return (
                 proc.returncode or 0,
                 stdout_bytes.decode(),
@@ -507,9 +536,7 @@ class ContainerManager:
             env=full_env,
         )
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(), timeout=timeout
-            )
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=timeout)
             return (
                 proc.returncode or 0,
                 stdout_bytes.decode(),
@@ -578,16 +605,16 @@ class ContainerManager:
         Returns:
             Number of containers stopped
         """
-        tasks = [
-            self.stop_worker_async(worker_id, force=force)
-            for worker_id in list(self._containers.keys())
-        ]
+        tasks = [self.stop_worker_async(worker_id, force=force) for worker_id in list(self._containers.keys())]
         await asyncio.gather(*tasks, return_exceptions=True)
         count = len(tasks)
 
         # Also stop any orphaned zerg containers
         returncode, stdout, _ = await self._run_docker_async(
-            "ps", "-q", "-f", "name=zerg-worker-",
+            "ps",
+            "-q",
+            "-f",
+            "name=zerg-worker-",
         )
         for container_id in stdout.strip().split("\n"):
             if container_id:
@@ -611,7 +638,10 @@ class ContainerManager:
             return WorkerStatus.STOPPED
 
         returncode, stdout, _ = await self._run_docker_async(
-            "inspect", "-f", "{{.State.Status}}", info.container_id,
+            "inspect",
+            "-f",
+            "{{.State.Status}}",
+            info.container_id,
         )
         status = stdout.strip()
 
@@ -657,7 +687,11 @@ class ContainerManager:
                 return -1, "", f"Command validation failed: {error}"
 
         return await self._run_docker_async(
-            "exec", info.container_id, "sh", "-c", command,
+            "exec",
+            info.container_id,
+            "sh",
+            "-c",
+            command,
             timeout=timeout,
         )
 

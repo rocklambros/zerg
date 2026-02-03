@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from zerg.devcontainer_features import (
     DynamicDevcontainerGenerator,
     get_features_for_languages,
@@ -42,10 +40,7 @@ class TestDynamicDevcontainer:
         commands = get_post_create_commands({"r"})
 
         # Should have R installation command
-        has_r_install = any(
-            "r" in cmd.lower() or "r-base" in cmd.lower()
-            for cmd in commands
-        )
+        has_r_install = any("r" in cmd.lower() or "r-base" in cmd.lower() for cmd in commands)
         assert has_r_install, f"Expected R install command in {commands}"
 
     def test_write_devcontainer_file(self, tmp_path: Path) -> None:

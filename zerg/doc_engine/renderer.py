@@ -252,7 +252,7 @@ def _build_dependency_diagram(title: str, imports: list) -> str:
     for imp in imports:
         mod = imp.module or "unknown"
         tgt = _mermaid_id(mod)
-        lines.append(f"    {src} --> {tgt}[\"{mod}\"]")
+        lines.append(f'    {src} --> {tgt}["{mod}"]')
     return "\n".join(lines)
 
 

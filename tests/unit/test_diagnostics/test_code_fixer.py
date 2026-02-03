@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from zerg.diagnostics.code_fixer import (
     CodeAwareFixer,
@@ -50,9 +47,7 @@ class TestDependencyAnalyzer:
     def test_find_missing_deps_module_not_found(self) -> None:
         """ModuleNotFoundError message yields the missing module name."""
         analyzer = DependencyAnalyzer()
-        result = analyzer.find_missing_deps(
-            "ModuleNotFoundError: No module named 'bar'"
-        )
+        result = analyzer.find_missing_deps("ModuleNotFoundError: No module named 'bar'")
         assert result == ["bar"]
 
     def test_find_missing_deps_no_match(self) -> None:
@@ -83,12 +78,9 @@ class TestGitContextAnalyzer:
     def test_get_recent_changes(self) -> None:
         """Mocked git log output returns list of dicts with expected keys."""
         git_output = (
-            "abc1234|Alice|2025-01-01T00:00:00+00:00|Initial commit\n"
-            "def5678|Bob|2025-01-02T00:00:00+00:00|Add feature"
+            "abc1234|Alice|2025-01-01T00:00:00+00:00|Initial commit\ndef5678|Bob|2025-01-02T00:00:00+00:00|Add feature"
         )
-        mock_result = MagicMock(
-            stdout=git_output, returncode=0
-        )
+        mock_result = MagicMock(stdout=git_output, returncode=0)
 
         analyzer = GitContextAnalyzer()
         with patch("subprocess.run", return_value=mock_result):

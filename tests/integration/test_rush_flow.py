@@ -22,9 +22,7 @@ class TestRushFlowDryRun:
         assert status["total_tasks"] > 0
         assert status["completed_tasks"] == 0
 
-    def test_dry_run_no_worktrees_created(
-        self, tmp_repo: Path, sample_task_graph
-    ) -> None:
+    def test_dry_run_no_worktrees_created(self, tmp_repo: Path, sample_task_graph) -> None:
         """Test dry run does not create worktrees."""
         from zerg.worktree import WorktreeManager
 

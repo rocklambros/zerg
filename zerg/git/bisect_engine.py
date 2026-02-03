@@ -10,12 +10,11 @@ import re
 import shlex
 import subprocess
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
+from zerg.git.commit_engine import COMMIT_TYPE_PATTERNS
 from zerg.git.config import GitConfig
 from zerg.git.types import CommitInfo, CommitType
-from zerg.git.commit_engine import COMMIT_TYPE_PATTERNS
 from zerg.logging import get_logger
 
 if TYPE_CHECKING:
@@ -24,21 +23,25 @@ if TYPE_CHECKING:
 logger = get_logger("git.bisect_engine")
 
 # Commit types that are more likely to introduce bugs
-_HIGH_RISK_TYPES: frozenset[CommitType] = frozenset({
-    CommitType.FEAT,
-    CommitType.REFACTOR,
-    CommitType.FIX,
-    CommitType.PERF,
-    CommitType.REVERT,
-})
+_HIGH_RISK_TYPES: frozenset[CommitType] = frozenset(
+    {
+        CommitType.FEAT,
+        CommitType.REFACTOR,
+        CommitType.FIX,
+        CommitType.PERF,
+        CommitType.REVERT,
+    }
+)
 
-_LOW_RISK_TYPES: frozenset[CommitType] = frozenset({
-    CommitType.DOCS,
-    CommitType.STYLE,
-    CommitType.CHORE,
-    CommitType.CI,
-    CommitType.BUILD,
-})
+_LOW_RISK_TYPES: frozenset[CommitType] = frozenset(
+    {
+        CommitType.DOCS,
+        CommitType.STYLE,
+        CommitType.CHORE,
+        CommitType.CI,
+        CommitType.BUILD,
+    }
+)
 
 
 def _detect_commit_type_from_message(message: str) -> CommitType | None:
@@ -177,14 +180,16 @@ class CommitRanker:
             files = tuple(line.strip() for line in lines[1:] if line.strip())
             commit_type = _detect_commit_type_from_message(message)
 
-            commits.append(CommitInfo(
-                sha=sha,
-                message=message,
-                author=author,
-                date=date,
-                files=files,
-                commit_type=commit_type,
-            ))
+            commits.append(
+                CommitInfo(
+                    sha=sha,
+                    message=message,
+                    author=author,
+                    date=date,
+                    files=files,
+                    commit_type=commit_type,
+                )
+            )
 
         return commits
 
@@ -223,12 +228,7 @@ class CommitRanker:
             # File overlap score (0.0 - 1.0)
             file_overlap = 0.0
             if target_files and commit.files:
-                overlap_count = sum(
-                    1
-                    for cf in commit.files
-                    for tf in target_files
-                    if tf in cf or cf in tf
-                )
+                overlap_count = sum(1 for cf in commit.files for tf in target_files if tf in cf or cf in tf)
                 file_overlap = min(overlap_count / max(len(target_files), 1), 1.0)
                 if file_overlap > 0:
                     reasons.append(f"file overlap: {overlap_count} matching files")
@@ -252,21 +252,18 @@ class CommitRanker:
                 type_score = 0.1
                 reasons.append(f"low-risk type: {commit.commit_type.value}")
 
-            total_score = (
-                file_overlap * 0.4
-                + size_score * 0.2
-                + recency_score * 0.2
-                + type_score * 0.2
-            )
+            total_score = file_overlap * 0.4 + size_score * 0.2 + recency_score * 0.2 + type_score * 0.2
 
             if not reasons:
                 reasons.append("baseline score")
 
-            results.append({
-                "commit": commit,
-                "score": round(total_score, 4),
-                "reasons": reasons,
-            })
+            results.append(
+                {
+                    "commit": commit,
+                    "score": round(total_score, 4),
+                    "reasons": reasons,
+                }
+            )
 
         results.sort(key=lambda r: r["score"], reverse=True)
         return results
@@ -328,7 +325,7 @@ class SemanticTester:
         Returns:
             Dict with keys: status, failing_tests, error_message.
         """
-        combined = (result.get("stdout", "") + "\n" + result.get("stderr", ""))
+        combined = result.get("stdout", "") + "\n" + result.get("stderr", "")
         exit_code = result.get("exit_code", -1)
 
         if exit_code == 0:
@@ -469,7 +466,9 @@ class BisectRunner:
             # Run automated bisect
             args = shlex.split(test_cmd)
             result = self._runner._run(
-                "bisect", "run", *args,
+                "bisect",
+                "run",
+                *args,
                 check=False,
                 timeout=600,
             )
@@ -477,15 +476,11 @@ class BisectRunner:
             output = result.stdout or ""
 
             # Parse the result - git bisect prints the first bad commit
-            sha_match = re.search(
-                r"([0-9a-f]{40}) is the first bad commit", output
-            )
+            sha_match = re.search(r"([0-9a-f]{40}) is the first bad commit", output)
             if sha_match:
                 culprit_sha = sha_match.group(1)
                 # Extract commit message
-                msg_match = re.search(
-                    r"commit message:\s*(.+)", output, re.DOTALL
-                )
+                msg_match = re.search(r"commit message:\s*(.+)", output, re.DOTALL)
                 message = msg_match.group(1).strip() if msg_match else ""
                 return {
                     "culprit_sha": culprit_sha,
@@ -701,7 +696,9 @@ class BisectEngine:
         # Try latest tag
         try:
             result = self._runner._run(
-                "describe", "--tags", "--abbrev=0",
+                "describe",
+                "--tags",
+                "--abbrev=0",
                 check=False,
             )
             tag = result.stdout.strip() if result.stdout else ""
@@ -713,7 +710,9 @@ class BisectEngine:
         # Fall back to first commit
         try:
             result = self._runner._run(
-                "rev-list", "--max-parents=0", "HEAD",
+                "rev-list",
+                "--max-parents=0",
+                "HEAD",
             )
             return result.stdout.strip().splitlines()[0]
         except Exception:
@@ -785,15 +784,17 @@ class BisectEngine:
 
         culprit = result.get("culprit")
         if culprit and isinstance(culprit, CommitInfo):
-            lines.extend([
-                "## Culprit Commit",
-                "",
-                f"- **SHA**: `{culprit.sha}`",
-                f"- **Message**: {_sanitize_text(culprit.message)}",
-                f"- **Author**: {_sanitize_text(culprit.author)}",
-                f"- **Date**: {culprit.date}",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## Culprit Commit",
+                    "",
+                    f"- **SHA**: `{culprit.sha}`",
+                    f"- **Message**: {_sanitize_text(culprit.message)}",
+                    f"- **Author**: {_sanitize_text(culprit.author)}",
+                    f"- **Date**: {culprit.date}",
+                    "",
+                ]
+            )
 
             if culprit.files:
                 lines.append("### Changed Files")
@@ -804,22 +805,26 @@ class BisectEngine:
 
         analysis = result.get("analysis")
         if analysis:
-            lines.extend([
-                "## Root Cause Analysis",
-                "",
-                f"**Likely Cause**: {_sanitize_text(analysis.get('likely_cause', ''))}",
-                "",
-                f"**Suggestion**: {_sanitize_text(analysis.get('suggestion', ''))}",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## Root Cause Analysis",
+                    "",
+                    f"**Likely Cause**: {_sanitize_text(analysis.get('likely_cause', ''))}",
+                    "",
+                    f"**Suggestion**: {_sanitize_text(analysis.get('suggestion', ''))}",
+                    "",
+                ]
+            )
 
         if result.get("method") == "failed":
-            lines.extend([
-                "## Result",
-                "",
-                "Bisect was unable to identify a culprit commit.",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## Result",
+                    "",
+                    "Bisect was unable to identify a culprit commit.",
+                    "",
+                ]
+            )
 
         report_path.write_text("\n".join(lines), encoding="utf-8")
         logger.info("Report saved to %s", report_path)

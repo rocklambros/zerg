@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.doc_engine.detector import ComponentType
 from zerg.doc_engine.extractor import ClassInfo, FunctionInfo, ImportInfo, SymbolTable
 from zerg.doc_engine.renderer import (
     DocRenderer,
@@ -40,7 +39,6 @@ from zerg.doc_engine.templates import (
     TEMPLATES,
     TYPES_TEMPLATE,
 )
-
 
 # ======================================================================
 # Fixtures
@@ -162,39 +160,63 @@ class TestTemplates:
 
     def test_module_template_has_expected_placeholders(self) -> None:
         for placeholder in [
-            "{title}", "{summary}", "{path}", "{lines}",
-            "{class_count}", "{function_count}", "{classes_table}",
-            "{functions_table}", "{imports_list}", "{dependency_diagram}",
+            "{title}",
+            "{summary}",
+            "{path}",
+            "{lines}",
+            "{class_count}",
+            "{function_count}",
+            "{classes_table}",
+            "{functions_table}",
+            "{imports_list}",
+            "{dependency_diagram}",
             "{see_also}",
         ]:
             assert placeholder in MODULE_TEMPLATE
 
     def test_command_template_has_expected_placeholders(self) -> None:
         for placeholder in [
-            "{title}", "{summary}", "{usage}", "{options_table}",
-            "{examples}", "{workflow_diagram}", "{see_also}",
+            "{title}",
+            "{summary}",
+            "{usage}",
+            "{options_table}",
+            "{examples}",
+            "{workflow_diagram}",
+            "{see_also}",
         ]:
             assert placeholder in COMMAND_TEMPLATE
 
     def test_config_template_has_expected_placeholders(self) -> None:
         for placeholder in [
-            "{title}", "{summary}", "{options_rows}",
-            "{example_config}", "{env_vars}", "{see_also}",
+            "{title}",
+            "{summary}",
+            "{options_rows}",
+            "{example_config}",
+            "{env_vars}",
+            "{see_also}",
         ]:
             assert placeholder in CONFIG_TEMPLATE
 
     def test_types_template_has_expected_placeholders(self) -> None:
         for placeholder in [
-            "{title}", "{summary}", "{type_defs_table}",
-            "{enums_table}", "{dataclass_details}", "{class_diagram}",
+            "{title}",
+            "{summary}",
+            "{type_defs_table}",
+            "{enums_table}",
+            "{dataclass_details}",
+            "{class_diagram}",
             "{see_also}",
         ]:
             assert placeholder in TYPES_TEMPLATE
 
     def test_api_template_has_expected_placeholders(self) -> None:
         for placeholder in [
-            "{title}", "{summary}", "{endpoints_table}",
-            "{schemas}", "{authentication}", "{see_also}",
+            "{title}",
+            "{summary}",
+            "{endpoints_table}",
+            "{schemas}",
+            "{authentication}",
+            "{see_also}",
         ]:
             assert placeholder in API_TEMPLATE
 
@@ -453,9 +475,7 @@ class TestBuildTypeDefsTable:
         assert "| `TIMEOUT` | Constant |" in result
 
     def test_with_both(self, tmp_path: Path) -> None:
-        symbols = _make_symbol_table(
-            tmp_path / "t.py", type_aliases=["Alias"], constants=["CONST"]
-        )
+        symbols = _make_symbol_table(tmp_path / "t.py", type_aliases=["Alias"], constants=["CONST"])
         result = _build_type_defs_table(symbols)
         assert "TypeAlias" in result
         assert "Constant" in result
@@ -925,8 +945,13 @@ class TestRenderTypes:
             module_docstring="Type defs.",
             classes=[
                 _make_class("Color", bases=["Enum"], decorators=[]),
-                _make_class("Point", bases=[], decorators=["dataclass"], docstring="A point.",
-                            methods=[_make_method("__init__", args=["self", "x: int"])]),
+                _make_class(
+                    "Point",
+                    bases=[],
+                    decorators=["dataclass"],
+                    docstring="A point.",
+                    methods=[_make_method("__init__", args=["self", "x: int"])],
+                ),
             ],
             type_aliases=["MyAlias"],
             constants=["MAX"],
@@ -963,7 +988,7 @@ class TestRenderApi:
             module_docstring="API endpoints.",
             functions=[
                 _make_function("health", decorators=["app.route('/health')"], return_type="str"),
-                _make_function("login", args=["request"], decorators=["app.route('/login', methods=['POST'])"])
+                _make_function("login", args=["request"], decorators=["app.route('/login', methods=['POST'])"]),
             ],
         )
         renderer = DocRenderer(project_root=tmp_path)
@@ -1019,8 +1044,7 @@ class TestDocRendererIntegration:
     def test_render_types_py_integration(self, tmp_path: Path) -> None:
         f = tmp_path / "types.py"
         f.write_text(
-            '"""Types."""\n\nfrom enum import Enum\n\n'
-            'class Color(Enum):\n    RED = 1\n',
+            '"""Types."""\n\nfrom enum import Enum\n\nclass Color(Enum):\n    RED = 1\n',
             encoding="utf-8",
         )
         renderer = DocRenderer(project_root=tmp_path)

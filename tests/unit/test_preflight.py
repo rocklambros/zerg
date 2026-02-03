@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -21,24 +20,30 @@ class TestPreflightReport:
         assert report.warnings == []
 
     def test_report_with_error_fails(self) -> None:
-        report = PreflightReport(checks=[
-            CheckResult(name="test", passed=False, message="fail", severity="error"),
-        ])
+        report = PreflightReport(
+            checks=[
+                CheckResult(name="test", passed=False, message="fail", severity="error"),
+            ]
+        )
         assert not report.passed
         assert len(report.errors) == 1
 
     def test_report_with_warning_still_passes(self) -> None:
-        report = PreflightReport(checks=[
-            CheckResult(name="test", passed=False, message="warn", severity="warning"),
-        ])
+        report = PreflightReport(
+            checks=[
+                CheckResult(name="test", passed=False, message="warn", severity="warning"),
+            ]
+        )
         assert report.passed
         assert len(report.warnings) == 1
 
     def test_str_representation(self) -> None:
-        report = PreflightReport(checks=[
-            CheckResult(name="disk", passed=True, message="ok"),
-            CheckResult(name="auth", passed=False, message="no key"),
-        ])
+        report = PreflightReport(
+            checks=[
+                CheckResult(name="disk", passed=True, message="ok"),
+                CheckResult(name="auth", passed=False, message="no key"),
+            ]
+        )
         s = str(report)
         assert "PASS" in s
         assert "FAIL" in s

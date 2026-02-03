@@ -105,9 +105,7 @@ class TestCleanupCommand:
 
     @patch("zerg.commands.cleanup.ZergConfig")
     @patch("zerg.commands.cleanup.discover_features")
-    def test_cleanup_no_features_found(
-        self, mock_discover: MagicMock, mock_config_cls: MagicMock
-    ) -> None:
+    def test_cleanup_no_features_found(self, mock_discover: MagicMock, mock_config_cls: MagicMock) -> None:
         """Test cleanup handles no features found gracefully."""
         mock_config_cls.load.return_value = MagicMock()
         mock_discover.return_value = []
@@ -259,9 +257,7 @@ class TestCleanupCommand:
         assert call_args[0] == ["specific-feature"]
 
     @patch("zerg.commands.cleanup.ZergConfig")
-    def test_cleanup_handles_exception(
-        self, mock_config_cls: MagicMock
-    ) -> None:
+    def test_cleanup_handles_exception(self, mock_config_cls: MagicMock) -> None:
         """Test cleanup handles unexpected exceptions."""
         mock_config_cls.load.side_effect = Exception("Config error")
 
@@ -313,9 +309,7 @@ class TestDiscoverFeatures:
         assert "my-feature" in features
         assert "other-feature" in features
 
-    def test_discover_from_worktrees_without_worker_suffix(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_discover_from_worktrees_without_worker_suffix(self, tmp_path: Path, monkeypatch) -> None:
         """Test discover ignores worktree dirs without worker naming."""
         monkeypatch.chdir(tmp_path)
         worktree_dir = tmp_path / ".zerg" / "worktrees"
@@ -329,9 +323,7 @@ class TestDiscoverFeatures:
         assert "some-directory" not in features
 
     @patch("zerg.commands.cleanup.GitOps")
-    def test_discover_from_branches(
-        self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_discover_from_branches(self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch) -> None:
         """Test discover finds features from git branches.
 
         Note: The cleanup code treats branch objects as strings (calling .startswith()),
@@ -355,9 +347,7 @@ class TestDiscoverFeatures:
         assert "feature-two" in features
 
     @patch("zerg.commands.cleanup.GitOps")
-    def test_discover_handles_git_error(
-        self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_discover_handles_git_error(self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch) -> None:
         """Test discover handles git errors gracefully."""
         monkeypatch.chdir(tmp_path)
         mock_git_cls.side_effect = Exception("Git error")
@@ -366,9 +356,7 @@ class TestDiscoverFeatures:
         features = discover_features()
         assert isinstance(features, list)
 
-    def test_discover_returns_sorted_unique(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_discover_returns_sorted_unique(self, tmp_path: Path, monkeypatch) -> None:
         """Test discover returns sorted unique features."""
         monkeypatch.chdir(tmp_path)
 
@@ -389,9 +377,7 @@ class TestDiscoverFeatures:
         assert features == sorted(features)
 
     @patch("zerg.commands.cleanup.GitOps")
-    def test_discover_branch_with_single_part(
-        self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_discover_branch_with_single_part(self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch) -> None:
         """Test discover handles branches with insufficient parts."""
         monkeypatch.chdir(tmp_path)
         mock_git = MagicMock()
@@ -431,9 +417,7 @@ class TestCreateCleanupPlan:
         assert "log_files" in plan
         assert "dirs_to_remove" in plan
 
-    def test_plan_includes_worktrees(
-        self, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_includes_worktrees(self, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan finds worktree directories."""
         monkeypatch.chdir(tmp_path)
         worktree_dir = tmp_path / ".zerg" / "worktrees"
@@ -449,9 +433,7 @@ class TestCreateCleanupPlan:
         assert any("worker-0" in wt for wt in plan["worktrees"])
         assert any("worker-1" in wt for wt in plan["worktrees"])
 
-    def test_plan_includes_state_files(
-        self, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_includes_state_files(self, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan finds state files."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -463,9 +445,7 @@ class TestCreateCleanupPlan:
         assert len(plan["state_files"]) == 1
         assert "test-feature.json" in plan["state_files"][0]
 
-    def test_plan_includes_log_files(
-        self, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_includes_log_files(self, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan finds log files when keep_logs is False."""
         monkeypatch.chdir(tmp_path)
         log_dir = tmp_path / ".zerg" / "logs"
@@ -477,9 +457,7 @@ class TestCreateCleanupPlan:
 
         assert len(plan["log_files"]) >= 2
 
-    def test_plan_respects_keep_logs(
-        self, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_respects_keep_logs(self, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan respects keep_logs flag."""
         monkeypatch.chdir(tmp_path)
         log_dir = tmp_path / ".zerg" / "logs"
@@ -489,18 +467,14 @@ class TestCreateCleanupPlan:
         plan = create_cleanup_plan(["test"], True, False, mock_config)  # keep_logs=True
         assert len(plan["log_files"]) == 0
 
-    def test_plan_respects_keep_branches(
-        self, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_respects_keep_branches(self, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan respects keep_branches flag."""
         monkeypatch.chdir(tmp_path)
         plan = create_cleanup_plan(["test"], False, True, mock_config)  # keep_branches=True
         assert len(plan["branches"]) == 0
 
     @patch("zerg.commands.cleanup.GitOps")
-    def test_plan_includes_branches(
-        self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_includes_branches(self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan finds feature branches when keep_branches is False.
 
         Note: The cleanup code treats branch objects as strings (calling .startswith()),
@@ -527,9 +501,7 @@ class TestCreateCleanupPlan:
         assert "zerg/other-feature/worker-0" not in plan["branches"]
 
     @patch("zerg.commands.cleanup.GitOps")
-    def test_plan_handles_git_error(
-        self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_handles_git_error(self, mock_git_cls: MagicMock, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan creation handles git errors gracefully."""
         monkeypatch.chdir(tmp_path)
         mock_git_cls.side_effect = Exception("Git error")
@@ -538,14 +510,10 @@ class TestCreateCleanupPlan:
         plan = create_cleanup_plan(["test"], False, False, mock_config)
         assert plan["branches"] == []
 
-    def test_plan_container_patterns(
-        self, tmp_path: Path, monkeypatch, mock_config
-    ) -> None:
+    def test_plan_container_patterns(self, tmp_path: Path, monkeypatch, mock_config) -> None:
         """Test plan includes container patterns for each feature."""
         monkeypatch.chdir(tmp_path)
-        plan = create_cleanup_plan(
-            ["feature-a", "feature-b"], False, False, mock_config
-        )
+        plan = create_cleanup_plan(["feature-a", "feature-b"], False, False, mock_config)
 
         assert "zerg-worker-feature-a-*" in plan["containers"]
         assert "zerg-worker-feature-b-*" in plan["containers"]
@@ -661,9 +629,7 @@ class TestExecuteCleanup:
     @patch("zerg.commands.cleanup.WorktreeManager")
     @patch("zerg.commands.cleanup.ContainerManager")
     @patch("zerg.commands.cleanup.GitOps")
-    def test_execute_handles_empty_plan(
-        self, mock_git_cls, mock_container_cls, mock_worktree_cls, mock_config
-    ) -> None:
+    def test_execute_handles_empty_plan(self, mock_git_cls, mock_container_cls, mock_worktree_cls, mock_config) -> None:
         """Test execute handles empty plan."""
         plan = {
             "features": ["test"],
@@ -1063,6 +1029,7 @@ class TestExecuteCleanup:
         }
 
         import os
+
         original = os.getcwd()
         os.chdir(tmp_path)
         try:
@@ -1101,6 +1068,7 @@ class TestExecuteCleanup:
         }
 
         import os
+
         original = os.getcwd()
         os.chdir(tmp_path)
         try:
@@ -1139,6 +1107,7 @@ class TestExecuteCleanup:
         }
 
         import os
+
         original = os.getcwd()
         os.chdir(tmp_path)
         try:

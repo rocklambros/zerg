@@ -1,0 +1,5714 @@
+[
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'docker' imported but it is a transitive dependency"
+        },
+        "module": "docker",
+        "location": {
+            "file": ".zerg/container.py",
+            "line": 7,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/container.py",
+            "line": 8,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/init_generator.py",
+            "line": 8,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/init_generator.py",
+            "line": 9,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'messages' imported but missing from the dependency definitions"
+        },
+        "module": "messages",
+        "location": {
+            "file": ".zerg/protocol.py",
+            "line": 6,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'orchestrator' imported but missing from the dependency definitions"
+        },
+        "module": "orchestrator",
+        "location": {
+            "file": ".zerg/rush.py",
+            "line": 6,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'state' imported but missing from the dependency definitions"
+        },
+        "module": "state",
+        "location": {
+            "file": ".zerg/rush.py",
+            "line": 7,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/rush.py",
+            "line": 8,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'jsonschema' imported but it is a transitive dependency"
+        },
+        "module": "jsonschema",
+        "location": {
+            "file": ".zerg/state.py",
+            "line": 10,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'jsonschema' imported but it is a transitive dependency"
+        },
+        "module": "jsonschema",
+        "location": {
+            "file": ".zerg/task_graph.py",
+            "line": 7,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 22,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 34,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 47,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 58,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 71,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 86,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 93,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 100,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 112,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 119,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 126,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 137,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 144,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 151,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 162,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 169,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 180,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 187,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 198,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 207,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 215,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 226,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 236,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 247,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'analyze' imported but missing from the dependency definitions"
+        },
+        "module": "analyze",
+        "location": {
+            "file": ".zerg/tests/test_analyze.py",
+            "line": 262,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 28,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 36,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 48,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 59,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 76,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 89,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 96,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 108,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 115,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 127,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 134,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 143,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 151,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'build' imported but it is a transitive dependency"
+        },
+        "module": "build",
+        "location": {
+            "file": ".zerg/tests/test_build.py",
+            "line": 166,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'docker' imported but it is a transitive dependency"
+        },
+        "module": "docker",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 12,
+            "column": 12
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 29,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 44,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 64,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 82,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 90,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 99,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 111,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'docker' imported but it is a transitive dependency"
+        },
+        "module": "docker",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 119,
+            "column": 16
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 120,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 135,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 142,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'docker' imported but it is a transitive dependency"
+        },
+        "module": "docker",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 192,
+            "column": 16
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'docker' imported but it is a transitive dependency"
+        },
+        "module": "docker",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 209,
+            "column": 16
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'docker' imported but it is a transitive dependency"
+        },
+        "module": "docker",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 223,
+            "column": 16
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 245,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'docker' imported but it is a transitive dependency"
+        },
+        "module": "docker",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 251,
+            "column": 16
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'container' imported but missing from the dependency definitions"
+        },
+        "module": "container",
+        "location": {
+            "file": ".zerg/tests/test_container.py",
+            "line": 252,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 34,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 46,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 57,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 73,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 85,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 109,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 116,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 128,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 142,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 153,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 160,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 168,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'debug' imported but missing from the dependency definitions"
+        },
+        "module": "debug",
+        "location": {
+            "file": ".zerg/tests/test_debug.py",
+            "line": 184,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 15,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 25,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 42,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 55,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 67,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 80,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 87,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 94,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 101,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 108,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 118,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 126,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 137,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 152,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 166,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 179,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 194,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 211,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 219,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 229,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 243,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 251,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'devcontainer' imported but missing from the dependency definitions"
+        },
+        "module": "devcontainer",
+        "location": {
+            "file": ".zerg/tests/test_devcontainer.py",
+            "line": 266,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 35,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 48,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 57,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 66,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 83,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 90,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 103,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 110,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 124,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 131,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 144,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 151,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'document' imported but missing from the dependency definitions"
+        },
+        "module": "document",
+        "location": {
+            "file": ".zerg/tests/test_document.py",
+            "line": 160,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 26,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 35,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 47,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 57,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 72,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 80,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 87,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 98,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 110,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 122,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 140,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 170,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 177,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 189,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 196,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 215,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 222,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'estimate' imported but missing from the dependency definitions"
+        },
+        "module": "estimate",
+        "location": {
+            "file": ".zerg/tests/test_estimate.py",
+            "line": 233,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 26,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 38,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 47,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 59,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 67,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 80,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 93,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 108,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 127,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 134,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 146,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 153,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 167,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 174,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'explain' imported but missing from the dependency definitions"
+        },
+        "module": "explain",
+        "location": {
+            "file": ".zerg/tests/test_explain.py",
+            "line": 183,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 23,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 33,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 46,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 53,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 54,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 74,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 75,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 95,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 96,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 124,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 125,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 154,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 155,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 178,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 185,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 193,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 203,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 213,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 225,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 232,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 233,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 252,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 260,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 261,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 282,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 283,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 306,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 313,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 325,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'gates' imported but missing from the dependency definitions"
+        },
+        "module": "gates",
+        "location": {
+            "file": ".zerg/tests/test_gates.py",
+            "line": 333,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 29,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 37,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 49,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 60,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 77,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 88,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 106,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 119,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 126,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 139,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 146,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 155,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 163,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 177,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 184,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 192,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'git_ops' imported but missing from the dependency definitions"
+        },
+        "module": "git_ops",
+        "location": {
+            "file": ".zerg/tests/test_git_ops.py",
+            "line": 207,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 23,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 37,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 45,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 57,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 64,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 71,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 78,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 89,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 100,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 111,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 124,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 131,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 143,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'indexer' imported but missing from the dependency definitions"
+        },
+        "module": "indexer",
+        "location": {
+            "file": ".zerg/tests/test_indexer.py",
+            "line": 150,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 15,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 24,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 33,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 42,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 51,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 60,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 72,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 81,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 90,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 100,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 114,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 131,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 149,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 165,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 178,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 191,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 203,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 215,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 229,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 238,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 248,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'init_generator' imported but missing from the dependency definitions"
+        },
+        "module": "init_generator",
+        "location": {
+            "file": ".zerg/tests/test_init_generator.py",
+            "line": 258,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'metrics' imported but missing from the dependency definitions"
+        },
+        "module": "metrics",
+        "location": {
+            "file": ".zerg/tests/test_metrics.py",
+            "line": 10,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'orchestrator' imported but missing from the dependency definitions"
+        },
+        "module": "orchestrator",
+        "location": {
+            "file": ".zerg/tests/test_orchestrator.py",
+            "line": 10,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'orchestrator' imported but missing from the dependency definitions"
+        },
+        "module": "orchestrator",
+        "location": {
+            "file": ".zerg/tests/test_orchestrator.py",
+            "line": 23,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'ports' imported but missing from the dependency definitions"
+        },
+        "module": "ports",
+        "location": {
+            "file": ".zerg/tests/test_ports.py",
+            "line": 10,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'messages' imported but missing from the dependency definitions"
+        },
+        "module": "messages",
+        "location": {
+            "file": ".zerg/tests/test_protocol.py",
+            "line": 9,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'protocol' imported but missing from the dependency definitions"
+        },
+        "module": "protocol",
+        "location": {
+            "file": ".zerg/tests/test_protocol.py",
+            "line": 16,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 29,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 38,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 50,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 59,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 72,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 80,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 93,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 106,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 113,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 120,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 132,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 139,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 147,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'purge' imported but missing from the dependency definitions"
+        },
+        "module": "purge",
+        "location": {
+            "file": ".zerg/tests/test_purge.py",
+            "line": 159,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 15,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 24,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 41,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 49,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 58,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 66,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 77,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 90,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 105,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 113,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 120,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 127,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 138,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 146,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 160,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 174,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 182,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 194,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 207,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'quality_tools' imported but missing from the dependency definitions"
+        },
+        "module": "quality_tools",
+        "location": {
+            "file": ".zerg/tests/test_quality_tools.py",
+            "line": 219,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 35,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 47,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 61,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 81,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 92,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 115,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 122,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 133,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 140,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 151,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 158,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 169,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 176,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 187,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 194,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 203,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 211,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'refactor' imported but missing from the dependency definitions"
+        },
+        "module": "refactor",
+        "location": {
+            "file": ".zerg/tests/test_refactor.py",
+            "line": 222,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 39,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 52,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 62,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 77,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 84,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 92,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 110,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 117,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 130,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 137,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 150,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 157,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 166,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'research' imported but missing from the dependency definitions"
+        },
+        "module": "research",
+        "location": {
+            "file": ".zerg/tests/test_research.py",
+            "line": 176,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 34,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 46,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 59,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 78,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 90,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 114,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 121,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 133,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 140,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 150,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 158,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'review' imported but missing from the dependency definitions"
+        },
+        "module": "review",
+        "location": {
+            "file": ".zerg/tests/test_review.py",
+            "line": 174,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 16,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 30,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 44,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 51,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 62,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 91,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 137,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 151,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 167,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 198,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 223,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 240,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 247,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'rush' imported but missing from the dependency definitions"
+        },
+        "module": "rush",
+        "location": {
+            "file": ".zerg/tests/test_rush.py",
+            "line": 269,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 40,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 48,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 60,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 74,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 93,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 106,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 135,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 142,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 155,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 162,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 174,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 181,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 189,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 203,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 210,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 219,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 227,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'security' imported but missing from the dependency definitions"
+        },
+        "module": "security",
+        "location": {
+            "file": ".zerg/tests/test_security.py",
+            "line": 238,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'session' imported but missing from the dependency definitions"
+        },
+        "module": "session",
+        "location": {
+            "file": ".zerg/tests/test_session.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'session' imported but missing from the dependency definitions"
+        },
+        "module": "session",
+        "location": {
+            "file": ".zerg/tests/test_session.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'session' imported but missing from the dependency definitions"
+        },
+        "module": "session",
+        "location": {
+            "file": ".zerg/tests/test_session.py",
+            "line": 34,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'session' imported but missing from the dependency definitions"
+        },
+        "module": "session",
+        "location": {
+            "file": ".zerg/tests/test_session.py",
+            "line": 47,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'session' imported but missing from the dependency definitions"
+        },
+        "module": "session",
+        "location": {
+            "file": ".zerg/tests/test_session.py",
+            "line": 54,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 26,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 35,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 47,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 55,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 68,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 81,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 95,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 112,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 135,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 142,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 150,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 162,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 169,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 184,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 191,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 200,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 217,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 224,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 233,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'spawn' imported but missing from the dependency definitions"
+        },
+        "module": "spawn",
+        "location": {
+            "file": ".zerg/tests/test_spawn.py",
+            "line": 241,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'state' imported but missing from the dependency definitions"
+        },
+        "module": "state",
+        "location": {
+            "file": ".zerg/tests/test_state.py",
+            "line": 10,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 15,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 22,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 29,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 38,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 49,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 62,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 69,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 87,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 100,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 112,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 128,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 144,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 162,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 179,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 205,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 212,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 232,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 255,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 280,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 286,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'status' imported but missing from the dependency definitions"
+        },
+        "module": "status",
+        "location": {
+            "file": ".zerg/tests/test_status.py",
+            "line": 292,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'task_graph' imported but missing from the dependency definitions"
+        },
+        "module": "task_graph",
+        "location": {
+            "file": ".zerg/tests/test_task_graph.py",
+            "line": 11,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'template_engine' imported but missing from the dependency definitions"
+        },
+        "module": "template_engine",
+        "location": {
+            "file": ".zerg/tests/test_templates.py",
+            "line": 8,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 14,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 27,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 35,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 48,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 58,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 68,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 79,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 86,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 101,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 108,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 116,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 124,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 132,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 141,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 155,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 162,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 171,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 180,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 192,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 206,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 215,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 229,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'test_runner' imported but missing from the dependency definitions"
+        },
+        "module": "test_runner",
+        "location": {
+            "file": ".zerg/tests/test_test_runner.py",
+            "line": 236,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 15,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 29,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 55,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 68,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 84,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 102,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 116,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 131,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 147,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 170,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 185,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 211,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 235,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 250,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 268,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 282,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 296,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 314,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 331,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 346,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 363,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 384,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 397,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 418,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 446,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 472,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 495,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 520,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worker_runner' imported but missing from the dependency definitions"
+        },
+        "module": "worker_runner",
+        "location": {
+            "file": ".zerg/tests/test_worker_runner.py",
+            "line": 544,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worktree' imported but missing from the dependency definitions"
+        },
+        "module": "worktree",
+        "location": {
+            "file": ".zerg/tests/test_worktree.py",
+            "line": 11,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'pytest-cov' defined as a dependency but not used in the codebase"
+        },
+        "module": "pytest-cov",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'pytest-asyncio' defined as a dependency but not used in the codebase"
+        },
+        "module": "pytest-asyncio",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'mypy' defined as a dependency but not used in the codebase"
+        },
+        "module": "mypy",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'ruff' defined as a dependency but not used in the codebase"
+        },
+        "module": "ruff",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'pip-audit' defined as a dependency but not used in the codebase"
+        },
+        "module": "pip-audit",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    }
+]

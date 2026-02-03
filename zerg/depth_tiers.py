@@ -131,11 +131,7 @@ class DepthRouter:
         if explicit_tier is not None:
             return DepthContext.from_tier(explicit_tier)
 
-        tier = (
-            self._detect_from_description(description)
-            if description
-            else self.default_tier
-        )
+        tier = self._detect_from_description(description) if description else self.default_tier
 
         # Escalate based on scope
         if directory_count > 5 or file_count > 20:

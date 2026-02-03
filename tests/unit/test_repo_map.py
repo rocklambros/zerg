@@ -3,11 +3,8 @@
 import textwrap
 from pathlib import Path
 
-import pytest
-
 from zerg.repo_map import (
     Symbol,
-    SymbolEdge,
     SymbolGraph,
     _extract_python_symbols,
     _path_to_module,
@@ -65,10 +62,7 @@ class TestSymbolGraph:
         assert "HeartbeatWriter" in result
 
     def test_query_respects_budget(self) -> None:
-        symbols = [
-            Symbol(f"sym_{i}", "function", f"def sym_{i}()", None, i, "big_module")
-            for i in range(100)
-        ]
+        symbols = [Symbol(f"sym_{i}", "function", f"def sym_{i}()", None, i, "big_module") for i in range(100)]
         graph = SymbolGraph(modules={"big_module": symbols})
         result = graph.query(["big_module.py"], [], max_tokens=50)
         # Should be truncated
@@ -125,10 +119,10 @@ class TestExtractPythonSymbols:
         assert inherit_edges[0].target == "BaseModel"
 
     def test_extract_imports(self, tmp_path: Path) -> None:
-        source = textwrap.dedent('''
+        source = textwrap.dedent("""
             import os
             from pathlib import Path
-        ''')
+        """)
         filepath = tmp_path / "test_mod.py"
         filepath.write_text(source)
 

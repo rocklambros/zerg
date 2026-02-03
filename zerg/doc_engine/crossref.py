@@ -28,26 +28,104 @@ class CrossReference:
 
 # Regex patterns for content extraction
 _HEADING_PATTERN = re.compile(r"^(#{2,3})\s+(.+)$", re.MULTILINE)
-_BOLD_DEF_PATTERN = re.compile(
-    r"\*\*([^*]+)\*\*\s*[:—–-]\s*(.+?)(?:\n|$)"
-)
+_BOLD_DEF_PATTERN = re.compile(r"\*\*([^*]+)\*\*\s*[:—–-]\s*(.+?)(?:\n|$)")
 _CODE_BLOCK_PATTERN = re.compile(r"```[\s\S]*?```|`[^`]+`")
 _HEADING_LINE_PATTERN = re.compile(r"^#{1,6}\s+.*$", re.MULTILINE)
 _WIKI_LINK_PATTERN = re.compile(r"\[\[([^|\]]+)(?:\|[^\]]+)?\]\]")
 
 # Words too common to be meaningful keywords
-_STOP_WORDS = frozenset({
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "to", "of", "in", "for",
-    "on", "with", "at", "by", "from", "as", "into", "through", "during",
-    "before", "after", "above", "below", "between", "under", "again",
-    "further", "then", "once", "and", "but", "or", "nor", "not", "so",
-    "if", "this", "that", "these", "those", "it", "its", "each", "all",
-    "any", "both", "few", "more", "most", "other", "some", "such", "no",
-    "only", "own", "same", "than", "too", "very", "just", "about", "also",
-    "how", "what", "when", "where", "which", "who", "whom", "why",
-})
+_STOP_WORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "shall",
+        "can",
+        "to",
+        "of",
+        "in",
+        "for",
+        "on",
+        "with",
+        "at",
+        "by",
+        "from",
+        "as",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "under",
+        "again",
+        "further",
+        "then",
+        "once",
+        "and",
+        "but",
+        "or",
+        "nor",
+        "not",
+        "so",
+        "if",
+        "this",
+        "that",
+        "these",
+        "those",
+        "it",
+        "its",
+        "each",
+        "all",
+        "any",
+        "both",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "only",
+        "own",
+        "same",
+        "than",
+        "too",
+        "very",
+        "just",
+        "about",
+        "also",
+        "how",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "whom",
+        "why",
+    }
+)
 
 
 def _extract_keywords(text: str) -> list[str]:
@@ -58,6 +136,7 @@ def _extract_keywords(text: str) -> list[str]:
 
 def _mask_code_blocks(content: str) -> str:
     """Replace code blocks with whitespace of equal length to preserve offsets."""
+
     def _replace(match: re.Match[str]) -> str:
         return " " * len(match.group(0))
 
@@ -178,12 +257,8 @@ class CrossRefBuilder:
                 continue
 
             # Build pattern matching the term (or aliases) as a whole word
-            needles = [re.escape(entry.term)] + [
-                re.escape(a) for a in entry.aliases
-            ]
-            pattern = re.compile(
-                r"\b(" + "|".join(needles) + r")\b", re.IGNORECASE
-            )
+            needles = [re.escape(entry.term)] + [re.escape(a) for a in entry.aliases]
+            pattern = re.compile(r"\b(" + "|".join(needles) + r")\b", re.IGNORECASE)
 
             for match in pattern.finditer(masked):
                 start = match.start()
@@ -260,14 +335,8 @@ class CrossRefBuilder:
                     score += 10.0
 
             # 3. Shared heading terms (higher weight than body keywords)
-            source_headings = {
-                m.group(2).strip().lower()
-                for m in _HEADING_PATTERN.finditer(source_content)
-            }
-            other_headings = {
-                m.group(2).strip().lower()
-                for m in _HEADING_PATTERN.finditer(other_content)
-            }
+            source_headings = {m.group(2).strip().lower() for m in _HEADING_PATTERN.finditer(source_content)}
+            other_headings = {m.group(2).strip().lower() for m in _HEADING_PATTERN.finditer(other_content)}
             score += len(source_headings & other_headings) * 5.0
 
             if score > 0:
@@ -301,7 +370,7 @@ class CrossRefBuilder:
                 lines.append("")
 
             anchor = re.sub(r"[^a-z0-9-]", "-", entry.term.lower()).strip("-")
-            lines.append(f"### <a id=\"{anchor}\"></a>{entry.term}")
+            lines.append(f'### <a id="{anchor}"></a>{entry.term}')
             lines.append("")
             if entry.definition:
                 lines.append(entry.definition)

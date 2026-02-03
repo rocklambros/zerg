@@ -17,7 +17,6 @@ from zerg.plugin_config import ContextEngineeringConfig
 from zerg.plugins import ContextPlugin, PluginRegistry
 from zerg.security_rules import filter_rules_for_files, summarize_rules
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -115,9 +114,7 @@ class TestRegistryBuildTaskContext:
     def test_registry_build_task_context(self) -> None:
         """Registry dispatches build_task_context to registered plugin and returns result."""
         registry = PluginRegistry()
-        plugin = ContextEngineeringPlugin(
-            ContextEngineeringConfig(security_rule_filtering=False)
-        )
+        plugin = ContextEngineeringPlugin(ContextEngineeringConfig(security_rule_filtering=False))
         registry.register_context_plugin(plugin)
 
         task = _make_task(create=["zerg/foo.py"])
@@ -167,9 +164,7 @@ class TestGenerateTaskContexts:
         mock_orch = MagicMock(spec=Orchestrator)
         mock_orch._plugin_registry = registry
         # Bind the real method to the mock
-        mock_orch.generate_task_contexts = Orchestrator.generate_task_contexts.__get__(
-            mock_orch, Orchestrator
-        )
+        mock_orch.generate_task_contexts = Orchestrator.generate_task_contexts.__get__(mock_orch, Orchestrator)
         return mock_orch
 
     def test_generate_task_contexts_fills_missing(self) -> None:
@@ -300,9 +295,7 @@ class TestSplitFilesExist:
             path = commands_dir / filename
             if path.exists():
                 content = path.read_text()
-                assert len(content) > 50, (
-                    f"{filename} appears to be a stub ({len(content)} chars)"
-                )
+                assert len(content) > 50, f"{filename} appears to be a stub ({len(content)} chars)"
 
     def test_get_split_command_path_returns_existing(self) -> None:
         """Plugin's get_split_command_path finds existing .core.md files."""
@@ -370,9 +363,7 @@ class TestSecurityFilteringEndToEnd:
         (rules_dir / "languages" / "javascript").mkdir(parents=True)
 
         (rules_dir / "_core" / "owasp-2025.md").write_text("## Rule: Core\n")
-        (rules_dir / "languages" / "javascript" / "CLAUDE.md").write_text(
-            "## Rule: No eval\n**Level**: strict\n"
-        )
+        (rules_dir / "languages" / "javascript" / "CLAUDE.md").write_text("## Rule: No eval\n**Level**: strict\n")
 
         result = filter_rules_for_files(["src/app.js"], rules_dir)
         assert any("javascript" in str(p) for p in result)
@@ -411,14 +402,10 @@ class TestSecurityFilteringEndToEnd:
         (rules_dir / "languages" / "python").mkdir(parents=True)
 
         (rules_dir / "_core" / "owasp-2025.md").write_text(
-            "## Rule: Parameterized Queries\n"
-            "**Level**: strict\n"
-            "**When**: Database queries with user input.\n"
+            "## Rule: Parameterized Queries\n**Level**: strict\n**When**: Database queries with user input.\n"
         )
         (rules_dir / "languages" / "python" / "CLAUDE.md").write_text(
-            "## Rule: Safe subprocess\n"
-            "**Level**: strict\n"
-            "**When**: Executing system commands.\n"
+            "## Rule: Safe subprocess\n**Level**: strict\n**When**: Executing system commands.\n"
         )
 
         config = ContextEngineeringConfig(

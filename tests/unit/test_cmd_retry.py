@@ -59,7 +59,7 @@ class TestRetryBehavior:
         (state_dir / "test.json").write_text("{}")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["retry", "--feature", "test"])
+        runner.invoke(cli, ["retry", "--feature", "test"])
 
         # Should fail or request task specification
         # Behavior depends on implementation

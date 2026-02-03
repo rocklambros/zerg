@@ -51,9 +51,7 @@ class TestAnalyzeCommand:
     def test_analyze_threshold_option(self) -> None:
         """Test analyze --threshold option works."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["analyze", "--threshold", "complexity=15", "--threshold", "coverage=80"]
-        )
+        result = runner.invoke(cli, ["analyze", "--threshold", "complexity=15", "--threshold", "coverage=80"])
         # Should accept multiple thresholds
         assert "Invalid value" not in result.output
 
@@ -157,9 +155,7 @@ class TestAnalyzeFunctional:
     def test_analyze_threshold_parsing(self) -> None:
         """Test analyze parses thresholds correctly."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["analyze", "--check", "complexity", "--threshold", "complexity=5"]
-        )
+        result = runner.invoke(cli, ["analyze", "--check", "complexity", "--threshold", "complexity=5"])
         assert result.exit_code in [0, 1]
 
     def test_analyze_sarif_format(self) -> None:

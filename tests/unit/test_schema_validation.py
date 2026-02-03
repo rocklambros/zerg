@@ -8,14 +8,13 @@ Tests for task graph schema validation including:
 """
 
 import json
-import pytest
 from pathlib import Path
 
 from zerg.validation import (
-    validate_task_graph,
-    validate_task_id,
     validate_dependencies,
     validate_file_ownership,
+    validate_task_graph,
+    validate_task_id,
 )
 
 

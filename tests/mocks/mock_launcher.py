@@ -10,7 +10,6 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from zerg.constants import WorkerStatus
 from zerg.launcher import LauncherConfig, SpawnResult, WorkerHandle, WorkerLauncher
@@ -257,22 +256,26 @@ class MockContainerLauncher(WorkerLauncher):
 
         # Check for exec failure
         if worker_id is not None and worker_id in self._exec_fail_workers:
-            self._exec_attempts.append(ExecAttempt(
-                container_id=container_id,
-                command="worker_entry.sh",
-                success=False,
-                process_started=False,
-                error=f"Simulated exec failure for worker {worker_id}",
-            ))
+            self._exec_attempts.append(
+                ExecAttempt(
+                    container_id=container_id,
+                    command="worker_entry.sh",
+                    success=False,
+                    process_started=False,
+                    error=f"Simulated exec failure for worker {worker_id}",
+                )
+            )
             return False
 
         # Record successful exec
-        self._exec_attempts.append(ExecAttempt(
-            container_id=container_id,
-            command="worker_entry.sh",
-            success=True,
-            process_started=True,
-        ))
+        self._exec_attempts.append(
+            ExecAttempt(
+                container_id=container_id,
+                command="worker_entry.sh",
+                success=True,
+                process_started=True,
+            )
+        )
 
         return True
 
@@ -430,8 +433,7 @@ class MockContainerLauncher(WorkerLauncher):
         Returns:
             List of SpawnAttempt records with exec failure
         """
-        return [a for a in self._spawn_attempts
-                if a.container_id and not a.exec_success]
+        return [a for a in self._spawn_attempts if a.container_id and not a.exec_success]
 
     def get_process_failed_spawns(self) -> list[SpawnAttempt]:
         """Get spawns that failed due to process not starting.
@@ -439,8 +441,7 @@ class MockContainerLauncher(WorkerLauncher):
         Returns:
             List of SpawnAttempt records with process failure
         """
-        return [a for a in self._spawn_attempts
-                if a.exec_success and not a.process_verified]
+        return [a for a in self._spawn_attempts if a.exec_success and not a.process_verified]
 
     def is_process_running(self, container_id: str) -> bool:
         """Check if a process is marked as running.

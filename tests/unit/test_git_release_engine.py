@@ -18,7 +18,6 @@ from zerg.git.release_engine import (
 )
 from zerg.git.types import CommitInfo, CommitType
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -243,9 +242,7 @@ class TestVersionFileUpdater:
 
     def test_detect_pyproject_toml(self, tmp_path: Path) -> None:
         """Should detect pyproject.toml in the repo root."""
-        (tmp_path / "pyproject.toml").write_text(
-            '[project]\nversion = "1.0.0"\n', encoding="utf-8"
-        )
+        (tmp_path / "pyproject.toml").write_text('[project]\nversion = "1.0.0"\n', encoding="utf-8")
         runner = MagicMock()
         runner.repo_path = tmp_path
 
@@ -255,9 +252,7 @@ class TestVersionFileUpdater:
 
     def test_detect_package_json(self, tmp_path: Path) -> None:
         """Should detect package.json in the repo root."""
-        (tmp_path / "package.json").write_text(
-            '{\n  "version": "2.0.0"\n}\n', encoding="utf-8"
-        )
+        (tmp_path / "package.json").write_text('{\n  "version": "2.0.0"\n}\n', encoding="utf-8")
         runner = MagicMock()
         runner.repo_path = tmp_path
 
@@ -267,12 +262,8 @@ class TestVersionFileUpdater:
 
     def test_detect_multiple_files(self, tmp_path: Path) -> None:
         """Should detect multiple version files."""
-        (tmp_path / "pyproject.toml").write_text(
-            'version = "1.0.0"\n', encoding="utf-8"
-        )
-        (tmp_path / "package.json").write_text(
-            '{"version": "1.0.0"}\n', encoding="utf-8"
-        )
+        (tmp_path / "pyproject.toml").write_text('version = "1.0.0"\n', encoding="utf-8")
+        (tmp_path / "package.json").write_text('{"version": "1.0.0"}\n', encoding="utf-8")
         runner = MagicMock()
         runner.repo_path = tmp_path
 
@@ -282,9 +273,7 @@ class TestVersionFileUpdater:
     def test_update_pyproject_version(self, tmp_path: Path) -> None:
         """Should update version in pyproject.toml."""
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            '[project]\nname = "myapp"\nversion = "1.0.0"\n', encoding="utf-8"
-        )
+        pyproject.write_text('[project]\nname = "myapp"\nversion = "1.0.0"\n', encoding="utf-8")
 
         result = self.updater.update_version(pyproject, "2.0.0")
         assert result is True
@@ -336,12 +325,9 @@ class TestReleaseCreator:
         """Should create tag, push, and gh release."""
         runner = _make_runner()
 
-        with patch("shutil.which", return_value="/usr/bin/gh"), \
-             patch("subprocess.run") as mock_run:
+        with patch("shutil.which", return_value="/usr/bin/gh"), patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
-            result = self.creator.create(
-                runner, "1.0.0", "release notes", self.config
-            )
+            result = self.creator.create(runner, "1.0.0", "release notes", self.config)
 
         assert result["tag"] == "v1.0.0"
         assert result["pushed"] is True
@@ -351,9 +337,7 @@ class TestReleaseCreator:
         """Should not execute any git commands in dry_run mode."""
         runner = _make_runner()
 
-        result = self.creator.create(
-            runner, "2.0.0", "notes", self.config, dry_run=True
-        )
+        result = self.creator.create(runner, "2.0.0", "notes", self.config, dry_run=True)
 
         assert result["tag"] == "v2.0.0"
         assert result["pushed"] is False
@@ -366,9 +350,7 @@ class TestReleaseCreator:
         runner = _make_runner()
 
         with patch("shutil.which", return_value=None):
-            result = self.creator.create(
-                runner, "1.0.0", "notes", self.config
-            )
+            result = self.creator.create(runner, "1.0.0", "notes", self.config)
 
         assert result["tag"] == "v1.0.0"
         assert result["gh_release"] is False
@@ -394,9 +376,7 @@ class TestReleaseCreator:
         runner._run.side_effect = _run_side_effect
 
         with patch("shutil.which", return_value=None):
-            result = self.creator.create(
-                runner, "1.0.0", "notes", self.config
-            )
+            result = self.creator.create(runner, "1.0.0", "notes", self.config)
 
         assert result["pushed"] is False
 
@@ -427,10 +407,7 @@ class TestReleaseEngine:
     def test_full_run(self, tmp_path: Path) -> None:
         """Should execute complete release workflow."""
         log_output = (
-            "abc1234567890abcdef1234567890abcdef123456\n"
-            "feat: add new feature\n"
-            "Developer\n"
-            "2026-01-15T10:00:00+00:00\n"
+            "abc1234567890abcdef1234567890abcdef123456\nfeat: add new feature\nDeveloper\n2026-01-15T10:00:00+00:00\n"
         )
         runner = MagicMock()
         runner.repo_path = tmp_path
@@ -475,12 +452,7 @@ class TestReleaseEngine:
 
     def test_run_with_override_bump(self) -> None:
         """Should use the override bump instead of calculating from commits."""
-        log_output = (
-            "abc1234567890\n"
-            "fix: minor fix\n"
-            "Developer\n"
-            "2026-01-15T10:00:00+00:00\n"
-        )
+        log_output = "abc1234567890\nfix: minor fix\nDeveloper\n2026-01-15T10:00:00+00:00\n"
         engine, runner = self._build_engine(log_output=log_output)
 
         with patch("shutil.which", return_value=None):
@@ -490,12 +462,7 @@ class TestReleaseEngine:
 
     def test_run_dry_run(self) -> None:
         """Should not modify anything in dry_run mode."""
-        log_output = (
-            "abc1234567890\n"
-            "feat: new stuff\n"
-            "Developer\n"
-            "2026-01-15T10:00:00+00:00\n"
-        )
+        log_output = "abc1234567890\nfeat: new stuff\nDeveloper\n2026-01-15T10:00:00+00:00\n"
         engine, runner = self._build_engine(log_output=log_output)
 
         exit_code = engine.run(dry_run=True)

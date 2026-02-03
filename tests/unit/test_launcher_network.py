@@ -10,17 +10,13 @@ Tests cover:
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
-
-from zerg.constants import WorkerStatus
 from zerg.launcher import (
     ContainerLauncher,
     LauncherConfig,
     WorkerHandle,
 )
-
 
 # =============================================================================
 # Network Configuration Tests
@@ -64,13 +60,9 @@ class TestContainerLauncherNetworkConfiguration:
         assert launcher.network == "bridge"
 
     @patch("subprocess.run")
-    def test_network_used_in_docker_run_command(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_network_used_in_docker_run_command(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test that configured network is passed to docker run."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="container-id-abc123\n", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="container-id-abc123\n", stderr="")
 
         launcher = ContainerLauncher(network="custom-network")
         launcher._start_container(
@@ -87,13 +79,9 @@ class TestContainerLauncherNetworkConfiguration:
         assert call_args[network_idx + 1] == "custom-network"
 
     @patch("subprocess.run")
-    def test_default_bridge_network_in_docker_command(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_default_bridge_network_in_docker_command(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test that default bridge network is used in docker run."""
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="container-id-abc123\n", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="container-id-abc123\n", stderr="")
 
         launcher = ContainerLauncher()  # Uses default bridge network
         launcher._start_container(
@@ -177,9 +165,7 @@ class TestContainerLauncherCleanupOnFailure:
         mock_cleanup.assert_called_once_with("container-abc123", 0)
 
     @patch.object(ContainerLauncher, "_start_container")
-    def test_no_cleanup_on_container_start_failure(
-        self, mock_start: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_no_cleanup_on_container_start_failure(self, mock_start: MagicMock, tmp_path: Path) -> None:
         """Test no cleanup needed when container start fails (nothing to clean)."""
         mock_start.return_value = None  # Container start fails
 
@@ -207,9 +193,7 @@ class TestCleanupFailedContainer:
     """Tests for ContainerLauncher._cleanup_failed_container method."""
 
     @patch("subprocess.run")
-    def test_cleanup_removes_container_with_docker_rm(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_cleanup_removes_container_with_docker_rm(self, mock_run: MagicMock) -> None:
         """Test cleanup runs docker rm -f on the container."""
         mock_run.return_value = MagicMock(returncode=0)
 
@@ -262,9 +246,7 @@ class TestCleanupFailedContainer:
         assert 0 not in launcher._container_ids
 
     @patch("subprocess.run")
-    def test_cleanup_handles_already_removed_container(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_cleanup_handles_already_removed_container(self, mock_run: MagicMock) -> None:
         """Test cleanup handles container that was already removed."""
         mock_run.side_effect = subprocess.TimeoutExpired("docker", 10)
 
@@ -317,9 +299,7 @@ class TestCleanupFailedContainer:
         launcher = ContainerLauncher()
         # Set up multiple workers
         for i in range(5):
-            launcher._workers[i] = WorkerHandle(
-                worker_id=i, container_id=f"container-{i}"
-            )
+            launcher._workers[i] = WorkerHandle(worker_id=i, container_id=f"container-{i}")
             launcher._container_ids[i] = f"container-{i}"
 
         # Clean up worker 2
@@ -372,14 +352,10 @@ class TestContainerLauncherTerminateCleanup:
         assert 0 not in launcher._workers
 
     @patch("subprocess.run")
-    def test_terminate_cleans_up_even_on_docker_stop_failure(
-        self, mock_run: MagicMock
-    ) -> None:
+    def test_terminate_cleans_up_even_on_docker_stop_failure(self, mock_run: MagicMock) -> None:
         """Test terminate cleans up tracking even when docker stop fails."""
         # docker stop fails, but cleanup should still happen in finally block
-        mock_run.return_value = MagicMock(
-            returncode=1, stderr="Container already stopped"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stderr="Container already stopped")
 
         launcher = ContainerLauncher()
         handle = WorkerHandle(worker_id=0, container_id="container-abc")

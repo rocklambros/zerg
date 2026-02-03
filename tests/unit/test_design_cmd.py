@@ -24,12 +24,10 @@ from zerg.cli import cli
 from zerg.commands.design import (
     create_design_template,
     create_task_graph_template,
-    design,
     get_current_feature,
     show_design_summary,
     validate_task_graph,
 )
-
 
 # =============================================================================
 # get_current_feature Tests
@@ -51,11 +49,15 @@ class TestGetCurrentFeature:
             return_value=current_feature_file,
         ):
             # Use monkeypatch to change the path
-            with patch.object(Path, "__new__", lambda cls, p: current_feature_file if ".current-feature" in str(p) else Path.__new__(cls)):
+            with patch.object(
+                Path,
+                "__new__",
+                lambda cls, p: current_feature_file if ".current-feature" in str(p) else Path.__new__(cls),
+            ):
                 pass
 
         # Test by actually creating the structure and patching Path correctly
-        original_path = Path(".gsd/.current-feature")
+        Path(".gsd/.current-feature")
         with patch("zerg.commands.design.Path") as mock_path:
             mock_path_instance = MagicMock()
             mock_path_instance.exists.return_value = True
@@ -466,9 +468,7 @@ class TestDesignCommand:
         assert result.exit_code == 1
         assert "Requirements not found" in result.output
 
-    def test_design_requirements_not_approved_abort(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_design_requirements_not_approved_abort(self, tmp_path: Path, monkeypatch) -> None:
         """Test design aborts when requirements not approved and user declines."""
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / "test"
@@ -482,9 +482,7 @@ class TestDesignCommand:
         assert "Warning" in result.output
         assert "Aborted" in result.output
 
-    def test_design_requirements_not_approved_continue(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_design_requirements_not_approved_continue(self, tmp_path: Path, monkeypatch) -> None:
         """Test design continues when requirements not approved but user confirms."""
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / "test"
@@ -544,9 +542,7 @@ class TestDesignCommand:
         assert result.exit_code == 0
         assert "valid" in result.output.lower()
 
-    def test_design_validate_only_no_task_graph(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_design_validate_only_no_task_graph(self, tmp_path: Path, monkeypatch) -> None:
         """Test design --validate-only fails when task graph does not exist."""
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / "test"
@@ -569,9 +565,7 @@ class TestDesignCommand:
         (tmp_path / ".gsd" / ".current-feature").write_text("test")
 
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["design", "--max-task-minutes", "45", "--min-task-minutes", "10"]
-        )
+        result = runner.invoke(cli, ["design", "--max-task-minutes", "45", "--min-task-minutes", "10"])
 
         assert result.exit_code == 0
 
@@ -587,9 +581,7 @@ class TestDesignCommand:
         assert result.exit_code == 1
         assert "Error" in result.output
 
-    def test_design_validate_only_returns_early(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_design_validate_only_returns_early(self, tmp_path: Path, monkeypatch) -> None:
         """Test that validate-only returns early after validation (lines 95-96)."""
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / "test"
@@ -737,7 +729,7 @@ class TestDesignEdgeCases:
                     "id": f"TEST-L{i}-001",
                     "title": f"Task L{i}",
                     "level": i,
-                    "dependencies": [] if i == 1 else [f"TEST-L{i-1}-001"],
+                    "dependencies": [] if i == 1 else [f"TEST-L{i - 1}-001"],
                     "files": {"create": [f"file{i}.py"], "modify": [], "read": []},
                 }
                 for i in range(1, 6)
@@ -776,9 +768,7 @@ class TestDesignEdgeCases:
 class TestDesignBacklog:
     """Integration tests for backlog generation in the design command."""
 
-    def _setup_approved_feature(
-        self, tmp_path: Path, monkeypatch, feature: str = "test"
-    ) -> Path:
+    def _setup_approved_feature(self, tmp_path: Path, monkeypatch, feature: str = "test") -> Path:
         """Set up an approved feature for design command testing.
 
         Returns the spec directory path.
@@ -786,9 +776,7 @@ class TestDesignBacklog:
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / feature
         spec_dir.mkdir(parents=True)
-        (spec_dir / "requirements.md").write_text(
-            "# Requirements\n- **Status**: APPROVED"
-        )
+        (spec_dir / "requirements.md").write_text("# Requirements\n- **Status**: APPROVED")
         (tmp_path / ".gsd" / ".current-feature").write_text(feature)
         return spec_dir
 
@@ -797,23 +785,18 @@ class TestDesignBacklog:
         runner = CliRunner()
         return runner.invoke(cli, ["design", "--feature", feature])
 
-    def test_design_auto_generates_backlog(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_design_auto_generates_backlog(self, tmp_path: Path, monkeypatch) -> None:
         """Test that running a full design flow creates the backlog file."""
         self._setup_approved_feature(tmp_path, monkeypatch)
         result = self._run_full_design()
 
         assert result.exit_code == 0
         backlog_path = tmp_path / "tasks" / "TEST-BACKLOG.md"
-        assert backlog_path.exists(), (
-            f"Expected backlog at {backlog_path}, "
-            f"but it was not created. Output: {result.output}"
-        )
+        assert (
+            backlog_path.exists()
+        ), f"Expected backlog at {backlog_path}, but it was not created. Output: {result.output}"
 
-    def test_backlog_contains_all_tasks(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_backlog_contains_all_tasks(self, tmp_path: Path, monkeypatch) -> None:
         """Test that every task ID from task-graph.json appears in the backlog."""
         spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
         result = self._run_full_design()
@@ -829,42 +812,28 @@ class TestDesignBacklog:
 
         backlog_content = (tmp_path / "tasks" / "TEST-BACKLOG.md").read_text()
         for task_id in task_ids:
-            assert task_id in backlog_content, (
-                f"Task ID {task_id} not found in backlog content"
-            )
+            assert task_id in backlog_content, f"Task ID {task_id} not found in backlog content"
 
-    def test_backlog_grouped_by_level(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_backlog_grouped_by_level(self, tmp_path: Path, monkeypatch) -> None:
         """Test that backlog contains level grouping headers."""
         self._setup_approved_feature(tmp_path, monkeypatch)
         result = self._run_full_design()
         assert result.exit_code == 0
 
         backlog_content = (tmp_path / "tasks" / "TEST-BACKLOG.md").read_text()
-        assert "Level 1" in backlog_content, (
-            "Backlog should contain a 'Level 1' header"
-        )
-        assert "Level 2" in backlog_content, (
-            "Backlog should contain a 'Level 2' header"
-        )
+        assert "Level 1" in backlog_content, "Backlog should contain a 'Level 1' header"
+        assert "Level 2" in backlog_content, "Backlog should contain a 'Level 2' header"
 
-    def test_backlog_has_critical_path(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_backlog_has_critical_path(self, tmp_path: Path, monkeypatch) -> None:
         """Test that backlog contains critical path information."""
         self._setup_approved_feature(tmp_path, monkeypatch)
         result = self._run_full_design()
         assert result.exit_code == 0
 
         backlog_content = (tmp_path / "tasks" / "TEST-BACKLOG.md").read_text()
-        assert "critical" in backlog_content.lower(), (
-            "Backlog should contain critical path information"
-        )
+        assert "critical" in backlog_content.lower(), "Backlog should contain critical path information"
 
-    def test_update_backlog_flag_regenerates(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_update_backlog_flag_regenerates(self, tmp_path: Path, monkeypatch) -> None:
         """Test that --update-backlog regenerates the backlog from existing task graph."""
         self._setup_approved_feature(tmp_path, monkeypatch)
 
@@ -884,14 +853,9 @@ class TestDesignBacklog:
         result = runner.invoke(cli, ["design", "--update-backlog"])
 
         assert result.exit_code == 0
-        assert backlog_path.exists(), (
-            "Backlog should be regenerated by --update-backlog. "
-            f"Output: {result.output}"
-        )
+        assert backlog_path.exists(), f"Backlog should be regenerated by --update-backlog. Output: {result.output}"
 
-    def test_update_backlog_no_graph_fails(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_update_backlog_no_graph_fails(self, tmp_path: Path, monkeypatch) -> None:
         """Test that --update-backlog fails when no task graph exists."""
         self._setup_approved_feature(tmp_path, monkeypatch)
 
@@ -910,9 +874,7 @@ class TestDesignBacklog:
 class TestDesignManifest:
     """Tests for design-tasks-manifest.json creation across all execution paths."""
 
-    def _setup_approved_feature(
-        self, tmp_path: Path, monkeypatch, feature: str = "test"
-    ) -> Path:
+    def _setup_approved_feature(self, tmp_path: Path, monkeypatch, feature: str = "test") -> Path:
         """Set up an approved feature for design command testing.
 
         Returns the spec directory path.
@@ -920,15 +882,11 @@ class TestDesignManifest:
         monkeypatch.chdir(tmp_path)
         spec_dir = tmp_path / ".gsd" / "specs" / feature
         spec_dir.mkdir(parents=True)
-        (spec_dir / "requirements.md").write_text(
-            "# Requirements\n- **Status**: APPROVED"
-        )
+        (spec_dir / "requirements.md").write_text("# Requirements\n- **Status**: APPROVED")
         (tmp_path / ".gsd" / ".current-feature").write_text(feature)
         return spec_dir
 
-    def test_design_creates_manifest(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_design_creates_manifest(self, tmp_path: Path, monkeypatch) -> None:
         """Test that full design generation writes design-tasks-manifest.json."""
         spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
 
@@ -937,14 +895,11 @@ class TestDesignManifest:
 
         assert result.exit_code == 0, f"Design failed: {result.output}"
         manifest_path = spec_dir / "design-tasks-manifest.json"
-        assert manifest_path.exists(), (
-            f"Expected manifest at {manifest_path}, "
-            f"but it was not created. Output: {result.output}"
-        )
+        assert (
+            manifest_path.exists()
+        ), f"Expected manifest at {manifest_path}, but it was not created. Output: {result.output}"
 
-    def test_manifest_structure(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_manifest_structure(self, tmp_path: Path, monkeypatch) -> None:
         """Test that manifest has feature, generated, and tasks[] with required fields."""
         spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
 
@@ -970,13 +925,9 @@ class TestDesignManifest:
             assert "description" in task, f"Task {i} missing 'description'"
             assert "active_form" in task, f"Task {i} missing 'active_form'"
             assert "dependencies" in task, f"Task {i} missing 'dependencies'"
-            assert isinstance(task["dependencies"], list), (
-                f"Task {i} 'dependencies' should be a list"
-            )
+            assert isinstance(task["dependencies"], list), f"Task {i} 'dependencies' should be a list"
 
-    def test_validate_only_creates_manifest(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_validate_only_creates_manifest(self, tmp_path: Path, monkeypatch) -> None:
         """Test that --validate-only path also writes design-tasks-manifest.json."""
         spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
 
@@ -988,10 +939,9 @@ class TestDesignManifest:
 
         assert result.exit_code == 0, f"Validate-only failed: {result.output}"
         manifest_path = spec_dir / "design-tasks-manifest.json"
-        assert manifest_path.exists(), (
-            f"Expected manifest at {manifest_path} after --validate-only. "
-            f"Output: {result.output}"
-        )
+        assert (
+            manifest_path.exists()
+        ), f"Expected manifest at {manifest_path} after --validate-only. Output: {result.output}"
 
         # Verify it's valid JSON with expected structure
         with open(manifest_path) as f:
@@ -999,9 +949,7 @@ class TestDesignManifest:
         assert manifest["feature"] == "test"
         assert "tasks" in manifest
 
-    def test_update_backlog_creates_manifest(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_update_backlog_creates_manifest(self, tmp_path: Path, monkeypatch) -> None:
         """Test that --update-backlog path also writes design-tasks-manifest.json."""
         spec_dir = self._setup_approved_feature(tmp_path, monkeypatch)
 
@@ -1019,7 +967,6 @@ class TestDesignManifest:
         result = runner.invoke(cli, ["design", "--update-backlog"])
 
         assert result.exit_code == 0, f"Update-backlog failed: {result.output}"
-        assert manifest_path.exists(), (
-            f"Expected manifest at {manifest_path} after --update-backlog. "
-            f"Output: {result.output}"
-        )
+        assert (
+            manifest_path.exists()
+        ), f"Expected manifest at {manifest_path} after --update-backlog. Output: {result.output}"

@@ -2,12 +2,10 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.config import VerificationTiersConfig
 from zerg.verification_tiers import (
-    TierResult,
     TieredVerificationResult,
+    TierResult,
     VerificationTiers,
 )
 
@@ -32,9 +30,14 @@ class TestTierResult:
 
     def test_to_dict(self) -> None:
         result = TierResult(
-            tier=2, name="correctness", success=False,
-            blocking=True, command="pytest", stdout="out",
-            stderr="err", duration_ms=1000,
+            tier=2,
+            name="correctness",
+            success=False,
+            blocking=True,
+            command="pytest",
+            stdout="out",
+            stderr="err",
+            duration_ms=1000,
         )
         d = result.to_dict()
         assert d["tier"] == 2

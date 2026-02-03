@@ -6,8 +6,6 @@ import json
 import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.config import TokenMetricsConfig
 from zerg.token_counter import TokenCounter, TokenResult
 

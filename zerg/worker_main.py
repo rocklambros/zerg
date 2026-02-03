@@ -77,7 +77,8 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable verbose output",
     )
@@ -164,11 +165,20 @@ def main() -> int:
 
     # Log cross-cutting capability env vars at startup
     capability_vars = {
-        k: v for k, v in os.environ.items()
-        if k.startswith("ZERG_") and k not in (
-            "ZERG_WORKER_ID", "ZERG_FEATURE", "ZERG_WORKTREE",
-            "ZERG_BRANCH", "ZERG_TASK_GRAPH", "ZERG_SPEC_DIR",
-            "ZERG_STATE_DIR", "ZERG_LOG_DIR", "ZERG_PORT",
+        k: v
+        for k, v in os.environ.items()
+        if k.startswith("ZERG_")
+        and k
+        not in (
+            "ZERG_WORKER_ID",
+            "ZERG_FEATURE",
+            "ZERG_WORKTREE",
+            "ZERG_BRANCH",
+            "ZERG_TASK_GRAPH",
+            "ZERG_SPEC_DIR",
+            "ZERG_STATE_DIR",
+            "ZERG_LOG_DIR",
+            "ZERG_PORT",
         )
     }
     if capability_vars:

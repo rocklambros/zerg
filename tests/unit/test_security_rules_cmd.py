@@ -71,9 +71,7 @@ class TestDetectCommand:
         assert "--path" in result.output
         assert "--json-output" in result.output
 
-    def test_detect_text_output_with_languages(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_with_languages(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows detected languages in text format."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -86,14 +84,10 @@ class TestDetectCommand:
         assert "Languages:" in result.output
         assert "python" in result.output.lower()
 
-    def test_detect_text_output_with_frameworks(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_with_frameworks(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows frameworks in text format."""
         monkeypatch.chdir(tmp_path)
-        (tmp_path / "pyproject.toml").write_text(
-            '[project]\nname = "test"\ndependencies = ["fastapi"]'
-        )
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "test"\ndependencies = ["fastapi"]')
 
         runner = CliRunner()
         result = runner.invoke(cli, ["security-rules", "detect"])
@@ -101,14 +95,10 @@ class TestDetectCommand:
         assert result.exit_code == 0
         assert "Frameworks:" in result.output
 
-    def test_detect_text_output_with_databases(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_with_databases(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows databases in text format."""
         monkeypatch.chdir(tmp_path)
-        (tmp_path / "pyproject.toml").write_text(
-            '[project]\nname = "test"\ndependencies = ["sqlalchemy"]'
-        )
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "test"\ndependencies = ["sqlalchemy"]')
 
         runner = CliRunner()
         result = runner.invoke(cli, ["security-rules", "detect"])
@@ -116,9 +106,7 @@ class TestDetectCommand:
         assert result.exit_code == 0
         assert "Databases:" in result.output
 
-    def test_detect_text_output_with_infrastructure(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_with_infrastructure(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows infrastructure in text format."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "Dockerfile").write_text("FROM python:3.11")
@@ -130,18 +118,12 @@ class TestDetectCommand:
         assert "Infrastructure:" in result.output
         assert "docker" in result.output.lower()
 
-    def test_detect_text_output_ai_ml_yes(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_ai_ml_yes(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows AI/ML as yes when detected."""
         monkeypatch.chdir(tmp_path)
 
-        with patch(
-            "zerg.commands.security_rules_cmd.detect_project_stack"
-        ) as mock_detect:
-            mock_detect.return_value = ProjectStack(
-                languages={"python"}, frameworks={"langchain"}, ai_ml=True
-            )
+        with patch("zerg.commands.security_rules_cmd.detect_project_stack") as mock_detect:
+            mock_detect.return_value = ProjectStack(languages={"python"}, frameworks={"langchain"}, ai_ml=True)
 
             runner = CliRunner()
             result = runner.invoke(cli, ["security-rules", "detect"])
@@ -150,9 +132,7 @@ class TestDetectCommand:
         assert "AI/ML:" in result.output
         assert "yes" in result.output
 
-    def test_detect_text_output_ai_ml_no(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_ai_ml_no(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows AI/ML as no when not detected."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -165,18 +145,12 @@ class TestDetectCommand:
         # Should show 'no' for non-AI projects
         assert "no" in result.output.lower()
 
-    def test_detect_text_output_rag_yes(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_rag_yes(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows RAG as yes when detected."""
         monkeypatch.chdir(tmp_path)
 
-        with patch(
-            "zerg.commands.security_rules_cmd.detect_project_stack"
-        ) as mock_detect:
-            mock_detect.return_value = ProjectStack(
-                languages={"python"}, frameworks={"llamaindex"}, rag=True
-            )
+        with patch("zerg.commands.security_rules_cmd.detect_project_stack") as mock_detect:
+            mock_detect.return_value = ProjectStack(languages={"python"}, frameworks={"llamaindex"}, rag=True)
 
             runner = CliRunner()
             result = runner.invoke(cli, ["security-rules", "detect"])
@@ -185,9 +159,7 @@ class TestDetectCommand:
         assert "RAG:" in result.output
         assert "yes" in result.output
 
-    def test_detect_text_output_rag_no(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_rag_no(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect shows RAG as no when not detected."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -198,9 +170,7 @@ class TestDetectCommand:
         assert result.exit_code == 0
         assert "RAG:" in result.output
 
-    def test_detect_text_output_empty_project(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_text_output_empty_project(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect handles empty project (no languages detected)."""
         monkeypatch.chdir(tmp_path)
         # Empty directory - no code files
@@ -229,9 +199,7 @@ class TestDetectCommand:
         assert "languages" in data
         assert "python" in data["languages"]
 
-    def test_detect_json_output_short_flag(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_json_output_short_flag(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect -j produces JSON output."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "package.json").write_text('{"name": "test"}')
@@ -245,9 +213,7 @@ class TestDetectCommand:
         data = json.loads(result.output)
         assert "javascript" in data["languages"]
 
-    def test_detect_with_path_option(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_with_path_option(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect --path option."""
         monkeypatch.chdir(tmp_path)
         subdir = tmp_path / "myproject"
@@ -255,16 +221,12 @@ class TestDetectCommand:
         (subdir / "main.go").write_text("package main")
 
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["security-rules", "detect", "--path", str(subdir)]
-        )
+        result = runner.invoke(cli, ["security-rules", "detect", "--path", str(subdir)])
 
         assert result.exit_code == 0
         assert "go" in result.output.lower()
 
-    def test_detect_with_path_short_flag(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_with_path_short_flag(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect -p path option."""
         monkeypatch.chdir(tmp_path)
         subdir = tmp_path / "rustproject"
@@ -277,15 +239,11 @@ class TestDetectCommand:
         assert result.exit_code == 0
         assert "rust" in result.output.lower()
 
-    def test_detect_json_with_all_stack_fields(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_json_with_all_stack_fields(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test detect JSON includes all stack fields."""
         monkeypatch.chdir(tmp_path)
 
-        with patch(
-            "zerg.commands.security_rules_cmd.detect_project_stack"
-        ) as mock_detect:
+        with patch("zerg.commands.security_rules_cmd.detect_project_stack") as mock_detect:
             mock_detect.return_value = ProjectStack(
                 languages={"python"},
                 frameworks={"fastapi"},
@@ -338,9 +296,7 @@ class TestListCommand:
         assert "Security rules for detected stack" in result.output
         assert "files" in result.output.lower()
 
-    def test_list_shows_rule_paths(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_list_shows_rule_paths(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test list shows individual rule paths."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -352,9 +308,7 @@ class TestListCommand:
         # Should list rules as bullet points
         assert "-" in result.output
 
-    def test_list_with_path_option(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_list_with_path_option(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test list --path option."""
         monkeypatch.chdir(tmp_path)
         subdir = tmp_path / "myproject"
@@ -367,9 +321,7 @@ class TestListCommand:
         assert result.exit_code == 0
         assert "Security rules" in result.output
 
-    def test_list_shows_core_rules(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_list_shows_core_rules(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test list always includes core OWASP rules."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -380,9 +332,7 @@ class TestListCommand:
         assert result.exit_code == 0
         assert "owasp" in result.output.lower()
 
-    def test_list_shows_language_specific_rules(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_list_shows_language_specific_rules(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test list includes language-specific rules."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "main.go").write_text("package main")
@@ -394,9 +344,7 @@ class TestListCommand:
         # Should include go rules
         assert "go" in result.output.lower()
 
-    def test_list_empty_project(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_list_empty_project(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test list on empty project still shows core rules."""
         monkeypatch.chdir(tmp_path)
 
@@ -442,9 +390,7 @@ class TestFetchCommand:
         assert "Fetching" in result.output
         assert "Fetched" in result.output
 
-    def test_fetch_with_output_option(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_with_output_option(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch --output option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -454,9 +400,7 @@ class TestFetchCommand:
             mock_fetch.return_value = {}
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["security-rules", "fetch", "--output", str(output_dir)]
-            )
+            result = runner.invoke(cli, ["security-rules", "fetch", "--output", str(output_dir)])
 
         assert result.exit_code == 0
         # Verify output dir was passed to fetch_rules
@@ -464,9 +408,7 @@ class TestFetchCommand:
         call_args = mock_fetch.call_args
         assert call_args[0][1] == output_dir
 
-    def test_fetch_with_output_short_flag(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_with_output_short_flag(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch -o option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -476,15 +418,11 @@ class TestFetchCommand:
             mock_fetch.return_value = {}
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["security-rules", "fetch", "-o", str(output_dir)]
-            )
+            result = runner.invoke(cli, ["security-rules", "fetch", "-o", str(output_dir)])
 
         assert result.exit_code == 0
 
-    def test_fetch_with_no_cache_option(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_with_no_cache_option(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch --no-cache option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -501,9 +439,7 @@ class TestFetchCommand:
         call_args = mock_fetch.call_args
         assert call_args[1]["use_cache"] is False
 
-    def test_fetch_default_uses_cache(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_default_uses_cache(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch uses cache by default."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -520,9 +456,7 @@ class TestFetchCommand:
         call_args = mock_fetch.call_args
         assert call_args[1]["use_cache"] is True
 
-    def test_fetch_shows_fetched_rules(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_shows_fetched_rules(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch shows list of fetched rules."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -539,9 +473,7 @@ class TestFetchCommand:
         assert result.exit_code == 0
         assert "Fetched 2 rules" in result.output
 
-    def test_fetch_shows_output_directory(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_shows_output_directory(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch shows output directory path."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -555,9 +487,7 @@ class TestFetchCommand:
         assert result.exit_code == 0
         assert "rules/security" in result.output
 
-    def test_fetch_with_path_option(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_with_path_option(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch --path option."""
         monkeypatch.chdir(tmp_path)
         subdir = tmp_path / "myproject"
@@ -568,9 +498,7 @@ class TestFetchCommand:
             mock_fetch.return_value = {}
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["security-rules", "fetch", "--path", str(subdir)]
-            )
+            result = runner.invoke(cli, ["security-rules", "fetch", "--path", str(subdir)])
 
         assert result.exit_code == 0
 
@@ -599,9 +527,7 @@ class TestIntegrateCommand:
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"], "frameworks": [], "databases": []},
                 "rules_fetched": 2,
@@ -614,16 +540,12 @@ class TestIntegrateCommand:
         assert result.exit_code == 0
         assert "Integrating secure coding rules" in result.output
 
-    def test_integrate_shows_stack_detected(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_shows_stack_detected(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate shows detected stack."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"], "frameworks": ["fastapi"]},
                 "rules_fetched": 3,
@@ -638,16 +560,12 @@ class TestIntegrateCommand:
         # Should show non-empty stack values
         assert "languages" in result.output or "python" in result.output.lower()
 
-    def test_integrate_shows_rules_fetched_count(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_shows_rules_fetched_count(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate shows number of rules fetched."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"]},
                 "rules_fetched": 5,
@@ -660,17 +578,13 @@ class TestIntegrateCommand:
         assert result.exit_code == 0
         assert "Rules fetched: 5" in result.output
 
-    def test_integrate_shows_rules_directory(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_shows_rules_directory(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate shows rules directory path."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
         rules_dir = tmp_path / ".claude" / "rules" / "security"
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"]},
                 "rules_fetched": 2,
@@ -683,16 +597,12 @@ class TestIntegrateCommand:
         assert result.exit_code == 0
         assert "Rules directory:" in result.output
 
-    def test_integrate_shows_claude_md_updated(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_shows_claude_md_updated(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate shows CLAUDE.md was updated."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"]},
                 "rules_fetched": 2,
@@ -706,16 +616,12 @@ class TestIntegrateCommand:
         assert "Updated:" in result.output
         assert "CLAUDE.md" in result.output
 
-    def test_integrate_shows_done_message(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_shows_done_message(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate shows done message."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"]},
                 "rules_fetched": 2,
@@ -729,16 +635,12 @@ class TestIntegrateCommand:
         assert "Done!" in result.output
         assert "Security rules integrated" in result.output
 
-    def test_integrate_with_no_update_claude_md(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_with_no_update_claude_md(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate --no-update-claude-md option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"]},
                 "rules_fetched": 2,
@@ -746,9 +648,7 @@ class TestIntegrateCommand:
             }
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["security-rules", "integrate", "--no-update-claude-md"]
-            )
+            result = runner.invoke(cli, ["security-rules", "integrate", "--no-update-claude-md"])
 
         assert result.exit_code == 0
         # Should NOT show CLAUDE.md updated message
@@ -758,17 +658,13 @@ class TestIntegrateCommand:
         call_kwargs = mock_integrate.call_args[1]
         assert call_kwargs["update_claude_md"] is False
 
-    def test_integrate_with_output_option(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_with_output_option(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate --output option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
         output_dir = tmp_path / "custom-rules"
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"]},
                 "rules_fetched": 2,
@@ -776,9 +672,7 @@ class TestIntegrateCommand:
             }
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["security-rules", "integrate", "--output", str(output_dir)]
-            )
+            result = runner.invoke(cli, ["security-rules", "integrate", "--output", str(output_dir)])
 
         assert result.exit_code == 0
         # Verify output_dir was passed
@@ -786,18 +680,14 @@ class TestIntegrateCommand:
         call_kwargs = mock_integrate.call_args[1]
         assert call_kwargs["output_dir"] == output_dir
 
-    def test_integrate_with_path_option(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_with_path_option(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate --path option."""
         monkeypatch.chdir(tmp_path)
         subdir = tmp_path / "myproject"
         subdir.mkdir()
         (subdir / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {"languages": ["python"]},
                 "rules_fetched": 2,
@@ -805,9 +695,7 @@ class TestIntegrateCommand:
             }
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["security-rules", "integrate", "--path", str(subdir)]
-            )
+            result = runner.invoke(cli, ["security-rules", "integrate", "--path", str(subdir)])
 
         assert result.exit_code == 0
         # Verify project_path was passed
@@ -815,16 +703,12 @@ class TestIntegrateCommand:
         call_kwargs = mock_integrate.call_args[1]
         assert call_kwargs["project_path"] == subdir
 
-    def test_integrate_shows_all_stack_values(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_shows_all_stack_values(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate shows all non-empty stack values."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {
                     "languages": ["python", "javascript"],
@@ -847,15 +731,11 @@ class TestIntegrateCommand:
         output_lower = result.output.lower()
         assert "languages" in output_lower or "python" in output_lower
 
-    def test_integrate_skips_empty_stack_values(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_skips_empty_stack_values(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate skips empty stack values in output."""
         monkeypatch.chdir(tmp_path)
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {
                     "languages": ["python"],
@@ -888,16 +768,12 @@ class TestEdgeCases:
     def test_detect_nonexistent_path(self) -> None:
         """Test detect with nonexistent path shows error."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["security-rules", "detect", "--path", "/nonexistent/path"]
-        )
+        result = runner.invoke(cli, ["security-rules", "detect", "--path", "/nonexistent/path"])
 
         # Click should handle this with an error
         assert result.exit_code != 0
 
-    def test_fetch_default_output_dir(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_default_output_dir(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch uses default output dir when not specified."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")
@@ -914,16 +790,12 @@ class TestEdgeCases:
         output_dir = call_args[0][1]
         assert str(output_dir).endswith(str(Path(".claude") / "rules" / "security"))
 
-    def test_integrate_passes_correct_parameters(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_integrate_passes_correct_parameters(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test integrate passes all parameters correctly."""
         monkeypatch.chdir(tmp_path)
         output_dir = tmp_path / "rules"
 
-        with patch(
-            "zerg.commands.security_rules_cmd.integrate_security_rules"
-        ) as mock_integrate:
+        with patch("zerg.commands.security_rules_cmd.integrate_security_rules") as mock_integrate:
             mock_integrate.return_value = {
                 "stack": {},
                 "rules_fetched": 0,
@@ -950,20 +822,14 @@ class TestEdgeCases:
             update_claude_md=False,
         )
 
-    def test_list_rule_output_format(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_list_rule_output_format(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test list outputs rules in expected format."""
         monkeypatch.chdir(tmp_path)
 
-        with patch(
-            "zerg.commands.security_rules_cmd.detect_project_stack"
-        ) as mock_detect:
+        with patch("zerg.commands.security_rules_cmd.detect_project_stack") as mock_detect:
             mock_detect.return_value = ProjectStack(languages={"python"})
 
-            with patch(
-                "zerg.commands.security_rules_cmd.get_required_rules"
-            ) as mock_rules:
+            with patch("zerg.commands.security_rules_cmd.get_required_rules") as mock_rules:
                 mock_rules.return_value = [
                     "rules/_core/owasp-2025.md",
                     "rules/languages/python/CLAUDE.md",
@@ -977,9 +843,7 @@ class TestEdgeCases:
         assert "owasp" in result.output
         assert "python" in result.output
 
-    def test_fetch_lists_fetched_paths(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_fetch_lists_fetched_paths(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test fetch lists each fetched rule path."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "app.py").write_text("print('hello')")

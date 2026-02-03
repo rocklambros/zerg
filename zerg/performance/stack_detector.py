@@ -26,7 +26,14 @@ _EXTENSION_MAP: dict[str, str] = {
 
 # Directories to skip during scanning
 _SKIP_DIRS: set[str] = {
-    "node_modules", ".git", ".hg", ".svn", "__pycache__", ".tox", ".venv", "venv",
+    "node_modules",
+    ".git",
+    ".hg",
+    ".svn",
+    "__pycache__",
+    ".tox",
+    ".venv",
+    "venv",
 }
 
 # Maximum files to scan for language detection

@@ -100,10 +100,7 @@ class MergeCoordinator:
         )
 
         summary = self.gates.get_summary()
-        logger.info(
-            f"Pre-merge gates: {summary['passed']} passed, "
-            f"{summary['failed']} failed"
-        )
+        logger.info(f"Pre-merge gates: {summary['passed']} passed, {summary['failed']} failed")
 
         return all_passed, results
 
@@ -183,10 +180,7 @@ class MergeCoordinator:
         )
 
         summary = self.gates.get_summary()
-        logger.info(
-            f"Post-merge gates: {summary['passed']} passed, "
-            f"{summary['failed']} failed"
-        )
+        logger.info(f"Post-merge gates: {summary['passed']} passed, {summary['failed']} failed")
 
         return all_passed, results
 

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 
-from zerg.whatif import ScenarioResult, WhatIfEngine, WhatIfReport
+from zerg.whatif import WhatIfEngine, WhatIfReport
 
 
 @pytest.fixture

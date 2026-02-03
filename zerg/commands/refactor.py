@@ -532,14 +532,10 @@ def refactor(
 
             # Status
             if result.total_suggestions == 0:
-                console.print(
-                    "\n[green]No refactoring suggestions"
-                    " found - code looks good![/green]"
-                )
+                console.print("\n[green]No refactoring suggestions found - code looks good![/green]")
             elif dry_run:
                 console.print(
-                    "\n[yellow]Run without --dry-run to apply "
-                    f"{result.total_suggestions} suggestions[/yellow]"
+                    f"\n[yellow]Run without --dry-run to apply {result.total_suggestions} suggestions[/yellow]"
                 )
             else:
                 console.print(f"\n[green]Applied {result.applied} changes[/green]")

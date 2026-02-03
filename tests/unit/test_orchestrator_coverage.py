@@ -8,17 +8,13 @@ Coverage targets: lines 105-106, 117-118, 148, 246-247, 258-259,
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from zerg.constants import TaskStatus, WorkerStatus
-from zerg.merge import MergeFlowResult
 from zerg.types import WorkerState
-
 
 # ---------------------------------------------------------------------------
 # Shared patch context: patches all heavy deps so Orchestrator.__init__ works
@@ -92,19 +88,20 @@ class TestPluginLoadFailure:
         """When load_entry_points raises, warning is logged and init continues."""
         from zerg.orchestrator import Orchestrator
 
-        with patch.dict("os.environ", {}, clear=False), \
-             patch("zerg.orchestrator.StateManager") as sc, \
-             patch("zerg.orchestrator.LevelController"), \
-             patch("zerg.orchestrator.TaskParser"), \
-             patch("zerg.orchestrator.WorktreeManager"), \
-             patch("zerg.orchestrator.PortAllocator"), \
-             patch("zerg.orchestrator.MergeCoordinator"), \
-             patch("zerg.orchestrator.SubprocessLauncher"), \
-             patch("zerg.orchestrator.GateRunner"), \
-             patch("zerg.orchestrator.ContainerManager"), \
-             patch("zerg.orchestrator.TaskSyncBridge"), \
-             patch("zerg.orchestrator.PluginRegistry") as pr_cls:
-
+        with (
+            patch.dict("os.environ", {}, clear=False),
+            patch("zerg.orchestrator.StateManager") as sc,
+            patch("zerg.orchestrator.LevelController"),
+            patch("zerg.orchestrator.TaskParser"),
+            patch("zerg.orchestrator.WorktreeManager"),
+            patch("zerg.orchestrator.PortAllocator"),
+            patch("zerg.orchestrator.MergeCoordinator"),
+            patch("zerg.orchestrator.SubprocessLauncher"),
+            patch("zerg.orchestrator.GateRunner"),
+            patch("zerg.orchestrator.ContainerManager"),
+            patch("zerg.orchestrator.TaskSyncBridge"),
+            patch("zerg.orchestrator.PluginRegistry") as pr_cls,
+        ):
             sc.return_value = MagicMock()
             sc.return_value._state = {"workers": {}, "tasks": {}}
 
@@ -115,7 +112,7 @@ class TestPluginLoadFailure:
             pr_cls.return_value = registry_mock
 
             # Build a config with plugins.enabled = True and hooks
-            with patch("zerg.orchestrator.ZergConfig") as cfg_cls:
+            with patch("zerg.orchestrator.ZergConfig"):
                 cfg = MagicMock()
                 cfg.plugins.enabled = True
                 cfg.plugins.hooks = []
@@ -153,19 +150,20 @@ class TestContextPluginRegistrationFailure:
     def test_context_plugin_registration_exception(self, tmp_path):
         from zerg.orchestrator import Orchestrator
 
-        with patch("zerg.orchestrator.StateManager") as sc, \
-             patch("zerg.orchestrator.LevelController"), \
-             patch("zerg.orchestrator.TaskParser"), \
-             patch("zerg.orchestrator.WorktreeManager"), \
-             patch("zerg.orchestrator.PortAllocator"), \
-             patch("zerg.orchestrator.MergeCoordinator"), \
-             patch("zerg.orchestrator.SubprocessLauncher"), \
-             patch("zerg.orchestrator.GateRunner"), \
-             patch("zerg.orchestrator.ContainerManager"), \
-             patch("zerg.orchestrator.TaskSyncBridge"), \
-             patch("zerg.orchestrator.ContextEngineeringPlugin", side_effect=RuntimeError("ctx boom")), \
-             patch("zerg.orchestrator.ContextEngineeringConfig") as cec:
-
+        with (
+            patch("zerg.orchestrator.StateManager") as sc,
+            patch("zerg.orchestrator.LevelController"),
+            patch("zerg.orchestrator.TaskParser"),
+            patch("zerg.orchestrator.WorktreeManager"),
+            patch("zerg.orchestrator.PortAllocator"),
+            patch("zerg.orchestrator.MergeCoordinator"),
+            patch("zerg.orchestrator.SubprocessLauncher"),
+            patch("zerg.orchestrator.GateRunner"),
+            patch("zerg.orchestrator.ContainerManager"),
+            patch("zerg.orchestrator.TaskSyncBridge"),
+            patch("zerg.orchestrator.ContextEngineeringPlugin", side_effect=RuntimeError("ctx boom")),
+            patch("zerg.orchestrator.ContextEngineeringConfig") as cec,
+        ):
             sc.return_value = MagicMock()
             sc.return_value._state = {"workers": {}, "tasks": {}}
 
@@ -189,18 +187,19 @@ class TestCleanupOrphanContainers:
     def test_cleanup_orphan_called_for_container_launcher(self, tmp_path):
         from zerg.orchestrator import Orchestrator
 
-        with patch("zerg.orchestrator.StateManager") as sc, \
-             patch("zerg.orchestrator.LevelController"), \
-             patch("zerg.orchestrator.TaskParser"), \
-             patch("zerg.orchestrator.WorktreeManager"), \
-             patch("zerg.orchestrator.PortAllocator"), \
-             patch("zerg.orchestrator.MergeCoordinator"), \
-             patch("zerg.orchestrator.SubprocessLauncher"), \
-             patch("zerg.orchestrator.GateRunner"), \
-             patch("zerg.orchestrator.ContainerManager"), \
-             patch("zerg.orchestrator.TaskSyncBridge"), \
-             patch("zerg.orchestrator.ContainerLauncher") as cl_cls:
-
+        with (
+            patch("zerg.orchestrator.StateManager") as sc,
+            patch("zerg.orchestrator.LevelController"),
+            patch("zerg.orchestrator.TaskParser"),
+            patch("zerg.orchestrator.WorktreeManager"),
+            patch("zerg.orchestrator.PortAllocator"),
+            patch("zerg.orchestrator.MergeCoordinator"),
+            patch("zerg.orchestrator.SubprocessLauncher"),
+            patch("zerg.orchestrator.GateRunner"),
+            patch("zerg.orchestrator.ContainerManager"),
+            patch("zerg.orchestrator.TaskSyncBridge"),
+            patch("zerg.orchestrator.ContainerLauncher") as cl_cls,
+        ):
             sc.return_value = MagicMock()
             sc.return_value._state = {"workers": {}, "tasks": {}}
 
@@ -628,7 +627,10 @@ class TestStartSync:
             orch.start_async = AsyncMock()
             orch.start_sync("graph.json", worker_count=2, start_level=1, dry_run=True)
             orch.start_async.assert_awaited_once_with(
-                "graph.json", worker_count=2, start_level=1, dry_run=True,
+                "graph.json",
+                worker_count=2,
+                start_level=1,
+                dry_run=True,
             )
         finally:
             _stop_patches(patches)

@@ -210,9 +210,7 @@ class CommandExecutor:
         # Execution history for audit
         self._history: list[CommandResult] = []
 
-    def validate_command(
-        self, command: str | list[str]
-    ) -> tuple[bool, str, CommandCategory | None]:
+    def validate_command(self, command: str | list[str]) -> tuple[bool, str, CommandCategory | None]:
         """Validate a command against security rules.
 
         Args:
@@ -345,7 +343,7 @@ class CommandExecutor:
 
         # Detect if shell mode is needed (trusted commands with shell operators)
         cmd_str_raw = command if isinstance(command, str) else " ".join(command)
-        _shell_operators = ("&&", "||", "|", ">", "<", "2>&1", ";", "$(",  "`")
+        _shell_operators = ("&&", "||", "|", ">", "<", "2>&1", ";", "$(", "`")
         needs_shell = self.trust_commands and any(op in cmd_str_raw for op in _shell_operators)
 
         # Execute command
@@ -517,10 +515,7 @@ class CommandExecutor:
         """
         cmd_preview = " ".join(result.command)[:100]
         if result.success:
-            logger.debug(
-                f"Command OK: {cmd_preview} "
-                f"(exit={result.exit_code}, {result.duration_ms}ms)"
-            )
+            logger.debug(f"Command OK: {cmd_preview} (exit={result.exit_code}, {result.duration_ms}ms)")
         else:
             logger.warning(f"Command FAILED: {cmd_preview} (exit={result.exit_code})")
 

@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from zerg.charter import ProjectCharter
 from zerg.inception import (
     _build_template_context,

@@ -269,9 +269,7 @@ class ReviewCommand:
 
         return items
 
-    def _run_quality_review(
-        self, files: list[str]
-    ) -> tuple[bool, str, list[ReviewItem]]:
+    def _run_quality_review(self, files: list[str]) -> tuple[bool, str, list[ReviewItem]]:
         """Stage 2: Code quality review."""
         items: list[ReviewItem] = []
         details_lines = [
@@ -304,10 +302,7 @@ class ReviewCommand:
                                 severity="warning",
                                 file=filepath,
                                 line=1,
-                                message=(
-                                    "High average function length"
-                                    f" ({avg_lines_per_func:.0f} lines)"
-                                ),
+                                message=(f"High average function length ({avg_lines_per_func:.0f} lines)"),
                                 suggestion="Consider breaking into smaller functions",
                             )
                         )
@@ -359,9 +354,7 @@ class ReviewCommand:
         if result.items:
             lines.append("Review Items:")
             for item in result.items[:10]:
-                severity_icon = {"error": "❌", "warning": "⚠", "info": "ℹ"}.get(
-                    item.severity, "•"
-                )
+                severity_icon = {"error": "❌", "warning": "⚠", "info": "ℹ"}.get(item.severity, "•")
                 lines.append(f"  {severity_icon} [{item.severity}] {item.file}:{item.line}")
                 lines.append(f"     {item.message}")
 
@@ -487,16 +480,8 @@ def review(
             table.add_column("Status")
             table.add_column("Details")
 
-            stage1_status = (
-                "[green]✓ PASSED[/green]"
-                if result.spec_passed
-                else "[red]✗ FAILED[/red]"
-            )
-            stage2_status = (
-                "[green]✓ PASSED[/green]"
-                if result.quality_passed
-                else "[yellow]⚠ REVIEW[/yellow]"
-            )
+            stage1_status = "[green]✓ PASSED[/green]" if result.spec_passed else "[red]✗ FAILED[/red]"
+            stage2_status = "[green]✓ PASSED[/green]" if result.quality_passed else "[yellow]⚠ REVIEW[/yellow]"
 
             table.add_row("1. Spec Compliance", stage1_status, "Requirements alignment")
             table.add_row("2. Code Quality", stage2_status, f"{result.total_items} items found")
@@ -528,9 +513,7 @@ def review(
                         console.print(f"  ℹ {ri.file}:{ri.line} - {ri.message}")
 
             # Overall status
-            console.print(
-                f"\n[bold]Overall:[/bold] [{status_color}]{status_text}[/{status_color}]"
-            )
+            console.print(f"\n[bold]Overall:[/bold] [{status_color}]{status_text}[/{status_color}]")
 
             # Stage details if verbose
             if result.stage1_details:

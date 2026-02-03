@@ -1,4 +1,5 @@
 """Task graph property validation for ZERG rush execution."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -60,9 +61,7 @@ def _check_dependency_references(
     for task in tasks:
         for dep_id in task.get("dependencies", []):
             if dep_id not in task_ids:
-                errors.append(
-                    f"Task '{task['id']}' depends on unknown task '{dep_id}'"
-                )
+                errors.append(f"Task '{task['id']}' depends on unknown task '{dep_id}'")
 
 
 def _dfs_cycle(
@@ -93,14 +92,9 @@ def _dfs_cycle(
         if color[neighbor] == gray:
             cycle_start = path.index(neighbor)
             cycle = path[cycle_start:]
-            errors.append(
-                f"Intra-level cycle at level {level}: "
-                f"{' -> '.join(cycle)} -> {neighbor}"
-            )
+            errors.append(f"Intra-level cycle at level {level}: {' -> '.join(cycle)} -> {neighbor}")
             return True
-        if color[neighbor] == white and _dfs_cycle(
-            neighbor, path, color, adj, level, errors
-        ):
+        if color[neighbor] == white and _dfs_cycle(neighbor, path, color, adj, level, errors):
             return True
     path.pop()
     color[node] = black
@@ -157,10 +151,7 @@ def _check_orphan_tasks(
         consumers = task.get("consumers") or []
         if consumers:
             continue
-        warnings.append(
-            f"Task '{tid}' (level {task['level']}) has no dependents — "
-            f"possible orphan"
-        )
+        warnings.append(f"Task '{tid}' (level {task['level']}) has no dependents — possible orphan")
 
 
 def _check_unreachable_tasks(
@@ -200,10 +191,7 @@ def _check_unreachable_tasks(
 
     unreachable = all_ids - visited
     for tid in sorted(unreachable):
-        errors.append(
-            f"Task '{tid}' (level {task_by_id[tid]['level']}) is unreachable "
-            f"from L1 roots"
-        )
+        errors.append(f"Task '{tid}' (level {task_by_id[tid]['level']}) is unreachable from L1 roots")
 
 
 def _check_consumer_references(
@@ -215,9 +203,7 @@ def _check_consumer_references(
     for task in tasks:
         for consumer_id in task.get("consumers") or []:
             if consumer_id not in task_ids:
-                errors.append(
-                    f"Task '{task['id']}' lists unknown consumer '{consumer_id}'"
-                )
+                errors.append(f"Task '{task['id']}' lists unknown consumer '{consumer_id}'")
 
 
 def _check_consumer_integration_tests(
@@ -231,7 +217,4 @@ def _check_consumer_integration_tests(
             continue
         integration_test = task.get("integration_test")
         if not integration_test:
-            errors.append(
-                f"Task '{task['id']}' has consumers {consumers} but no "
-                f"integration_test defined"
-            )
+            errors.append(f"Task '{task['id']}' has consumers {consumers} but no integration_test defined")

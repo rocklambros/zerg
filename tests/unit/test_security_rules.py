@@ -4,8 +4,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.security_rules import (
     FRAMEWORK_DETECTION,
     INFRASTRUCTURE_DETECTION,
@@ -171,9 +169,7 @@ class TestJSFrameworkDetection:
     def test_detect_react(self, tmp_path: Path) -> None:
         """Test detecting React."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"react": "^18.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"react": "^18.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -183,9 +179,7 @@ class TestJSFrameworkDetection:
     def test_detect_nextjs(self, tmp_path: Path) -> None:
         """Test detecting Next.js."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "dependencies": {"next": "^14.0.0"}
-        }))
+        package_json.write_text(json.dumps({"dependencies": {"next": "^14.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -195,9 +189,7 @@ class TestJSFrameworkDetection:
     def test_detect_from_devdeps(self, tmp_path: Path) -> None:
         """Test detecting from devDependencies."""
         package_json = tmp_path / "package.json"
-        package_json.write_text(json.dumps({
-            "devDependencies": {"@nestjs/core": "^10.0.0"}
-        }))
+        package_json.write_text(json.dumps({"devDependencies": {"@nestjs/core": "^10.0.0"}}))
 
         stack = ProjectStack()
         _detect_js_frameworks(tmp_path, stack)
@@ -254,7 +246,7 @@ class TestInfrastructureDetection:
 
     def test_detect_terraform(self, tmp_path: Path) -> None:
         """Test detecting Terraform."""
-        (tmp_path / "main.tf").write_text("provider \"aws\" {}")
+        (tmp_path / "main.tf").write_text('provider "aws" {}')
 
         stack = detect_project_stack(tmp_path)
 

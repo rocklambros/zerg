@@ -7,7 +7,7 @@ ResolvedCapabilities that gets passed as env vars to workers.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from zerg.config import ZergConfig
@@ -18,9 +18,17 @@ from zerg.modes import BehavioralMode, ModeDetector
 logger = logging.getLogger(__name__)
 
 # Commands where loops apply (code-touching commands)
-LOOP_COMMANDS = frozenset({
-    "rush", "refactor", "test", "security", "build", "review", "analyze",
-})
+LOOP_COMMANDS = frozenset(
+    {
+        "rush",
+        "refactor",
+        "test",
+        "security",
+        "build",
+        "review",
+        "analyze",
+    }
+)
 
 
 @dataclass
@@ -143,10 +151,7 @@ class CapabilityResolver:
         # --- Loops ---
         is_code_command = command in LOOP_COMMANDS if command else True
         loop_enabled = cli_flags.get("loop", True) and is_code_command
-        loop_iterations = (
-            cli_flags.get("iterations")
-            or config.improvement_loops.max_iterations
-        )
+        loop_iterations = cli_flags.get("iterations") or config.improvement_loops.max_iterations
 
         # --- Verification gates ---
         gates_enabled = config.verification.require_before_completion
@@ -193,9 +198,7 @@ class CapabilityResolver:
         for task in tasks:
             description = task.get("description", "")
             files = task.get("files", {})
-            file_count = sum(
-                len(v) for v in files.values() if isinstance(v, list)
-            )
+            file_count = sum(len(v) for v in files.values() if isinstance(v, list))
             ctx = self._depth_router.route(
                 description=description,
                 file_count=file_count,

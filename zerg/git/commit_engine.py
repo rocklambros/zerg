@@ -83,7 +83,6 @@ class DiffAnalyzer:
         Returns:
             Populated DiffAnalysis dataclass.
         """
-        cache_flag = "--cached" if cached else ()
         stat_args = ["diff", "--stat"]
         numstat_args = ["diff", "--numstat"]
 
@@ -91,7 +90,7 @@ class DiffAnalyzer:
             stat_args.append("--cached")
             numstat_args.append("--cached")
 
-        stat_result = runner._run(*stat_args, check=False)
+        runner._run(*stat_args, check=False)
         numstat_result = runner._run(*numstat_args, check=False)
 
         return self._parse_numstat(numstat_result.stdout or "")
@@ -425,15 +424,11 @@ class PreCommitValidator:
             return issues
 
         if len(stripped) < self._MIN_LENGTH:
-            issues.append(
-                f"Commit message too short ({len(stripped)} chars, minimum {self._MIN_LENGTH})"
-            )
+            issues.append(f"Commit message too short ({len(stripped)} chars, minimum {self._MIN_LENGTH})")
 
         first_line = stripped.splitlines()[0]
         if len(first_line) > self._MAX_FIRST_LINE:
-            issues.append(
-                f"First line too long ({len(first_line)} chars, maximum {self._MAX_FIRST_LINE})"
-            )
+            issues.append(f"First line too long ({len(first_line)} chars, maximum {self._MAX_FIRST_LINE})")
 
         for wip_pat in self._WIP_PATTERNS:
             if wip_pat.search(first_line):

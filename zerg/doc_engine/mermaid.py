@@ -27,10 +27,7 @@ def _strip_common_prefix(names: list[str]) -> dict[str, str]:
         else:
             break
 
-    return {
-        name: ".".join(parts[prefix_len:]) or parts[-1]
-        for name, parts in zip(names, parts_list)
-    }
+    return {name: ".".join(parts[prefix_len:]) or parts[-1] for name, parts in zip(names, parts_list)}
 
 
 class MermaidGenerator:
@@ -60,9 +57,7 @@ class MermaidGenerator:
         str
             Mermaid source wrapped in a ``mermaid`` code fence.
         """
-        all_names = sorted(
-            {name for name in modules} | {dep for deps in modules.values() for dep in deps}
-        )
+        all_names = sorted({name for name in modules} | {dep for deps in modules.values() for dep in deps})
         short = _strip_common_prefix(all_names)
 
         lines: list[str] = ["graph TD"]
@@ -83,12 +78,12 @@ class MermaidGenerator:
                 lines.append(f"    subgraph {_sanitize_id(pkg)}[{pkg}]")
                 for m in members:
                     sid = _sanitize_id(short[m])
-                    lines.append(f"        {sid}[\"{short[m]}\"]")
+                    lines.append(f'        {sid}["{short[m]}"]')
                 lines.append("    end")
             else:
                 for m in members:
                     sid = _sanitize_id(short[m])
-                    lines.append(f"    {sid}[\"{short[m]}\"]")
+                    lines.append(f'    {sid}["{short[m]}"]')
 
         # Emit edges
         for source, deps in sorted(modules.items()):
@@ -183,7 +178,7 @@ class MermaidGenerator:
             label = node.get("label", node["id"])
             ntype = node.get("type", "process")
             left, right = shape_map.get(ntype, ("[", "]"))
-            lines.append(f"    {nid}{left}\"{label}\"{right}")
+            lines.append(f'    {nid}{left}"{label}"{right}')
 
         for edge in edges:
             src = _sanitize_id(edge["from"])

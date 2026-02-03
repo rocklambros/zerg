@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from zerg.diagnostics.log_analyzer import LogPattern
 from zerg.diagnostics.log_correlator import (
     CrossWorkerCorrelator,
@@ -73,12 +71,8 @@ class TestTimelineBuilder:
 
     def test_build_multiple_workers(self, tmp_path: Path) -> None:
         """Events from multiple worker logs are all present."""
-        (tmp_path / "worker-0.stderr.log").write_text(
-            "2026-01-30T09:00:00 error from worker 0\n"
-        )
-        (tmp_path / "worker-1.stderr.log").write_text(
-            "2026-01-30T09:00:01 error from worker 1\n"
-        )
+        (tmp_path / "worker-0.stderr.log").write_text("2026-01-30T09:00:00 error from worker 0\n")
+        (tmp_path / "worker-1.stderr.log").write_text("2026-01-30T09:00:01 error from worker 1\n")
 
         builder = TimelineBuilder()
         events = builder.build(tmp_path)
@@ -90,12 +84,8 @@ class TestTimelineBuilder:
     def test_build_sorted_output(self, tmp_path: Path) -> None:
         """Returned events are sorted by timestamp."""
         # Write worker-1 with earlier timestamp, worker-0 with later
-        (tmp_path / "worker-0.stderr.log").write_text(
-            "2026-01-30T12:00:00 late error\n"
-        )
-        (tmp_path / "worker-1.stderr.log").write_text(
-            "2026-01-30T08:00:00 early error\n"
-        )
+        (tmp_path / "worker-0.stderr.log").write_text("2026-01-30T12:00:00 late error\n")
+        (tmp_path / "worker-1.stderr.log").write_text("2026-01-30T08:00:00 early error\n")
 
         builder = TimelineBuilder()
         events = builder.build(tmp_path)
@@ -343,12 +333,9 @@ class TestLogCorrelationEngine:
     def test_analyze_with_logs(self, tmp_path: Path) -> None:
         """Analyze with worker logs returns dict with expected keys."""
         (tmp_path / "worker-0.stderr.log").write_text(
-            "2026-01-30T10:00:00 error: connection refused\n"
-            "2026-01-30T10:00:01 info: retrying\n"
+            "2026-01-30T10:00:00 error: connection refused\n2026-01-30T10:00:01 info: retrying\n"
         )
-        (tmp_path / "worker-1.stderr.log").write_text(
-            "2026-01-30T10:00:02 error: connection refused to host\n"
-        )
+        (tmp_path / "worker-1.stderr.log").write_text("2026-01-30T10:00:02 error: connection refused to host\n")
 
         engine = LogCorrelationEngine(logs_dir=tmp_path)
         result = engine.analyze()
@@ -375,12 +362,8 @@ class TestLogCorrelationEngine:
 
     def test_analyze_specific_worker(self, tmp_path: Path) -> None:
         """Analyze with worker_id filters results to that worker."""
-        (tmp_path / "worker-0.stderr.log").write_text(
-            "2026-01-30T10:00:00 error: from worker 0\n"
-        )
-        (tmp_path / "worker-1.stderr.log").write_text(
-            "2026-01-30T10:00:01 error: from worker 1\n"
-        )
+        (tmp_path / "worker-0.stderr.log").write_text("2026-01-30T10:00:00 error: from worker 0\n")
+        (tmp_path / "worker-1.stderr.log").write_text("2026-01-30T10:00:01 error: from worker 1\n")
 
         engine = LogCorrelationEngine(logs_dir=tmp_path)
         result = engine.analyze(worker_id=0)

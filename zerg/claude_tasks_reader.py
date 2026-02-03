@@ -88,13 +88,13 @@ class ClaudeTasksReader:
         feature_lower = feature.lower()
 
         for dir_path in task_list_dirs:
-            zerg_count, feature_match = self._scan_dir_for_zerg_tasks(
-                dir_path, feature_lower
-            )
+            zerg_count, feature_match = self._scan_dir_for_zerg_tasks(dir_path, feature_lower)
             if zerg_count > 0 and feature_match:
                 logger.info(
                     "Found ZERG task list for '%s' at %s (%d tasks)",
-                    feature, dir_path.name, zerg_count,
+                    feature,
+                    dir_path.name,
+                    zerg_count,
                 )
                 self._cached_dir = dir_path
                 self._cache_time = now
@@ -106,7 +106,8 @@ class ClaudeTasksReader:
             if zerg_count >= 3:  # At least 3 level tasks = likely a real execution
                 logger.info(
                     "Found ZERG task list (no feature match) at %s (%d tasks)",
-                    dir_path.name, zerg_count,
+                    dir_path.name,
+                    zerg_count,
                 )
                 self._cached_dir = dir_path
                 self._cache_time = now
@@ -167,22 +168,13 @@ class ClaudeTasksReader:
         # Build levels dict
         levels: dict[str, Any] = {}
         for level_num in range(1, max_level + 1):
-            level_tasks = [
-                t for t in tasks.values() if t.get("level") == level_num
-            ]
-            all_complete = all(
-                t["status"] == TaskStatus.COMPLETE.value for t in level_tasks
-            )
+            level_tasks = [t for t in tasks.values() if t.get("level") == level_num]
+            all_complete = all(t["status"] == TaskStatus.COMPLETE.value for t in level_tasks)
             any_running = any(
-                t["status"] in (TaskStatus.IN_PROGRESS.value, TaskStatus.CLAIMED.value)
-                for t in level_tasks
+                t["status"] in (TaskStatus.IN_PROGRESS.value, TaskStatus.CLAIMED.value) for t in level_tasks
             )
             levels[str(level_num)] = {
-                "status": (
-                    "complete" if all_complete and level_tasks
-                    else "running" if any_running
-                    else "pending"
-                ),
+                "status": ("complete" if all_complete and level_tasks else "running" if any_running else "pending"),
                 "merge_status": None,
             }
 
@@ -209,9 +201,7 @@ class ClaudeTasksReader:
             "error": None,
         }
 
-    def _scan_dir_for_zerg_tasks(
-        self, dir_path: Path, feature_lower: str
-    ) -> tuple[int, bool]:
+    def _scan_dir_for_zerg_tasks(self, dir_path: Path, feature_lower: str) -> tuple[int, bool]:
         """Scan a task list directory for ZERG tasks.
 
         Args:

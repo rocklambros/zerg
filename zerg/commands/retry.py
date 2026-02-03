@@ -1,7 +1,5 @@
 """ZERG retry command - retry failed or blocked tasks."""
 
-from pathlib import Path
-
 import click
 from rich.console import Console
 from rich.table import Table
@@ -68,10 +66,7 @@ def retry(
         state.load()
 
         # Get tasks to retry
-        tasks_to_retry = (
-            get_failed_tasks(state) if all_failed
-            else [task_id] if task_id else []
-        )
+        tasks_to_retry = get_failed_tasks(state) if all_failed else [task_id] if task_id else []
 
         if not tasks_to_retry:
             console.print("[yellow]No tasks to retry[/yellow]")
@@ -220,11 +215,14 @@ def retry_task(
             state.claim_task(task_id, worker_id)
 
         # Log event
-        state.append_event("task_retry", {
-            "task_id": task_id,
-            "reset": reset,
-            "worker_id": worker_id,
-        })
+        state.append_event(
+            "task_retry",
+            {
+                "task_id": task_id,
+                "reset": reset,
+                "worker_id": worker_id,
+            },
+        )
 
         return True
 

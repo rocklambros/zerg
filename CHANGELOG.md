@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Simplified pre-commit configuration: removed mypy, bandit, and custom hooks to speed up commits
+- Relaxed ruff lint rules to focus on essential checks (E, F, I, UP)
+- Increased line length limit from 100 to 120 characters
+- Downgraded ruff-pre-commit from v0.14.14 to v0.4.4 for stability
+- Updated CONTRIBUTING.md with pre-commit installation instructions
+
 ### Fixed
 
 - `/zerg:status` missing documented flags `--tasks`, `--workers`, `--commits` (#103)

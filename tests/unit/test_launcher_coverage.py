@@ -7,26 +7,21 @@ COV-005: Targets lines 219, 231, 244, 257, 360, 377, 391-405, 465,
 
 import asyncio
 import os
-import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from tests.mocks.mock_launcher import MockContainerLauncher
 from zerg.constants import WorkerStatus
 from zerg.launcher import (
-    CONTAINER_HEALTH_FILE,
-    CONTAINER_HOME_DIR,
     ContainerLauncher,
     LauncherConfig,
-    LauncherType,
-    SpawnResult,
     SubprocessLauncher,
     WorkerHandle,
     WorkerLauncher,
 )
-from tests.mocks.mock_launcher import MockContainerLauncher
 
 
 # ---------------------------------------------------------------------------
@@ -491,7 +486,6 @@ class TestSubprocessLauncherTerminateAsync:
         launcher._async_processes = {0: mock_process}
 
         # Patch asyncio.wait_for to raise TimeoutError
-        original_wait_for = asyncio.wait_for
 
         async def mock_wait_for(coro, timeout):
             # Consume the coroutine to avoid warning
@@ -572,7 +566,7 @@ class TestContainerStartContainerGitMount:
         mock_result.stderr = ""
 
         with (
-            patch("subprocess.run", return_value=mock_result) as mock_run,
+            patch("subprocess.run", return_value=mock_result),
             patch("os.getuid", return_value=1000),
             patch("os.getgid", return_value=1000),
             patch("pathlib.Path.home", return_value=tmp_path / "home"),
@@ -840,7 +834,9 @@ class TestContainerLauncherSpawnAsync:
         rm_proc.communicate = AsyncMock(return_value=(b"", b""))
 
         with (
-            patch.object(launcher, "_start_container_async", new_callable=AsyncMock, return_value="cid-task") as mock_start,
+            patch.object(
+                launcher, "_start_container_async", new_callable=AsyncMock, return_value="cid-task"
+            ) as mock_start,
             patch.object(launcher, "_wait_ready", return_value=True),
             patch.object(launcher, "_verify_worker_process", return_value=True),
             patch("asyncio.create_subprocess_exec", return_value=rm_proc),
@@ -869,10 +865,10 @@ class TestContainerLauncherSpawnAsync:
         rm_proc.communicate = AsyncMock(return_value=(b"", b""))
 
         # Create a .env file
-        env_file = Path(".env")
+        Path(".env")
 
         with (
-            patch.object(launcher, "_start_container_async", new_callable=AsyncMock, return_value="cid-env") as mock_start,
+            patch.object(launcher, "_start_container_async", new_callable=AsyncMock, return_value="cid-env"),
             patch.object(launcher, "_wait_ready", return_value=True),
             patch.object(launcher, "_verify_worker_process", return_value=True),
             patch("asyncio.create_subprocess_exec", return_value=rm_proc),
@@ -1069,7 +1065,7 @@ class TestContainerStartContainerAsync:
             return await coro
 
         with (
-            patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc) as mock_exec,
+            patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc),
             patch("asyncio.wait_for", side_effect=fake_wait_for),
             patch("os.getuid", return_value=1000),
             patch("os.getgid", return_value=1000),

@@ -61,9 +61,7 @@ class DependencyAnalyzer:
         Returns list of file paths.
         """
         importing_files: list[str] = []
-        pattern = re.compile(
-            rf"(?:from\s+{re.escape(module)}\s+import|import\s+{re.escape(module)})"
-        )
+        pattern = re.compile(rf"(?:from\s+{re.escape(module)}\s+import|import\s+{re.escape(module)})")
         for py_file in project_root.rglob("*.py"):
             try:
                 content = py_file.read_text(encoding="utf-8")
@@ -92,16 +90,12 @@ class GitContextAnalyzer:
         except (subprocess.TimeoutExpired, OSError, FileNotFoundError):
             return "", False
 
-    def get_recent_changes(
-        self, file_path: str, n: int = 5
-    ) -> list[dict[str, str]]:
+    def get_recent_changes(self, file_path: str, n: int = 5) -> list[dict[str, str]]:
         """Get recent git log entries for a file.
 
         Returns list of {"hash", "author", "date", "message"}. Empty list on failure.
         """
-        output, success = self._run_git(
-            ["log", f"-{n}", "--format=%H|%an|%aI|%s", "--", file_path]
-        )
+        output, success = self._run_git(["log", f"-{n}", "--format=%H|%an|%aI|%s", "--", file_path])
         if not success or not output:
             return []
 
@@ -109,26 +103,24 @@ class GitContextAnalyzer:
         for line in output.splitlines():
             parts = line.split("|", 3)
             if len(parts) == 4:
-                changes.append({
-                    "hash": parts[0],
-                    "author": parts[1],
-                    "date": parts[2],
-                    "message": parts[3],
-                })
+                changes.append(
+                    {
+                        "hash": parts[0],
+                        "author": parts[1],
+                        "date": parts[2],
+                        "message": parts[3],
+                    }
+                )
         return changes
 
-    def get_blame_context(
-        self, file_path: str, line: int, context: int = 3
-    ) -> list[dict[str, str]]:
+    def get_blame_context(self, file_path: str, line: int, context: int = 3) -> list[dict[str, str]]:
         """Get git blame for lines around the given line number.
 
         Returns list of {"line", "hash", "author", "content"}. Empty list on failure.
         """
         start = max(1, line - context)
         end = line + context
-        output, success = self._run_git(
-            ["blame", f"-L{start},{end}", "--porcelain", file_path]
-        )
+        output, success = self._run_git(["blame", f"-L{start},{end}", "--porcelain", file_path])
         if not success or not output:
             return []
 
@@ -138,24 +130,24 @@ class GitContextAnalyzer:
         current_line = str(start)
         for raw_line in output.splitlines():
             if raw_line.startswith("\t"):
-                blame_entries.append({
-                    "line": current_line,
-                    "hash": current_hash[:8],
-                    "author": current_author,
-                    "content": raw_line[1:],
-                })
+                blame_entries.append(
+                    {
+                        "line": current_line,
+                        "hash": current_hash[:8],
+                        "author": current_author,
+                        "content": raw_line[1:],
+                    }
+                )
                 current_line = str(int(current_line) + 1)
             elif raw_line.startswith("author "):
-                current_author = raw_line[len("author "):]
+                current_author = raw_line[len("author ") :]
             elif len(raw_line) >= 40 and raw_line[0].isalnum():
                 parts = raw_line.split()
                 if parts:
                     current_hash = parts[0]
         return blame_entries
 
-    def suggest_bisect(
-        self, good_ref: str = "HEAD~10", bad_ref: str = "HEAD"
-    ) -> str:
+    def suggest_bisect(self, good_ref: str = "HEAD~10", bad_ref: str = "HEAD") -> str:
         """Return a formatted git bisect command string."""
         return f"git bisect start {bad_ref} {good_ref}"
 
@@ -178,9 +170,7 @@ class FixSuggestionGenerator:
 
         if category == ErrorCategory.CODE_ERROR:
             if fingerprint.file and fingerprint.line:
-                suggestions.append(
-                    f"Review code at {fingerprint.file}:{fingerprint.line}"
-                )
+                suggestions.append(f"Review code at {fingerprint.file}:{fingerprint.line}")
             elif fingerprint.file:
                 suggestions.append(f"Review code in {fingerprint.file}")
             suggestions.append("Check variable types and function signatures")
@@ -200,16 +190,11 @@ class FixSuggestionGenerator:
 
         elif category == ErrorCategory.MERGE_CONFLICT:
             if fingerprint.file:
-                suggestions.append(
-                    f"Resolve conflicts in {fingerprint.file}"
-                )
+                suggestions.append(f"Resolve conflicts in {fingerprint.file}")
             suggestions.append("Check file ownership in task graph")
 
         if not suggestions:
-            suggestions.append(
-                f"Investigate error: {fingerprint.error_type}: "
-                f"{fingerprint.message_template}"
-            )
+            suggestions.append(f"Investigate error: {fingerprint.error_type}: {fingerprint.message_template}")
 
         # Add evidence-based suggestions
         for ev in evidence:
@@ -231,83 +216,105 @@ class FixSuggestionGenerator:
 
         if category == ErrorCategory.CODE_ERROR:
             if fingerprint.file:
-                steps.append(RecoveryStep(
-                    description=f"Run linter on {fingerprint.file}",
-                    command=f"python -m ruff check {fingerprint.file}",
+                steps.append(
+                    RecoveryStep(
+                        description=f"Run linter on {fingerprint.file}",
+                        command=f"python -m ruff check {fingerprint.file}",
+                        risk="safe",
+                        reversible=True,
+                    )
+                )
+            steps.append(
+                RecoveryStep(
+                    description="Run type checker",
+                    command="python -m mypy --ignore-missing-imports .",
                     risk="safe",
                     reversible=True,
-                ))
-            steps.append(RecoveryStep(
-                description="Run type checker",
-                command="python -m mypy --ignore-missing-imports .",
-                risk="safe",
-                reversible=True,
-            ))
+                )
+            )
 
         elif category == ErrorCategory.DEPENDENCY:
             module = fingerprint.module or "."
-            steps.append(RecoveryStep(
-                description=f"Install missing dependency: {module}",
-                command=f"pip install {module}",
-                risk="safe",
-                reversible=True,
-            ))
-            steps.append(RecoveryStep(
-                description="Reinstall project in editable mode",
-                command="pip install -e .",
-                risk="safe",
-                reversible=True,
-            ))
+            steps.append(
+                RecoveryStep(
+                    description=f"Install missing dependency: {module}",
+                    command=f"pip install {module}",
+                    risk="safe",
+                    reversible=True,
+                )
+            )
+            steps.append(
+                RecoveryStep(
+                    description="Reinstall project in editable mode",
+                    command="pip install -e .",
+                    risk="safe",
+                    reversible=True,
+                )
+            )
 
         elif category == ErrorCategory.INFRASTRUCTURE:
-            steps.append(RecoveryStep(
-                description="Check Docker status",
-                command="docker info",
-                risk="safe",
-                reversible=True,
-            ))
-            steps.append(RecoveryStep(
-                description="Restart Docker containers",
-                command="docker compose restart",
-                risk="moderate",
-                reversible=True,
-            ))
+            steps.append(
+                RecoveryStep(
+                    description="Check Docker status",
+                    command="docker info",
+                    risk="safe",
+                    reversible=True,
+                )
+            )
+            steps.append(
+                RecoveryStep(
+                    description="Restart Docker containers",
+                    command="docker compose restart",
+                    risk="moderate",
+                    reversible=True,
+                )
+            )
 
         elif category == ErrorCategory.STATE_CORRUPTION:
-            steps.append(RecoveryStep(
-                description="Validate state JSON files",
-                command='find .zerg/state -name "*.json" -exec python -m json.tool {} \\;',
-                risk="safe",
-                reversible=True,
-            ))
-            steps.append(RecoveryStep(
-                description="Restore state from backup",
-                command="cp .zerg/state/*.json.bak .zerg/state/",
-                risk="moderate",
-                reversible=True,
-            ))
+            steps.append(
+                RecoveryStep(
+                    description="Validate state JSON files",
+                    command='find .zerg/state -name "*.json" -exec python -m json.tool {} \\;',
+                    risk="safe",
+                    reversible=True,
+                )
+            )
+            steps.append(
+                RecoveryStep(
+                    description="Restore state from backup",
+                    command="cp .zerg/state/*.json.bak .zerg/state/",
+                    risk="moderate",
+                    reversible=True,
+                )
+            )
 
         elif category == ErrorCategory.MERGE_CONFLICT:
-            steps.append(RecoveryStep(
-                description="Abort current merge",
-                command="git merge --abort",
-                risk="moderate",
-                reversible=True,
-            ))
-            steps.append(RecoveryStep(
-                description="Prune stale worktrees",
-                command="git worktree prune",
-                risk="safe",
-                reversible=True,
-            ))
+            steps.append(
+                RecoveryStep(
+                    description="Abort current merge",
+                    command="git merge --abort",
+                    risk="moderate",
+                    reversible=True,
+                )
+            )
+            steps.append(
+                RecoveryStep(
+                    description="Prune stale worktrees",
+                    command="git worktree prune",
+                    risk="safe",
+                    reversible=True,
+                )
+            )
 
         if not steps:
-            steps.append(RecoveryStep(
-                description=f"Investigate: {fingerprint.error_type}",
-                command="zerg debug --deep",
-                risk="safe",
-                reversible=True,
-            ))
+            steps.append(
+                RecoveryStep(
+                    description=f"Investigate: {fingerprint.error_type}",
+                    command="zerg debug --deep",
+                    risk="safe",
+                    reversible=True,
+                )
+            )
 
         return steps
 
@@ -355,9 +362,7 @@ class CodeAwareFixer:
         if fingerprint.file and fingerprint.file.endswith(".py"):
             file_path = str(project_root / fingerprint.file)
             imports = self.dependency_analyzer.analyze_imports(file_path)
-            missing = self.dependency_analyzer.find_missing_deps(
-                fingerprint.message_template
-            )
+            missing = self.dependency_analyzer.find_missing_deps(fingerprint.message_template)
             result["dependencies"] = {
                 "imports": imports,
                 "missing": missing,
@@ -366,23 +371,17 @@ class CodeAwareFixer:
         # Git context if file and line are available
         if fingerprint.file and fingerprint.line:
             recent = self.git_analyzer.get_recent_changes(fingerprint.file)
-            blame = self.git_analyzer.get_blame_context(
-                fingerprint.file, fingerprint.line
-            )
+            blame = self.git_analyzer.get_blame_context(fingerprint.file, fingerprint.line)
             result["git_context"] = {
                 "recent_changes": recent,
                 "blame": blame,
             }
 
         # Fix suggestions
-        result["suggestions"] = self.suggestion_generator.suggest(
-            fingerprint, evidence
-        )
+        result["suggestions"] = self.suggestion_generator.suggest(fingerprint, evidence)
 
         # Recovery steps as dicts
-        steps = self.suggestion_generator.generate_recovery_steps(
-            fingerprint, evidence
-        )
+        steps = self.suggestion_generator.generate_recovery_steps(fingerprint, evidence)
         result["recovery_steps"] = [s.to_dict() for s in steps]
 
         return result

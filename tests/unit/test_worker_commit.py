@@ -3,12 +3,9 @@
 Tests BF-009: Worker protocol HEAD verification after commit.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
 import pytest
 
-from tests.mocks.mock_git import CommitAttempt, MockGitOps
+from tests.mocks.mock_git import MockGitOps
 from zerg.exceptions import GitError
 
 
@@ -34,7 +31,7 @@ class TestHeadVerification:
         git.simulate_changes()
 
         head_before = git.current_commit()
-        commit_sha = git.commit("Test commit", add_all=True)
+        git.commit("Test commit", add_all=True)
         head_after = git.current_commit()
 
         # HEAD didn't change - this is the bug we want to detect
@@ -179,14 +176,12 @@ class TestWorkerCommitIntegration:
         git.configure(commit_no_head_change=True)
         git.simulate_changes()
 
-        task_id = "TASK-001"
-
         head_before = git.current_commit()
         git.commit("ZERG commit", add_all=True)
         head_after = git.current_commit()
 
         # This should detect the bug
-        commit_failed_silently = (head_before == head_after)
+        commit_failed_silently = head_before == head_after
         assert commit_failed_silently, "Expected HEAD unchanged to simulate bug"
 
     def test_commit_sha_in_event(self):
@@ -194,7 +189,7 @@ class TestWorkerCommitIntegration:
         git = MockGitOps()
         git.simulate_changes()
 
-        head_before = git.current_commit()
+        git.current_commit()
         commit_sha = git.commit("Test commit", add_all=True)
         head_after = git.current_commit()
 

@@ -37,9 +37,7 @@ from zerg.state import StateManager
 class TestDetectFeature:
     """Tests for the detect_feature function."""
 
-    def test_detect_feature_no_state_dir(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_no_state_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detect_feature returns None when state directory does not exist."""
         monkeypatch.chdir(tmp_path)
         # No .zerg/state directory
@@ -48,9 +46,7 @@ class TestDetectFeature:
 
         assert result is None
 
-    def test_detect_feature_empty_state_dir(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_empty_state_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detect_feature returns None when state directory is empty."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -60,9 +56,7 @@ class TestDetectFeature:
 
         assert result is None
 
-    def test_detect_feature_single_state_file(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_single_state_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detect_feature returns feature name from single state file."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -73,9 +67,7 @@ class TestDetectFeature:
 
         assert result == "my-feature"
 
-    def test_detect_feature_multiple_state_files(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_detect_feature_multiple_state_files(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test detect_feature returns most recent state file."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -87,6 +79,7 @@ class TestDetectFeature:
 
         # Create newer file (touch to update mtime)
         import time
+
         time.sleep(0.01)  # Small delay to ensure different mtime
         newer_file = state_dir / "newer-feature.json"
         newer_file.write_text("{}")
@@ -153,9 +146,7 @@ class TestGetFailedTasks:
 class TestShowRetryPlan:
     """Tests for the show_retry_plan function."""
 
-    def test_show_retry_plan_failed_tasks(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_retry_plan_failed_tasks(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test show_retry_plan displays failed tasks."""
         state = StateManager("test-feature", state_dir=tmp_path)
         state.load()
@@ -168,9 +159,7 @@ class TestShowRetryPlan:
         assert "T1" in captured.out
         assert "T2" in captured.out
 
-    def test_show_retry_plan_with_reset(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_retry_plan_with_reset(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test show_retry_plan shows RESET action when reset=True."""
         state = StateManager("test-feature", state_dir=tmp_path)
         state.load()
@@ -181,9 +170,7 @@ class TestShowRetryPlan:
         captured = capsys.readouterr()
         assert "RESET" in captured.out
 
-    def test_show_retry_plan_with_worker_id(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_retry_plan_with_worker_id(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test show_retry_plan shows target worker when specified."""
         state = StateManager("test-feature", state_dir=tmp_path)
         state.load()
@@ -194,9 +181,7 @@ class TestShowRetryPlan:
         captured = capsys.readouterr()
         assert "2" in captured.out
 
-    def test_show_retry_plan_unknown_task(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_show_retry_plan_unknown_task(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test show_retry_plan handles unknown task gracefully."""
         state = StateManager("test-feature", state_dir=tmp_path)
         state.load()
@@ -304,9 +289,7 @@ class TestRetryTask:
         mock_orchestrator = MagicMock()
         mock_orchestrator.retry_task.return_value = True
 
-        result = retry_task(
-            state, "T1", reset=False, worker_id=None, orchestrator=mock_orchestrator
-        )
+        result = retry_task(state, "T1", reset=False, worker_id=None, orchestrator=mock_orchestrator)
 
         assert result is True
         mock_orchestrator.retry_task.assert_called_once_with("T1")
@@ -321,9 +304,7 @@ class TestRetryTask:
         mock_orchestrator.retry_task.return_value = True
 
         with patch.object(state, "claim_task", create=True) as mock_assign:
-            result = retry_task(
-                state, "T1", reset=False, worker_id=2, orchestrator=mock_orchestrator
-            )
+            result = retry_task(state, "T1", reset=False, worker_id=2, orchestrator=mock_orchestrator)
 
             assert result is True
             mock_assign.assert_called_once_with("T1", 2)
@@ -337,9 +318,7 @@ class TestRetryTask:
         mock_orchestrator = MagicMock()
         mock_orchestrator.retry_task.return_value = False
 
-        result = retry_task(
-            state, "T1", reset=False, worker_id=None, orchestrator=mock_orchestrator
-        )
+        result = retry_task(state, "T1", reset=False, worker_id=None, orchestrator=mock_orchestrator)
 
         assert result is True
         # Should have fallen back to manual retry
@@ -354,9 +333,7 @@ class TestRetryTask:
 
         mock_orchestrator = MagicMock()
 
-        result = retry_task(
-            state, "T1", reset=True, worker_id=None, orchestrator=mock_orchestrator
-        )
+        result = retry_task(state, "T1", reset=True, worker_id=None, orchestrator=mock_orchestrator)
 
         assert result is True
         # Orchestrator should not be called when reset=True
@@ -380,9 +357,7 @@ class TestRetryAllFailedTasks:
             assert retried == ["T1", "T2"]
             mock_orch.retry_all_failed.assert_called_once()
 
-    def test_retry_all_failed_tasks_with_reset(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_all_failed_tasks_with_reset(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry_all_failed_tasks with reset does manual retry."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -414,9 +389,7 @@ class TestRetryAllFailedTasks:
             assert count == 0
             assert retried == []
 
-    def test_retry_all_failed_tasks_no_failures(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_all_failed_tasks_no_failures(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry_all_failed_tasks with no failed tasks."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -437,9 +410,7 @@ class TestRetryAllFailedTasks:
 class TestRetryCommand:
     """Tests for the retry Click command."""
 
-    def test_retry_no_task_or_all_failed(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_no_task_or_all_failed(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command fails without task_id or --all-failed."""
         monkeypatch.chdir(tmp_path)
 
@@ -449,9 +420,7 @@ class TestRetryCommand:
         assert result.exit_code == 1
         assert "Error" in result.output
 
-    def test_retry_no_feature_detected(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_no_feature_detected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command fails when no feature can be detected."""
         monkeypatch.chdir(tmp_path)
         # No state files
@@ -462,9 +431,7 @@ class TestRetryCommand:
         assert result.exit_code == 1
         assert "No active feature" in result.output
 
-    def test_retry_feature_not_found(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_feature_not_found(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command fails when feature state does not exist."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -476,9 +443,7 @@ class TestRetryCommand:
         assert result.exit_code == 1
         assert "No state found" in result.output
 
-    def test_retry_no_tasks_to_retry(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_no_tasks_to_retry(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command with --all-failed when no failed tasks."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -503,9 +468,7 @@ class TestRetryCommand:
 
         assert "No tasks to retry" in result.output
 
-    def test_retry_single_task_confirmed(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_single_task_confirmed(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command for single task with confirmation."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -526,15 +489,11 @@ class TestRetryCommand:
         (state_dir / "test-feature.json").write_text(json.dumps(state_data))
 
         runner = CliRunner()
-        result = runner.invoke(
-            retry, ["T1", "--feature", "test-feature"], input="y\n"
-        )
+        result = runner.invoke(retry, ["T1", "--feature", "test-feature"], input="y\n")
 
         assert "queued for retry" in result.output
 
-    def test_retry_aborted(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_aborted(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command when user aborts."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -554,15 +513,11 @@ class TestRetryCommand:
         (state_dir / "test-feature.json").write_text(json.dumps(state_data))
 
         runner = CliRunner()
-        result = runner.invoke(
-            retry, ["T1", "--feature", "test-feature"], input="n\n"
-        )
+        result = runner.invoke(retry, ["T1", "--feature", "test-feature"], input="n\n")
 
         assert "Aborted" in result.output
 
-    def test_retry_with_reset_option(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_with_reset_option(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command with --reset option."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -582,15 +537,11 @@ class TestRetryCommand:
         (state_dir / "test-feature.json").write_text(json.dumps(state_data))
 
         runner = CliRunner()
-        result = runner.invoke(
-            retry, ["T1", "--feature", "test-feature", "--reset"], input="y\n"
-        )
+        result = runner.invoke(retry, ["T1", "--feature", "test-feature", "--reset"], input="y\n")
 
         assert "queued for retry" in result.output
 
-    def test_retry_with_worker_option(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_with_worker_option(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command with --worker option."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -620,9 +571,7 @@ class TestRetryCommand:
 
         assert "queued for retry" in result.output
 
-    def test_retry_unpauses_execution(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_unpauses_execution(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command unpauses execution if paused."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -642,15 +591,11 @@ class TestRetryCommand:
         (state_dir / "test-feature.json").write_text(json.dumps(state_data))
 
         runner = CliRunner()
-        result = runner.invoke(
-            retry, ["T1", "--feature", "test-feature"], input="y\n"
-        )
+        result = runner.invoke(retry, ["T1", "--feature", "test-feature"], input="y\n")
 
         assert "unpaused" in result.output
 
-    def test_retry_all_failed_tasks_command(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_all_failed_tasks_command(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command with --all-failed flag."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -674,17 +619,13 @@ class TestRetryCommand:
         (state_dir / "test-feature.json").write_text(json.dumps(state_data))
 
         runner = CliRunner()
-        result = runner.invoke(
-            retry, ["--all-failed", "--feature", "test-feature"], input="y\n"
-        )
+        result = runner.invoke(retry, ["--all-failed", "--feature", "test-feature"], input="y\n")
 
         assert "T1" in result.output
         assert "T2" in result.output
         assert "queued for retry" in result.output
 
-    def test_retry_task_queue_failure(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_task_queue_failure(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command when task fails to queue."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -706,15 +647,11 @@ class TestRetryCommand:
         runner = CliRunner()
         with patch("zerg.commands.retry.retry_task") as mock_retry:
             mock_retry.return_value = False  # Simulate failure
-            result = runner.invoke(
-                retry, ["T1", "--feature", "test-feature"], input="y\n"
-            )
+            result = runner.invoke(retry, ["T1", "--feature", "test-feature"], input="y\n")
 
         assert "failed to queue" in result.output
 
-    def test_retry_auto_detect_feature(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_auto_detect_feature(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command auto-detects feature from state files."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -738,9 +675,7 @@ class TestRetryCommand:
 
         assert "auto-detected-feature" in result.output
 
-    def test_retry_exception_in_main_flow(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_retry_exception_in_main_flow(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test retry command handles unexpected exceptions."""
         monkeypatch.chdir(tmp_path)
         state_dir = tmp_path / ".zerg" / "state"
@@ -760,12 +695,8 @@ class TestRetryCommand:
         (state_dir / "test-feature.json").write_text(json.dumps(state_data))
 
         runner = CliRunner()
-        with patch(
-            "zerg.commands.retry.show_retry_plan", side_effect=Exception("Display error")
-        ):
-            result = runner.invoke(
-                retry, ["T1", "--feature", "test-feature"]
-            )
+        with patch("zerg.commands.retry.show_retry_plan", side_effect=Exception("Display error")):
+            result = runner.invoke(retry, ["T1", "--feature", "test-feature"])
 
         assert result.exit_code == 1
         assert "Error" in result.output
@@ -834,9 +765,7 @@ class TestRetryEdgeCases:
         mock_orchestrator.retry_task.return_value = True
 
         with patch.object(state, "claim_task", create=True) as mock_assign:
-            result = retry_task(
-                state, "T1", reset=False, worker_id=5, orchestrator=mock_orchestrator
-            )
+            result = retry_task(state, "T1", reset=False, worker_id=5, orchestrator=mock_orchestrator)
 
             assert result is True
             mock_orchestrator.retry_task.assert_called_once_with("T1")
@@ -867,9 +796,7 @@ class TestRetryEdgeCases:
         mock_orchestrator.retry_task.return_value = False  # Orchestrator fails
 
         with patch.object(state, "claim_task", create=True) as mock_assign:
-            result = retry_task(
-                state, "T1", reset=False, worker_id=4, orchestrator=mock_orchestrator
-            )
+            result = retry_task(state, "T1", reset=False, worker_id=4, orchestrator=mock_orchestrator)
 
             assert result is True
             # Should have fallen back and assigned worker

@@ -4,14 +4,10 @@ Tests BF-007: Orchestrator merge timeout with retry and recoverable error state.
 """
 
 import concurrent.futures
-import time
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from tests.mocks.mock_merge import MockMergeCoordinator
 from zerg.constants import LevelMergeStatus
-from zerg.merge import MergeFlowResult
 
 
 class TestMergeTimeout:
@@ -98,9 +94,9 @@ class TestMergeRetry:
         # Calculate expected backoff delays
         base_delay = 10  # seconds
         expected_delays = [
-            base_delay * (2 ** 0),  # 10s after attempt 1
-            base_delay * (2 ** 1),  # 20s after attempt 2
-            base_delay * (2 ** 2),  # 40s after attempt 3
+            base_delay * (2**0),  # 10s after attempt 1
+            base_delay * (2**1),  # 20s after attempt 2
+            base_delay * (2**2),  # 40s after attempt 3
         ]
 
         # Verify the pattern
@@ -180,11 +176,6 @@ class TestMergeLevelStatus:
     def test_merging_status_set_before_merge(self):
         """MERGING status should be set before merge starts."""
         # Verify the expected status sequence
-        expected_sequence = [
-            LevelMergeStatus.PENDING,
-            LevelMergeStatus.MERGING,
-            LevelMergeStatus.COMPLETE,  # or FAILED/CONFLICT
-        ]
 
         assert LevelMergeStatus.MERGING.value == "merging"
         assert LevelMergeStatus.COMPLETE.value == "complete"

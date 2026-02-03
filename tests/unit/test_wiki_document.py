@@ -3,13 +3,10 @@
 Covers all functions, branches, and edge cases with mocked doc_engine dependencies.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, patch
 
-import click
 import pytest
 from click.testing import CliRunner
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -42,8 +39,6 @@ def _make_mock_doc_engine():
         classes=[MagicMock()],
         functions=[MagicMock(), MagicMock()],
     )
-
-    mock_detector_inst = mock_detector.return_value
 
     return {
         "ComponentDetector": mock_detector,

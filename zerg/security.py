@@ -37,8 +37,7 @@ HOOK_PATTERNS = {
         "anthropic_key": r"sk-ant-[a-zA-Z0-9\-]{90,}",
         "private_key": r"-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----",
         "generic_secret": (
-            r"(password|secret|api_key|apikey|access_token|auth_token)"
-            r"\s*[=:]\s*['\"][^'\"]{8,}['\"]"
+            r"(password|secret|api_key|apikey|access_token|auth_token)" r"\s*[=:]\s*['\"][^'\"]{8,}['\"]"
         ),
         "shell_injection": r"(shell\s*=\s*True|os\.system\s*\(|os\.popen\s*\()",
         "code_injection": r"^[^#]*\b(eval|exec)\s*\(",
@@ -157,9 +156,7 @@ def validate_commit_message(message: str) -> tuple[bool, str | None]:
         return False, "Commit message first line too long (maximum 72 characters)"
 
     # Check for conventional commit format
-    conventional_pattern = re.compile(
-        r"^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\(.+\))?!?: .+"
-    )
+    conventional_pattern = re.compile(r"^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\(.+\))?!?: .+")
 
     if not conventional_pattern.match(first_line) and not first_line.startswith("Merge "):
         return False, (
@@ -343,17 +340,16 @@ def run_security_scan(path: str | Path = ".") -> dict[str, Any]:
                 file_content = Path(filepath).read_text(encoding="utf-8", errors="ignore")
                 secrets = check_for_secrets(file_content)
                 if secrets:
-                    results["secrets_found"].append({
-                        "file": filepath,
-                        "findings": secrets,
-                    })
+                    results["secrets_found"].append(
+                        {
+                            "file": filepath,
+                            "findings": secrets,
+                        }
+                    )
             except OSError:
                 pass
 
     # Determine if scan passed
-    results["passed"] = not (
-        results["secrets_found"]
-        or results["sensitive_files"]
-    )
+    results["passed"] = not (results["secrets_found"] or results["sensitive_files"])
 
     return results

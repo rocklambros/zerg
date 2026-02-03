@@ -91,9 +91,7 @@ class StateSyncService:
                 and worker_id not in active_worker_ids
             ):
                 task_state["worker_id"] = None
-                logger.info(
-                    f"Reassigned stranded task {task_id} (was worker {worker_id}, now unassigned)"
-                )
+                logger.info(f"Reassigned stranded task {task_id} (was worker {worker_id}, now unassigned)")
         self.state.save()
 
     def reconcile_periodic(self) -> ReconciliationResult:

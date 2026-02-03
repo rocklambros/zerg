@@ -353,9 +353,7 @@ class TestTaskLoading:
         graph_path.write_text(json.dumps(graph))
         return graph_path
 
-    def test_load_task_details_from_graph(
-        self, tmp_path: Path, task_graph: Path, monkeypatch
-    ) -> None:
+    def test_load_task_details_from_graph(self, tmp_path: Path, task_graph: Path, monkeypatch) -> None:
         """Test loading task details from task graph."""
         monkeypatch.setenv("ZERG_WORKER_ID", "0")
         monkeypatch.setenv("ZERG_FEATURE", "test-feature")
@@ -381,9 +379,7 @@ class TestTaskLoading:
                     assert "files" in task
                     assert "verification" in task
 
-    def test_load_task_details_missing(
-        self, tmp_path: Path, task_graph: Path, monkeypatch
-    ) -> None:
+    def test_load_task_details_missing(self, tmp_path: Path, task_graph: Path, monkeypatch) -> None:
         """Test loading non-existent task returns stub."""
         monkeypatch.setenv("ZERG_WORKER_ID", "0")
         monkeypatch.setenv("ZERG_FEATURE", "test-feature")

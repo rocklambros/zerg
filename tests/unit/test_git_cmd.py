@@ -990,9 +990,7 @@ class TestActionShip:
 
     @patch("zerg.commands.git_cmd.action_pr", return_value=0)
     @patch("zerg.commands.git_cmd.action_commit", return_value=0)
-    def test_ship_merge_falls_back_to_admin(
-        self, mock_commit: MagicMock, mock_pr: MagicMock
-    ) -> None:
+    def test_ship_merge_falls_back_to_admin(self, mock_commit: MagicMock, mock_pr: MagicMock) -> None:
         """Test ship falls back to admin merge when regular merge is blocked."""
         mock_git = MagicMock()
         mock_git.current_branch.return_value = "feature/auth"

@@ -1,10 +1,7 @@
 """Integration tests for Inception Mode - full workflow testing."""
 
-import os
 from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 from zerg.charter import ProjectCharter
 from zerg.commands.init import is_empty_project
@@ -182,7 +179,7 @@ class TestScaffoldIntegration:
             linter="ruff",
         )
 
-        files = scaffold_project(charter, stack, tmp_path)
+        scaffold_project(charter, stack, tmp_path)
 
         # Verify CLI-specific content
         pyproject = tmp_path / "pyproject.toml"

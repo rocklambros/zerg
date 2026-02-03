@@ -40,9 +40,7 @@ from zerg.commands.analyze import (
     SecurityChecker,
     _collect_files,
     _parse_thresholds,
-    analyze,
 )
-
 
 # =============================================================================
 # CheckType Enum Tests
@@ -55,9 +53,17 @@ class TestCheckType:
     def test_all_check_types_have_values(self) -> None:
         """Test that all check types have string values."""
         expected = {
-            "lint", "complexity", "coverage", "security", "performance",
-            "dead-code", "wiring", "cross-file", "conventions",
-            "import-chain", "context-engineering",
+            "lint",
+            "complexity",
+            "coverage",
+            "security",
+            "performance",
+            "dead-code",
+            "wiring",
+            "cross-file",
+            "conventions",
+            "import-chain",
+            "context-engineering",
         }
         actual = {ct.value for ct in CheckType}
         assert actual == expected
@@ -264,9 +270,7 @@ class TestLintChecker:
         """Test check handles CommandValidationError."""
         checker = LintChecker()
 
-        with patch.object(
-            checker._executor, "execute", side_effect=CommandValidationError("Bad command")
-        ):
+        with patch.object(checker._executor, "execute", side_effect=CommandValidationError("Bad command")):
             with patch.object(checker._executor, "sanitize_paths", return_value=["file.py"]):
                 result = checker.check(["file.py"])
 
@@ -278,9 +282,7 @@ class TestLintChecker:
         """Test check handles generic exceptions."""
         checker = LintChecker()
 
-        with patch.object(
-            checker._executor, "execute", side_effect=RuntimeError("Unexpected")
-        ):
+        with patch.object(checker._executor, "execute", side_effect=RuntimeError("Unexpected")):
             with patch.object(checker._executor, "sanitize_paths", return_value=["file.py"]):
                 result = checker.check(["file.py"])
 
@@ -449,9 +451,7 @@ class TestSecurityChecker:
         """Test check handles CommandValidationError gracefully."""
         checker = SecurityChecker()
 
-        with patch.object(
-            checker._executor, "execute", side_effect=CommandValidationError("Bad command")
-        ):
+        with patch.object(checker._executor, "execute", side_effect=CommandValidationError("Bad command")):
             with patch.object(checker._executor, "sanitize_paths", return_value=["file.py"]):
                 result = checker.check(["file.py"])
 
@@ -463,9 +463,7 @@ class TestSecurityChecker:
         """Test check handles generic exceptions gracefully."""
         checker = SecurityChecker()
 
-        with patch.object(
-            checker._executor, "execute", side_effect=RuntimeError("Unexpected")
-        ):
+        with patch.object(checker._executor, "execute", side_effect=RuntimeError("Unexpected")):
             with patch.object(checker._executor, "sanitize_paths", return_value=["file.py"]):
                 result = checker.check(["file.py"])
 
@@ -945,9 +943,7 @@ class TestAnalyzeCLI:
             mock_cmd_class.return_value = mock_cmd
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["analyze", "--check", "complexity", "--threshold", "complexity=15"]
-            )
+            result = runner.invoke(cli, ["analyze", "--check", "complexity", "--threshold", "complexity=15"])
 
             assert result.exit_code == 0
 
@@ -965,9 +961,7 @@ class TestAnalyzeCLI:
             mock_cmd_class.return_value = mock_cmd
 
             runner = CliRunner()
-            result = runner.invoke(
-                cli, ["analyze", "--check", "coverage", "--threshold", "coverage=80"]
-            )
+            result = runner.invoke(cli, ["analyze", "--check", "coverage", "--threshold", "coverage=80"])
 
             assert result.exit_code == 0
 

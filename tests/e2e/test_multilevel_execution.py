@@ -9,9 +9,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
+from zerg.constants import WorkerStatus
 from zerg.launcher import SpawnResult
-from zerg.levels import LevelController
 from zerg.orchestrator import Orchestrator
 
 
@@ -26,7 +25,7 @@ def multilevel_task_graph(tmp_path: Path):
         "levels": {
             "1": ["L1-TASK-001", "L1-TASK-002", "L1-TASK-003"],
             "2": ["L2-TASK-001", "L2-TASK-002"],
-            "3": ["L3-TASK-001"]
+            "3": ["L3-TASK-001"],
         },
         "tasks": {
             "L1-TASK-001": {
@@ -34,21 +33,21 @@ def multilevel_task_graph(tmp_path: Path):
                 "title": "Level 1 Task 1",
                 "level": 1,
                 "files": ["src/a.py"],
-                "verification": "true"
+                "verification": "true",
             },
             "L1-TASK-002": {
                 "id": "L1-TASK-002",
                 "title": "Level 1 Task 2",
                 "level": 1,
                 "files": ["src/b.py"],
-                "verification": "true"
+                "verification": "true",
             },
             "L1-TASK-003": {
                 "id": "L1-TASK-003",
                 "title": "Level 1 Task 3",
                 "level": 1,
                 "files": ["src/c.py"],
-                "verification": "true"
+                "verification": "true",
             },
             "L2-TASK-001": {
                 "id": "L2-TASK-001",
@@ -56,7 +55,7 @@ def multilevel_task_graph(tmp_path: Path):
                 "level": 2,
                 "files": ["src/d.py"],
                 "dependencies": ["L1-TASK-001", "L1-TASK-002"],
-                "verification": "true"
+                "verification": "true",
             },
             "L2-TASK-002": {
                 "id": "L2-TASK-002",
@@ -64,7 +63,7 @@ def multilevel_task_graph(tmp_path: Path):
                 "level": 2,
                 "files": ["src/e.py"],
                 "dependencies": ["L1-TASK-003"],
-                "verification": "true"
+                "verification": "true",
             },
             "L3-TASK-001": {
                 "id": "L3-TASK-001",
@@ -72,9 +71,9 @@ def multilevel_task_graph(tmp_path: Path):
                 "level": 3,
                 "files": ["src/main.py"],
                 "dependencies": ["L2-TASK-001", "L2-TASK-002"],
-                "verification": "true"
-            }
-        }
+                "verification": "true",
+            },
+        },
     }
 
     (zerg_dir / "task-graph.json").write_text(json.dumps(task_graph))
@@ -84,16 +83,17 @@ def multilevel_task_graph(tmp_path: Path):
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock all orchestrator dependencies."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner"),
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager"),
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator") as merge_mock,
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state_mock.return_value = state
@@ -163,9 +163,7 @@ def mock_orchestrator_deps():
 class TestLevelProgression:
     """Tests for level progression."""
 
-    def test_level_starts_at_one(
-        self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps
-    ) -> None:
+    def test_level_starts_at_one(self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps) -> None:
         """Test orchestration starts at level 1."""
         monkeypatch.chdir(multilevel_task_graph)
 
@@ -187,9 +185,7 @@ class TestLevelProgression:
         mock_orchestrator_deps["state"].set_level_status.assert_called()
         mock_orchestrator_deps["state"].append_event.assert_called()
 
-    def test_level_blocked_until_merge(
-        self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps
-    ) -> None:
+    def test_level_blocked_until_merge(self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps) -> None:
         """Test level doesn't advance until merge completes."""
         monkeypatch.chdir(multilevel_task_graph)
 
@@ -215,9 +211,7 @@ class TestTaskDependencies:
         """Test level 2 tasks wait for level 1 completion."""
         monkeypatch.chdir(multilevel_task_graph)
 
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "L1-TASK-001", "L1-TASK-002"
-        ]
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["L1-TASK-001", "L1-TASK-002"]
 
         orch = Orchestrator("multilevel-test")
 
@@ -226,16 +220,12 @@ class TestTaskDependencies:
         assert "L2-TASK-001" not in pending
         assert "L2-TASK-002" not in pending
 
-    def test_final_level_runs_after_all(
-        self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps
-    ) -> None:
+    def test_final_level_runs_after_all(self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps) -> None:
         """Test final level runs after all previous levels."""
         monkeypatch.chdir(multilevel_task_graph)
 
         mock_orchestrator_deps["levels"].current_level = 3
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = [
-            "L3-TASK-001"
-        ]
+        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["L3-TASK-001"]
 
         orch = Orchestrator("multilevel-test")
 
@@ -259,9 +249,7 @@ class TestLevelMerging:
 
         mock_orchestrator_deps["merge"].full_merge_flow.assert_called()
 
-    def test_merge_status_tracked(
-        self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps
-    ) -> None:
+    def test_merge_status_tracked(self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps) -> None:
         """Test merge status is tracked in state."""
         monkeypatch.chdir(multilevel_task_graph)
 
@@ -276,15 +264,11 @@ class TestLevelMerging:
 class TestParallelExecution:
     """Tests for parallel task execution within levels."""
 
-    def test_multiple_workers_per_level(
-        self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps
-    ) -> None:
+    def test_multiple_workers_per_level(self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps) -> None:
         """Test multiple workers execute level tasks in parallel."""
         monkeypatch.chdir(multilevel_task_graph)
 
-        mock_orchestrator_deps["levels"].start_level.return_value = [
-            "L1-TASK-001", "L1-TASK-002", "L1-TASK-003"
-        ]
+        mock_orchestrator_deps["levels"].start_level.return_value = ["L1-TASK-001", "L1-TASK-002", "L1-TASK-003"]
         mock_orchestrator_deps["ports"].allocate_one.side_effect = [49152, 49153, 49154]
 
         orch = Orchestrator("multilevel-test")
@@ -349,9 +333,7 @@ class TestCompletionTracking:
 class TestLevelStatusReporting:
     """Tests for level status reporting."""
 
-    def test_status_includes_feature(
-        self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps
-    ) -> None:
+    def test_status_includes_feature(self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps) -> None:
         """Test status includes feature name."""
         monkeypatch.chdir(multilevel_task_graph)
 
@@ -360,9 +342,7 @@ class TestLevelStatusReporting:
 
         assert status["feature"] == "multilevel-test"
 
-    def test_status_includes_workers(
-        self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps
-    ) -> None:
+    def test_status_includes_workers(self, multilevel_task_graph: Path, monkeypatch, mock_orchestrator_deps) -> None:
         """Test status includes worker info."""
         monkeypatch.chdir(multilevel_task_graph)
 

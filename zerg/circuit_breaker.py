@@ -85,10 +85,7 @@ class CircuitBreaker:
                 # Transition to HALF_OPEN
                 circuit.state = CircuitState.HALF_OPEN
                 circuit.last_state_change = time.monotonic()
-                logger.info(
-                    f"Worker {worker_id} circuit OPEN -> HALF_OPEN "
-                    f"(cooldown {elapsed:.0f}s elapsed)"
-                )
+                logger.info(f"Worker {worker_id} circuit OPEN -> HALF_OPEN (cooldown {elapsed:.0f}s elapsed)")
                 return True
             return False
 
@@ -111,13 +108,9 @@ class CircuitBreaker:
             circuit.state = CircuitState.CLOSED
             circuit.last_state_change = time.monotonic()
             circuit.half_open_task_id = None
-            logger.info(
-                f"Worker {worker_id} circuit HALF_OPEN -> CLOSED (probe succeeded)"
-            )
+            logger.info(f"Worker {worker_id} circuit HALF_OPEN -> CLOSED (probe succeeded)")
 
-    def record_failure(
-        self, worker_id: int, task_id: str | None = None, error: str = ""
-    ) -> None:
+    def record_failure(self, worker_id: int, task_id: str | None = None, error: str = "") -> None:
         """Record a failed task execution."""
         if not self._enabled:
             return
@@ -130,18 +123,14 @@ class CircuitBreaker:
             circuit.state = CircuitState.OPEN
             circuit.last_state_change = time.monotonic()
             circuit.half_open_task_id = None
-            logger.info(
-                f"Worker {worker_id} circuit HALF_OPEN -> OPEN "
-                f"(probe failed: {error})"
-            )
+            logger.info(f"Worker {worker_id} circuit HALF_OPEN -> OPEN (probe failed: {error})")
 
         elif circuit.state == CircuitState.CLOSED:
             if circuit.failure_count >= self._failure_threshold:
                 circuit.state = CircuitState.OPEN
                 circuit.last_state_change = time.monotonic()
                 logger.warning(
-                    f"Worker {worker_id} circuit CLOSED -> OPEN "
-                    f"({circuit.failure_count} consecutive failures)"
+                    f"Worker {worker_id} circuit CLOSED -> OPEN ({circuit.failure_count} consecutive failures)"
                 )
 
     def mark_half_open_task(self, worker_id: int, task_id: str) -> None:

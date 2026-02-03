@@ -161,9 +161,7 @@ class PortAllocator:
         tasks = [asyncio.to_thread(self.allocate_one) for _ in range(count)]
         return list(await asyncio.gather(*tasks))
 
-    async def allocate_for_worker_async(
-        self, worker_id: int, ports_per_worker: int = 1
-    ) -> list[int]:
+    async def allocate_for_worker_async(self, worker_id: int, ports_per_worker: int = 1) -> list[int]:
         """Allocate ports for a specific worker asynchronously.
 
         Args:

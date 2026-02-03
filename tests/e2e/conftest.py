@@ -1,12 +1,17 @@
 """Pytest fixtures for ZERG E2E testing."""
 
+from __future__ import annotations
+
 import os
-import shutil
 import subprocess
 import uuid
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from zerg.containers import ContainerManager
 
 from tests.e2e.harness import E2EHarness, E2EResult  # noqa: F401
 from tests.e2e.mock_worker import MockWorker
@@ -63,7 +68,7 @@ def sample_e2e_task_graph() -> dict:
                     "read": [],
                 },
                 "verification": {
-                    "command": "python -c \"import src.hello\"",
+                    "command": 'python -c "import src.hello"',
                     "timeout_seconds": 30,
                 },
             },
@@ -80,7 +85,7 @@ def sample_e2e_task_graph() -> dict:
                     "read": [],
                 },
                 "verification": {
-                    "command": "python -c \"import src.utils\"",
+                    "command": 'python -c "import src.utils"',
                     "timeout_seconds": 30,
                 },
             },
@@ -204,12 +209,15 @@ def docker_image() -> str:  # type: ignore[misc]
     tag = "zerg-test:session"
     subprocess.run(
         [
-            "docker", "build", "-t", tag, "-f", "-", ".",
+            "docker",
+            "build",
+            "-t",
+            tag,
+            "-f",
+            "-",
+            ".",
         ],
-        input=(
-            "FROM python:3.12-alpine\n"
-            "RUN apk add --no-cache bash git\n"
-        ),
+        input=("FROM python:3.12-alpine\nRUN apk add --no-cache bash git\n"),
         capture_output=True,
         text=True,
         check=True,
@@ -232,11 +240,17 @@ def docker_container(docker_image: str) -> tuple[str, str]:  # type: ignore[misc
     name = f"zerg-test-{uuid.uuid4().hex[:8]}"
     result = subprocess.run(
         [
-            "docker", "run", "-d",
-            "--name", name,
-            "--label", "zerg-test=true",
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            name,
+            "--label",
+            "zerg-test=true",
             docker_image,
-            "tail", "-f", "/dev/null",
+            "tail",
+            "-f",
+            "/dev/null",
         ],
         capture_output=True,
         text=True,
@@ -255,7 +269,7 @@ def docker_container(docker_image: str) -> tuple[str, str]:  # type: ignore[misc
 @pytest.fixture
 def container_manager_real(
     docker_container: tuple[str, str],
-) -> "ContainerManager":  # type: ignore[name-defined]
+) -> ContainerManager:
     """Real ContainerManager with a test container injected.
 
     Patches _check_docker to no-op and injects the test container

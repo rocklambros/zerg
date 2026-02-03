@@ -1,13 +1,9 @@
 """Integration tests for heartbeat wiring into launcher and orchestrator."""
 
 import json
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
-
-from zerg.constants import WorkerStatus
 from zerg.heartbeat import HeartbeatMonitor, HeartbeatWriter
 
 
@@ -17,7 +13,7 @@ class TestHeartbeatLauncherWiring:
     def test_stalled_worker_detected(self, tmp_path: Path) -> None:
         """Launcher.monitor() should return STALLED when heartbeat is stale."""
         # Write a stale heartbeat
-        old_time = (datetime.now(timezone.utc) - timedelta(seconds=200)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(seconds=200)).isoformat()
         hb_data = {
             "worker_id": 1,
             "timestamp": old_time,
@@ -35,7 +31,7 @@ class TestHeartbeatLauncherWiring:
 
     def test_healthy_worker_not_stalled(self, tmp_path: Path) -> None:
         """Launcher.monitor() should not return STALLED for fresh heartbeat."""
-        recent_time = datetime.now(timezone.utc).isoformat()
+        recent_time = datetime.now(UTC).isoformat()
         hb_data = {
             "worker_id": 1,
             "timestamp": recent_time,

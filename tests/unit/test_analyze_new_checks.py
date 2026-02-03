@@ -64,8 +64,7 @@ class TestDeadCodeChecker:
         mock_result = MagicMock()
         mock_result.success = False
         mock_result.stdout = (
-            "test.py:10: unused function 'foo' (80% confidence)\n"
-            "test.py:20: unused import 'bar' (90% confidence)"
+            "test.py:10: unused function 'foo' (80% confidence)\ntest.py:20: unused import 'bar' (90% confidence)"
         )
         with patch.object(checker, "_executor") as mock_exec:
             mock_exec.sanitize_paths.return_value = ["test.py"]

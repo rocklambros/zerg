@@ -8,7 +8,6 @@ from zerg.diagnostics.knowledge_base import (
     PatternMatcher,
 )
 
-
 # ---------------------------------------------------------------------------
 # KNOWN_PATTERNS collection
 # ---------------------------------------------------------------------------
@@ -24,18 +23,10 @@ class TestKnownPatterns:
         for pattern in KNOWN_PATTERNS:
             assert pattern.name, f"Pattern missing name: {pattern}"
             assert pattern.category, f"Pattern {pattern.name} missing category"
-            assert len(pattern.symptoms) >= 3, (
-                f"Pattern {pattern.name} has <3 symptoms"
-            )
-            assert 0 < pattern.prior_probability < 1, (
-                f"Pattern {pattern.name} prior out of (0,1)"
-            )
-            assert len(pattern.common_causes) >= 2, (
-                f"Pattern {pattern.name} has <2 common_causes"
-            )
-            assert len(pattern.fix_templates) >= 1, (
-                f"Pattern {pattern.name} has <1 fix_templates"
-            )
+            assert len(pattern.symptoms) >= 3, f"Pattern {pattern.name} has <3 symptoms"
+            assert 0 < pattern.prior_probability < 1, f"Pattern {pattern.name} prior out of (0,1)"
+            assert len(pattern.common_causes) >= 2, f"Pattern {pattern.name} has <2 common_causes"
+            assert len(pattern.fix_templates) >= 1, f"Pattern {pattern.name} has <1 fix_templates"
 
     def test_pattern_to_dict(self) -> None:
         p = KNOWN_PATTERNS[0]

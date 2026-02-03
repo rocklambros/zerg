@@ -33,13 +33,9 @@ class WorkersConfig(BaseModel):
     max_concurrent: int = Field(default=DEFAULT_WORKERS, ge=1, le=10)
     timeout_minutes: int = Field(default=DEFAULT_TIMEOUT_MINUTES, ge=1, le=120)
     retry_attempts: int = Field(default=DEFAULT_RETRY_ATTEMPTS, ge=0, le=10)
-    context_threshold_percent: int = Field(
-        default=int(DEFAULT_CONTEXT_THRESHOLD * 100), ge=50, le=90
-    )
+    context_threshold_percent: int = Field(default=int(DEFAULT_CONTEXT_THRESHOLD * 100), ge=50, le=90)
     launcher_type: str = Field(default="subprocess", pattern="^(subprocess|container)$")
-    backoff_strategy: str = Field(
-        default="exponential", pattern="^(exponential|linear|fixed)$"
-    )
+    backoff_strategy: str = Field(default="exponential", pattern="^(exponential|linear|fixed)$")
     backoff_base_seconds: int = Field(default=30, ge=1, le=600)
     backoff_max_seconds: int = Field(default=300, ge=1, le=3600)
     task_list_id: str | None = Field(
@@ -264,9 +260,7 @@ class TDDConfig(BaseModel):
 
     enabled: bool = False
     enforce_red_green: bool = True
-    anti_patterns: list[str] = Field(
-        default_factory=lambda: ["mock_heavy", "testing_impl", "no_assertions"]
-    )
+    anti_patterns: list[str] = Field(default_factory=lambda: ["mock_heavy", "testing_impl", "no_assertions"])
 
 
 class HeartbeatConfig(BaseModel):
@@ -299,9 +293,7 @@ class RepoMapConfig(BaseModel):
     """Repository symbol map configuration."""
 
     enabled: bool = Field(default=True)
-    languages: list[str] = Field(
-        default_factory=lambda: ["python", "javascript", "typescript"]
-    )
+    languages: list[str] = Field(default_factory=lambda: ["python", "javascript", "typescript"])
     max_tokens_per_module: int = Field(default=3000, ge=500, le=10000)
     context_budget_percent: int = Field(default=15, ge=5, le=30)
 
@@ -340,9 +332,7 @@ class ZergConfig(BaseModel):
     tdd: TDDConfig = Field(default_factory=TDDConfig)
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
     escalation: EscalationConfig = Field(default_factory=EscalationConfig)
-    verification_tiers: VerificationTiersConfig = Field(
-        default_factory=VerificationTiersConfig
-    )
+    verification_tiers: VerificationTiersConfig = Field(default_factory=VerificationTiersConfig)
     repo_map: RepoMapConfig = Field(default_factory=RepoMapConfig)
     token_metrics: TokenMetricsConfig = Field(default_factory=TokenMetricsConfig)
 

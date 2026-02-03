@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from zerg.validate_commands import (
     BACKBONE_COMMANDS,
     BACKBONE_MARKERS,
@@ -81,9 +79,7 @@ class TestValidateTaskReferences:
 
     def test_missing_ref_flagged(self, tmp_path: Path) -> None:
         """A command file without any Task marker must be flagged as an error."""
-        (tmp_path / "broken.md").write_text(
-            "# Broken Command\n\nThis file has no task markers at all.\n"
-        )
+        (tmp_path / "broken.md").write_text("# Broken Command\n\nThis file has no task markers at all.\n")
         passed, errors = validate_task_references(tmp_path)
         assert not passed
         assert len(errors) == 1
@@ -91,9 +87,7 @@ class TestValidateTaskReferences:
 
     def test_file_with_single_marker_passes(self, tmp_path: Path) -> None:
         """A file with at least one Task marker should pass validation."""
-        (tmp_path / "good.md").write_text(
-            "# Good Command\n\nRun TaskCreate to track this work.\n"
-        )
+        (tmp_path / "good.md").write_text("# Good Command\n\nRun TaskCreate to track this work.\n")
         passed, errors = validate_task_references(tmp_path)
         assert passed
         assert len(errors) == 0
@@ -115,9 +109,7 @@ class TestValidateBackboneDepth:
 
     def test_shallow_backbone_flagged(self, tmp_path: Path) -> None:
         """A backbone file with fewer than 3 backbone marker refs must be flagged."""
-        (tmp_path / "worker.md").write_text(
-            "# Worker Command\n\nUse TaskUpdate to claim the task.\n"
-        )
+        (tmp_path / "worker.md").write_text("# Worker Command\n\nUse TaskUpdate to claim the task.\n")
         passed, errors = validate_backbone_depth(tmp_path)
         assert not passed
         assert len(errors) >= 1
@@ -142,16 +134,11 @@ class TestValidateBackboneDepth:
 
     def test_non_backbone_file_ignored(self, tmp_path: Path) -> None:
         """Non-backbone files should not be checked for depth, even if shallow."""
-        deep_content = (
-            "# Command\n\n"
-            "TaskUpdate claim.\nTaskList check.\nTaskUpdate checkpoint.\nTaskGet verify.\n"
-        )
+        deep_content = "# Command\n\nTaskUpdate claim.\nTaskList check.\nTaskUpdate checkpoint.\nTaskGet verify.\n"
         # Provide all backbone files so they pass, then add a non-backbone file
         for cmd_name in BACKBONE_COMMANDS:
             (tmp_path / f"{cmd_name}.md").write_text(deep_content)
-        (tmp_path / "analyze.md").write_text(
-            "# Analyze\n\nRun TaskCreate to start.\n"
-        )
+        (tmp_path / "analyze.md").write_text("# Analyze\n\nRun TaskCreate to start.\n")
         passed, errors = validate_backbone_depth(tmp_path)
         assert passed
         assert len(errors) == 0
@@ -304,9 +291,7 @@ class TestValidateStateJsonWithoutTasks:
     def test_state_ref_with_taskget_passes(self, tmp_path: Path) -> None:
         """A file referencing .zerg/state that also references TaskGet should pass."""
         content = (
-            "# Good Command\n\n"
-            "Check `.zerg/state` for cached data.\n"
-            "Verify with TaskGet for authoritative state.\n"
+            "# Good Command\n\nCheck `.zerg/state` for cached data.\nVerify with TaskGet for authoritative state.\n"
         )
         (tmp_path / "goodget.md").write_text(content)
         passed, errors = validate_state_json_without_tasks(tmp_path)
@@ -334,26 +319,17 @@ class TestValidateAll:
         _passed, errors = validate_all(REAL_COMMANDS_DIR)
         known_patterns = ("state json", "orphaned module")
         for error in errors:
-            assert any(
-                pat in error.lower() for pat in known_patterns
-            ), f"Unexpected validation error: {error}"
+            assert any(pat in error.lower() for pat in known_patterns), f"Unexpected validation error: {error}"
 
     def test_aggregates_multiple_errors(self, tmp_path: Path) -> None:
         """Multiple bad files should produce aggregated errors from all checks."""
         # File 1: Missing Task references entirely
-        (tmp_path / "notask.md").write_text(
-            "# No Task Markers\n\nJust some plain text without any markers.\n"
-        )
+        (tmp_path / "notask.md").write_text("# No Task Markers\n\nJust some plain text without any markers.\n")
         # File 2: Backbone file with insufficient depth
-        (tmp_path / "worker.md").write_text(
-            "# Worker\n\nOnly one TaskUpdate here.\n"
-        )
+        (tmp_path / "worker.md").write_text("# Worker\n\nOnly one TaskUpdate here.\n")
         # File 3: State reference without TaskList/TaskGet
         (tmp_path / "stateonly.md").write_text(
-            "# State Only\n\n"
-            "Read `.zerg/state/rush-state.json`.\n"
-            "Run TaskCreate to track.\n"
-            "Run TaskUpdate to update.\n"
+            "# State Only\n\nRead `.zerg/state/rush-state.json`.\nRun TaskCreate to track.\nRun TaskUpdate to update.\n"
         )
         # File 4: Orphan core file
         (tmp_path / "orphan.core.md").write_text("# Orphan core")
@@ -371,9 +347,7 @@ class TestValidateAll:
         _passed, errors = validate_all(commands_dir=None)
         known_patterns = ("state json", "orphaned module")
         for error in errors:
-            assert any(
-                pat in error.lower() for pat in known_patterns
-            ), f"Unexpected validation error: {error}"
+            assert any(pat in error.lower() for pat in known_patterns), f"Unexpected validation error: {error}"
 
     def test_clean_directory_with_backbone(self, tmp_path: Path) -> None:
         """A directory with all backbone files present should pass all validations.
@@ -382,8 +356,7 @@ class TestValidateAll:
         so orphaned module warnings are expected and acceptable.
         """
         deep_content = (
-            "# Cmd\n\nTaskCreate start.\n"
-            "TaskUpdate claim.\nTaskList check.\nTaskUpdate done.\nTaskGet verify.\n"
+            "# Cmd\n\nTaskCreate start.\nTaskUpdate claim.\nTaskList check.\nTaskUpdate done.\nTaskGet verify.\n"
         )
         for cmd_name in BACKBONE_COMMANDS:
             (tmp_path / f"{cmd_name}.md").write_text(deep_content)
@@ -391,9 +364,7 @@ class TestValidateAll:
         assert passed
         # Only orphaned module warnings are acceptable
         for error in errors:
-            assert "orphaned module" in error.lower(), (
-                f"Unexpected error: {error}"
-            )
+            assert "orphaned module" in error.lower(), f"Unexpected error: {error}"
 
 
 class TestModuleConstants:
@@ -445,10 +416,13 @@ class TestValidateModuleWiring:
 
     def test_module_with_production_import_passes(self, tmp_path: Path) -> None:
         """A module imported by another production module should not be flagged."""
-        pkg = self._create_package(tmp_path, {
-            "core.py": "def do_stuff(): pass\n",
-            "main.py": "from mypkg.core import do_stuff\ndo_stuff()\n",
-        })
+        pkg = self._create_package(
+            tmp_path,
+            {
+                "core.py": "def do_stuff(): pass\n",
+                "main.py": "from mypkg.core import do_stuff\ndo_stuff()\n",
+            },
+        )
         tests_dir = tmp_path / "tests"
         tests_dir.mkdir()
         passed, messages = validate_module_wiring(pkg, tests_dir)
@@ -460,14 +434,15 @@ class TestValidateModuleWiring:
 
     def test_module_with_only_test_imports_warns(self, tmp_path: Path) -> None:
         """A module imported only by test files should be flagged as orphaned."""
-        pkg = self._create_package(tmp_path, {
-            "orphan.py": "def helper(): pass\n",
-        })
+        pkg = self._create_package(
+            tmp_path,
+            {
+                "orphan.py": "def helper(): pass\n",
+            },
+        )
         tests_dir = tmp_path / "tests"
         tests_dir.mkdir()
-        (tests_dir / "test_orphan.py").write_text(
-            "from mypkg.orphan import helper\n"
-        )
+        (tests_dir / "test_orphan.py").write_text("from mypkg.orphan import helper\n")
         passed, messages = validate_module_wiring(pkg, tests_dir)
         assert len(messages) >= 1
         flagged_text = " ".join(messages)
@@ -484,9 +459,12 @@ class TestValidateModuleWiring:
 
     def test_main_py_exempt(self, tmp_path: Path) -> None:
         """__main__.py files must be exempt from wiring check."""
-        pkg = self._create_package(tmp_path, {
-            "__main__.py": "print('hello')\n",
-        })
+        pkg = self._create_package(
+            tmp_path,
+            {
+                "__main__.py": "print('hello')\n",
+            },
+        )
         tests_dir = tmp_path / "tests"
         tests_dir.mkdir()
         passed, messages = validate_module_wiring(pkg, tests_dir)
@@ -495,9 +473,12 @@ class TestValidateModuleWiring:
 
     def test_entry_point_with_name_guard_exempt(self, tmp_path: Path) -> None:
         """Files containing 'if __name__' must be exempt."""
-        pkg = self._create_package(tmp_path, {
-            "cli.py": "def main(): pass\nif __name__ == '__main__':\n    main()\n",
-        })
+        pkg = self._create_package(
+            tmp_path,
+            {
+                "cli.py": "def main(): pass\nif __name__ == '__main__':\n    main()\n",
+            },
+        )
         tests_dir = tmp_path / "tests"
         tests_dir.mkdir()
         passed, messages = validate_module_wiring(pkg, tests_dir)
@@ -506,9 +487,12 @@ class TestValidateModuleWiring:
 
     def test_warning_mode_always_passes(self, tmp_path: Path) -> None:
         """In warning mode (strict=False), result should always be True."""
-        pkg = self._create_package(tmp_path, {
-            "orphan.py": "def unused(): pass\n",
-        })
+        pkg = self._create_package(
+            tmp_path,
+            {
+                "orphan.py": "def unused(): pass\n",
+            },
+        )
         tests_dir = tmp_path / "tests"
         tests_dir.mkdir()
         passed, messages = validate_module_wiring(pkg, tests_dir, strict=False)
@@ -517,9 +501,12 @@ class TestValidateModuleWiring:
 
     def test_strict_mode_fails_on_orphan(self, tmp_path: Path) -> None:
         """In strict mode, orphaned modules must cause failure."""
-        pkg = self._create_package(tmp_path, {
-            "orphan.py": "def unused(): pass\n",
-        })
+        pkg = self._create_package(
+            tmp_path,
+            {
+                "orphan.py": "def unused(): pass\n",
+            },
+        )
         tests_dir = tmp_path / "tests"
         tests_dir.mkdir()
         passed, messages = validate_module_wiring(pkg, tests_dir, strict=True)
@@ -528,10 +515,13 @@ class TestValidateModuleWiring:
 
     def test_relative_import_detected(self, tmp_path: Path) -> None:
         """A module imported via relative import should not be flagged."""
-        pkg = self._create_package(tmp_path, {
-            "utils.py": "def helper(): pass\n",
-            "service.py": "from .utils import helper\nhelper()\n",
-        })
+        pkg = self._create_package(
+            tmp_path,
+            {
+                "utils.py": "def helper(): pass\n",
+                "service.py": "from .utils import helper\nhelper()\n",
+            },
+        )
         tests_dir = tmp_path / "tests"
         tests_dir.mkdir()
         passed, messages = validate_module_wiring(pkg, tests_dir)

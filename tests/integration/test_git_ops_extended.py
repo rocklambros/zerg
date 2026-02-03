@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from zerg.exceptions import GitError, MergeConflictError
-from zerg.git_ops import BranchInfo, GitOps
+from zerg.git_ops import GitOps
 
 
 @pytest.fixture

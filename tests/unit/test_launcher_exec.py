@@ -3,19 +3,12 @@
 Tests BF-008: Launcher exec return value check and process verification.
 """
 
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from tests.mocks.mock_launcher import (
-    ExecAttempt,
     MockContainerLauncher,
-    SpawnAttempt,
 )
 from zerg.constants import WorkerStatus
-from zerg.launcher import SpawnResult
 
 
 class TestExecReturnValue:

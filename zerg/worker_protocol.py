@@ -134,9 +134,7 @@ class WorkerProtocol:
         self.state = StateManager(self.feature, state_dir=state_dir)
         self.verifier = VerificationExecutor()
         self.git = GitOps(self.worktree_path)
-        self.context_tracker = ContextTracker(
-            threshold_percent=self.context_threshold * 100
-        )
+        self.context_tracker = ContextTracker(threshold_percent=self.context_threshold * 100)
 
         # Task parser for loading task details
         self.task_parser: TaskParser | None = None
@@ -189,13 +187,11 @@ class WorkerProtocol:
 
         # Plugin registry (optional, for lifecycle hooks)
         self._plugin_registry = plugin_registry
-        has_plugins = hasattr(self.config, 'plugins') and self.config.plugins.enabled
+        has_plugins = hasattr(self.config, "plugins") and self.config.plugins.enabled
         if self._plugin_registry is None and has_plugins:
             try:
                 self._plugin_registry = PluginRegistry()
-                self._plugin_registry.load_yaml_hooks(
-                    [h.model_dump() for h in self.config.plugins.hooks]
-                )
+                self._plugin_registry.load_yaml_hooks([h.model_dump() for h in self.config.plugins.hooks])
                 self._plugin_registry.load_entry_points()
             except Exception as e:
                 logger.warning(f"Failed to initialize plugin registry: {e}")
@@ -289,11 +285,14 @@ class WorkerProtocol:
 
         self._is_ready = True
         self.state.set_worker_ready(self.worker_id)
-        self.state.append_event("worker_ready", {
-            "worker_id": self.worker_id,
-            "worktree": str(self.worktree_path),
-            "branch": self.branch,
-        })
+        self.state.append_event(
+            "worker_ready",
+            {
+                "worker_id": self.worker_id,
+                "worktree": str(self.worktree_path),
+                "branch": self.branch,
+            },
+        )
 
     def wait_for_ready(self, timeout: float = 30.0) -> bool:
         """Wait until worker is ready.
@@ -383,9 +382,7 @@ class WorkerProtocol:
 
             attempt += 1
             if attempt == 1:
-                logger.info(
-                    f"No tasks available yet, polling (max {max_wait}s)..."
-                )
+                logger.info(f"No tasks available yet, polling (max {max_wait}s)...")
 
             time.sleep(interval)
             interval = min(interval * 1.5, 10.0)  # backoff, cap at 10s
@@ -439,9 +436,7 @@ class WorkerProtocol:
 
             attempt += 1
             if attempt == 1:
-                logger.info(
-                    f"No tasks available yet, polling (max {max_wait}s)..."
-                )
+                logger.info(f"No tasks available yet, polling (max {max_wait}s)...")
 
             await asyncio.sleep(interval)
             interval = min(interval * 1.5, 10.0)  # backoff, cap at 10s
@@ -503,17 +498,22 @@ class WorkerProtocol:
         # Emit structured event
         if self._structured_writer:
             self._structured_writer.emit(
-                "info", f"Task {task_id} started",
-                task_id=task_id, phase=LogPhase.EXECUTE, event=LogEvent.TASK_STARTED,
+                "info",
+                f"Task {task_id} started",
+                task_id=task_id,
+                phase=LogPhase.EXECUTE,
+                event=LogEvent.TASK_STARTED,
             )
 
         # Emit plugin lifecycle event
         if self._plugin_registry:
             with contextlib.suppress(Exception):
-                self._plugin_registry.emit_event(LifecycleEvent(
-                    event_type=PluginHookEvent.TASK_STARTED.value,
-                    data={"task_id": task_id, "worker_id": self.worker_id, "feature": self.feature},
-                ))
+                self._plugin_registry.emit_event(
+                    LifecycleEvent(
+                        event_type=PluginHookEvent.TASK_STARTED.value,
+                        data={"task_id": task_id, "worker_id": self.worker_id, "feature": self.feature},
+                    )
+                )
 
         success = False
         try:
@@ -522,25 +522,33 @@ class WorkerProtocol:
 
             # Capture Claude output
             artifact.capture_claude_output(claude_result.stdout, claude_result.stderr)
-            artifact.write_event({
-                "event": "claude_invocation",
-                "success": claude_result.success,
-                "exit_code": claude_result.exit_code,
-                "duration_ms": claude_result.duration_ms,
-            })
+            artifact.write_event(
+                {
+                    "event": "claude_invocation",
+                    "success": claude_result.success,
+                    "exit_code": claude_result.exit_code,
+                    "duration_ms": claude_result.duration_ms,
+                }
+            )
 
             if not claude_result.success:
                 logger.error(f"Claude Code invocation failed for {task_id}")
-                self.state.append_event("claude_failed", {
-                    "task_id": task_id,
-                    "worker_id": self.worker_id,
-                    "exit_code": claude_result.exit_code,
-                    "stderr": claude_result.stderr[:500],
-                })
+                self.state.append_event(
+                    "claude_failed",
+                    {
+                        "task_id": task_id,
+                        "worker_id": self.worker_id,
+                        "exit_code": claude_result.exit_code,
+                        "stderr": claude_result.stderr[:500],
+                    },
+                )
                 if self._structured_writer:
                     self._structured_writer.emit(
-                        "error", f"Task {task_id} failed: Claude invocation failed",
-                        task_id=task_id, phase=LogPhase.EXECUTE, event=LogEvent.TASK_FAILED,
+                        "error",
+                        f"Task {task_id} failed: Claude invocation failed",
+                        task_id=task_id,
+                        phase=LogPhase.EXECUTE,
+                        event=LogEvent.TASK_FAILED,
                     )
                 return False
 
@@ -549,8 +557,11 @@ class WorkerProtocol:
                 logger.error(f"Verification failed for {task_id}")
                 if self._structured_writer:
                     self._structured_writer.emit(
-                        "error", f"Task {task_id} verification failed",
-                        task_id=task_id, phase=LogPhase.VERIFY, event=LogEvent.VERIFICATION_FAILED,
+                        "error",
+                        f"Task {task_id} verification failed",
+                        task_id=task_id,
+                        phase=LogPhase.VERIFY,
+                        event=LogEvent.VERIFICATION_FAILED,
                     )
                 return False
 
@@ -570,45 +581,62 @@ class WorkerProtocol:
 
             if self._structured_writer:
                 self._structured_writer.emit(
-                    "info", f"Task {task_id} completed",
-                    task_id=task_id, phase=LogPhase.EXECUTE, event=LogEvent.TASK_COMPLETED,
+                    "info",
+                    f"Task {task_id} completed",
+                    task_id=task_id,
+                    phase=LogPhase.EXECUTE,
+                    event=LogEvent.TASK_COMPLETED,
                     duration_ms=duration,
                 )
 
             # Emit plugin lifecycle event
             if self._plugin_registry:
                 with contextlib.suppress(Exception):
-                    self._plugin_registry.emit_event(LifecycleEvent(
-                        event_type=PluginHookEvent.TASK_COMPLETED.value,
-                        data={
-                            "task_id": task_id, "worker_id": self.worker_id,
-                            "success": True, "duration_ms": duration,
-                        },
-                    ))
+                    self._plugin_registry.emit_event(
+                        LifecycleEvent(
+                            event_type=PluginHookEvent.TASK_COMPLETED.value,
+                            data={
+                                "task_id": task_id,
+                                "worker_id": self.worker_id,
+                                "success": True,
+                                "duration_ms": duration,
+                            },
+                        )
+                    )
 
             return True
 
         except Exception as e:
             logger.error(f"Task {task_id} failed: {e}")
-            self.state.append_event("task_exception", {
-                "task_id": task_id,
-                "worker_id": self.worker_id,
-                "error": str(e),
-            })
+            self.state.append_event(
+                "task_exception",
+                {
+                    "task_id": task_id,
+                    "worker_id": self.worker_id,
+                    "error": str(e),
+                },
+            )
             if self._structured_writer:
                 self._structured_writer.emit(
-                    "error", f"Task {task_id} exception: {e}",
-                    task_id=task_id, phase=LogPhase.EXECUTE, event=LogEvent.TASK_FAILED,
+                    "error",
+                    f"Task {task_id} exception: {e}",
+                    task_id=task_id,
+                    phase=LogPhase.EXECUTE,
+                    event=LogEvent.TASK_FAILED,
                 )
             if self._plugin_registry:
                 with contextlib.suppress(Exception):
-                    self._plugin_registry.emit_event(LifecycleEvent(
-                        event_type=PluginHookEvent.TASK_COMPLETED.value,
-                        data={
-                            "task_id": task_id, "worker_id": self.worker_id,
-                            "success": False, "error": str(e),
-                        },
-                    ))
+                    self._plugin_registry.emit_event(
+                        LifecycleEvent(
+                            event_type=PluginHookEvent.TASK_COMPLETED.value,
+                            data={
+                                "task_id": task_id,
+                                "worker_id": self.worker_id,
+                                "success": False,
+                                "error": str(e),
+                            },
+                        )
+                    )
             return False
         finally:
             # Clean up artifacts based on retention policy
@@ -736,8 +764,8 @@ class WorkerProtocol:
         parts = []
 
         # Inject task-scoped context if available, otherwise fall back to full spec context
-        if task_context := task.get('context'):
-            parts.append('# Task Context (Scoped)')
+        if task_context := task.get("context"):
+            parts.append("# Task Context (Scoped)")
             parts.append(task_context)
         elif self._spec_context:
             parts.append(self._spec_context)
@@ -822,26 +850,35 @@ class WorkerProtocol:
 
         if result.success:
             logger.info(f"Verification passed for {task_id}")
-            self.state.append_event("verification_passed", {
-                "task_id": task_id,
-                "worker_id": self.worker_id,
-                "duration_ms": result.duration_ms,
-            })
+            self.state.append_event(
+                "verification_passed",
+                {
+                    "task_id": task_id,
+                    "worker_id": self.worker_id,
+                    "duration_ms": result.duration_ms,
+                },
+            )
             if self._structured_writer:
                 self._structured_writer.emit(
-                    "info", f"Verification passed for {task_id}",
-                    task_id=task_id, phase=LogPhase.VERIFY, event=LogEvent.VERIFICATION_PASSED,
+                    "info",
+                    f"Verification passed for {task_id}",
+                    task_id=task_id,
+                    phase=LogPhase.VERIFY,
+                    event=LogEvent.VERIFICATION_PASSED,
                     duration_ms=result.duration_ms,
                 )
             return True
         else:
             logger.error(f"Verification failed for {task_id}: {result.stderr}")
-            self.state.append_event("verification_failed", {
-                "task_id": task_id,
-                "worker_id": self.worker_id,
-                "exit_code": result.exit_code,
-                "stderr": result.stderr[:500],
-            })
+            self.state.append_event(
+                "verification_failed",
+                {
+                    "task_id": task_id,
+                    "worker_id": self.worker_id,
+                    "exit_code": result.exit_code,
+                    "stderr": result.stderr[:500],
+                },
+            )
             return False
 
     def commit_task_changes(self, task: Task, artifact: TaskArtifactCapture | None = None) -> bool:
@@ -868,13 +905,17 @@ class WorkerProtocol:
                     diff_result = subprocess.run(
                         ["git", "diff", "--cached"],
                         cwd=str(self.worktree_path),
-                        capture_output=True, text=True, timeout=30,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
                     )
                     # Also get unstaged diff
                     unstaged = subprocess.run(
                         ["git", "diff"],
                         cwd=str(self.worktree_path),
-                        capture_output=True, text=True, timeout=30,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
                     )
                     diff_text = diff_result.stdout + unstaged.stdout
                     if diff_text:
@@ -895,34 +936,43 @@ class WorkerProtocol:
             head_after = self.git.current_commit()
             if head_before == head_after:
                 logger.error(f"Commit succeeded but HEAD unchanged for {task_id}")
-                self.state.append_event("commit_verification_failed", {
-                    "task_id": task_id,
-                    "worker_id": self.worker_id,
-                    "head_before": head_before,
-                    "head_after": head_after,
-                    "error": "HEAD unchanged after commit",
-                })
+                self.state.append_event(
+                    "commit_verification_failed",
+                    {
+                        "task_id": task_id,
+                        "worker_id": self.worker_id,
+                        "head_before": head_before,
+                        "head_after": head_after,
+                        "error": "HEAD unchanged after commit",
+                    },
+                )
                 return False
 
             logger.info(f"Committed changes for {task_id}: {head_after[:8]}")
 
             # Include commit_sha in event (BF-009)
-            self.state.append_event("task_committed", {
-                "task_id": task_id,
-                "worker_id": self.worker_id,
-                "branch": self.branch,
-                "commit_sha": head_after,
-            })
+            self.state.append_event(
+                "task_committed",
+                {
+                    "task_id": task_id,
+                    "worker_id": self.worker_id,
+                    "branch": self.branch,
+                    "commit_sha": head_after,
+                },
+            )
 
             return True
 
         except Exception as e:
             logger.error(f"Commit failed for {task_id}: {e}")
-            self.state.append_event("commit_failed", {
-                "task_id": task_id,
-                "worker_id": self.worker_id,
-                "error": str(e),
-            })
+            self.state.append_event(
+                "commit_failed",
+                {
+                    "task_id": task_id,
+                    "worker_id": self.worker_id,
+                    "error": str(e),
+                },
+            )
             return False
 
     def report_complete(self, task_id: str) -> None:
@@ -934,10 +984,13 @@ class WorkerProtocol:
         logger.info(f"Task {task_id} complete")
 
         self.state.set_task_status(task_id, TaskStatus.COMPLETE, worker_id=self.worker_id)
-        self.state.append_event("task_complete", {
-            "task_id": task_id,
-            "worker_id": self.worker_id,
-        })
+        self.state.append_event(
+            "task_complete",
+            {
+                "task_id": task_id,
+                "worker_id": self.worker_id,
+            },
+        )
 
         self.tasks_completed += 1
         self.current_task = None
@@ -962,11 +1015,14 @@ class WorkerProtocol:
             worker_id=self.worker_id,
             error=error,
         )
-        self.state.append_event("task_failed", {
-            "task_id": task_id,
-            "worker_id": self.worker_id,
-            "error": error,
-        })
+        self.state.append_event(
+            "task_failed",
+            {
+                "task_id": task_id,
+                "worker_id": self.worker_id,
+                "error": error,
+            },
+        )
 
         self.current_task = None
         self._update_worker_state(WorkerStatus.RUNNING, current_task=None)
@@ -1026,11 +1082,14 @@ class WorkerProtocol:
             )
 
         # Log checkpoint
-        self.state.append_event("worker_checkpoint", {
-            "worker_id": self.worker_id,
-            "tasks_completed": self.tasks_completed,
-            "current_task": self.current_task["id"] if self.current_task else None,
-        })
+        self.state.append_event(
+            "worker_checkpoint",
+            {
+                "worker_id": self.worker_id,
+                "tasks_completed": self.tasks_completed,
+                "current_task": self.current_task["id"] if self.current_task else None,
+            },
+        )
 
         self._update_worker_state(WorkerStatus.CHECKPOINTING)
         logger.info(f"Worker {self.worker_id} checkpointed - exiting")

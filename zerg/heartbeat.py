@@ -6,7 +6,7 @@ import json
 import os
 import tempfile
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -47,8 +47,8 @@ class Heartbeat:
         try:
             ts = datetime.fromisoformat(self.timestamp)
             if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-            now = datetime.now(timezone.utc)
+                ts = ts.replace(tzinfo=UTC)
+            now = datetime.now(UTC)
             return (now - ts).total_seconds() > timeout_seconds
         except (ValueError, TypeError):
             return True
@@ -75,7 +75,7 @@ class HeartbeatWriter:
         """Write a heartbeat file atomically (temp+rename)."""
         heartbeat = Heartbeat(
             worker_id=self._worker_id,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             task_id=task_id,
             step=step,
             progress_pct=max(0, min(100, progress_pct)),
@@ -83,15 +83,14 @@ class HeartbeatWriter:
 
         target = self.heartbeat_path
         try:
-            fd, tmp_path = tempfile.mkstemp(
-                dir=str(self._state_dir), suffix=".tmp"
-            )
+            fd, tmp_path = tempfile.mkstemp(dir=str(self._state_dir), suffix=".tmp")
             with os.fdopen(fd, "w") as f:
                 json.dump(heartbeat.to_dict(), f)
             os.replace(tmp_path, str(target))
         except OSError:
             logger.debug(
-                "Failed to write heartbeat for worker %d", self._worker_id,
+                "Failed to write heartbeat for worker %d",
+                self._worker_id,
                 exc_info=True,
             )
         return heartbeat
@@ -129,9 +128,7 @@ class HeartbeatMonitor:
         """
         self._state_dir = Path(state_dir) if state_dir else Path(STATE_DIR)
         self._stale_timeout_seconds = (
-            stale_timeout_seconds
-            if stale_timeout_seconds is not None
-            else self.DEFAULT_STALE_TIMEOUT_SECONDS
+            stale_timeout_seconds if stale_timeout_seconds is not None else self.DEFAULT_STALE_TIMEOUT_SECONDS
         )
 
     @property
@@ -142,9 +139,9 @@ class HeartbeatMonitor:
     @classmethod
     def from_config(
         cls,
-        config: "HeartbeatConfig",
+        config: HeartbeatConfig,
         state_dir: str | Path | None = None,
-    ) -> "HeartbeatMonitor":
+    ) -> HeartbeatMonitor:
         """Create HeartbeatMonitor from HeartbeatConfig.
 
         Args:
@@ -169,7 +166,8 @@ class HeartbeatMonitor:
             return Heartbeat.from_dict(data)
         except (json.JSONDecodeError, KeyError, OSError):
             logger.debug(
-                "Failed to read heartbeat for worker %d", worker_id,
+                "Failed to read heartbeat for worker %d",
+                worker_id,
                 exc_info=True,
             )
             return None
@@ -188,9 +186,7 @@ class HeartbeatMonitor:
                 continue
         return result
 
-    def check_stale(
-        self, worker_id: int, timeout_seconds: int | None = None
-    ) -> bool:
+    def check_stale(self, worker_id: int, timeout_seconds: int | None = None) -> bool:
         """Return True if worker's heartbeat is stale or missing.
 
         Args:
@@ -204,14 +200,10 @@ class HeartbeatMonitor:
         hb = self.read(worker_id)
         if hb is None:
             return True
-        effective_timeout = (
-            timeout_seconds if timeout_seconds is not None else self._stale_timeout_seconds
-        )
+        effective_timeout = timeout_seconds if timeout_seconds is not None else self._stale_timeout_seconds
         return hb.is_stale(effective_timeout)
 
-    def get_stalled_workers(
-        self, worker_ids: list[int], timeout_seconds: int | None = None
-    ) -> list[int]:
+    def get_stalled_workers(self, worker_ids: list[int], timeout_seconds: int | None = None) -> list[int]:
         """Return worker IDs whose heartbeats are stale.
 
         Args:
@@ -222,9 +214,7 @@ class HeartbeatMonitor:
         Returns:
             List of worker IDs with stale or missing heartbeats.
         """
-        effective_timeout = (
-            timeout_seconds if timeout_seconds is not None else self._stale_timeout_seconds
-        )
+        effective_timeout = timeout_seconds if timeout_seconds is not None else self._stale_timeout_seconds
         stalled = []
         for wid in worker_ids:
             if self.check_stale(wid, effective_timeout):

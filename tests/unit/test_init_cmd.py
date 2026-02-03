@@ -202,9 +202,7 @@ class TestIsEmptyProject:
         (tmp_path / "notes.txt").write_text("Some notes")
         assert is_empty_project(tmp_path) is True
 
-    def test_uses_current_directory_by_default(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_uses_current_directory_by_default(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test that is_empty_project uses current directory by default."""
         monkeypatch.chdir(tmp_path)
         # Create a Python file to make it non-empty
@@ -220,9 +218,7 @@ class TestIsEmptyProject:
 class TestDetectProjectType:
     """Tests for project type detection."""
 
-    def test_detect_returns_none_when_no_languages(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_returns_none_when_no_languages(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test that detect_project_type returns None when no languages detected."""
         monkeypatch.chdir(tmp_path)
         # Empty directory - no files
@@ -232,9 +228,7 @@ class TestDetectProjectType:
             result = detect_project_type()
             assert result is None
 
-    def test_detect_returns_stack_when_languages_found(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_detect_returns_stack_when_languages_found(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test that detect_project_type returns stack when languages are detected."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / "test.py").write_text("print(1)")
@@ -315,9 +309,7 @@ class TestGetPrimaryLanguage:
 class TestCreateDirectoryStructure:
     """Tests for directory creation."""
 
-    def test_creates_all_directories(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_creates_all_directories(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test that all required directories are created."""
         monkeypatch.chdir(tmp_path)
 
@@ -493,9 +485,7 @@ class TestGetDefaultMcpServers:
 class TestSaveConfig:
     """Tests for configuration file saving."""
 
-    def test_saves_yaml_when_available(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_saves_yaml_when_available(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test that config is saved as YAML when yaml module is available."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -508,9 +498,7 @@ class TestSaveConfig:
         yaml_path = tmp_path / ".zerg" / "config.yaml"
         assert yaml_path.exists()
 
-    def test_saves_json_when_yaml_import_fails(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_saves_json_when_yaml_import_fails(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test that config falls back to JSON when YAML import fails."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
@@ -545,9 +533,7 @@ class TestSaveConfig:
 class TestCreateDevcontainer:
     """Tests for devcontainer creation."""
 
-    def test_creates_devcontainer_with_stack(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_creates_devcontainer_with_stack(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test devcontainer creation with detected stack."""
         monkeypatch.chdir(tmp_path)
 
@@ -558,18 +544,14 @@ class TestCreateDevcontainer:
             patch("zerg.commands.init.DynamicDevcontainerGenerator") as mock_gen,
         ):
             mock_instance = mock_gen.return_value
-            mock_instance.write_devcontainer.return_value = Path(
-                ".devcontainer/devcontainer.json"
-            )
+            mock_instance.write_devcontainer.return_value = Path(".devcontainer/devcontainer.json")
 
             create_devcontainer(stack, "standard")
 
             mock_instance.write_devcontainer.assert_called_once()
             mock_instance.generate_worker_entry_script.assert_called_once()
 
-    def test_creates_devcontainer_without_stack(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_creates_devcontainer_without_stack(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test devcontainer creation without detected stack."""
         monkeypatch.chdir(tmp_path)
 
@@ -578,9 +560,7 @@ class TestCreateDevcontainer:
             patch("zerg.commands.init.DynamicDevcontainerGenerator") as mock_gen,
         ):
             mock_instance = mock_gen.return_value
-            mock_instance.write_devcontainer.return_value = Path(
-                ".devcontainer/devcontainer.json"
-            )
+            mock_instance.write_devcontainer.return_value = Path(".devcontainer/devcontainer.json")
 
             create_devcontainer(None, "standard")
 
@@ -612,9 +592,7 @@ def _is_devcontainer_build(cmd: list[str]) -> bool:
 class TestBuildDevcontainer:
     """Tests for devcontainer building."""
 
-    def test_returns_false_when_no_devcontainer_dir(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_returns_false_when_no_devcontainer_dir(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test returns False when .devcontainer doesn't exist."""
         monkeypatch.chdir(tmp_path)
 
@@ -623,9 +601,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_returns_false_when_docker_not_found(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_returns_false_when_docker_not_found(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test returns False when Docker is not installed."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".devcontainer").mkdir()
@@ -638,9 +614,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_returns_false_when_docker_not_running(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_returns_false_when_docker_not_running(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test returns False when Docker is not running."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".devcontainer").mkdir()
@@ -656,37 +630,27 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_returns_false_when_docker_timeout(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_returns_false_when_docker_timeout(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test returns False when Docker times out."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".devcontainer").mkdir()
 
         with (
             patch("zerg.commands.init.console"),
-            patch(
-                "subprocess.run", side_effect=subprocess.TimeoutExpired("docker", 10)
-            ),
+            patch("subprocess.run", side_effect=subprocess.TimeoutExpired("docker", 10)),
         ):
             result = build_devcontainer()
 
         assert result is False
 
-    def test_builds_with_devcontainer_cli(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_builds_with_devcontainer_cli(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test builds using devcontainer CLI when available."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".devcontainer").mkdir()
 
         def mock_run(cmd, **kwargs):  # noqa: ARG001
             result = MagicMock()
-            if (
-                _is_docker_info(cmd)
-                or _is_devcontainer_version(cmd)
-                or _is_devcontainer_build(cmd)
-            ):
+            if _is_docker_info(cmd) or _is_devcontainer_version(cmd) or _is_devcontainer_build(cmd):
                 result.returncode = 0
             else:
                 result.returncode = 1
@@ -700,9 +664,7 @@ class TestBuildDevcontainer:
 
         assert result is True
 
-    def test_build_failure_with_devcontainer_cli(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_build_failure_with_devcontainer_cli(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test handles devcontainer CLI build failure."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".devcontainer").mkdir()
@@ -726,9 +688,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_build_timeout_with_devcontainer_cli(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_build_timeout_with_devcontainer_cli(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test handles devcontainer CLI build timeout."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".devcontainer").mkdir()
@@ -751,9 +711,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_builds_with_docker_compose(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_builds_with_docker_compose(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test builds using docker-compose when devcontainer CLI unavailable."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"
@@ -781,9 +739,7 @@ class TestBuildDevcontainer:
 
         assert result is True
 
-    def test_docker_compose_build_failure(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_docker_compose_build_failure(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test handles docker-compose build failure."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"
@@ -811,9 +767,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_docker_compose_timeout(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_docker_compose_timeout(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test handles docker-compose timeout."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"
@@ -840,9 +794,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_builds_with_dockerfile(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_builds_with_dockerfile(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test builds using plain Dockerfile when no compose or CLI."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"
@@ -870,9 +822,7 @@ class TestBuildDevcontainer:
 
         assert result is True
 
-    def test_dockerfile_build_failure(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_dockerfile_build_failure(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test handles Dockerfile build failure."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"
@@ -900,9 +850,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_dockerfile_build_timeout(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_dockerfile_build_timeout(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test handles Dockerfile build timeout."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"
@@ -929,9 +877,7 @@ class TestBuildDevcontainer:
 
         assert result is False
 
-    def test_returns_false_when_no_dockerfile(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_returns_false_when_no_dockerfile(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test returns False when no Dockerfile found."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"
@@ -1033,9 +979,7 @@ class TestInitCommand:
         assert "--security" in result.output
         assert "--force" in result.output
 
-    def test_init_creates_directories(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_creates_directories(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init creates required directories."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1046,9 +990,7 @@ class TestInitCommand:
         assert (tmp_path / ".zerg").exists()
         assert (tmp_path / ".gsd").exists()
 
-    def test_init_creates_config(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_creates_config(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init creates config file."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1058,9 +1000,7 @@ class TestInitCommand:
 
         assert (tmp_path / ".zerg" / "config.yaml").exists()
 
-    def test_init_detects_no_reinit_without_force(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_detects_no_reinit_without_force(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init doesn't reinitialize without --force."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1071,9 +1011,7 @@ class TestInitCommand:
 
         assert "already initialized" in result.output or result.exit_code == 0
 
-    def test_init_reinitializes_with_force(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_reinitializes_with_force(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init reinitializes with --force."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1084,9 +1022,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_with_custom_workers(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_with_custom_workers(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init with custom worker count."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1096,9 +1032,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_with_strict_security(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_with_strict_security(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init with strict security level."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1108,9 +1042,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_with_no_detect(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_with_no_detect(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init with --no-detect option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1120,9 +1052,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_with_no_security_rules(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_with_no_security_rules(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init with --no-security-rules option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1132,9 +1062,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_with_containers(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_with_containers(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init with --with-containers option."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1146,9 +1074,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_shows_next_steps(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_shows_next_steps(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init shows next steps."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1158,9 +1084,7 @@ class TestInitCommand:
 
         assert "zerg plan" in result.output or "Next steps" in result.output
 
-    def test_init_handles_exception(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_handles_exception(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init handles exceptions gracefully."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1175,25 +1099,19 @@ class TestInitCommand:
         assert result.exit_code == 1
         assert "Error" in result.output
 
-    def test_init_triggers_inception_mode(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_triggers_inception_mode(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init triggers inception mode for empty directory."""
         monkeypatch.chdir(tmp_path)
         # Empty directory - no .git, no code files
 
         # Patch at the source module level where it is imported
-        with patch(
-            "zerg.inception.run_inception_mode", return_value=True
-        ) as mock_inception:
+        with patch("zerg.inception.run_inception_mode", return_value=True) as mock_inception:
             runner = CliRunner()
             runner.invoke(cli, ["init"])
 
             mock_inception.assert_called_once()
 
-    def test_init_inception_mode_failure(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_inception_mode_failure(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init handles inception mode failure."""
         monkeypatch.chdir(tmp_path)
         # Empty directory triggers inception
@@ -1205,9 +1123,7 @@ class TestInitCommand:
 
         assert result.exit_code == 1
 
-    def test_init_security_rules_integration_success(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_security_rules_integration_success(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init with successful security rules integration."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1221,9 +1137,7 @@ class TestInitCommand:
         assert result.exit_code == 0
         mock_integrate.assert_called_once()
 
-    def test_init_security_rules_integration_failure(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_security_rules_integration_failure(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init handles security rules integration failure."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1238,9 +1152,7 @@ class TestInitCommand:
         # Should continue even if security rules fail
         assert result.exit_code == 0
 
-    def test_init_detects_python_project(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_detects_python_project(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init detects Python project."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1252,9 +1164,7 @@ class TestInitCommand:
         assert result.exit_code == 0
         assert "python" in result.output.lower() or "Detected" in result.output
 
-    def test_init_detects_node_project(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_detects_node_project(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init detects Node.js project."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1265,9 +1175,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_detects_multiple_languages(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_detects_multiple_languages(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init detects multiple languages."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1279,9 +1187,7 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_no_detection_shows_message(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_no_detection_shows_message(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init shows message when detection finds nothing."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1293,22 +1199,16 @@ class TestInitCommand:
 
         assert result.exit_code == 0
 
-    def test_init_detects_frameworks_and_prints_them(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_detects_frameworks_and_prints_them(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init detects and prints frameworks when found (covers lines 172-173)."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
         (tmp_path / "pyproject.toml").write_text("[project]")
 
         # Create a stack with frameworks to trigger lines 172-173
-        stack_with_frameworks = ProjectStack(
-            languages={"python"}, frameworks={"fastapi", "sqlalchemy"}
-        )
+        stack_with_frameworks = ProjectStack(languages={"python"}, frameworks={"fastapi", "sqlalchemy"})
 
-        with patch(
-            "zerg.commands.init.detect_project_type", return_value=stack_with_frameworks
-        ):
+        with patch("zerg.commands.init.detect_project_type", return_value=stack_with_frameworks):
             runner = CliRunner()
             result = runner.invoke(cli, ["init"])
 
@@ -1326,9 +1226,7 @@ class TestInitCommand:
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
-    def test_init_creates_devcontainer(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_creates_devcontainer(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init creates devcontainer configuration."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1338,9 +1236,7 @@ class TestEdgeCases:
 
         assert (tmp_path / ".devcontainer").exists()
 
-    def test_init_handles_permissions_error(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_handles_permissions_error(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init handles permission errors gracefully."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1354,9 +1250,7 @@ class TestEdgeCases:
 
         assert result.exit_code == 1
 
-    def test_init_with_minimal_security(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_init_with_minimal_security(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test init with minimal security level."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".git").mkdir()
@@ -1366,9 +1260,7 @@ class TestEdgeCases:
 
         assert result.exit_code == 0
 
-    def test_devcontainer_cli_version_check_timeout(
-        self, tmp_path: Path, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_devcontainer_cli_version_check_timeout(self, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
         """Test handles devcontainer version check timeout."""
         monkeypatch.chdir(tmp_path)
         devcontainer_dir = tmp_path / ".devcontainer"

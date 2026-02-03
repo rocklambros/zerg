@@ -87,9 +87,7 @@ class TestRuleValidatorValidateRuleset:
     def test_warns_on_empty_applies_to(self) -> None:
         ruleset = RuleSet(
             name="no-patterns",
-            rules=[
-                Rule(id="np-001", title="No patterns", description="d", applies_to=[])
-            ],
+            rules=[Rule(id="np-001", title="No patterns", description="d", applies_to=[])],
         )
         validator = RuleValidator()
         result = validator.validate_ruleset(ruleset)
@@ -137,8 +135,7 @@ class TestRuleValidatorValidateRulesDir:
 
     def test_valid_directory(self, tmp_path: Path) -> None:
         (tmp_path / "rules.yaml").write_text(
-            "name: test\nrules:\n"
-            "  - id: t-001\n    title: Rule\n    description: Desc\n"
+            "name: test\nrules:\n  - id: t-001\n    title: Rule\n    description: Desc\n"
         )
         validator = RuleValidator()
         result = validator.validate_rules_dir(tmp_path)
@@ -148,12 +145,10 @@ class TestRuleValidatorValidateRulesDir:
 
     def test_cross_ruleset_duplicate_ids(self, tmp_path: Path) -> None:
         (tmp_path / "set1.yaml").write_text(
-            "name: set1\nrules:\n"
-            "  - id: shared-001\n    title: Rule A\n    description: d\n"
+            "name: set1\nrules:\n  - id: shared-001\n    title: Rule A\n    description: d\n"
         )
         (tmp_path / "set2.yaml").write_text(
-            "name: set2\nrules:\n"
-            "  - id: shared-001\n    title: Rule B\n    description: d\n"
+            "name: set2\nrules:\n  - id: shared-001\n    title: Rule B\n    description: d\n"
         )
         validator = RuleValidator()
         result = validator.validate_rules_dir(tmp_path)

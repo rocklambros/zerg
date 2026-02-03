@@ -7,8 +7,6 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from zerg.constants import WorkerStatus
 from zerg.launcher import (
     ALLOWED_ENV_VARS,

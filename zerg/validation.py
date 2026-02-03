@@ -242,10 +242,7 @@ def validate_file_ownership(task_graph: dict[str, Any]) -> tuple[bool, list[str]
         # Check create and modify files for conflicts
         for file_path in files.get("create", []) + files.get("modify", []):
             if file_path in file_owners:
-                errors.append(
-                    f"File conflict: '{file_path}' claimed by both "
-                    f"{file_owners[file_path]} and {task_id}"
-                )
+                errors.append(f"File conflict: '{file_path}' claimed by both {file_owners[file_path]} and {task_id}")
             else:
                 file_owners[file_path] = task_id
 

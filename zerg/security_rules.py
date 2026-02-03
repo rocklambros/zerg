@@ -241,10 +241,29 @@ def detect_project_stack(project_path: Path) -> ProjectStack:
                 stack.infrastructure.add(infra)
 
     # Set AI/ML and RAG flags based on detected frameworks
-    ai_ml_frameworks = {"langchain", "llamaindex", "crewai", "autogen", "transformers",
-                        "pytorch", "tensorflow", "mlflow", "bentoml", "ray"}
-    rag_frameworks = {"langchain", "llamaindex", "pinecone", "weaviate", "chroma",
-                      "qdrant", "milvus", "pgvector", "neo4j"}
+    ai_ml_frameworks = {
+        "langchain",
+        "llamaindex",
+        "crewai",
+        "autogen",
+        "transformers",
+        "pytorch",
+        "tensorflow",
+        "mlflow",
+        "bentoml",
+        "ray",
+    }
+    rag_frameworks = {
+        "langchain",
+        "llamaindex",
+        "pinecone",
+        "weaviate",
+        "chroma",
+        "qdrant",
+        "milvus",
+        "pgvector",
+        "neo4j",
+    }
 
     stack.ai_ml = bool(stack.frameworks & ai_ml_frameworks)
     stack.rag = bool(stack.frameworks & rag_frameworks) or bool(stack.databases & rag_frameworks)
@@ -542,8 +561,7 @@ def generate_claude_md_section(
     lines = [
         "# Security Rules",
         "",
-        f"Auto-generated from [TikiTribe/claude-secure-coding-rules]"
-        f"(https://github.com/{RULES_REPO})",
+        f"Auto-generated from [TikiTribe/claude-secure-coding-rules](https://github.com/{RULES_REPO})",
         "",
         "## Detected Stack",
         "",
@@ -639,6 +657,7 @@ def _update_claude_md(claude_md_path: Path, security_section: str) -> None:
         if marker_start in content and marker_end in content:
             # Replace existing section
             import re
+
             pattern = f"{re.escape(marker_start)}.*?{re.escape(marker_end)}"
             replacement = f"{marker_start}\n{security_section}\n{marker_end}"
             content = re.sub(pattern, replacement, content, flags=re.DOTALL)

@@ -2,9 +2,7 @@
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from zerg.git.base import GitRunner
 from zerg.git.config import GitConfig
@@ -15,10 +13,10 @@ from zerg.git.prereview import (
     ReviewReporter,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _run_git(*args: str, cwd: Path) -> None:
     """Run git command safely."""
@@ -70,9 +68,7 @@ class TestContextPreparer:
         hunks = preparer.get_file_hunks("app.py", "main", budget_chars=2000)
 
         assert hunks == diff_text
-        runner._run.assert_called_once_with(
-            "diff", "main..HEAD", "--", "app.py"
-        )
+        runner._run.assert_called_once_with("diff", "main..HEAD", "--", "app.py")
 
     def test_get_file_hunks_truncates_over_budget(self) -> None:
         diff_text = "x" * 3000
@@ -175,9 +171,7 @@ class TestDomainFilter:
         core_dir.mkdir()
         # Create a large reference section
         big_table = "| Rule | Level |\n" + "| A01 | strict |\n" * 200
-        (core_dir / "owasp.md").write_text(
-            f"# Rules\n\n## Quick Reference\n\n{big_table}\n\n## End\n"
-        )
+        (core_dir / "owasp.md").write_text(f"# Rules\n\n## Quick Reference\n\n{big_table}\n\n## End\n")
 
         df = DomainFilter(rules_dir=tmp_path)
         summary = df.get_rules_summary(["owasp"], budget_chars=200)

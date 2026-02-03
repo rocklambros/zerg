@@ -11,8 +11,6 @@ Covers edge cases for:
 from datetime import datetime
 from pathlib import Path
 
-import pytest
-
 from zerg.constants import WorkerStatus
 from zerg.state import StateManager
 from zerg.types import WorkerState
@@ -21,9 +19,7 @@ from zerg.types import WorkerState
 class TestGetWorkerStateEdgeCases:
     """Tests for get_worker_state edge cases."""
 
-    def test_get_worker_state_non_existent_worker_id_returns_none(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_worker_state_non_existent_worker_id_returns_none(self, tmp_path: Path) -> None:
         """Test get_worker_state returns None for non-existent worker ID."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -32,9 +28,7 @@ class TestGetWorkerStateEdgeCases:
 
         assert result is None
 
-    def test_get_worker_state_empty_workers_dict_returns_none(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_worker_state_empty_workers_dict_returns_none(self, tmp_path: Path) -> None:
         """Test get_worker_state returns None when workers dict is empty."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -45,9 +39,7 @@ class TestGetWorkerStateEdgeCases:
 
         assert result is None
 
-    def test_get_worker_state_with_string_key_mismatch(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_worker_state_with_string_key_mismatch(self, tmp_path: Path) -> None:
         """Test get_worker_state handles string key conversion correctly."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -84,9 +76,7 @@ class TestGetWorkerStateEdgeCases:
 class TestSetWorkerStateEdgeCases:
     """Tests for set_worker_state edge cases."""
 
-    def test_set_worker_state_with_all_none_optional_fields(
-        self, tmp_path: Path
-    ) -> None:
+    def test_set_worker_state_with_all_none_optional_fields(self, tmp_path: Path) -> None:
         """Test set_worker_state handles WorkerState with None optional fields."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -118,9 +108,7 @@ class TestSetWorkerStateEdgeCases:
         assert retrieved.port is None
         assert retrieved.container_id is None
 
-    def test_set_worker_state_creates_workers_dict_if_missing(
-        self, tmp_path: Path
-    ) -> None:
+    def test_set_worker_state_creates_workers_dict_if_missing(self, tmp_path: Path) -> None:
         """Test set_worker_state creates workers dict if it does not exist."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -141,9 +129,7 @@ class TestSetWorkerStateEdgeCases:
 class TestWorkerStateUpdatePreservation:
     """Tests for worker state update field preservation."""
 
-    def test_update_worker_status_preserves_other_fields(
-        self, tmp_path: Path
-    ) -> None:
+    def test_update_worker_status_preserves_other_fields(self, tmp_path: Path) -> None:
         """Test updating worker status preserves existing fields."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -190,9 +176,7 @@ class TestWorkerStateUpdatePreservation:
         assert retrieved.tasks_completed == 5
         assert retrieved.context_usage == 0.40
 
-    def test_set_worker_state_overwrites_completely(
-        self, tmp_path: Path
-    ) -> None:
+    def test_set_worker_state_overwrites_completely(self, tmp_path: Path) -> None:
         """Test set_worker_state does full replacement, not merge."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -232,9 +216,7 @@ class TestWorkerStateUpdatePreservation:
 class TestGetAllWorkersEdgeCases:
     """Tests for get_all_workers edge cases."""
 
-    def test_get_all_workers_returns_empty_dict_when_no_workers(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_all_workers_returns_empty_dict_when_no_workers(self, tmp_path: Path) -> None:
         """Test get_all_workers returns empty dict when no workers exist."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -244,9 +226,7 @@ class TestGetAllWorkersEdgeCases:
         assert result == {}
         assert isinstance(result, dict)
 
-    def test_get_all_workers_returns_empty_when_workers_key_missing(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_all_workers_returns_empty_when_workers_key_missing(self, tmp_path: Path) -> None:
         """Test get_all_workers returns empty dict when workers key missing."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -257,9 +237,7 @@ class TestGetAllWorkersEdgeCases:
 
         assert result == {}
 
-    def test_get_all_workers_returns_correct_worker_states(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_all_workers_returns_correct_worker_states(self, tmp_path: Path) -> None:
         """Test get_all_workers returns all registered workers."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -283,9 +261,7 @@ class TestGetAllWorkersEdgeCases:
         assert result[1].port == 8081
         assert result[2].port == 8082
 
-    def test_get_all_workers_converts_string_keys_to_int(
-        self, tmp_path: Path
-    ) -> None:
+    def test_get_all_workers_converts_string_keys_to_int(self, tmp_path: Path) -> None:
         """Test get_all_workers converts string keys to integer keys."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -307,9 +283,7 @@ class TestGetAllWorkersEdgeCases:
 class TestWorkerStateSerializationRoundtrip:
     """Tests for worker state serialization and deserialization roundtrip."""
 
-    def test_basic_worker_state_roundtrip(
-        self, tmp_path: Path
-    ) -> None:
+    def test_basic_worker_state_roundtrip(self, tmp_path: Path) -> None:
         """Test basic worker state survives save/load cycle."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -334,9 +308,7 @@ class TestWorkerStateSerializationRoundtrip:
         assert retrieved.current_task == original.current_task
         assert retrieved.port == original.port
 
-    def test_worker_state_with_datetime_fields_roundtrip(
-        self, tmp_path: Path
-    ) -> None:
+    def test_worker_state_with_datetime_fields_roundtrip(self, tmp_path: Path) -> None:
         """Test worker state with datetime fields survives roundtrip."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -368,9 +340,7 @@ class TestWorkerStateSerializationRoundtrip:
         assert retrieved.health_check_at.isoformat() == now.isoformat()
         assert retrieved.started_at.isoformat() == now.isoformat()
 
-    def test_worker_state_with_all_fields_roundtrip(
-        self, tmp_path: Path
-    ) -> None:
+    def test_worker_state_with_all_fields_roundtrip(self, tmp_path: Path) -> None:
         """Test worker state with all fields populated survives roundtrip."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -410,9 +380,7 @@ class TestWorkerStateSerializationRoundtrip:
         assert retrieved.tasks_completed == 42
         assert retrieved.context_usage == 0.85
 
-    def test_multiple_workers_roundtrip(
-        self, tmp_path: Path
-    ) -> None:
+    def test_multiple_workers_roundtrip(self, tmp_path: Path) -> None:
         """Test multiple workers survive roundtrip correctly."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
@@ -436,9 +404,7 @@ class TestWorkerStateSerializationRoundtrip:
         assert all_workers[1].current_task == "TASK-A"
         assert all_workers[2].tasks_completed == 5
 
-    def test_worker_state_none_fields_roundtrip(
-        self, tmp_path: Path
-    ) -> None:
+    def test_worker_state_none_fields_roundtrip(self, tmp_path: Path) -> None:
         """Test worker state with None fields survives roundtrip."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()

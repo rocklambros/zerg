@@ -79,9 +79,7 @@ class TestFirstValidator:
         anti_patterns: list[str] | None = None,
     ) -> None:
         self.enforce_red_green = enforce_red_green
-        self._anti_pattern_names = set(
-            anti_patterns or [ap.value for ap in TDDAntiPattern]
-        )
+        self._anti_pattern_names = set(anti_patterns or [ap.value for ap in TDDAntiPattern])
         self._cycles: list[TDDCycleResult] = []
 
     def record_cycle(self, result: TDDCycleResult) -> None:
@@ -107,17 +105,11 @@ class TestFirstValidator:
             # RED phase
             if i < len(self._cycles) and self._cycles[i].phase == TDDPhase.RED:
                 if self._cycles[i].tests_passing:
-                    errors.append(
-                        f"Cycle {cycle_num}: RED phase has passing tests "
-                        f"(test should fail first)"
-                    )
+                    errors.append(f"Cycle {cycle_num}: RED phase has passing tests (test should fail first)")
                 i += 1
             else:
                 if i < len(self._cycles):
-                    errors.append(
-                        f"Cycle {cycle_num}: Expected RED phase, got "
-                        f"{self._cycles[i].phase.value}"
-                    )
+                    errors.append(f"Cycle {cycle_num}: Expected RED phase, got {self._cycles[i].phase.value}")
                     i += 1
                 continue
 
@@ -125,24 +117,18 @@ class TestFirstValidator:
             if i < len(self._cycles) and self._cycles[i].phase == TDDPhase.GREEN:
                 if not self._cycles[i].tests_passing:
                     errors.append(
-                        f"Cycle {cycle_num}: GREEN phase has failing tests "
-                        f"(implementation should make tests pass)"
+                        f"Cycle {cycle_num}: GREEN phase has failing tests (implementation should make tests pass)"
                     )
                 i += 1
             else:
                 if i < len(self._cycles):
-                    errors.append(
-                        f"Cycle {cycle_num}: Expected GREEN phase, got "
-                        f"{self._cycles[i].phase.value}"
-                    )
+                    errors.append(f"Cycle {cycle_num}: Expected GREEN phase, got {self._cycles[i].phase.value}")
                 continue
 
             # REFACTOR phase (optional)
             if i < len(self._cycles) and self._cycles[i].phase == TDDPhase.REFACTOR:
                 if not self._cycles[i].tests_passing:
-                    errors.append(
-                        f"Cycle {cycle_num}: REFACTOR phase broke tests"
-                    )
+                    errors.append(f"Cycle {cycle_num}: REFACTOR phase broke tests")
                 i += 1
 
         return not errors, errors
@@ -187,9 +173,7 @@ class TestFirstValidator:
                 ".called_with",
                 ".call_count",
             ]
-            indicator_count = sum(
-                1 for ind in impl_indicators if ind in test_content
-            )
+            indicator_count = sum(1 for ind in impl_indicators if ind in test_content)
             if indicator_count >= 3:
                 detected.append(TDDAntiPattern.TESTING_IMPL)
 

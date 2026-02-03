@@ -117,10 +117,7 @@ def validate_backbone_depth(commands_dir: Path) -> tuple[bool, list[str]]:
         ref_count = sum(content.count(marker) for marker in BACKBONE_MARKERS)
 
         if ref_count < BACKBONE_MIN_REFS:
-            errors.append(
-                f"{cmd_name}.md: only {ref_count} Task references "
-                f"(minimum {BACKBONE_MIN_REFS})"
-            )
+            errors.append(f"{cmd_name}.md: only {ref_count} Task references (minimum {BACKBONE_MIN_REFS})")
 
     return not errors, errors
 
@@ -149,15 +146,9 @@ def validate_split_pairs(commands_dir: Path) -> tuple[bool, list[str]]:
         parent_path = commands_dir / f"{stem}.md"
 
         if not details_path.exists():
-            errors.append(
-                f"{core_path.name}: orphaned core file, "
-                f"missing {stem}.details.md"
-            )
+            errors.append(f"{core_path.name}: orphaned core file, missing {stem}.details.md")
         if not parent_path.exists():
-            errors.append(
-                f"{core_path.name}: orphaned core file, "
-                f"missing parent {stem}.md"
-            )
+            errors.append(f"{core_path.name}: orphaned core file, missing parent {stem}.md")
 
     # Check each .details.md has matching .core.md and parent .md
     for details_path in details_files:
@@ -166,22 +157,14 @@ def validate_split_pairs(commands_dir: Path) -> tuple[bool, list[str]]:
         parent_path = commands_dir / f"{stem}.md"
 
         if not core_path.exists():
-            errors.append(
-                f"{details_path.name}: orphaned details file, "
-                f"missing {stem}.core.md"
-            )
+            errors.append(f"{details_path.name}: orphaned details file, missing {stem}.core.md")
         if not parent_path.exists():
-            errors.append(
-                f"{details_path.name}: orphaned details file, "
-                f"missing parent {stem}.md"
-            )
+            errors.append(f"{details_path.name}: orphaned details file, missing parent {stem}.md")
 
     return not errors, errors
 
 
-def validate_split_threshold(
-    commands_dir: Path, auto_split: bool = False
-) -> tuple[bool, list[str]]:
+def validate_split_threshold(commands_dir: Path, auto_split: bool = False) -> tuple[bool, list[str]]:
     """Verify large command files have been split for context optimization.
 
     Base .md files with line count >= MIN_LINES_TO_SPLIT should have a
@@ -212,14 +195,10 @@ def validate_split_threshold(
         if auto_split:
             splitter = CommandSplitter(commands_dir)
             core, details = splitter.split_file(filepath)
-            errors.append(
-                f"{filepath.name}: auto-split into {core.name} and {details.name} "
-                f"({line_count} lines)"
-            )
+            errors.append(f"{filepath.name}: auto-split into {core.name} and {details.name} ({line_count} lines)")
         else:
             errors.append(
-                f"{filepath.name}: {line_count} lines >= {MIN_LINES_TO_SPLIT} "
-                f"threshold but no .core.md split exists"
+                f"{filepath.name}: {line_count} lines >= {MIN_LINES_TO_SPLIT} threshold but no .core.md split exists"
             )
 
     # When auto_split is used, messages are informational, not failures
@@ -357,10 +336,7 @@ def validate_resilience_wiring(
                 continue
 
         if not found_importer:
-            errors.append(
-                f"{module_name}.py: resilience module not imported by any of "
-                f"{', '.join(expected_importers)}"
-            )
+            errors.append(f"{module_name}.py: resilience module not imported by any of {', '.join(expected_importers)}")
 
     return not errors, errors
 
@@ -464,10 +440,7 @@ def validate_module_wiring(
                 break
 
         if not found:
-            messages.append(
-                f"{candidate.relative_to(package_dir)}: orphaned module — "
-                f"no production imports found"
-            )
+            messages.append(f"{candidate.relative_to(package_dir)}: orphaned module — no production imports found")
 
     if strict:
         return not messages, messages
@@ -515,9 +488,7 @@ def validate_all(
 
     descriptions: dict[str, str] = {
         "Task references": f"all {base_count} command files have Task markers",
-        "Backbone depth": (
-            f"all {backbone_count} backbone files have >= {BACKBONE_MIN_REFS} refs"
-        ),
+        "Backbone depth": (f"all {backbone_count} backbone files have >= {BACKBONE_MIN_REFS} refs"),
         "Split pairs": f"all {core_count} pairs consistent",
         "Split threshold": "no oversized unsplit files",
         "State JSON": "no files reference state without TaskList/TaskGet",
@@ -619,8 +590,7 @@ def validate_wiring_only(strict_general: bool = False) -> tuple[bool, list[str]]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Validate ZERG command files for Task ecosystem integrity "
-        "and context engineering compliance."
+        description="Validate ZERG command files for Task ecosystem integrity and context engineering compliance."
     )
     parser.add_argument(
         "--auto-split",

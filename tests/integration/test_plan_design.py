@@ -19,9 +19,7 @@ class TestPlanCommand:
         (tmp_path / ".gsd" / "specs").mkdir(parents=True)
 
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["plan", "test-feature", "--no-interactive", "--template", "minimal"]
-        )
+        result = runner.invoke(cli, ["plan", "test-feature", "--no-interactive", "--template", "minimal"])
 
         assert result.exit_code == 0
         assert "✓" in result.output
@@ -70,9 +68,7 @@ class TestPlanCommand:
         runner = CliRunner()
 
         # Minimal template
-        result = runner.invoke(
-            cli, ["plan", "min-feat", "--no-interactive", "--template", "minimal"]
-        )
+        result = runner.invoke(cli, ["plan", "min-feat", "--no-interactive", "--template", "minimal"])
         assert result.exit_code == 0
         req_path = tmp_path / ".gsd" / "specs" / "min-feat" / "requirements.md"
         content = req_path.read_text()
@@ -80,9 +76,7 @@ class TestPlanCommand:
 
         # Detailed template
         (tmp_path / ".gsd" / "specs" / "detail-feat").mkdir(parents=True, exist_ok=True)
-        result = runner.invoke(
-            cli, ["plan", "detail-feat", "--no-interactive", "--template", "detailed"]
-        )
+        result = runner.invoke(cli, ["plan", "detail-feat", "--no-interactive", "--template", "detailed"])
         assert result.exit_code == 0
         req_path = tmp_path / ".gsd" / "specs" / "detail-feat" / "requirements.md"
         content = req_path.read_text()

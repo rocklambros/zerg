@@ -12,9 +12,7 @@ class TestZergHealthReport:
     """Tests for ZergHealthReport dataclass."""
 
     def test_default_values(self) -> None:
-        report = ZergHealthReport(
-            feature="test", state_exists=True, total_tasks=0
-        )
+        report = ZergHealthReport(feature="test", state_exists=True, total_tasks=0)
         assert report.feature == "test"
         assert report.task_summary == {}
         assert report.worker_summary == {}
@@ -54,9 +52,7 @@ class TestZergStateIntrospector:
     """Tests for ZergStateIntrospector."""
 
     def test_find_latest_feature_no_dir(self, tmp_path: Path) -> None:
-        introspector = ZergStateIntrospector(
-            state_dir=tmp_path / "nonexistent"
-        )
+        introspector = ZergStateIntrospector(state_dir=tmp_path / "nonexistent")
         assert introspector.find_latest_feature() is None
 
     def test_find_latest_feature_empty_dir(self, tmp_path: Path) -> None:
@@ -204,9 +200,7 @@ class TestZergStateIntrospector:
         (logs_dir / "worker-1.stdout.log").write_text("line1\nline2\nline3")
         (logs_dir / "worker-1.stderr.log").write_text("err1\nerr2")
 
-        introspector = ZergStateIntrospector(
-            state_dir=tmp_path, logs_dir=logs_dir
-        )
+        introspector = ZergStateIntrospector(state_dir=tmp_path, logs_dir=logs_dir)
         logs = introspector.get_worker_logs(1, lines=2)
 
         assert "line2" in logs["stdout"]
@@ -216,9 +210,7 @@ class TestZergStateIntrospector:
     def test_get_worker_logs_missing(self, tmp_path: Path) -> None:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir()
-        introspector = ZergStateIntrospector(
-            state_dir=tmp_path, logs_dir=logs_dir
-        )
+        introspector = ZergStateIntrospector(state_dir=tmp_path, logs_dir=logs_dir)
         logs = introspector.get_worker_logs(99)
 
         assert logs["stdout"] == ""
@@ -242,21 +234,16 @@ class TestZergStateIntrospector:
         assert any("graph not found" in i.lower() for i in issues)
 
     def test_detect_state_corruption_with_graph(self, tmp_path: Path) -> None:
-
         state_dir = tmp_path / "state"
         state_dir.mkdir()
-        (state_dir / "feat.json").write_text(
-            json.dumps({"tasks": {"T1": {}, "T2": {}}})
-        )
+        (state_dir / "feat.json").write_text(json.dumps({"tasks": {"T1": {}, "T2": {}}}))
 
         # Create task graph in expected location
         graph_dir = Path(".gsd/specs/feat")
         graph_dir.mkdir(parents=True, exist_ok=True)
         graph_file = graph_dir / "task-graph.json"
         try:
-            graph_file.write_text(
-                json.dumps({"tasks": [{"id": "T1"}, {"id": "T3"}]})
-            )
+            graph_file.write_text(json.dumps({"tasks": [{"id": "T1"}, {"id": "T3"}]}))
             introspector = ZergStateIntrospector(state_dir=state_dir)
             issues = introspector.detect_state_corruption("feat")
 

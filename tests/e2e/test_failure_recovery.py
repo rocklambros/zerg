@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from zerg.constants import TaskStatus, WorkerStatus
+from zerg.constants import WorkerStatus
 from zerg.launcher import SpawnResult
 from zerg.orchestrator import Orchestrator
 
@@ -24,25 +24,23 @@ def recovery_setup(tmp_path: Path, monkeypatch):
 
     task_graph = {
         "feature": "recovery-test",
-        "levels": {
-            "1": ["TASK-001", "TASK-002"]
-        },
+        "levels": {"1": ["TASK-001", "TASK-002"]},
         "tasks": {
             "TASK-001": {
                 "id": "TASK-001",
                 "title": "Task that might fail",
                 "level": 1,
                 "files": ["src/a.py"],
-                "verification": "pytest tests/test_a.py"
+                "verification": "pytest tests/test_a.py",
             },
             "TASK-002": {
                 "id": "TASK-002",
                 "title": "Another task",
                 "level": 1,
                 "files": ["src/b.py"],
-                "verification": "pytest tests/test_b.py"
-            }
-        }
+                "verification": "pytest tests/test_b.py",
+            },
+        },
     }
     (zerg_dir / "task-graph.json").write_text(json.dumps(task_graph))
 
@@ -52,16 +50,17 @@ def recovery_setup(tmp_path: Path, monkeypatch):
 @pytest.fixture
 def mock_orchestrator_deps():
     """Mock all orchestrator dependencies."""
-    with patch("zerg.orchestrator.StateManager") as state_mock, \
-         patch("zerg.orchestrator.LevelController") as levels_mock, \
-         patch("zerg.orchestrator.TaskParser") as parser_mock, \
-         patch("zerg.orchestrator.GateRunner") as gates_mock, \
-         patch("zerg.orchestrator.WorktreeManager") as worktree_mock, \
-         patch("zerg.orchestrator.ContainerManager") as container_mock, \
-         patch("zerg.orchestrator.PortAllocator") as ports_mock, \
-         patch("zerg.orchestrator.MergeCoordinator") as merge_mock, \
-         patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock:
-
+    with (
+        patch("zerg.orchestrator.StateManager") as state_mock,
+        patch("zerg.orchestrator.LevelController") as levels_mock,
+        patch("zerg.orchestrator.TaskParser") as parser_mock,
+        patch("zerg.orchestrator.GateRunner"),
+        patch("zerg.orchestrator.WorktreeManager") as worktree_mock,
+        patch("zerg.orchestrator.ContainerManager"),
+        patch("zerg.orchestrator.PortAllocator") as ports_mock,
+        patch("zerg.orchestrator.MergeCoordinator"),
+        patch("zerg.orchestrator.SubprocessLauncher") as launcher_mock,
+    ):
         state = MagicMock()
         state.load.return_value = {}
         state_mock.return_value = state
@@ -109,9 +108,7 @@ def mock_orchestrator_deps():
 class TestWorkerCrashRecovery:
     """Tests for worker crash recovery."""
 
-    def test_detect_worker_crash(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_detect_worker_crash(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test detection of worker crash."""
         mock_orchestrator_deps["launcher"].monitor.return_value = WorkerStatus.CRASHED
 
@@ -123,9 +120,7 @@ class TestWorkerCrashRecovery:
         # State should record crash
         mock_orchestrator_deps["state"].set_worker_state.assert_called()
 
-    def test_respawn_crashed_worker(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_respawn_crashed_worker(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test respawning a crashed worker."""
         orch = Orchestrator("recovery-test")
 
@@ -142,9 +137,7 @@ class TestWorkerCrashRecovery:
 class TestTaskStatusTracking:
     """Tests for task status tracking on failures."""
 
-    def test_task_status_set_on_worker_crash(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_task_status_set_on_worker_crash(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test task status is updated when worker crashes."""
         mock_orchestrator_deps["launcher"].monitor.return_value = WorkerStatus.CRASHED
 
@@ -155,9 +148,7 @@ class TestTaskStatusTracking:
         # Worker state should be updated
         mock_orchestrator_deps["state"].set_worker_state.assert_called()
 
-    def test_worker_state_tracked(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_worker_state_tracked(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test worker state is tracked properly."""
         orch = Orchestrator("recovery-test")
         orch._spawn_worker(0)
@@ -169,9 +160,7 @@ class TestTaskStatusTracking:
 class TestMergeConflictRecovery:
     """Tests for merge conflict recovery."""
 
-    def test_pause_on_merge_conflict(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_pause_on_merge_conflict(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test orchestrator pauses on merge conflict."""
         merge = MagicMock()
         merge_result = MagicMock()
@@ -179,17 +168,17 @@ class TestMergeConflictRecovery:
         merge_result.error = "Merge conflict in src/auth.py"
         merge.full_merge_flow.return_value = merge_result
 
-        with patch("zerg.orchestrator.MergeCoordinator", return_value=merge), \
-             patch("zerg.level_coordinator.time.sleep"):
+        with (
+            patch("zerg.orchestrator.MergeCoordinator", return_value=merge),
+            patch("zerg.level_coordinator.time.sleep"),
+        ):
             orch = Orchestrator("recovery-test")
             orch._spawn_worker(0)
             orch._on_level_complete_handler(1)
 
             assert orch._paused is True
 
-    def test_resume_after_conflict_resolution(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_resume_after_conflict_resolution(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test resuming after merge conflict is resolved."""
         orch = Orchestrator("recovery-test")
         orch._paused = True
@@ -203,18 +192,14 @@ class TestMergeConflictRecovery:
 class TestStateRecovery:
     """Tests for state recovery on restart."""
 
-    def test_state_manager_initialized(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_state_manager_initialized(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test state manager is initialized."""
         orch = Orchestrator("recovery-test")
 
         # State manager should be accessible
         assert orch.state is not None
 
-    def test_resume_from_checkpoint(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_resume_from_checkpoint(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test resuming from checkpoint context."""
         mock_orchestrator_deps["levels"].current_level = 2
 
@@ -227,9 +212,7 @@ class TestStateRecovery:
 class TestNetworkFailureRecovery:
     """Tests for network/process failure recovery."""
 
-    def test_worker_stopped_handling(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_worker_stopped_handling(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test handling of worker that stopped unexpectedly."""
         mock_orchestrator_deps["launcher"].monitor.return_value = WorkerStatus.STOPPED
 
@@ -240,9 +223,7 @@ class TestNetworkFailureRecovery:
         # State should be updated
         mock_orchestrator_deps["state"].set_worker_state.assert_called()
 
-    def test_worker_blocked_handling(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_worker_blocked_handling(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test handling of blocked worker."""
         mock_orchestrator_deps["launcher"].monitor.return_value = WorkerStatus.BLOCKED
 
@@ -257,16 +238,12 @@ class TestNetworkFailureRecovery:
 class TestGracefulDegradation:
     """Tests for graceful degradation."""
 
-    def test_continue_with_remaining_workers(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_continue_with_remaining_workers(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test continuing execution with remaining workers."""
         mock_orchestrator_deps["ports"].allocate_one.side_effect = [49152, 49153]
 
         # Worker 0 crashes, Worker 1 runs
-        mock_orchestrator_deps["launcher"].monitor.side_effect = [
-            WorkerStatus.CRASHED, WorkerStatus.RUNNING
-        ]
+        mock_orchestrator_deps["launcher"].monitor.side_effect = [WorkerStatus.CRASHED, WorkerStatus.RUNNING]
 
         orch = Orchestrator("recovery-test")
         orch._spawn_worker(0)
@@ -277,9 +254,7 @@ class TestGracefulDegradation:
         # Should still have workers
         assert len(orch._workers) >= 1
 
-    def test_spawn_failure_handled(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_spawn_failure_handled(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test spawn failure is handled gracefully."""
         spawn_result = MagicMock(spec=SpawnResult)
         spawn_result.success = False
@@ -298,9 +273,7 @@ class TestGracefulDegradation:
 class TestOrchestrationControl:
     """Tests for orchestration control mechanisms."""
 
-    def test_stop_terminates_workers(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_stop_terminates_workers(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test stop terminates all workers."""
         mock_orchestrator_deps["ports"].allocate_one.side_effect = [49152, 49153]
 
@@ -315,9 +288,7 @@ class TestOrchestrationControl:
         assert orch._running is False
         assert mock_orchestrator_deps["launcher"].terminate.call_count >= 2
 
-    def test_paused_flag_exists(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_paused_flag_exists(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test paused flag can be set."""
         orch = Orchestrator("recovery-test")
 
@@ -328,9 +299,7 @@ class TestOrchestrationControl:
         orch._paused = True
         assert orch._paused is True
 
-    def test_running_state_tracked(
-        self, recovery_setup: Path, mock_orchestrator_deps
-    ) -> None:
+    def test_running_state_tracked(self, recovery_setup: Path, mock_orchestrator_deps) -> None:
         """Test running state is tracked."""
         orch = Orchestrator("recovery-test")
 

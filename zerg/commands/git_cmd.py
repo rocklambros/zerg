@@ -103,11 +103,7 @@ def action_commit(git: GitOps, push: bool, mode: str | None = None) -> int:
     unstaged_result = git._run("diff", "--name-only", check=False)
 
     staged_files = files_result.stdout.strip().split("\n") if files_result.stdout.strip() else []
-    unstaged_files = (
-        unstaged_result.stdout.strip().split("\n")
-        if unstaged_result.stdout.strip()
-        else []
-    )
+    unstaged_files = unstaged_result.stdout.strip().split("\n") if unstaged_result.stdout.strip() else []
     all_files = staged_files + unstaged_files
 
     # Stage all if nothing staged
@@ -441,9 +437,7 @@ def action_bisect(
     return engine.run(symptom=symptom or "", test_cmd=test_cmd, good=good, bad="HEAD")
 
 
-def action_ship(
-    git: GitOps, base: str, draft: bool, reviewer: str | None, no_merge: bool
-) -> int:
+def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_merge: bool) -> int:
     """Ship: commit -> push -> PR -> merge -> cleanup in one shot."""
     import subprocess as _subprocess
 
@@ -477,9 +471,7 @@ def action_ship(
         return rc
 
     if no_merge:
-        console.print(
-            f"\n[green]\u2713[/green] PR created for {current} \u2192 {base} (--no-merge: stopping here)"
-        )
+        console.print(f"\n[green]\u2713[/green] PR created for {current} \u2192 {base} (--no-merge: stopping here)")
         return 0
 
     # Step 3: Merge PR
@@ -536,10 +528,22 @@ def action_ship(
 @click.option(
     "--action",
     "-a",
-    type=click.Choice([
-        "commit", "branch", "merge", "sync", "history", "finish",
-        "pr", "release", "review", "rescue", "bisect", "ship",
-    ]),
+    type=click.Choice(
+        [
+            "commit",
+            "branch",
+            "merge",
+            "sync",
+            "history",
+            "finish",
+            "pr",
+            "release",
+            "review",
+            "rescue",
+            "bisect",
+            "ship",
+        ]
+    ),
     default="commit",
     help="Git action to perform",
 )

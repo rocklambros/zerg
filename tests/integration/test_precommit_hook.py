@@ -7,8 +7,8 @@ import os
 import shutil
 import stat
 import subprocess
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 
@@ -118,11 +118,7 @@ class TestPrecommitHookIntegration:
         bad_file = hook_test_repo / "key.py"
         # Use proper multi-line private key format so grep can find the header
         bad_file.write_text(
-            'KEY = """\n'
-            '-----BEGIN RSA PRIVATE KEY-----\n'
-            'MIIBogIBAAJBAKj34GkxFhD\n'
-            '-----END RSA PRIVATE KEY-----\n'
-            '"""\n'
+            'KEY = """\n-----BEGIN RSA PRIVATE KEY-----\nMIIBogIBAAJBAKj34GkxFhD\n-----END RSA PRIVATE KEY-----\n"""\n'
         )
 
         subprocess.run(["git", "add", "key.py"], cwd=hook_test_repo, check=True)
@@ -155,7 +151,7 @@ class TestPrecommitHookIntegration:
     def test_eval_blocks(self, hook_test_repo: Path) -> None:
         """eval() should block commit."""
         bad_file = hook_test_repo / "dynamic.py"
-        bad_file.write_text('result = eval(user_input)\n')
+        bad_file.write_text("result = eval(user_input)\n")
 
         subprocess.run(["git", "add", "dynamic.py"], cwd=hook_test_repo, check=True)
         result = subprocess.run(
@@ -187,7 +183,7 @@ class TestPrecommitHookIntegration:
     def test_debugger_warns(self, hook_test_repo: Path) -> None:
         """Debugger statements should warn but not block."""
         debug_file = hook_test_repo / "debug.py"
-        debug_file.write_text('def foo():\n    breakpoint()\n    return 1\n')
+        debug_file.write_text("def foo():\n    breakpoint()\n    return 1\n")
 
         subprocess.run(["git", "add", "debug.py"], cwd=hook_test_repo, check=True)
         result = subprocess.run(
@@ -204,7 +200,7 @@ class TestPrecommitHookIntegration:
     def test_merge_marker_warns(self, hook_test_repo: Path) -> None:
         """Merge conflict markers should warn."""
         conflict_file = hook_test_repo / "conflict.py"
-        conflict_file.write_text('x = 1\n<<<<<<< HEAD\nx = 2\n=======\nx = 3\n>>>>>>> branch\n')
+        conflict_file.write_text("x = 1\n<<<<<<< HEAD\nx = 2\n=======\nx = 3\n>>>>>>> branch\n")
 
         subprocess.run(["git", "add", "conflict.py"], cwd=hook_test_repo, check=True)
         result = subprocess.run(
@@ -227,9 +223,9 @@ class TestPrecommitHookIntegration:
         # Test file with patterns that would normally block
         test_file = tests_dir / "test_example.py"
         test_file.write_text(
-            'def test_something():\n'
-            '    # Testing shell command\n'
-            '    import subprocess\n'
+            "def test_something():\n"
+            "    # Testing shell command\n"
+            "    import subprocess\n"
             '    subprocess.run("ls", shell=True)  # OK in tests\n'
         )
 

@@ -78,9 +78,7 @@ def compute_critical_path(tasks: list[dict[str, Any]]) -> list[str]:
 
     # Build lookup structures
     task_map: dict[str, dict[str, Any]] = {t["id"]: t for t in tasks}
-    estimates: dict[str, int] = {
-        t["id"]: t.get("estimate_minutes", 15) for t in tasks
-    }
+    estimates: dict[str, int] = {t["id"]: t.get("estimate_minutes", 15) for t in tasks}
 
     # Topological sort via Kahn's algorithm
     in_degree: dict[str, int] = dict.fromkeys(task_map, 0)
@@ -204,9 +202,7 @@ def _render_header(
     lines.append(f"**Feature**: {feature}")
     lines.append(f"**Total Tasks**: {total_tasks}")
     if task_data.get("estimated_duration_minutes"):
-        lines.append(
-            f"**Estimated Duration**: {task_data['estimated_duration_minutes']} minutes"
-        )
+        lines.append(f"**Estimated Duration**: {task_data['estimated_duration_minutes']} minutes")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -228,16 +224,11 @@ def _render_execution_summary(
     for level_num, level_tasks in levels.items():
         level_name = _get_level_name(level_num, levels_spec)
         worker_count = min(len(level_tasks), max_parallel)
-        lines.append(
-            f"| L{level_num} | {len(level_tasks)} | {worker_count} | {level_name} |"
-        )
+        lines.append(f"| L{level_num} | {len(level_tasks)} | {worker_count} | {level_name} |")
     lines.append("")
     lines.append(f"**Total Tasks**: {total_tasks}")
     lines.append(f"**Max Parallelization**: {max_parallel} workers")
-    lines.append(
-        f"**Estimated Sessions**: {session_info['with_workers']}"
-        f" (with {max_parallel} parallel workers)"
-    )
+    lines.append(f"**Estimated Sessions**: {session_info['with_workers']} (with {max_parallel} parallel workers)")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -255,16 +246,10 @@ def _render_task_backlog_by_level(
     for level_num, level_tasks in levels.items():
         level_name = _get_level_name(level_num, levels_spec)
         task_count = len(level_tasks)
-        lines.append(
-            f"### Level {level_num}: {level_name} (Parallel: {task_count} tasks)"
-        )
+        lines.append(f"### Level {level_num}: {level_name} (Parallel: {task_count} tasks)")
         lines.append("")
-        lines.append(
-            "| ID | Description | Files Owned | Deps | Status | Verification |"
-        )
-        lines.append(
-            "|----|-------------|-------------|------|--------|--------------|"
-        )
+        lines.append("| ID | Description | Files Owned | Deps | Status | Verification |")
+        lines.append("|----|-------------|-------------|------|--------|--------------|")
 
         for task in level_tasks:
             tid = task["id"]
@@ -273,9 +258,7 @@ def _render_task_backlog_by_level(
             deps = _get_deps(task)
             status = task.get("status", "todo").upper()
             verification = _get_verification(task)
-            lines.append(
-                f"| **{tid}** | {desc} | {files_owned} | {deps} | {status} | {verification} |"
-            )
+            lines.append(f"| **{tid}** | {desc} | {files_owned} | {deps} | {status} | {verification} |")
 
         lines.append("")
 
@@ -306,9 +289,7 @@ def _render_critical_path(
         for i, level_num in enumerate(sorted_levels):
             level_task_ids = path_by_level[level_num]
             all_level_tasks = levels.get(level_num, [])
-            non_critical = [
-                t["id"] for t in all_level_tasks if t["id"] not in level_task_ids
-            ]
+            non_critical = [t["id"] for t in all_level_tasks if t["id"] not in level_task_ids]
 
             if len(level_task_ids) == 1:
                 tid = level_task_ids[0]
@@ -338,9 +319,7 @@ def _render_critical_path(
     lines.append("")
 
     if critical_path_ids:
-        lines.append(
-            f"**Critical Path Tasks**: {' -> '.join(critical_path_ids)}"
-        )
+        lines.append(f"**Critical Path Tasks**: {' -> '.join(critical_path_ids)}")
         lines.append("")
 
     lines.append("---")
@@ -360,29 +339,20 @@ def _render_progress_tracking(
 
     total_completed = 0
     for level_num, level_tasks in levels.items():
-        completed = sum(
-            1 for t in level_tasks if t.get("status") == "complete"
-        )
+        completed = sum(1 for t in level_tasks if t.get("status") == "complete")
         total_completed += completed
         total_in_level = len(level_tasks)
         pct = int((completed / total_in_level) * 100) if total_in_level else 0
         status = "COMPLETE" if completed == total_in_level else "PENDING"
-        if any(
-            t.get("status") in ("in_progress", "claimed") for t in level_tasks
-        ):
+        if any(t.get("status") in ("in_progress", "claimed") for t in level_tasks):
             status = "IN PROGRESS"
-        lines.append(
-            f"| L{level_num} | {status} | {completed} | {total_in_level} | {pct}% |"
-        )
+        lines.append(f"| L{level_num} | {status} | {completed} | {total_in_level} | {pct}% |")
 
     total_pct = int((total_completed / total_tasks) * 100) if total_tasks else 0
     overall_status = "COMPLETE" if total_completed == total_tasks else "PENDING"
     if total_completed > 0 and total_completed < total_tasks:
         overall_status = "IN PROGRESS"
-    lines.append(
-        f"| **TOTAL** | **{overall_status}** | **{total_completed}** "
-        f"| **{total_tasks}** | **{total_pct}%** |"
-    )
+    lines.append(f"| **TOTAL** | **{overall_status}** | **{total_completed}** | **{total_tasks}** | **{total_pct}%** |")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -395,13 +365,8 @@ def _render_estimated_sessions(
     """Render the estimated sessions section."""
     lines.append("## Estimated Sessions")
     lines.append("")
-    lines.append(
-        f"- **Single worker**: {session_info['single_worker']} sessions"
-    )
-    lines.append(
-        f"- **With {session_info['worker_count']} workers**: "
-        f"{session_info['with_workers']} sessions"
-    )
+    lines.append(f"- **Single worker**: {session_info['single_worker']} sessions")
+    lines.append(f"- **With {session_info['worker_count']} workers**: {session_info['with_workers']} sessions")
     lines.append(f"- **Speedup**: {session_info['speedup']}x")
     lines.append("")
     lines.append("---")
@@ -415,9 +380,7 @@ def _render_blockers(
     """Render the blockers and notes section."""
     lines.append("## Blockers & Notes")
     lines.append("")
-    blocked_tasks = [
-        t for t in tasks if t.get("status") == "blocked"
-    ]
+    blocked_tasks = [t for t in tasks if t.get("status") == "blocked"]
     if blocked_tasks:
         for task in blocked_tasks:
             tid = task["id"]
@@ -492,9 +455,7 @@ def generate_backlog_markdown(
     lines: list[str] = []
 
     _render_header(lines, feature, total_tasks, task_data)
-    _render_execution_summary(
-        lines, levels, levels_spec, max_parallel, total_tasks, session_info
-    )
+    _render_execution_summary(lines, levels, levels_spec, max_parallel, total_tasks, session_info)
     _render_task_backlog_by_level(lines, levels, levels_spec)
     _render_critical_path(lines, critical_path_ids, tasks, levels)
     _render_progress_tracking(lines, levels, total_tasks)
@@ -534,18 +495,14 @@ def update_backlog_task_status(
 
     # Match a table row containing the task_id in the ID column.
     # Table format: | **TASK-ID** | desc | files | deps | STATUS | verification |
-    pattern = (
-        r"(\| \*\*"
-        + re.escape(task_id)
-        + r"\*\* \|[^|]*\|[^|]*\|[^|]*\|)\s*([^|]*?)(\s*\|[^|]*\|)"
-    )
+    pattern = r"(\| \*\*" + re.escape(task_id) + r"\*\* \|[^|]*\|[^|]*\|[^|]*\|)\s*([^|]*?)(\s*\|[^|]*\|)"
 
     match = re.search(pattern, content)
     if not match:
         return False
 
     replacement = f"{match.group(1)} {status.upper()} {match.group(3)}"
-    content = content[:match.start()] + replacement + content[match.end():]
+    content = content[: match.start()] + replacement + content[match.end() :]
 
     # Handle blocker addition/update
     if blocker is not None:
@@ -563,17 +520,9 @@ def update_backlog_task_status(
                 # Remove "No blockers identified" if present
                 no_blockers = "- No blockers identified.\n"
                 if content[insert_pos:].startswith(no_blockers):
-                    content = (
-                        content[:insert_pos]
-                        + content[insert_pos + len(no_blockers):]
-                    )
+                    content = content[:insert_pos] + content[insert_pos + len(no_blockers) :]
                     insert_pos = insert_pos  # position stays the same
-                content = (
-                    content[:insert_pos]
-                    + blocker_line
-                    + "\n"
-                    + content[insert_pos:]
-                )
+                content = content[:insert_pos] + blocker_line + "\n" + content[insert_pos:]
 
     path.write_text(content, encoding="utf-8")
     return True

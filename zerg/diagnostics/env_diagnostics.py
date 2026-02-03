@@ -72,17 +72,14 @@ class PythonEnvDiagnostics:
             return result
 
         installed_list: list[dict[str, str]] = [
-            {"name": pkg.get("name", ""), "version": pkg.get("version", "")}
-            for pkg in packages
+            {"name": pkg.get("name", ""), "version": pkg.get("version", "")} for pkg in packages
         ]
         result["installed"] = installed_list
         result["count"] = len(installed_list)
 
         if required:
             installed_names = {pkg["name"].lower() for pkg in installed_list}
-            result["missing"] = [
-                name for name in required if name.lower() not in installed_names
-            ]
+            result["missing"] = [name for name in required if name.lower() not in installed_names]
 
         return result
 
@@ -92,9 +89,7 @@ class PythonEnvDiagnostics:
         failed: list[dict[str, str]] = []
 
         for module in modules:
-            stdout, ok = self._run_cmd(
-                [sys.executable, "-c", f"import {module}"]
-            )
+            stdout, ok = self._run_cmd([sys.executable, "-c", f"import {module}"])
             if ok:
                 success.append(module)
             else:
@@ -154,30 +149,23 @@ class DockerDiagnostics:
 
         # Running containers
         fmt = "{{.ID}}\t{{.Names}}\t{{.Status}}"
-        stdout, ok = self._run_cmd(
-            ["docker", "ps", "--filter", f"label={label}", "--format", fmt]
-        )
+        stdout, ok = self._run_cmd(["docker", "ps", "--filter", f"label={label}", "--format", fmt])
         if ok and stdout:
             for line in stdout.splitlines():
                 parts = line.split("\t")
                 if len(parts) >= 3:
-                    result["containers"].append(
-                        {"id": parts[0], "name": parts[1], "status": parts[2]}
-                    )
+                    result["containers"].append({"id": parts[0], "name": parts[1], "status": parts[2]})
                     result["running"] += 1
 
         # Stopped containers
         stdout, ok = self._run_cmd(
-            ["docker", "ps", "-a", "--filter", f"label={label}",
-             "--filter", "status=exited", "--format", fmt]
+            ["docker", "ps", "-a", "--filter", f"label={label}", "--filter", "status=exited", "--format", fmt]
         )
         if ok and stdout:
             for line in stdout.splitlines():
                 parts = line.split("\t")
                 if len(parts) >= 3:
-                    result["containers"].append(
-                        {"id": parts[0], "name": parts[1], "status": parts[2]}
-                    )
+                    result["containers"].append({"id": parts[0], "name": parts[1], "status": parts[2]})
                     result["stopped"] += 1
 
         return result
@@ -190,21 +178,15 @@ class DockerDiagnostics:
             "images": [],
         }
 
-        stdout, ok = self._run_cmd(
-            ["docker", "images", "--format", "{{.Repository}}\t{{.Tag}}\t{{.Size}}"]
-        )
+        stdout, ok = self._run_cmd(["docker", "images", "--format", "{{.Repository}}\t{{.Tag}}\t{{.Size}}"])
         if ok and stdout:
             for line in stdout.splitlines():
                 parts = line.split("\t")
                 if len(parts) >= 3:
-                    result["images"].append(
-                        {"repository": parts[0], "tag": parts[1], "size": parts[2]}
-                    )
+                    result["images"].append({"repository": parts[0], "tag": parts[1], "size": parts[2]})
             result["total"] = len(result["images"])
 
-        stdout, ok = self._run_cmd(
-            ["docker", "images", "--filter", "dangling=true", "-q"]
-        )
+        stdout, ok = self._run_cmd(["docker", "images", "--filter", "dangling=true", "-q"])
         if ok and stdout:
             result["dangling"] = len([ln for ln in stdout.splitlines() if ln.strip()])
 
@@ -384,7 +366,7 @@ class ConfigValidator:
                 issues.append(f"Missing expected key: '{key}'")
 
             # Basic type checks
-            if "workers" in data and not isinstance(data["workers"], (int, dict)):
+            if "workers" in data and not isinstance(data["workers"], int | dict):
                 issues.append("'workers' should be an integer or mapping")
             if "timeouts" in data and not isinstance(data["timeouts"], dict):
                 issues.append("'timeouts' should be a mapping")
@@ -420,12 +402,14 @@ class EnvDiagnosticsEngine:
         python_results: dict[str, Any] = {"venv": venv}
 
         if not venv["active"]:
-            evidence.append(Evidence(
-                description="Virtual environment is not active",
-                source="system",
-                confidence=0.9,
-                data={"prefix": venv["path"]},
-            ))
+            evidence.append(
+                Evidence(
+                    description="Virtual environment is not active",
+                    source="system",
+                    confidence=0.9,
+                    data={"prefix": venv["path"]},
+                )
+            )
 
         # Docker
         docker_health = self._docker.check_health()
@@ -438,12 +422,14 @@ class EnvDiagnosticsEngine:
         }
 
         if docker_health is None:
-            evidence.append(Evidence(
-                description="Docker is not running or not installed",
-                source="system",
-                confidence=0.95,
-                data={},
-            ))
+            evidence.append(
+                Evidence(
+                    description="Docker is not running or not installed",
+                    source="system",
+                    confidence=0.95,
+                    data={},
+                )
+            )
 
         # Resources
         memory = self._resources.check_memory()
@@ -458,32 +444,38 @@ class EnvDiagnosticsEngine:
         }
 
         if memory["available_gb"] > 0 and memory["available_gb"] < 2.0:
-            evidence.append(Evidence(
-                description=f"Low available memory: {memory['available_gb']}GB",
-                source="system",
-                confidence=0.85,
-                data=memory,
-            ))
+            evidence.append(
+                Evidence(
+                    description=f"Low available memory: {memory['available_gb']}GB",
+                    source="system",
+                    confidence=0.85,
+                    data=memory,
+                )
+            )
 
         if disk["used_percent"] > 90:
-            evidence.append(Evidence(
-                description=f"High disk usage: {disk['used_percent']}%",
-                source="system",
-                confidence=0.9,
-                data=disk,
-            ))
+            evidence.append(
+                Evidence(
+                    description=f"High disk usage: {disk['used_percent']}%",
+                    source="system",
+                    confidence=0.9,
+                    data=disk,
+                )
+            )
 
         # Config validation
         path = config_path or Path(".zerg/config.yaml")
         config_issues = self._config.validate(path)
 
         if config_issues:
-            evidence.append(Evidence(
-                description=f"Config validation issues: {len(config_issues)} found",
-                source="system",
-                confidence=0.8,
-                data={"issues": config_issues},
-            ))
+            evidence.append(
+                Evidence(
+                    description=f"Config validation issues: {len(config_issues)} found",
+                    source="system",
+                    confidence=0.8,
+                    data={"issues": config_issues},
+                )
+            )
 
         return {
             "python": python_results,

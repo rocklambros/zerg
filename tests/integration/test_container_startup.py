@@ -5,13 +5,9 @@ process startup using mocked launcher.
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
-
-from tests.mocks.mock_launcher import MockContainerLauncher, SpawnAttempt
+from tests.mocks.mock_launcher import MockContainerLauncher
 from zerg.constants import WorkerStatus
-from zerg.launcher import SpawnResult
 
 
 class TestContainerStartupFlow:

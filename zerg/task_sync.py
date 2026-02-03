@@ -113,9 +113,7 @@ class TaskSyncBridge:
             task_list_id: CLAUDE_CODE_TASK_LIST_ID for cross-session coordination
         """
         self.feature = feature
-        self.task_list_id = task_list_id or os.environ.get(
-            "CLAUDE_CODE_TASK_LIST_ID", feature
-        )
+        self.task_list_id = task_list_id or os.environ.get("CLAUDE_CODE_TASK_LIST_ID", feature)
         self.state = state_manager or StateManager(feature)
         self._synced_tasks: dict[str, ClaudeTask] = {}
 
@@ -232,9 +230,7 @@ class TaskSyncBridge:
                 synced_task.updated_at = datetime.now()
                 updated_count += 1
 
-                logger.debug(
-                    f"Synced task {task_id}: status={claude_status}, worker={worker_id}"
-                )
+                logger.debug(f"Synced task {task_id}: status={claude_status}, worker={worker_id}")
 
         if updated_count > 0:
             logger.info(f"Synced {updated_count} task status updates")
@@ -258,10 +254,7 @@ class TaskSyncBridge:
         Returns:
             Summary dictionary with counts by status
         """
-        level_tasks = [
-            t for t in self._synced_tasks.values()
-            if t.level == level
-        ]
+        level_tasks = [t for t in self._synced_tasks.values() if t.level == level]
 
         by_status: dict[str, int] = {}
         for task in level_tasks:
@@ -285,10 +278,7 @@ class TaskSyncBridge:
         Returns:
             True if all tasks in level are completed
         """
-        level_tasks = [
-            t for t in self._synced_tasks.values()
-            if t.level == level
-        ]
+        level_tasks = [t for t in self._synced_tasks.values() if t.level == level]
 
         if not level_tasks:
             return True

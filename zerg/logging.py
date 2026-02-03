@@ -86,10 +86,7 @@ class ConsoleFormatter(logging.Formatter):
 
         context = f"[{':'.join(context_parts)}]" if context_parts else ""
 
-        return (
-            f"{color}{timestamp} {record.levelname:8s}{self.RESET} "
-            f"{context} {record.getMessage()}"
-        )
+        return f"{color}{timestamp} {record.levelname:8s}{self.RESET} {context} {record.getMessage()}"
 
 
 def set_worker_context(
@@ -197,9 +194,7 @@ def setup_logging(
 class LoggerAdapter(logging.LoggerAdapter[logging.Logger]):
     """Logger adapter that adds task context to log messages."""
 
-    def process(
-        self, msg: str, kwargs: MutableMapping[str, Any]
-    ) -> tuple[str, MutableMapping[str, Any]]:
+    def process(self, msg: str, kwargs: MutableMapping[str, Any]) -> tuple[str, MutableMapping[str, Any]]:
         """Process log message with extra context.
 
         Args:

@@ -6,6 +6,7 @@ Thank you for your interest in contributing to ZERG, the parallel Claude Code ex
 
 - **Python 3.12+** (ZERG targets `py312` exclusively)
 - **git** (worktree support is used internally by ZERG workers)
+- **pre-commit** (installed automatically with `[dev]` dependencies)
 
 ## Development Setup
 
@@ -15,9 +16,12 @@ cd zerg
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+
+# Install pre-commit hooks (required)
+pre-commit install
 ```
 
-This installs the core dependencies (`click`, `pydantic`, `pyyaml`, `rich`) along with dev tooling (`pytest`, `pytest-cov`, `pytest-asyncio`, `mypy`, `ruff`).
+This installs the core dependencies (`click`, `pydantic`, `pyyaml`, `rich`) along with dev tooling (`pytest`, `pytest-cov`, `pytest-asyncio`, `mypy`, `ruff`, `pre-commit`).
 
 ## Running Tests
 
@@ -54,10 +58,27 @@ pytest -m "not docker and not e2e and not real_e2e"
 
 ## Code Style
 
-ZERG enforces style and type safety with two tools. Run both before submitting a pull request:
+ZERG enforces style and type safety with pre-commit hooks and manual checks. The pre-commit hooks run automatically on every commit:
 
 ```bash
-ruff check . && mypy zerg/
+# Hooks run automatically on commit, but you can run manually:
+pre-commit run --all-files
+
+# Or run the tools directly:
+ruff check . && ruff format --check . && mypy zerg/
+```
+
+### Pre-commit Hooks
+
+Pre-commit is **required** for all contributors. The hooks automatically run:
+
+- **ruff check --fix** — linting with auto-fix
+- **ruff format** — code formatting
+
+Install hooks after cloning:
+
+```bash
+pre-commit install
 ```
 
 ### Ruff
@@ -65,10 +86,9 @@ ruff check . && mypy zerg/
 Ruff is configured in `pyproject.toml` with these settings:
 
 - **Target**: `py312`
-- **Line length**: 100
-- **Selected rules**: `E`, `F`, `I`, `N`, `W`, `UP`, `B`, `C4`, `SIM`, `S`
-
-Several Bandit (`S`) rules are intentionally ignored because they conflict with ZERG's design (subprocess orchestration, `/tmp` health files, content fingerprinting). See the `[tool.ruff.lint] ignore` section in `pyproject.toml` for the full list with rationale comments.
+- **Line length**: 120
+- **Selected rules**: `E`, `F`, `I`, `UP`
+- **Exclusions**: `.zerg/`, `tests/fixtures/`
 
 ### Mypy
 

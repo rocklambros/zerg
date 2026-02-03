@@ -1,8 +1,5 @@
 """Integration tests for ZERG git command."""
 
-import tempfile
-from pathlib import Path
-
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -56,9 +53,7 @@ class TestGitCommand:
     def test_git_name_option(self) -> None:
         """Test git --name option for branch action."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["git", "--action", "branch", "--name", "feature/auth"]
-        )
+        result = runner.invoke(cli, ["git", "--action", "branch", "--name", "feature/auth"])
         assert "Invalid value" not in result.output
 
     def test_git_strategy_option(self) -> None:
@@ -156,9 +151,7 @@ class TestGitFunctional:
         """Test git merge with all strategies."""
         runner = CliRunner()
         for strategy in ["merge", "squash", "rebase"]:
-            result = runner.invoke(
-                cli, ["git", "--action", "merge", "--strategy", strategy]
-            )
+            result = runner.invoke(cli, ["git", "--action", "merge", "--strategy", strategy])
             # Should accept all strategies
             assert "Invalid value" not in result.output
 

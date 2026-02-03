@@ -2,8 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-
 from zerg.constants import GateResult
 from zerg.merge import MergeFlowResult
 from zerg.types import GateRunResult

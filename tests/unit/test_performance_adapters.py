@@ -35,21 +35,27 @@ _TRIVY_RUN = "zerg.performance.adapters.trivy_adapter.subprocess.run"
 @pytest.fixture()
 def python_stack() -> DetectedStack:
     return DetectedStack(
-        languages=["python"], frameworks=[], has_docker=False,
+        languages=["python"],
+        frameworks=[],
+        has_docker=False,
     )
 
 
 @pytest.fixture()
 def go_stack() -> DetectedStack:
     return DetectedStack(
-        languages=["go"], frameworks=[], has_docker=False,
+        languages=["go"],
+        frameworks=[],
+        has_docker=False,
     )
 
 
 @pytest.fixture()
 def docker_stack() -> DetectedStack:
     return DetectedStack(
-        languages=["python"], frameworks=[], has_docker=True,
+        languages=["python"],
+        frameworks=[],
+        has_docker=True,
     )
 
 
@@ -68,20 +74,22 @@ class TestSemgrepAdapter:
 
     def test_parse_results(self, python_stack: DetectedStack) -> None:
         """Verify PerformanceFinding from mocked semgrep JSON."""
-        sample_output = json.dumps({
-            "results": [
-                {
-                    "check_id": "python.lang.security.audit.sqli",
-                    "path": "test.py",
-                    "start": {"line": 10},
-                    "extra": {
-                        "message": "Issue found",
-                        "severity": "WARNING",
-                    },
-                }
-            ],
-            "errors": [],
-        })
+        sample_output = json.dumps(
+            {
+                "results": [
+                    {
+                        "check_id": "python.lang.security.audit.sqli",
+                        "path": "test.py",
+                        "start": {"line": 10},
+                        "extra": {
+                            "message": "Issue found",
+                            "severity": "WARNING",
+                        },
+                    }
+                ],
+                "errors": [],
+            }
+        )
 
         mock_result = MagicMock()
         mock_result.stdout = sample_output
@@ -118,7 +126,9 @@ class TestSemgrepAdapter:
         """Python stack includes 'p/python' in config."""
         adapter = SemgrepAdapter()
         stack = DetectedStack(
-            languages=["python"], frameworks=[], has_docker=True,
+            languages=["python"],
+            frameworks=[],
+            has_docker=True,
         )
         configs = adapter._build_configs(stack)
         assert "p/python" in configs
@@ -127,39 +137,45 @@ class TestSemgrepAdapter:
         assert "p/dockerfile" in configs
 
     def test_is_applicable_always_true(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """SemgrepAdapter inherits default is_applicable."""
         adapter = SemgrepAdapter()
         assert adapter.is_applicable(python_stack) is True
 
     def test_subprocess_timeout(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Timeout should return empty list."""
         adapter = SemgrepAdapter()
         with patch(
             _SEMGREP_RUN,
             side_effect=subprocess.TimeoutExpired(
-                cmd="semgrep", timeout=300,
+                cmd="semgrep",
+                timeout=300,
             ),
         ):
             findings = adapter.run([], ".", python_stack)
         assert findings == []
 
     def test_subprocess_os_error(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """OSError should return empty list."""
         adapter = SemgrepAdapter()
         with patch(
-            _SEMGREP_RUN, side_effect=OSError("not found"),
+            _SEMGREP_RUN,
+            side_effect=OSError("not found"),
         ):
             findings = adapter.run([], ".", python_stack)
         assert findings == []
 
     def test_empty_stdout(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Empty stdout should return empty findings."""
         mock_result = MagicMock()
@@ -170,7 +186,8 @@ class TestSemgrepAdapter:
         assert findings == []
 
     def test_no_configs_for_empty_stack(
-        self, empty_stack: DetectedStack,
+        self,
+        empty_stack: DetectedStack,
     ) -> None:
         """Empty stack produces no configs."""
         adapter = SemgrepAdapter()
@@ -187,20 +204,23 @@ class TestRadonAdapter:
     """Tests for the RadonAdapter."""
 
     def test_cyclomatic_complexity_high_rank(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Rank D finding should produce HIGH severity."""
-        cc_output = json.dumps({
-            "test.py": [
-                {
-                    "type": "function",
-                    "name": "foo",
-                    "complexity": 25,
-                    "rank": "D",
-                    "lineno": 5,
-                }
-            ]
-        })
+        cc_output = json.dumps(
+            {
+                "test.py": [
+                    {
+                        "type": "function",
+                        "name": "foo",
+                        "complexity": 25,
+                        "rank": "D",
+                        "lineno": 5,
+                    }
+                ]
+            }
+        )
         mi_output = json.dumps({})
 
         adapter = RadonAdapter()
@@ -221,7 +241,8 @@ class TestRadonAdapter:
         assert "25" in f.message
 
     def test_is_applicable_python(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Radon is applicable for Python stacks."""
         adapter = RadonAdapter()
@@ -233,38 +254,43 @@ class TestRadonAdapter:
         assert adapter.is_applicable(go_stack) is False
 
     def test_subprocess_failure(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Subprocess failure should return empty list."""
         adapter = RadonAdapter()
         with patch(
-            _RADON_RUN, side_effect=OSError("not found"),
+            _RADON_RUN,
+            side_effect=OSError("not found"),
         ):
             findings = adapter.run([], ".", python_stack)
         assert findings == []
 
     def test_skip_rank_a_b(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Rank A and B findings should be skipped."""
-        cc_output = json.dumps({
-            "test.py": [
-                {
-                    "type": "function",
-                    "name": "simple",
-                    "complexity": 3,
-                    "rank": "A",
-                    "lineno": 1,
-                },
-                {
-                    "type": "function",
-                    "name": "moderate",
-                    "complexity": 8,
-                    "rank": "B",
-                    "lineno": 10,
-                },
-            ]
-        })
+        cc_output = json.dumps(
+            {
+                "test.py": [
+                    {
+                        "type": "function",
+                        "name": "simple",
+                        "complexity": 3,
+                        "rank": "A",
+                        "lineno": 1,
+                    },
+                    {
+                        "type": "function",
+                        "name": "moderate",
+                        "complexity": 8,
+                        "rank": "B",
+                        "lineno": 10,
+                    },
+                ]
+            }
+        )
         mi_output = json.dumps({})
 
         adapter = RadonAdapter()
@@ -278,13 +304,16 @@ class TestRadonAdapter:
         assert findings == []
 
     def test_maintainability_index(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """MI rank D should produce a finding."""
         cc_output = json.dumps({})
-        mi_output = json.dumps({
-            "bad_file.py": {"rank": "D", "mi": 5.2},
-        })
+        mi_output = json.dumps(
+            {
+                "bad_file.py": {"rank": "D", "mi": 5.2},
+            }
+        )
 
         adapter = RadonAdapter()
         with patch(_RADON_RUN) as mock_run:
@@ -308,7 +337,8 @@ class TestLizardAdapter:
     """Tests for the LizardAdapter."""
 
     def test_high_ccn_finding(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """High CCN value should produce a finding."""
         # CSV: NLOC, CCN, token, PARAM, length, location, name
@@ -329,7 +359,8 @@ class TestLizardAdapter:
         assert ccn[0].line == 5
 
     def test_critical_ccn(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """CCN > 40 should be CRITICAL."""
         csv_output = "50,45,300,3,60,test.py@1,very_complex\n"
@@ -345,7 +376,8 @@ class TestLizardAdapter:
         assert ccn[0].severity == Severity.CRITICAL
 
     def test_large_function(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """NLOC > 200 should produce HIGH severity finding."""
         csv_output = "250,5,500,2,260,test.py@10,big_func\n"
@@ -361,7 +393,8 @@ class TestLizardAdapter:
         assert nloc[0].severity == Severity.HIGH
 
     def test_excessive_params(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """More than 5 params should produce LOW finding."""
         csv_output = "20,3,50,8,25,test.py@1,many_params\n"
@@ -387,12 +420,14 @@ class TestLizardAdapter:
         assert adapter.is_applicable(go_stack) is True
 
     def test_subprocess_failure(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Subprocess failure returns empty list."""
         adapter = LizardAdapter()
         with patch(
-            _LIZARD_RUN, side_effect=OSError("not found"),
+            _LIZARD_RUN,
+            side_effect=OSError("not found"),
         ):
             findings = adapter.run([], ".", python_stack)
         assert findings == []
@@ -407,12 +442,11 @@ class TestVultureAdapter:
     """Tests for the VultureAdapter."""
 
     def test_parse_output(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Vulture output should be parsed into findings."""
-        vulture_output = (
-            "test.py:10: unused function 'foo' (90% confidence)\n"
-        )
+        vulture_output = "test.py:10: unused function 'foo' (90% confidence)\n"
         mock_result = MagicMock()
         mock_result.stdout = vulture_output
 
@@ -429,12 +463,11 @@ class TestVultureAdapter:
         assert f.tool == "vulture"
 
     def test_high_confidence(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """100% confidence should map to HIGH severity."""
-        vulture_output = (
-            "app.py:5: unused variable 'x' (100% confidence)\n"
-        )
+        vulture_output = "app.py:5: unused variable 'x' (100% confidence)\n"
         mock_result = MagicMock()
         mock_result.stdout = vulture_output
 
@@ -446,12 +479,11 @@ class TestVultureAdapter:
         assert findings[0].severity == Severity.HIGH
 
     def test_low_confidence(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """80% confidence should map to LOW severity."""
-        vulture_output = (
-            "lib.py:20: unused import 'os' (80% confidence)\n"
-        )
+        vulture_output = "lib.py:20: unused import 'os' (80% confidence)\n"
         mock_result = MagicMock()
         mock_result.stdout = vulture_output
 
@@ -473,18 +505,21 @@ class TestVultureAdapter:
         assert adapter.is_applicable(go_stack) is False
 
     def test_subprocess_failure(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Subprocess failure returns empty list."""
         adapter = VultureAdapter()
         with patch(
-            _VULTURE_RUN, side_effect=OSError("not found"),
+            _VULTURE_RUN,
+            side_effect=OSError("not found"),
         ):
             findings = adapter.run([], ".", python_stack)
         assert findings == []
 
     def test_empty_output(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Empty output produces no findings."""
         mock_result = MagicMock()
@@ -505,67 +540,54 @@ class TestDiveAdapter:
     """Tests for the DiveAdapter."""
 
     def test_mergeable_runs(
-        self, tmp_path: Path, docker_stack: DetectedStack,
+        self,
+        tmp_path: Path,
+        docker_stack: DetectedStack,
     ) -> None:
         """Multiple consecutive RUN -> LOW finding."""
         dockerfile = tmp_path / "Dockerfile"
         dockerfile.write_text(
-            "FROM python:3.11\n"
-            "RUN apt-get update\n"
-            "RUN apt-get install -y curl\n"
-            "RUN pip install flask\n"
-            "COPY . /app\n"
+            "FROM python:3.11\nRUN apt-get update\nRUN apt-get install -y curl\nRUN pip install flask\nCOPY . /app\n"
         )
 
         adapter = DiveAdapter()
         findings = adapter.run([], str(tmp_path), docker_stack)
 
-        mergeable = [
-            f for f in findings
-            if f.rule_id == "dive-mergeable-runs"
-        ]
+        mergeable = [f for f in findings if f.rule_id == "dive-mergeable-runs"]
         assert len(mergeable) == 1
         assert mergeable[0].severity == Severity.LOW
 
     def test_no_multistage(
-        self, tmp_path: Path, docker_stack: DetectedStack,
+        self,
+        tmp_path: Path,
+        docker_stack: DetectedStack,
     ) -> None:
         """Single FROM -> MEDIUM finding for no multi-stage."""
         dockerfile = tmp_path / "Dockerfile"
-        dockerfile.write_text(
-            "FROM python:3.11\n"
-            "COPY . /app\n"
-        )
+        dockerfile.write_text("FROM python:3.11\nCOPY . /app\n")
 
         adapter = DiveAdapter()
         findings = adapter.run([], str(tmp_path), docker_stack)
 
-        ms = [
-            f for f in findings
-            if f.rule_id == "dive-no-multistage"
-        ]
+        ms = [f for f in findings if f.rule_id == "dive-no-multistage"]
         assert len(ms) == 1
         assert ms[0].severity == Severity.MEDIUM
 
     def test_multistage_no_finding(
-        self, tmp_path: Path, docker_stack: DetectedStack,
+        self,
+        tmp_path: Path,
+        docker_stack: DetectedStack,
     ) -> None:
         """Multi-stage build -> no multistage finding."""
         dockerfile = tmp_path / "Dockerfile"
         dockerfile.write_text(
-            "FROM python:3.11 AS builder\n"
-            "RUN pip install build\n"
-            "FROM python:3.11-slim\n"
-            "COPY --from=builder /app /app\n"
+            "FROM python:3.11 AS builder\nRUN pip install build\nFROM python:3.11-slim\nCOPY --from=builder /app /app\n"
         )
 
         adapter = DiveAdapter()
         findings = adapter.run([], str(tmp_path), docker_stack)
 
-        ms = [
-            f for f in findings
-            if f.rule_id == "dive-no-multistage"
-        ]
+        ms = [f for f in findings if f.rule_id == "dive-no-multistage"]
         assert len(ms) == 0
 
     def test_is_applicable_docker_only(
@@ -579,7 +601,9 @@ class TestDiveAdapter:
         assert adapter.is_applicable(python_stack) is False
 
     def test_no_dockerfile(
-        self, tmp_path: Path, docker_stack: DetectedStack,
+        self,
+        tmp_path: Path,
+        docker_stack: DetectedStack,
     ) -> None:
         """No Dockerfile should produce no findings."""
         adapter = DiveAdapter()
@@ -596,20 +620,24 @@ class TestHadolintAdapter:
     """Tests for the HadolintAdapter."""
 
     def test_parse_json_output(
-        self, tmp_path: Path, docker_stack: DetectedStack,
+        self,
+        tmp_path: Path,
+        docker_stack: DetectedStack,
     ) -> None:
         """Hadolint JSON output parsed into findings."""
         dockerfile = tmp_path / "Dockerfile"
         dockerfile.write_text("FROM python:3.11\n")
 
-        hadolint_output = json.dumps([
-            {
-                "line": 1,
-                "code": "DL3008",
-                "message": "Pin versions in apt get install",
-                "level": "warning",
-            }
-        ])
+        hadolint_output = json.dumps(
+            [
+                {
+                    "line": 1,
+                    "code": "DL3008",
+                    "message": "Pin versions in apt get install",
+                    "level": "warning",
+                }
+            ]
+        )
 
         mock_result = MagicMock()
         mock_result.stdout = hadolint_output
@@ -617,7 +645,9 @@ class TestHadolintAdapter:
         adapter = HadolintAdapter()
         with patch(_HADOLINT_RUN, return_value=mock_result):
             findings = adapter.run(
-                [], str(tmp_path), docker_stack,
+                [],
+                str(tmp_path),
+                docker_stack,
             )
 
         assert len(findings) == 1
@@ -638,7 +668,9 @@ class TestHadolintAdapter:
         assert adapter.is_applicable(python_stack) is False
 
     def test_subprocess_failure(
-        self, tmp_path: Path, docker_stack: DetectedStack,
+        self,
+        tmp_path: Path,
+        docker_stack: DetectedStack,
     ) -> None:
         """Subprocess failure returns empty list."""
         dockerfile = tmp_path / "Dockerfile"
@@ -646,15 +678,20 @@ class TestHadolintAdapter:
 
         adapter = HadolintAdapter()
         with patch(
-            _HADOLINT_RUN, side_effect=OSError("not found"),
+            _HADOLINT_RUN,
+            side_effect=OSError("not found"),
         ):
             findings = adapter.run(
-                [], str(tmp_path), docker_stack,
+                [],
+                str(tmp_path),
+                docker_stack,
             )
         assert findings == []
 
     def test_empty_output(
-        self, tmp_path: Path, docker_stack: DetectedStack,
+        self,
+        tmp_path: Path,
+        docker_stack: DetectedStack,
     ) -> None:
         """Empty JSON array returns no findings."""
         dockerfile = tmp_path / "Dockerfile"
@@ -666,7 +703,9 @@ class TestHadolintAdapter:
         adapter = HadolintAdapter()
         with patch(_HADOLINT_RUN, return_value=mock_result):
             findings = adapter.run(
-                [], str(tmp_path), docker_stack,
+                [],
+                str(tmp_path),
+                docker_stack,
             )
         assert findings == []
 
@@ -680,26 +719,29 @@ class TestTrivyAdapter:
     """Tests for the TrivyAdapter."""
 
     def test_parse_vulnerabilities(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Trivy vulnerability results parsed correctly."""
-        trivy_output = json.dumps({
-            "Results": [
-                {
-                    "Target": "requirements.txt",
-                    "Vulnerabilities": [
-                        {
-                            "VulnerabilityID": "CVE-2023-1234",
-                            "PkgName": "flask",
-                            "InstalledVersion": "2.0.0",
-                            "FixedVersion": "2.3.0",
-                            "Severity": "HIGH",
-                            "Title": "XSS vulnerability",
-                        }
-                    ],
-                }
-            ]
-        })
+        trivy_output = json.dumps(
+            {
+                "Results": [
+                    {
+                        "Target": "requirements.txt",
+                        "Vulnerabilities": [
+                            {
+                                "VulnerabilityID": "CVE-2023-1234",
+                                "PkgName": "flask",
+                                "InstalledVersion": "2.0.0",
+                                "FixedVersion": "2.3.0",
+                                "Severity": "HIGH",
+                                "Title": "XSS vulnerability",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
 
         mock_result = MagicMock()
         mock_result.stdout = trivy_output
@@ -716,25 +758,28 @@ class TestTrivyAdapter:
         assert f.file == "requirements.txt"
 
     def test_severity_mapping(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Trivy severities should map correctly."""
-        trivy_output = json.dumps({
-            "Results": [
-                {
-                    "Target": "go.sum",
-                    "Vulnerabilities": [
-                        {
-                            "VulnerabilityID": "CVE-2023-0001",
-                            "Severity": "CRITICAL",
-                            "Title": "RCE",
-                            "PkgName": "pkg",
-                            "InstalledVersion": "1.0",
-                        },
-                    ],
-                }
-            ]
-        })
+        trivy_output = json.dumps(
+            {
+                "Results": [
+                    {
+                        "Target": "go.sum",
+                        "Vulnerabilities": [
+                            {
+                                "VulnerabilityID": "CVE-2023-0001",
+                                "Severity": "CRITICAL",
+                                "Title": "RCE",
+                                "PkgName": "pkg",
+                                "InstalledVersion": "1.0",
+                            },
+                        ],
+                    }
+                ]
+            }
+        )
 
         mock_result = MagicMock()
         mock_result.stdout = trivy_output
@@ -746,25 +791,28 @@ class TestTrivyAdapter:
         assert findings[0].severity == Severity.CRITICAL
 
     def test_misconfigurations(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Trivy misconfigurations should be parsed."""
-        trivy_output = json.dumps({
-            "Results": [
-                {
-                    "Target": "Dockerfile",
-                    "Misconfigurations": [
-                        {
-                            "ID": "DS002",
-                            "Title": "Root user",
-                            "Severity": "HIGH",
-                            "Description": "Running as root",
-                            "Resolution": "Add USER instruction",
-                        }
-                    ],
-                }
-            ]
-        })
+        trivy_output = json.dumps(
+            {
+                "Results": [
+                    {
+                        "Target": "Dockerfile",
+                        "Misconfigurations": [
+                            {
+                                "ID": "DS002",
+                                "Title": "Root user",
+                                "Severity": "HIGH",
+                                "Description": "Running as root",
+                                "Resolution": "Add USER instruction",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
 
         mock_result = MagicMock()
         mock_result.stdout = trivy_output
@@ -778,24 +826,27 @@ class TestTrivyAdapter:
         assert findings[0].severity == Severity.HIGH
 
     def test_secrets(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Trivy secrets should be parsed."""
-        trivy_output = json.dumps({
-            "Results": [
-                {
-                    "Target": "config.py",
-                    "Secrets": [
-                        {
-                            "RuleID": "aws-access-key",
-                            "Title": "AWS Access Key",
-                            "Match": "AKIA***",
-                            "StartLine": 5,
-                        }
-                    ],
-                }
-            ]
-        })
+        trivy_output = json.dumps(
+            {
+                "Results": [
+                    {
+                        "Target": "config.py",
+                        "Secrets": [
+                            {
+                                "RuleID": "aws-access-key",
+                                "Title": "AWS Access Key",
+                                "Match": "AKIA***",
+                                "StartLine": 5,
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
 
         mock_result = MagicMock()
         mock_result.stdout = trivy_output
@@ -820,18 +871,21 @@ class TestTrivyAdapter:
         assert adapter.is_applicable(go_stack) is True
 
     def test_subprocess_failure(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Subprocess failure returns empty list."""
         adapter = TrivyAdapter()
         with patch(
-            _TRIVY_RUN, side_effect=OSError("not found"),
+            _TRIVY_RUN,
+            side_effect=OSError("not found"),
         ):
             findings = adapter.run([], ".", python_stack)
         assert findings == []
 
     def test_empty_results(
-        self, python_stack: DetectedStack,
+        self,
+        python_stack: DetectedStack,
     ) -> None:
         """Empty Results array returns no findings."""
         mock_result = MagicMock()

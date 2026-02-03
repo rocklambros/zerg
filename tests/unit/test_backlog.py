@@ -195,19 +195,13 @@ class TestGenerateBacklogMarkdown:
 
     def test_creates_file(self, tmp_path: Path, sample_task_data: dict) -> None:
         """Verify the markdown file is created at the expected path."""
-        result = generate_backlog_markdown(
-            sample_task_data, "test-feature", output_dir=tmp_path
-        )
+        result = generate_backlog_markdown(sample_task_data, "test-feature", output_dir=tmp_path)
         assert result.exists()
         assert result.suffix == ".md"
 
-    def test_contains_all_sections(
-        self, tmp_path: Path, sample_task_data: dict
-    ) -> None:
+    def test_contains_all_sections(self, tmp_path: Path, sample_task_data: dict) -> None:
         """Generated markdown must contain header, metadata, summary, levels, critical path, and progress."""
-        path = generate_backlog_markdown(
-            sample_task_data, "test-feature", output_dir=tmp_path
-        )
+        path = generate_backlog_markdown(sample_task_data, "test-feature", output_dir=tmp_path)
         content = path.read_text()
         # Header
         assert "test-feature" in content.lower() or "Test Feature" in content
@@ -223,13 +217,9 @@ class TestGenerateBacklogMarkdown:
         # Progress tracking
         assert "progress" in content.lower() or "status" in content.lower()
 
-    def test_tasks_grouped_by_level(
-        self, tmp_path: Path, sample_task_data: dict
-    ) -> None:
+    def test_tasks_grouped_by_level(self, tmp_path: Path, sample_task_data: dict) -> None:
         """Tasks should appear under their corresponding level headers."""
-        path = generate_backlog_markdown(
-            sample_task_data, "test-feature", output_dir=tmp_path
-        )
+        path = generate_backlog_markdown(sample_task_data, "test-feature", output_dir=tmp_path)
         content = path.read_text()
         # Level 1 tasks
         assert "TEST-L1-001" in content
@@ -249,14 +239,10 @@ class TestGenerateBacklogMarkdown:
         finally:
             os.chdir(original_cwd)
 
-    def test_custom_output_dir(
-        self, tmp_path: Path, sample_task_data: dict
-    ) -> None:
+    def test_custom_output_dir(self, tmp_path: Path, sample_task_data: dict) -> None:
         """A custom output_dir is respected for file placement."""
         custom_dir = tmp_path / "custom" / "output"
-        result = generate_backlog_markdown(
-            sample_task_data, "test-feature", output_dir=custom_dir
-        )
+        result = generate_backlog_markdown(sample_task_data, "test-feature", output_dir=custom_dir)
         assert custom_dir in result.parents or result.parent == custom_dir
 
 
@@ -266,9 +252,7 @@ class TestUpdateBacklogTaskStatus:
     @pytest.fixture
     def backlog_file(self, tmp_path: Path, sample_task_data: dict) -> Path:
         """Generate a backlog file to use for update tests."""
-        return generate_backlog_markdown(
-            sample_task_data, "test-feature", output_dir=tmp_path
-        )
+        return generate_backlog_markdown(sample_task_data, "test-feature", output_dir=tmp_path)
 
     def test_updates_status_to_complete(self, backlog_file: Path) -> None:
         """Find a PENDING task row and change its status to COMPLETE."""
@@ -297,9 +281,7 @@ class TestUpdateBacklogTaskStatus:
 
     def test_missing_task_returns_false(self, backlog_file: Path) -> None:
         """Attempting to update a non-existent task ID returns False."""
-        result = update_backlog_task_status(
-            backlog_file, "NONEXISTENT-999", "COMPLETE"
-        )
+        result = update_backlog_task_status(backlog_file, "NONEXISTENT-999", "COMPLETE")
         assert result is False
 
     def test_nonexistent_file_returns_false(self, tmp_path: Path) -> None:

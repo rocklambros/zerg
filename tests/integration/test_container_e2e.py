@@ -5,7 +5,6 @@ import os
 import subprocess
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -31,20 +30,11 @@ class TestEndToEndFlow:
 
         # 2. Initialize git
         subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True, check=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@test.com"],
-            cwd=tmp_path, capture_output=True
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test"],
-            cwd=tmp_path, capture_output=True
-        )
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=tmp_path, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, capture_output=True)
         # Create initial commit
         subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "Initial commit"],
-            cwd=tmp_path, capture_output=True
-        )
+        subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=tmp_path, capture_output=True)
 
         runner = CliRunner()
         original_cwd = os.getcwd()
@@ -56,14 +46,11 @@ class TestEndToEndFlow:
             init_result = runner.invoke(cli, ["init", "--detect", "--force"])
 
             # Verify init succeeded or was already done
-            init_ok = (
-                init_result.exit_code == 0 or
-                "already initialized" in init_result.output.lower()
-            )
+            init_ok = init_result.exit_code == 0 or "already initialized" in init_result.output.lower()
             assert init_ok, f"Init failed: {init_result.output}"
 
             # 4. Check devcontainer exists (may not exist if init skipped it)
-            devcontainer_path = tmp_path / ".devcontainer" / "devcontainer.json"
+            tmp_path / ".devcontainer" / "devcontainer.json"
 
             # 5. Create minimal task graph for rush to consume
             gsd_dir = tmp_path / ".gsd" / "specs" / "test-feature"
@@ -79,30 +66,22 @@ class TestEndToEndFlow:
                         "description": "A test task",
                         "level": 1,
                         "dependencies": [],
-                        "files": {
-                            "create": ["test.py"],
-                            "modify": [],
-                            "read": []
-                        },
-                        "verification": {
-                            "command": "echo ok",
-                            "timeout_seconds": 10
-                        }
+                        "files": {"create": ["test.py"], "modify": [], "read": []},
+                        "verification": {"command": "echo ok", "timeout_seconds": 10},
                     }
-                ]
+                ],
             }
             (gsd_dir / "task-graph.json").write_text(json.dumps(task_graph, indent=2))
 
             # 6. Run rush --dry-run
-            rush_result = runner.invoke(
-                cli,
-                ["rush", "--feature", "test-feature", "--mode", "auto", "--dry-run"]
-            )
+            rush_result = runner.invoke(cli, ["rush", "--feature", "test-feature", "--mode", "auto", "--dry-run"])
 
             # Rush may fail due to missing setup, but should at least parse args
             # The important thing is it doesn't crash on --mode flag
-            assert "--mode" not in rush_result.output or rush_result.exit_code in [0, 1], \
-                f"Rush failed unexpectedly: {rush_result.output}"
+            assert "--mode" not in rush_result.output or rush_result.exit_code in [
+                0,
+                1,
+            ], f"Rush failed unexpectedly: {rush_result.output}"
 
         finally:
             os.chdir(original_cwd)

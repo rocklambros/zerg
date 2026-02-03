@@ -21,10 +21,10 @@ from zerg.cli import cli
 from zerg.commands.cleanup import cleanup_structured_logs
 from zerg.commands.rush import _render_standalone_risk, _run_preflight
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def mock_logging_config(tmp_path: Path) -> MagicMock:
@@ -84,6 +84,7 @@ def task_graph_file(tmp_path: Path, minimal_task_graph: dict[str, Any]) -> Path:
 def _set_old_mtime(path: Path, days: int = 30) -> None:
     """Set a path's mtime to N days ago."""
     import os
+
     old_time = time.time() - (days * 86400)
     os.utime(path, (old_time, old_time))
 
@@ -91,6 +92,7 @@ def _set_old_mtime(path: Path, days: int = 30) -> None:
 # ===================================================================
 # cleanup.py: lines 60-62 -- --logs flag invokes cleanup_structured_logs
 # ===================================================================
+
 
 class TestCleanupLogsOnlyFlag:
     """Test the --logs flag in the cleanup command (lines 60-62)."""
@@ -131,6 +133,7 @@ class TestCleanupLogsOnlyFlag:
 # ===================================================================
 # cleanup.py: lines 360-458 -- cleanup_structured_logs function
 # ===================================================================
+
 
 class TestCleanupStructuredLogs:
     """Test cleanup_structured_logs covering lines 360-458."""
@@ -313,6 +316,7 @@ class TestCleanupStructuredLogs:
 # rush.py: lines 212-233 -- _run_preflight function
 # ===================================================================
 
+
 class TestRunPreflight:
     """Test _run_preflight directly (lines 212-233).
 
@@ -335,12 +339,17 @@ class TestRunPreflight:
         config.ports.range_end = 7960
 
         with patch("zerg.preflight.PreflightChecker", mock_checker):
-            result = _run_preflight.__wrapped__(config, "subprocess", 3) if hasattr(_run_preflight, "__wrapped__") else _run_preflight(config, "subprocess", 3)
+            result = (
+                _run_preflight.__wrapped__(config, "subprocess", 3)
+                if hasattr(_run_preflight, "__wrapped__")
+                else _run_preflight(config, "subprocess", 3)
+            )
 
         assert result is True
 
     def test_preflight_fails_with_errors(self) -> None:
         """When preflight has errors, returns False."""
+
         @dataclass
         class FakeCheck:
             name: str = "docker"
@@ -360,12 +369,17 @@ class TestRunPreflight:
         config.ports.range_end = 7960
 
         with patch("zerg.preflight.PreflightChecker", mock_checker):
-            result = _run_preflight.__wrapped__(config, "container", 5) if hasattr(_run_preflight, "__wrapped__") else _run_preflight(config, "container", 5)
+            result = (
+                _run_preflight.__wrapped__(config, "container", 5)
+                if hasattr(_run_preflight, "__wrapped__")
+                else _run_preflight(config, "container", 5)
+            )
 
         assert result is False
 
     def test_preflight_with_warnings(self) -> None:
         """When preflight has warnings but no errors, returns True."""
+
         @dataclass
         class FakeCheck:
             name: str = "disk"
@@ -385,7 +399,11 @@ class TestRunPreflight:
         config.ports.range_end = 7960
 
         with patch("zerg.preflight.PreflightChecker", mock_checker):
-            result = _run_preflight.__wrapped__(config, "auto", 5) if hasattr(_run_preflight, "__wrapped__") else _run_preflight(config, "auto", 5)
+            result = (
+                _run_preflight.__wrapped__(config, "auto", 5)
+                if hasattr(_run_preflight, "__wrapped__")
+                else _run_preflight(config, "auto", 5)
+            )
 
         assert result is True
 
@@ -393,6 +411,7 @@ class TestRunPreflight:
 # ===================================================================
 # rush.py: lines 238-266 -- _render_standalone_risk
 # ===================================================================
+
 
 class TestRenderStandaloneRisk:
     """Test _render_standalone_risk (lines 238-266)."""
@@ -417,23 +436,34 @@ class TestRenderStandaloneRisk:
 
     def test_render_grade_b_with_critical_path(self) -> None:
         """Render grade B with critical path."""
-        _render_standalone_risk(self._make_risk_report(
-            grade="B", score=0.45, critical_path=["L1-001", "L2-001"],
-        ))
+        _render_standalone_risk(
+            self._make_risk_report(
+                grade="B",
+                score=0.45,
+                critical_path=["L1-001", "L2-001"],
+            )
+        )
 
     def test_render_grade_c_with_risk_factors(self) -> None:
         """Render grade C with risk factors."""
-        _render_standalone_risk(self._make_risk_report(
-            grade="C", score=0.7, risk_factors=["High file overlap", "Long critical path"],
-        ))
+        _render_standalone_risk(
+            self._make_risk_report(
+                grade="C",
+                score=0.7,
+                risk_factors=["High file overlap", "Long critical path"],
+            )
+        )
 
     def test_render_grade_d(self) -> None:
         """Render grade D (bold red)."""
-        _render_standalone_risk(self._make_risk_report(
-            grade="D", score=0.95,
-            critical_path=["L1-001", "L2-001", "L3-001"],
-            risk_factors=["Extreme complexity"],
-        ))
+        _render_standalone_risk(
+            self._make_risk_report(
+                grade="D",
+                score=0.95,
+                critical_path=["L1-001", "L2-001", "L3-001"],
+                risk_factors=["Extreme complexity"],
+            )
+        )
 
     def test_render_unknown_grade(self) -> None:
         """Render unknown grade falls back to white."""
@@ -443,6 +473,7 @@ class TestRenderStandaloneRisk:
 # ===================================================================
 # rush.py: lines 113-114 -- preflight failure exits
 # ===================================================================
+
 
 class TestRushPreflightFailure:
     """Test rush exits when preflight fails (line 113-114)."""
@@ -463,9 +494,7 @@ class TestRushPreflightFailure:
             patch("zerg.commands.rush._run_preflight", return_value=False),
         ):
             mock_cfg_cls.load.return_value = MagicMock()
-            result = runner.invoke(
-                cli, ["rush", "--task-graph", str(task_graph_file), "--dry-run"]
-            )
+            result = runner.invoke(cli, ["rush", "--task-graph", str(task_graph_file), "--dry-run"])
 
         assert result.exit_code == 1
 
@@ -473,6 +502,7 @@ class TestRushPreflightFailure:
 # ===================================================================
 # rush.py: lines 117-124 -- what-if analysis branch
 # ===================================================================
+
 
 class TestRushWhatIf:
     """Test --what-if flag (lines 117-124)."""
@@ -502,7 +532,7 @@ class TestRushWhatIf:
             patch("zerg.dryrun.DryRunSimulator", mock_sim_cls),
         ):
             mock_cfg_cls.load.return_value = MagicMock()
-            result = runner.invoke(
+            runner.invoke(
                 cli,
                 ["rush", "--task-graph", str(task_graph_file), "--dry-run", "--what-if"],
             )
@@ -543,6 +573,7 @@ class TestRushWhatIf:
 # ===================================================================
 # rush.py: lines 127-132, 150 -- risk standalone branch
 # ===================================================================
+
 
 class TestRushRiskFlag:
     """Test --risk flag (lines 127-132, 150)."""
@@ -604,7 +635,7 @@ class TestRushRiskFlag:
             patch("zerg.commands.rush._render_standalone_risk") as mock_render,
         ):
             mock_cfg_cls.load.return_value = MagicMock()
-            result = runner.invoke(
+            runner.invoke(
                 cli,
                 ["rush", "--task-graph", str(task_graph_file), "--risk", "--dry-run"],
             )

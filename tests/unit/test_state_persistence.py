@@ -141,7 +141,7 @@ class TestLoadCorruptJsonFile:
         JSON parsing even begins. This test documents the actual behavior.
         """
         state_file = tmp_path / "binary-feature.json"
-        state_file.write_bytes(b'\x89PNG\r\n\x1a\n\x00\x00\x00')
+        state_file.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00")
 
         manager = StateManager("binary-feature", state_dir=tmp_path)
 
@@ -393,7 +393,7 @@ class TestAtomicSave:
 
         def partial_dump(obj, f, **kwargs):
             f.write('{"feature": "test-feature", "current_level": 2, "tasks":')
-            raise IOError("Simulated interrupt during write")
+            raise OSError("Simulated interrupt during write")
 
         with patch("json.dump", side_effect=partial_dump):
             with pytest.raises(IOError):

@@ -221,9 +221,7 @@ class DryRunSimulator:
         for task in self.task_data.get("tasks", []):
             verification = task.get("verification")
             if not verification or not verification.get("command"):
-                warnings.append(
-                    f"Task {task.get('id', '?')} has no verification command"
-                )
+                warnings.append(f"Task {task.get('id', '?')} has no verification command")
         return warnings
 
     def _check_resources(self) -> list[str]:
@@ -277,9 +275,7 @@ class DryRunSimulator:
         critical_path = self.task_data.get("critical_path_minutes", estimated_wall)
 
         efficiency = (
-            total_sequential / (estimated_wall * self.workers)
-            if estimated_wall > 0 and self.workers > 0
-            else 0.0
+            total_sequential / (estimated_wall * self.workers) if estimated_wall > 0 and self.workers > 0 else 0.0
         )
 
         return TimelineEstimate(
@@ -492,10 +488,7 @@ class DryRunSimulator:
             timeline = report.timeline.per_level.get(level_num) if report.timeline else None
             wall_str = f" (~{timeline.wall_minutes}m wall)" if timeline else ""
 
-            console.print(
-                f"\n[bold cyan]Level {level_num}[/bold cyan]"
-                f" - {level_info.get('name', 'unnamed')}{wall_str}"
-            )
+            console.print(f"\n[bold cyan]Level {level_num}[/bold cyan] - {level_info.get('name', 'unnamed')}{wall_str}")
 
             table = Table(show_header=True)
             table.add_column("Task", style="cyan", width=15)
@@ -663,22 +656,16 @@ class DryRunSimulator:
         if report.preflight:
             warning_count += len(report.preflight.warnings)
 
-        gate_failures = sum(
-            1 for g in report.gate_results if g.status == "failed" and g.required
-        )
+        gate_failures = sum(1 for g in report.gate_results if g.status == "failed" and g.required)
         error_count += gate_failures
 
         console.print()
         if error_count > 0:
             console.print(
-                f"[bold red]✗ {error_count} error(s), {warning_count} warning(s)"
-                " — not ready to rush[/bold red]"
+                f"[bold red]✗ {error_count} error(s), {warning_count} warning(s) — not ready to rush[/bold red]"
             )
         elif warning_count > 0:
-            console.print(
-                f"[bold yellow]⚠ {warning_count} warning(s)"
-                " — ready to rush (with warnings)[/bold yellow]"
-            )
+            console.print(f"[bold yellow]⚠ {warning_count} warning(s) — ready to rush (with warnings)[/bold yellow]")
         else:
             console.print("[bold green]✓ All checks passed — ready to rush[/bold green]")
         console.print()

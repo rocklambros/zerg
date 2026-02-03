@@ -18,7 +18,6 @@ from zerg.diagnostics.types import (
     Evidence,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -72,10 +71,7 @@ def rust_error() -> str:
 
 @pytest.fixture
 def java_exception() -> str:
-    return (
-        "java.lang.NullPointerException\n"
-        "\tat com.example.App.main(App.java:10)"
-    )
+    return "java.lang.NullPointerException\n\tat com.example.App.main(App.java:10)"
 
 
 # ---------------------------------------------------------------------------
@@ -116,18 +112,14 @@ class TestLanguageDetector:
 
 
 class TestMultiLangErrorParser:
-    def test_parse_python_value_error(
-        self, parser: MultiLangErrorParser, python_value_error: str
-    ) -> None:
+    def test_parse_python_value_error(self, parser: MultiLangErrorParser, python_value_error: str) -> None:
         fp = parser.parse(python_value_error)
         assert fp.error_type == "ValueError"
         assert fp.file == "test.py"
         assert fp.line == 42
         assert fp.language == "python"
 
-    def test_parse_javascript_type_error(
-        self, parser: MultiLangErrorParser, js_type_error: str
-    ) -> None:
+    def test_parse_javascript_type_error(self, parser: MultiLangErrorParser, js_type_error: str) -> None:
         fp = parser.parse(js_type_error)
         assert fp.error_type == "TypeError"
         assert fp.file == "app.js"
@@ -136,17 +128,13 @@ class TestMultiLangErrorParser:
         assert fp.function == "doStuff"
         assert fp.language == "javascript"
 
-    def test_parse_go_panic(
-        self, parser: MultiLangErrorParser, go_panic: str
-    ) -> None:
+    def test_parse_go_panic(self, parser: MultiLangErrorParser, go_panic: str) -> None:
         fp = parser.parse(go_panic)
         assert fp.language == "go"
         assert fp.file == "main.go"
         assert fp.line == 15
 
-    def test_parse_rust_error(
-        self, parser: MultiLangErrorParser, rust_error: str
-    ) -> None:
+    def test_parse_rust_error(self, parser: MultiLangErrorParser, rust_error: str) -> None:
         fp = parser.parse(rust_error)
         assert fp.error_type == "E0308"
         assert fp.message_template == "mismatched types"
@@ -155,9 +143,7 @@ class TestMultiLangErrorParser:
         assert fp.column == 20
         assert fp.language == "rust"
 
-    def test_parse_java_exception(
-        self, parser: MultiLangErrorParser, java_exception: str
-    ) -> None:
+    def test_parse_java_exception(self, parser: MultiLangErrorParser, java_exception: str) -> None:
         fp = parser.parse(java_exception)
         assert fp.error_type == "java.lang.NullPointerException"
         assert fp.file == "App.java"
@@ -179,9 +165,7 @@ class TestMultiLangErrorParser:
 
 
 class TestErrorChainAnalyzer:
-    def test_python_chained_exception(
-        self, chain_analyzer: ErrorChainAnalyzer
-    ) -> None:
+    def test_python_chained_exception(self, chain_analyzer: ErrorChainAnalyzer) -> None:
         text = (
             'ValueError: bad value\n  File "a.py", line 1\n'
             "The above exception was the direct cause of the following exception:\n"
@@ -202,9 +186,7 @@ class TestErrorChainAnalyzer:
         fps = chain_analyzer.analyze_chain(text)
         assert len(fps) >= 2
 
-    def test_single_error_no_chain(
-        self, chain_analyzer: ErrorChainAnalyzer
-    ) -> None:
+    def test_single_error_no_chain(self, chain_analyzer: ErrorChainAnalyzer) -> None:
         text = 'ValueError: oops\n  File "x.py", line 1'
         fps = chain_analyzer.analyze_chain(text)
         assert len(fps) == 1
@@ -218,46 +200,67 @@ class TestErrorChainAnalyzer:
 class TestErrorFingerprinter:
     def test_same_error_same_hash(self, fingerprinter: ErrorFingerprinter) -> None:
         fp1 = ErrorFingerprint(
-            hash="", language="python", error_type="ValueError",
-            message_template="bad value", file="test.py", line=10,
+            hash="",
+            language="python",
+            error_type="ValueError",
+            message_template="bad value",
+            file="test.py",
+            line=10,
         )
         fp2 = ErrorFingerprint(
-            hash="", language="python", error_type="ValueError",
-            message_template="bad value", file="test.py", line=10,
+            hash="",
+            language="python",
+            error_type="ValueError",
+            message_template="bad value",
+            file="test.py",
+            line=10,
         )
         assert fingerprinter.fingerprint(fp1) == fingerprinter.fingerprint(fp2)
 
-    def test_different_line_same_hash(
-        self, fingerprinter: ErrorFingerprinter
-    ) -> None:
+    def test_different_line_same_hash(self, fingerprinter: ErrorFingerprinter) -> None:
         fp1 = ErrorFingerprint(
-            hash="", language="python", error_type="ValueError",
-            message_template="bad value", file="test.py", line=10,
+            hash="",
+            language="python",
+            error_type="ValueError",
+            message_template="bad value",
+            file="test.py",
+            line=10,
         )
         fp2 = ErrorFingerprint(
-            hash="", language="python", error_type="ValueError",
-            message_template="bad value", file="test.py", line=99,
+            hash="",
+            language="python",
+            error_type="ValueError",
+            message_template="bad value",
+            file="test.py",
+            line=99,
         )
         # Line numbers are excluded from hash -> same hash
         assert fingerprinter.fingerprint(fp1) == fingerprinter.fingerprint(fp2)
 
-    def test_different_error_different_hash(
-        self, fingerprinter: ErrorFingerprinter
-    ) -> None:
+    def test_different_error_different_hash(self, fingerprinter: ErrorFingerprinter) -> None:
         fp1 = ErrorFingerprint(
-            hash="", language="python", error_type="ValueError",
-            message_template="bad value", file="test.py",
+            hash="",
+            language="python",
+            error_type="ValueError",
+            message_template="bad value",
+            file="test.py",
         )
         fp2 = ErrorFingerprint(
-            hash="", language="python", error_type="TypeError",
-            message_template="wrong type", file="test.py",
+            hash="",
+            language="python",
+            error_type="TypeError",
+            message_template="wrong type",
+            file="test.py",
         )
         assert fingerprinter.fingerprint(fp1) != fingerprinter.fingerprint(fp2)
 
     def test_hash_length(self, fingerprinter: ErrorFingerprinter) -> None:
         fp = ErrorFingerprint(
-            hash="", language="python", error_type="ValueError",
-            message_template="x", file="f.py",
+            hash="",
+            language="python",
+            error_type="ValueError",
+            message_template="x",
+            file="f.py",
         )
         assert len(fingerprinter.fingerprint(fp)) == 16
 
@@ -277,8 +280,11 @@ class TestErrorIntelEngine:
 
     def test_classify_value_error(self, engine: ErrorIntelEngine) -> None:
         fp = ErrorFingerprint(
-            hash="abc", language="python", error_type="ValueError",
-            message_template="bad", file="test.py",
+            hash="abc",
+            language="python",
+            error_type="ValueError",
+            message_template="bad",
+            file="test.py",
         )
         category, severity = engine.classify(fp)
         assert category == ErrorCategory.CODE_ERROR
@@ -286,8 +292,11 @@ class TestErrorIntelEngine:
 
     def test_classify_memory_error(self, engine: ErrorIntelEngine) -> None:
         fp = ErrorFingerprint(
-            hash="abc", language="python", error_type="MemoryError",
-            message_template="", file="",
+            hash="abc",
+            language="python",
+            error_type="MemoryError",
+            message_template="",
+            file="",
         )
         category, severity = engine.classify(fp)
         assert severity == ErrorSeverity.CRITICAL
@@ -295,16 +304,23 @@ class TestErrorIntelEngine:
 
     def test_classify_import_error(self, engine: ErrorIntelEngine) -> None:
         fp = ErrorFingerprint(
-            hash="abc", language="python", error_type="ImportError",
-            message_template="No module named foo", file="",
+            hash="abc",
+            language="python",
+            error_type="ImportError",
+            message_template="No module named foo",
+            file="",
         )
         category, severity = engine.classify(fp)
         assert category == ErrorCategory.DEPENDENCY
 
     def test_get_evidence(self, engine: ErrorIntelEngine) -> None:
         fp = ErrorFingerprint(
-            hash="abc", language="python", error_type="ValueError",
-            message_template="bad value", file="test.py", line=10,
+            hash="abc",
+            language="python",
+            error_type="ValueError",
+            message_template="bad value",
+            file="test.py",
+            line=10,
             function="do_thing",
         )
         evidence = engine.get_evidence(fp)
@@ -317,16 +333,25 @@ class TestErrorIntelEngine:
 
     def test_deduplicate(self, engine: ErrorIntelEngine) -> None:
         fp1 = ErrorFingerprint(
-            hash="aaa", language="python", error_type="ValueError",
-            message_template="x", file="f.py",
+            hash="aaa",
+            language="python",
+            error_type="ValueError",
+            message_template="x",
+            file="f.py",
         )
         fp2 = ErrorFingerprint(
-            hash="aaa", language="python", error_type="ValueError",
-            message_template="x", file="f.py",
+            hash="aaa",
+            language="python",
+            error_type="ValueError",
+            message_template="x",
+            file="f.py",
         )
         fp3 = ErrorFingerprint(
-            hash="bbb", language="python", error_type="TypeError",
-            message_template="y", file="g.py",
+            hash="bbb",
+            language="python",
+            error_type="TypeError",
+            message_template="y",
+            file="g.py",
         )
         result = engine.deduplicate([fp1, fp2, fp3])
         assert len(result) == 2

@@ -188,14 +188,16 @@ class MockMergeCoordinator:
         # Check for custom result
         if level in self._custom_results:
             result = self._custom_results[level]
-            self._record_attempt(level, worker_branches or [], target_branch,
-                               duration_ms, result.success, result.error, False)
+            self._record_attempt(
+                level, worker_branches or [], target_branch, duration_ms, result.success, result.error, False
+            )
             return result
 
         # Check for timeout simulation
         if self._timeout_at_attempt == self._attempt_count:
-            self._record_attempt(level, worker_branches or [], target_branch,
-                               duration_ms, False, "Merge timed out", True)
+            self._record_attempt(
+                level, worker_branches or [], target_branch, duration_ms, False, "Merge timed out", True
+            )
             return MergeFlowResult(
                 success=False,
                 level=level,
@@ -206,8 +208,9 @@ class MockMergeCoordinator:
 
         # Check for attempt-based failure
         if self._fail_at_attempt == self._attempt_count:
-            self._record_attempt(level, worker_branches or [], target_branch,
-                               duration_ms, False, "Simulated failure at attempt", False)
+            self._record_attempt(
+                level, worker_branches or [], target_branch, duration_ms, False, "Simulated failure at attempt", False
+            )
             return MergeFlowResult(
                 success=False,
                 level=level,
@@ -218,8 +221,9 @@ class MockMergeCoordinator:
 
         # Check for level-based failure
         if self._fail_at_level == level:
-            self._record_attempt(level, worker_branches or [], target_branch,
-                               duration_ms, False, "Simulated failure at level", False)
+            self._record_attempt(
+                level, worker_branches or [], target_branch, duration_ms, False, "Simulated failure at level", False
+            )
             return MergeFlowResult(
                 success=False,
                 level=level,
@@ -231,8 +235,7 @@ class MockMergeCoordinator:
         # Check for conflict simulation
         if self._conflict_at_level == level:
             error = f"Merge conflict: {self._conflicting_files or ['file.py']}"
-            self._record_attempt(level, worker_branches or [], target_branch,
-                               duration_ms, False, error, False)
+            self._record_attempt(level, worker_branches or [], target_branch, duration_ms, False, error, False)
             return MergeFlowResult(
                 success=False,
                 level=level,
@@ -243,8 +246,9 @@ class MockMergeCoordinator:
 
         # Check for gate failures
         if level in self._gate_failure_levels:
-            self._record_attempt(level, worker_branches or [], target_branch,
-                               duration_ms, False, "Post-merge gates failed", False)
+            self._record_attempt(
+                level, worker_branches or [], target_branch, duration_ms, False, "Post-merge gates failed", False
+            )
             return MergeFlowResult(
                 success=False,
                 level=level,
@@ -256,8 +260,7 @@ class MockMergeCoordinator:
         # Default success case
         if self._always_succeed:
             merge_commit = f"merge{self._attempt_count:04d}"
-            self._record_attempt(level, worker_branches or [], target_branch,
-                               duration_ms, True, None, False)
+            self._record_attempt(level, worker_branches or [], target_branch, duration_ms, True, None, False)
             return MergeFlowResult(
                 success=True,
                 level=level,
@@ -267,8 +270,7 @@ class MockMergeCoordinator:
             )
 
         # Explicit failure
-        self._record_attempt(level, worker_branches or [], target_branch,
-                           duration_ms, False, "Merge failed", False)
+        self._record_attempt(level, worker_branches or [], target_branch, duration_ms, False, "Merge failed", False)
         return MergeFlowResult(
             success=False,
             level=level,
@@ -298,15 +300,17 @@ class MockMergeCoordinator:
             error: Error message if failed
             timed_out: Whether attempt timed out
         """
-        self._attempts.append(MergeAttempt(
-            level=level,
-            worker_branches=worker_branches,
-            target_branch=target_branch,
-            duration_ms=duration_ms,
-            success=success,
-            error=error,
-            timed_out=timed_out,
-        ))
+        self._attempts.append(
+            MergeAttempt(
+                level=level,
+                worker_branches=worker_branches,
+                target_branch=target_branch,
+                duration_ms=duration_ms,
+                success=success,
+                error=error,
+                timed_out=timed_out,
+            )
+        )
 
     def get_attempts(self) -> list[MergeAttempt]:
         """Get all recorded merge attempts.
@@ -446,10 +450,7 @@ class MockMergeCoordinator:
 
         # Check for pre-merge gate failure at current level
         level = self._current_level
-        should_fail = (
-            level in self._pre_merge_gate_failure_levels
-            or level in self._gate_failure_levels
-        )
+        should_fail = level in self._pre_merge_gate_failure_levels or level in self._gate_failure_levels
 
         result = GateRunResult(
             gate_name="pre_merge_check",
@@ -520,10 +521,7 @@ class MockMergeCoordinator:
 
         for branch in source_branches:
             # Check for conflict simulation
-            if (
-                branch in self._execute_merge_conflict_branches
-                or self._conflict_at_level == self._current_level
-            ):
+            if branch in self._execute_merge_conflict_branches or self._conflict_at_level == self._current_level:
                 conflict_files = self._conflicting_files or [f"{branch}_file.py"]
                 result = MergeResult(
                     source_branch=branch,
