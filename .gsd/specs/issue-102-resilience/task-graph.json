@@ -1,0 +1,427 @@
+{
+  "feature": "issue-102-resilience",
+  "version": "2.0",
+  "generated": "2026-02-03T06:15:00Z",
+  "total_tasks": 17,
+  "estimated_duration_minutes": 240,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "RES-L1-001",
+      "title": "Add resilience config fields",
+      "description": "Add ResilienceConfig class and extend WorkersConfig with spawn retry, task timeout, and auto-respawn configuration fields per FR-1, FR-2, FR-6 requirements.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/config.py"],
+        "read": [".gsd/specs/issue-102-resilience/requirements.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.config import ZergConfig; c=ZergConfig(); assert hasattr(c, 'resilience'); assert c.workers.spawn_retry_attempts == 3; assert c.workers.task_stale_timeout_seconds == 600\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "pydantic"],
+      "consumers": ["RES-L2-001", "RES-L2-002", "RES-L3-002"],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-1: spawn_retry_attempts (default 3), spawn_backoff_strategy (exponential|linear|fixed), spawn_backoff_base_seconds (2), spawn_backoff_max_seconds (30).\nFR-2: task_stale_timeout_seconds (default 600).\nFR-6: auto_respawn (bool), max_respawn_attempts (default 5).\n\n## Security\nPydantic validation ensures config values are within safe bounds."
+    },
+    {
+      "id": "RES-L1-002",
+      "title": "Add resilience event constants",
+      "description": "Add resilience event type constants (LogEvent enum or similar) for structured logging: worker_spawn, worker_crash, task_timeout, task_reassigned, state_reconcile, etc.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/constants.py"],
+        "read": [".gsd/specs/issue-102-resilience/requirements.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.constants import ResilienceEvent; assert hasattr(ResilienceEvent, 'WORKER_SPAWN'); assert hasattr(ResilienceEvent, 'TASK_TIMEOUT')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["RES-L2-005", "RES-L3-001"],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-8: Structured logging events.\nEvent types: worker_spawn, worker_spawn_retry, worker_spawn_failed, worker_ready, worker_exit, worker_crash, worker_respawn, task_claimed, task_started, task_complete, task_failed, task_timeout, task_reassigned, heartbeat_stale, heartbeat_recovered, state_reconcile_start, state_reconcile_fix, state_reconcile_complete, level_check, level_complete."
+    },
+    {
+      "id": "RES-L2-001",
+      "title": "Implement spawn retry with backoff",
+      "description": "Add spawn_with_retry() method to SubprocessLauncher and ContainerLauncher. Uses exponential backoff from config. Logs each retry attempt. Fails gracefully after exhausting retries.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["RES-L1-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": ["zerg/retry_backoff.py", "zerg/config.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_launcher.py -k spawn -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python", "async"],
+      "consumers": ["RES-L3-002"],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-1: Retry up to N attempts (default 3). Use exponential backoff: base_seconds * 2^attempt. Max cap 30s. Log each retry with reason.\n\n## Existing Infrastructure\nRetryBackoffCalculator in retry_backoff.py provides calculate_delay(). Reuse this.\n\n## Security\nNo shell=True. Use subprocess argument lists."
+    },
+    {
+      "id": "RES-L2-002",
+      "title": "Add stale task detection",
+      "description": "Add check_stale_tasks() method to TaskRetryManager. Finds tasks in in_progress status beyond timeout, marks them failed, requeues for retry.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["RES-L1-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/task_retry_manager.py"],
+        "read": ["zerg/config.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_task_retry_manager.py -k stale -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": ["RES-L3-002"],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-2: Tasks in in_progress > 600s auto-fail and retry. Log timeout with task ID, worker, elapsed time.\n\n## Integration Point\nCalled from orchestrator main loop during _poll_workers()."
+    },
+    {
+      "id": "RES-L2-003",
+      "title": "Enhance heartbeat with progress",
+      "description": "Extend HeartbeatWriter to include progress_pct field. Update HeartbeatMonitor to use config-driven stale thresholds.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["RES-L1-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/heartbeat.py"],
+        "read": ["zerg/config.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_heartbeat.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": ["RES-L2-005", "RES-L3-002"],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-3: Workers emit heartbeat every 30s with {worker_id, timestamp, task_id, step, progress_pct}. Orchestrator marks stale if no heartbeat for 2 minutes.\n\n## Existing Infrastructure\nHeartbeat dataclass already exists with most fields. Add progress_pct: float = 0.0."
+    },
+    {
+      "id": "RES-L2-004",
+      "title": "Fix is_level_complete() logic",
+      "description": "Fix is_level_complete() in levels.py to verify actual task states (COMPLETE or FAILED), not just count completed_tasks == total_tasks.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["RES-L1-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/levels.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_levels.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["RES-L3-002", "RES-L3-003"],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-4: Level completion accurately reflects actual task states.\n\n## Fix\n```python\ndef is_level_complete(self, level: int) -> bool:\n    tasks = self.get_tasks_for_level(level)\n    return all(\n        self._tasks[tid].get('status') in (TaskStatus.COMPLETE.value, TaskStatus.FAILED.value)\n        for tid in tasks\n    )\n```"
+    },
+    {
+      "id": "RES-L2-005",
+      "title": "Create StateReconciler class",
+      "description": "Create new zerg/state_reconciler.py with StateReconciler class. Implements periodic reconciliation (60s) and level-transition thorough checks. Parses level from task ID pattern.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["RES-L1-002"],
+      "files": {
+        "create": ["zerg/state_reconciler.py"],
+        "modify": [],
+        "read": ["zerg/state_sync_service.py", "zerg/heartbeat.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_state_reconciler.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python"],
+      "consumers": ["RES-L3-002", "RES-L3-003"],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-4: Periodic 60s light check. Thorough check on level transitions. Fix: tasks in_progress with dead workers → mark failed, requeue. Level marked done with incomplete tasks → recalculate. Task level=None → parse from ID pattern *-L{level}-*.\n\n## API\n- reconcile_periodic() -> ReconciliationResult\n- reconcile_level_transition(level: int) -> ReconciliationResult\n- parse_level_from_task_id(task_id: str) -> int | None"
+    },
+    {
+      "id": "RES-L3-001",
+      "title": "Add MonitorLogWriter",
+      "description": "Add MonitorLogWriter class to log_writer.py for structured resilience event logging to .zerg/monitor.log with ISO8601 timestamps and worker ID prefix.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["RES-L1-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/log_writer.py"],
+        "read": ["zerg/constants.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_log_writer.py -k monitor -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-8: Write to .zerg/monitor.log. ISO8601 timestamps with ms. Worker ID prefix. Structured enough for automated analysis.\n\n## Format\n{\"ts\": \"2026-02-03T05:41:55.123Z\", \"level\": \"INFO\", \"worker_id\": \"W0\", \"event\": \"task_claimed\", \"task_id\": \"A-L1-002\", \"data\": {}}"
+    },
+    {
+      "id": "RES-L3-002",
+      "title": "Wire resilience into orchestrator",
+      "description": "Integrate all resilience components into orchestrator: spawn_with_retry in _spawn_worker, check_stale_tasks in main loop, handle_worker_exit callback, auto_respawn logic.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["RES-L2-001", "RES-L2-002", "RES-L2-003", "RES-L2-004", "RES-L2-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": ["zerg/launcher.py", "zerg/task_retry_manager.py", "zerg/state_reconciler.py", "zerg/log_writer.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_orchestrator.py -v --tb=short && python -m zerg.validate_commands",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 60,
+      "skills_required": ["python", "async"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Requirements\nFR-5: Worker crash → mark task failed (reason=worker_crash) → reset retry count → reassign.\nFR-6: Track target worker count → auto-spawn replacement → cap respawns.\nFR-7: Container mount fix for task-graph.json.\n\n## Integration Points\n- _spawn_worker() calls launcher.spawn_with_retry()\n- _poll_workers() calls task_retry_manager.check_stale_tasks()\n- Worker exit handler reassigns task and respawns\n- MonitorLogWriter logs all events"
+    },
+    {
+      "id": "RES-L3-003",
+      "title": "Wire reconciliation into state_sync",
+      "description": "Integrate StateReconciler into StateSyncService. Call periodic reconciliation from orchestrator loop. Call level-transition reconciliation before advancing levels.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["RES-L2-004", "RES-L2-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/state_sync_service.py"],
+        "read": ["zerg/state_reconciler.py", "zerg/levels.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_state_sync_service.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": "tests/integration/test_resilience_e2e.py",
+      "context": "## Requirements\nFR-4: Periodic check every 60s. Thorough reconciliation on level transitions.\n\n## Integration\nStateSyncService gains a StateReconciler instance. New methods: run_periodic_reconcile(), run_level_transition_reconcile(level)."
+    },
+    {
+      "id": "RES-L3-004",
+      "title": "Add wiring validation",
+      "description": "Update validate_commands.py to check all new resilience modules are properly imported by production code. No orphaned modules allowed.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["RES-L2-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/validate_commands.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands --check-wiring",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Requirements\nFR-9: Every new .py file in zerg/ must be imported by at least one other production file. Test-only imports don't count.\n\n## Check\nstate_reconciler.py must be imported by state_sync_service.py or orchestrator.py."
+    },
+    {
+      "id": "RES-L4-001",
+      "title": "Unit tests for config",
+      "description": "Create tests/unit/test_resilience_config.py with tests for new config fields, defaults, validation boundaries.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["RES-L3-002", "RES-L3-004"],
+      "files": {
+        "create": ["tests/unit/test_resilience_config.py"],
+        "modify": [],
+        "read": ["zerg/config.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_resilience_config.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Test Cases\n- Default values match requirements\n- Validation rejects out-of-bound values\n- Config loads from YAML correctly\n- ResilienceConfig.enabled defaults to True"
+    },
+    {
+      "id": "RES-L4-002",
+      "title": "Unit tests for state reconciler",
+      "description": "Create tests/unit/test_state_reconciler.py with tests for reconciliation logic, level parsing, inconsistency detection and fixes.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["RES-L3-002"],
+      "files": {
+        "create": ["tests/unit/test_state_reconciler.py"],
+        "modify": [],
+        "read": ["zerg/state_reconciler.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_state_reconciler.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 35,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Test Cases\n- parse_level_from_task_id extracts level correctly\n- Tasks in_progress with dead workers get marked failed\n- Level completion recalculation works\n- Periodic vs thorough reconciliation difference"
+    },
+    {
+      "id": "RES-L4-003",
+      "title": "Integration tests",
+      "description": "Create tests/integration/test_resilience_e2e.py with end-to-end resilience tests: spawn failure recovery, task timeout, worker crash recovery cycle.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["RES-L3-002"],
+      "files": {
+        "create": ["tests/integration/test_resilience_e2e.py"],
+        "modify": [],
+        "read": ["zerg/orchestrator.py", "zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_resilience_e2e.py -v --tb=short",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 50,
+      "skills_required": ["python", "pytest", "mocking"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Test Scenarios\n- Spawn fails 2x then succeeds on 3rd attempt\n- Task times out after configured threshold\n- Worker crash triggers task reassignment\n- Level advancement waits for actual task completion\n- State reconciliation fixes inconsistencies"
+    },
+    {
+      "id": "RES-L5-001",
+      "title": "Update README with resilience section",
+      "description": "Add Resilience section to README.md documenting features, configuration options, and troubleshooting.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["RES-L4-001", "RES-L4-002", "RES-L4-003"],
+      "files": {
+        "create": [],
+        "modify": ["README.md"],
+        "read": [".gsd/specs/issue-102-resilience/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'Resilience' README.md && grep -q 'spawn_retry' README.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## FR-10 Requirements\n- Add Resilience section under Features\n- Document new config options\n- Add troubleshooting for common scenarios"
+    },
+    {
+      "id": "RES-L5-002",
+      "title": "Update CHANGELOG",
+      "description": "Add entry to CHANGELOG.md under [Unreleased] → Added section documenting all new resilience features.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["RES-L4-001", "RES-L4-002", "RES-L4-003"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'resilience' CHANGELOG.md && grep -q 'spawn retry' CHANGELOG.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Entry\nUnder [Unreleased] → Added:\n- Container mode resilience: spawn retry with exponential backoff, task timeout watchdog, state reconciliation (#102)\n- Worker crash recovery with automatic task reassignment\n- Auto-respawn of failed workers\n- Structured resilience logging to .zerg/monitor.log"
+    },
+    {
+      "id": "RES-L5-003",
+      "title": "Create Wiki Resilience-Architecture page",
+      "description": "Create docs/wiki/Resilience-Architecture.md with detailed architecture overview, component descriptions, and configuration reference.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["RES-L4-001", "RES-L4-002", "RES-L4-003"],
+      "files": {
+        "create": ["docs/wiki/Resilience-Architecture.md"],
+        "modify": [],
+        "read": [".gsd/specs/issue-102-resilience/design.md"]
+      },
+      "verification": {
+        "command": "test -f docs/wiki/Resilience-Architecture.md && grep -q 'StateReconciler' docs/wiki/Resilience-Architecture.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Wiki Page Structure\n1. Overview\n2. Architecture Diagram\n3. Component Descriptions\n4. Configuration Reference\n5. Troubleshooting Guide"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["RES-L1-001", "RES-L1-002"],
+      "parallel": true,
+      "estimated_minutes": 20
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["RES-L2-001", "RES-L2-002", "RES-L2-003", "RES-L2-004", "RES-L2-005"],
+      "parallel": true,
+      "estimated_minutes": 45,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["RES-L3-001", "RES-L3-002", "RES-L3-003", "RES-L3-004"],
+      "parallel": true,
+      "estimated_minutes": 60,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["RES-L4-001", "RES-L4-002", "RES-L4-003"],
+      "parallel": true,
+      "estimated_minutes": 50,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["RES-L5-001", "RES-L5-002", "RES-L5-003"],
+      "parallel": true,
+      "estimated_minutes": 30,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

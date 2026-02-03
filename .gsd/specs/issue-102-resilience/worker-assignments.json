@@ -1,0 +1,109 @@
+{
+  "feature": "issue-102-resilience",
+  "worker_count": 5,
+  "assignments": [
+    {
+      "task_id": "RES-L1-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L1-002",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L2-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L2-005",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L2-002",
+      "worker_id": 2,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L2-003",
+      "worker_id": 3,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L2-004",
+      "worker_id": 4,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L3-002",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L3-001",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L3-003",
+      "worker_id": 2,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L3-004",
+      "worker_id": 3,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L4-003",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L4-002",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L4-001",
+      "worker_id": 2,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L5-003",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L5-001",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "RES-L5-002",
+      "worker_id": 2,
+      "level": 0,
+      "estimated_minutes": 15
+    }
+  ],
+  "generated_at": "2026-02-03T09:48:36.901442"
+}
