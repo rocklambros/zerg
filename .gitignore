@@ -63,3 +63,4 @@ yarn-error.log*
 .zerg/state/
 .git-worktree/
 .git-local/
+.claude/settings.json
