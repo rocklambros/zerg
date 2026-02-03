@@ -1,0 +1,261 @@
+{
+  "feature": "worker-observability",
+  "version": "2.0",
+  "generated": "2026-02-02T00:00:00Z",
+  "total_tasks": 11,
+  "max_parallelization": 3,
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add anthropic optional dependency + TokenMetricsConfig",
+      "description": "Add anthropic>=0.40.0 as optional dependency (pip install zerg[metrics]). Add TokenMetricsConfig to config.py with fields: enabled (bool, default True), api_counting (bool, default False), cache_enabled (bool, default True), cache_ttl_seconds (int, default 3600), fallback_chars_per_token (float, default 4.0). Register in ZergConfig.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["pyproject.toml", "requirements.txt", "zerg/config.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pip install -e . && python -c \"from zerg.config import ZergConfig; c = ZergConfig(); assert hasattr(c, 'token_metrics'); print('PASS')\"",
+        "timeout_seconds": 60
+      },
+      "consumers": ["TASK-003", "TASK-008"],
+      "integration_test": "tests/integration/test_token_metrics_wiring.py",
+      "context": "## Spec Context\nAdd TokenMetricsConfig following existing pattern (HeartbeatConfig at line 196, RepoMapConfig at line 222). Register in ZergConfig (line 233+). Fields: enabled=True, api_counting=False, cache_enabled=True, cache_ttl_seconds=3600, fallback_chars_per_token=4.0. Add anthropic as optional dep in pyproject.toml [project.optional-dependencies] metrics = [\"anthropic>=0.40.0\"]. Update requirements.txt with comment noting optional.\n\n## Dependencies\nNone — foundation task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add incremental repo map indexing",
+      "description": "Add IncrementalIndex class to zerg/repo_map.py. MD5 hash per file for staleness detection. Selective re-parse only changed files. Store index in .zerg/state/repo-index.json. Method: update_incremental(root, languages) that computes MD5 of each tracked file, re-extracts only files with hash mismatch, preserves unchanged modules' symbols.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/repo_map.py"],
+        "read": ["zerg/repo_map_js.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.repo_map import IncrementalIndex; print('PASS')\"",
+        "timeout_seconds": 30
+      },
+      "consumers": ["TASK-007"],
+      "integration_test": "tests/integration/test_repo_map_incremental_wiring.py",
+      "context": "## Spec Context\nExisting repo_map.py has SymbolGraph with query() method. Add IncrementalIndex class that tracks {file_path: {hash: md5hex, symbols: [...]}} in .zerg/state/repo-index.json. On update_incremental(): compute MD5 of each file, compare with stored hash, re-extract only changed files. Use atomic write (tempfile+rename) for index persistence.\n\n## Dependencies\nNone — foundation task. Uses existing extraction functions in repo_map.py and repo_map_js.py."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Implement token counter with caching",
+      "description": "Create zerg/token_counter.py. TokenCounter class with 3 modes: (1) api_counting=True + anthropic installed: use client.messages.count_tokens(), mark 'exact'; (2) api_counting=True + anthropic missing: log warning once, heuristic fallback, mark 'estimated'; (3) api_counting=False (default): len(text)/chars_per_token heuristic, mark 'estimated'. Hash-based cache: SHA256 of text -> token count in .zerg/state/token-cache.json. Never raises exceptions. Lazy import anthropic.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["zerg/token_counter.py"],
+        "modify": [],
+        "read": ["zerg/config.py", "zerg/constants.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.token_counter import TokenCounter; tc = TokenCounter(); r = tc.count('hello world'); assert r.count > 0; print('PASS')\"",
+        "timeout_seconds": 30
+      },
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/integration/test_token_metrics_wiring.py",
+      "context": "## Spec Context\nTokenCounter wraps optional Anthropic SDK. Key pattern: try: import anthropic at usage time, not module level. 3 modes based on config.token_metrics.api_counting and SDK availability. SHA256 hash cache in .zerg/state/token-cache.json. Must never raise — all errors caught, logged as warnings, heuristic used. Return dataclass TokenResult with fields: count (int), mode ('exact' or 'estimated'), source ('api' or 'heuristic' or 'cache').\n\n## Security Rules (Python)\n- Use safe deserialization (json.loads only)\n- Secure temp files (tempfile module)\n- No secrets in code (API key from env only)\n\n## Dependencies\nTASK-001 provides TokenMetricsConfig with api_counting, cache_enabled, cache_ttl_seconds, fallback_chars_per_token."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Implement token tracker",
+      "description": "Create zerg/token_tracker.py. TokenTracker class: per-worker JSON files (.zerg/state/tokens-{worker_id}.json). Per-task breakdown fields: command_template, task_context, repo_map, security_rules, spec_excerpt. Atomic writes using tempfile+rename pattern (same as heartbeat.py). Methods: record_task(worker_id, task_id, breakdown_dict), read(worker_id), read_all().",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": ["zerg/token_tracker.py"],
+        "modify": [],
+        "read": ["zerg/heartbeat.py", "zerg/constants.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.token_tracker import TokenTracker; print('PASS')\"",
+        "timeout_seconds": 30
+      },
+      "consumers": ["TASK-005", "TASK-008"],
+      "integration_test": "tests/integration/test_token_metrics_wiring.py",
+      "context": "## Spec Context\nFollow heartbeat.py atomic write pattern: write to tempfile in same dir, os.replace() to target. Per-worker files at .zerg/state/tokens-{worker_id}.json. Schema: {worker_id, tasks: {task_id: {breakdown: {command_template, task_context, repo_map, security_rules, spec_excerpt}, total, mode, timestamp}}, cumulative: {total_tokens, tasks_completed}}.\n\n## Dependencies\nTASK-003 provides TokenCounter for counting each context component."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Implement token aggregator",
+      "description": "Create zerg/token_aggregator.py. TokenAggregator class: read_all_workers() reads all tokens-*.json files, computes cumulative totals per level and feature-wide. calculate_savings() compares injected context vs full-spec baseline. efficiency_ratio() returns tokens per completed task. All methods return dataclasses, never raise.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": ["zerg/token_aggregator.py"],
+        "modify": [],
+        "read": ["zerg/token_tracker.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.token_aggregator import TokenAggregator; print('PASS')\"",
+        "timeout_seconds": 30
+      },
+      "consumers": ["TASK-007"],
+      "integration_test": "tests/integration/test_token_metrics_wiring.py",
+      "context": "## Spec Context\nAggregator reads .zerg/state/tokens-*.json via glob. Computes: total_tokens (sum across workers), tokens_per_task (avg), savings breakdown (command splitting savings, task-scoped context savings, security rule filtering savings). Return AggregateResult dataclass.\n\n## Dependencies\nTASK-004 provides TokenTracker with read_all() for per-worker data."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Status dashboard — HEALTH section + StatusFormatter",
+      "description": "Create zerg/status_formatter.py with format_health_table(heartbeats, escalations, progress_data) and format_escalations(escalations). Update zerg/data/commands/status.core.md: replace existing WORKER INTELLIGENCE section (lines 79-96) with detailed per-worker ASCII table referencing StatusFormatter. Table columns: Worker, Status, Task, Step, Progress, Restarts.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": ["zerg/status_formatter.py"],
+        "modify": ["zerg/data/commands/status.core.md"],
+        "read": ["zerg/heartbeat.py", "zerg/escalation.py", "zerg/progress_reporter.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.status_formatter import format_health_table; print(format_health_table([])); print('PASS')\"",
+        "timeout_seconds": 30
+      },
+      "consumers": ["TASK-007"],
+      "integration_test": "tests/unit/test_status_formatter.py",
+      "context": "## Spec Context\nStatus dashboard format: 79-char separator lines, centered headers, box-drawing table chars. Existing sections: FACTORY STATUS, PROGRESS, WORKER INTELLIGENCE (replace this), CONTEXT BUDGET. Read heartbeat-{id}.json, escalations.json, progress-{id}.json from .zerg/state/. Heartbeat: worker_id, timestamp, task_id, step, progress_pct. Escalation: worker_id, task_id, category, message, resolved.\n\n## Dependencies\nTASK-005 must complete (L2 done) before L3 starts."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Status dashboard — REPO MAP + TOKENS sections",
+      "description": "Extend zerg/status_formatter.py: add format_repo_map_stats(index_data), format_token_table(worker_tokens), format_savings(savings_data). Update status.core.md: add REPOSITORY MAP section after WORKER INTELLIGENCE, TOKEN USAGE section after CONTEXT BUDGET. Token table: Worker, Tasks, Tokens/Task, Total, Mode. Show '(estimated)' or '(exact)'. Savings breakdown with percentages.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-006", "TASK-002", "TASK-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/status_formatter.py", "zerg/data/commands/status.core.md"],
+        "read": ["zerg/token_aggregator.py", "zerg/repo_map.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.status_formatter import format_token_table, format_repo_map_stats, format_savings; print('PASS')\"",
+        "timeout_seconds": 30
+      },
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-008",
+      "title": "Config documentation + context plugin wiring",
+      "description": "Update docs/configuration.md: add sections for heartbeat, escalation, verification_tiers, repo_map, token_metrics config. Update zerg/context_plugin.py: after building worker context, call TokenTracker.record_task() with per-component token counts.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-001", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["docs/configuration.md", "zerg/context_plugin.py"],
+        "read": ["zerg/config.py", "zerg/token_counter.py", "zerg/token_tracker.py"]
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands",
+        "timeout_seconds": 60
+      },
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-009",
+      "title": "Unit tests for token modules",
+      "description": "Create tests/unit/test_token_counter.py: mock anthropic, test 3 counting modes, cache hit/miss, error handling, heuristic fallback. Create tests/unit/test_token_tracker.py: atomic writes, per-task breakdown, read/read_all, corruption handling. Create tests/unit/test_token_aggregator.py: multi-worker aggregation, savings math, efficiency ratio, empty data.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-007", "TASK-008"],
+      "files": {
+        "create": ["tests/unit/test_token_counter.py", "tests/unit/test_token_tracker.py", "tests/unit/test_token_aggregator.py"],
+        "modify": [],
+        "read": ["zerg/token_counter.py", "zerg/token_tracker.py", "zerg/token_aggregator.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_token_counter.py tests/unit/test_token_tracker.py tests/unit/test_token_aggregator.py -v",
+        "timeout_seconds": 120
+      },
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-010",
+      "title": "Unit tests for status formatter + integration tests",
+      "description": "Create tests/unit/test_status_formatter.py: table formatting, column alignment, empty data. Create tests/integration/test_token_metrics_wiring.py: end-to-end count -> track -> aggregate -> format. Create tests/integration/test_repo_map_incremental_wiring.py: initial index -> modify -> re-index -> verify selective parse.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-007", "TASK-008"],
+      "files": {
+        "create": ["tests/unit/test_status_formatter.py", "tests/integration/test_token_metrics_wiring.py", "tests/integration/test_repo_map_incremental_wiring.py"],
+        "modify": [],
+        "read": ["zerg/status_formatter.py", "zerg/token_counter.py", "zerg/token_tracker.py", "zerg/token_aggregator.py", "zerg/repo_map.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_status_formatter.py tests/integration/test_token_metrics_wiring.py tests/integration/test_repo_map_incremental_wiring.py -v",
+        "timeout_seconds": 120
+      },
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-011",
+      "title": "CHANGELOG + docs + issue references",
+      "description": "Update CHANGELOG.md under [Unreleased] for all 3 issues. Update docs/commands.md /zerg:status with new HEALTH, REPO MAP, TOKEN USAGE sections. Update README.md feature list. PR references Closes #27, Closes #30, Closes #24.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-009", "TASK-010"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md", "docs/commands.md", "README.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands",
+        "timeout_seconds": 60
+      },
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-003", "TASK-004", "TASK-005"],
+      "parallel": false,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-006", "TASK-007", "TASK-008"],
+      "parallel": false,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["TASK-009", "TASK-010"],
+      "parallel": true,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["TASK-011"],
+      "parallel": false,
+      "depends_on_levels": [4]
+    }
+  },
+  "conflict_matrix": {
+    "description": "TASK-006 and TASK-007 share status_formatter.py and status.core.md — must run sequentially",
+    "conflicts": [
+      ["TASK-006", "TASK-007"]
+    ]
+  }
+}

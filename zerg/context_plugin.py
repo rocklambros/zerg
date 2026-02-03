@@ -135,6 +135,8 @@ class ContextEngineeringPlugin(ContextPlugin):
         budget = self._config.task_context_budget_tokens
         file_paths = self._collect_task_files(task)
 
+        # Track named components for token metrics
+        context_components: dict[str, str] = {}
         sections: list[str] = []
 
         # -- Engineering rules (~10% of budget) -----------------------------
@@ -142,53 +144,62 @@ class ContextEngineeringPlugin(ContextPlugin):
         rules_section = self._build_rules_section(file_paths, rules_budget)
         if rules_section:
             sections.append(rules_section)
+            context_components["engineering_rules"] = rules_section
 
         # -- Security rules (~10% of budget) --------------------------------
         security_budget = int(budget * 0.10)
         security_section = self._build_security_section(file_paths, security_budget)
         if security_section:
             sections.append(security_section)
+            context_components["security_rules"] = security_section
 
         # -- Spec context (~20% of budget) ----------------------------------
         spec_budget = int(budget * 0.20)
         spec_section = self._build_spec_section(task, feature, spec_budget)
         if spec_section:
             sections.append(spec_section)
+            context_components["spec_excerpt"] = spec_section
 
         # -- MCP routing hints (~10% of budget) -----------------------------
         mcp_budget = int(budget * 0.10)
         mcp_section = self._build_mcp_section(task, mcp_budget)
         if mcp_section:
             sections.append(mcp_section)
+            context_components["mcp_hints"] = mcp_section
 
         # -- Depth tier guidance (~10% of budget) ---------------------------
         depth_budget = int(budget * 0.10)
         depth_section = self._build_depth_section(depth_budget)
         if depth_section:
             sections.append(depth_section)
+            context_components["depth_guidance"] = depth_section
 
         # -- Behavioral mode (~10% of budget) -------------------------------
         mode_budget = int(budget * 0.10)
         mode_section = self._build_mode_section(mode_budget)
         if mode_section:
             sections.append(mode_section)
+            context_components["behavioral_mode"] = mode_section
 
         # -- TDD enforcement (~10% of budget) -------------------------------
         tdd_budget = int(budget * 0.10)
         tdd_section = self._build_tdd_section(tdd_budget)
         if tdd_section:
             sections.append(tdd_section)
+            context_components["tdd_enforcement"] = tdd_section
 
         # -- Efficiency hints (~5% of budget) -------------------------------
         efficiency_section = self._build_efficiency_section()
         if efficiency_section:
             sections.append(efficiency_section)
+            context_components["efficiency_hints"] = efficiency_section
 
         # -- Repo map context (~10% of budget) ----------------------------
         repo_map_budget = int(budget * 0.10)
         repo_map_section = self._build_repo_map_section(task, repo_map_budget)
         if repo_map_section:
             sections.append(repo_map_section)
+            context_components["repo_map"] = repo_map_section
 
         assembled = "\n\n".join(sections)
 
@@ -202,7 +213,39 @@ class ContextEngineeringPlugin(ContextPlugin):
                     exc_info=True,
                 )
 
+        # Record token metrics per component (informational only, never fails)
+        self._record_token_metrics(task, context_components)
+
         return assembled
+
+    def _record_token_metrics(
+        self, task: dict, context_components: dict[str, str]
+    ) -> None:
+        """Record per-component token counts for monitoring.
+
+        This is purely informational. Failures are silently ignored
+        to avoid disrupting context generation.
+        """
+        try:
+            from zerg.token_counter import TokenCounter
+            from zerg.token_tracker import TokenTracker
+
+            counter = TokenCounter()
+            tracker = TokenTracker()
+
+            worker_id = os.environ.get("ZERG_WORKER_ID", "unknown")
+            task_id = task.get("id", "unknown")
+
+            breakdown: dict[str, int] = {}
+            mode = "estimated"
+            for component_name, component_text in context_components.items():
+                result = counter.count(component_text)
+                breakdown[component_name] = result.count
+                mode = result.mode
+
+            tracker.record_task(worker_id, task_id, breakdown, mode=mode)
+        except Exception:
+            pass  # Token tracking is informational, never fail
 
     def _build_depth_section(self, max_tokens: int) -> str:
         """Inject analysis depth guidance from ZERG_ANALYSIS_DEPTH env var."""

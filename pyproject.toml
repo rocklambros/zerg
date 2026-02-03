@@ -38,6 +38,8 @@ dev = [
     "ruff>=0.1",
     "pip-audit>=2.7.0",
 ]
+metrics = ["anthropic>=0.40.0"]
+all = ["zerg[dev]", "zerg[metrics]"]
 
 [project.scripts]
 zerg = "zerg.cli:cli"

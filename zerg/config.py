@@ -230,6 +230,16 @@ class RepoMapConfig(BaseModel):
     context_budget_percent: int = Field(default=15, ge=5, le=30)
 
 
+class TokenMetricsConfig(BaseModel):
+    """Token usage tracking configuration."""
+
+    enabled: bool = True
+    api_counting: bool = False
+    cache_enabled: bool = True
+    cache_ttl_seconds: int = Field(default=3600, ge=60, le=86400)
+    fallback_chars_per_token: float = Field(default=4.0, ge=1.0, le=10.0)
+
+
 class ZergConfig(BaseModel):
     """Complete ZERG configuration."""
 
@@ -257,6 +267,7 @@ class ZergConfig(BaseModel):
         default_factory=VerificationTiersConfig
     )
     repo_map: RepoMapConfig = Field(default_factory=RepoMapConfig)
+    token_metrics: TokenMetricsConfig = Field(default_factory=TokenMetricsConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "ZergConfig":

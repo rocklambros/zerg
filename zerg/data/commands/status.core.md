@@ -72,35 +72,81 @@ zerg status --dashboard -i 2      # Custom refresh interval
 zerg status --watch               # Lighter text-based refresh
 ```
 
-## Worker Intelligence
+## Worker Health
 
-Show worker health and escalation data when available:
+Display per-worker health table and escalation summary using `StatusFormatter`.
+
+### Procedure
+
+1. Read heartbeat files: `.zerg/state/heartbeat-{id}.json` for each active worker
+2. Read escalations: `.zerg/state/escalations.json`
+3. Read progress files: `.zerg/state/progress-{id}.json` for each active worker
+4. Format with `zerg.status_formatter`:
+
+```python
+from zerg.status_formatter import format_health_table, format_escalations
+
+health_output = format_health_table(heartbeats, escalations, progress_data)
+escalation_output = format_escalations(escalations)
+```
+
+5. Render in the dashboard:
 
 ```
-WORKER INTELLIGENCE
-──────────────────────────────────────────────
-Heartbeats:
-  Worker 1:  ✅ alive (task TASK-003, verifying_tier2, 65%)
-  Worker 2:  ✅ alive (task TASK-005, implementing, 30%)
-  Worker 3:  ⚠️ stalled (last heartbeat 145s ago)
+───────────────────────────────────────────────────────────────────────────────
+                            WORKER HEALTH
+───────────────────────────────────────────────────────────────────────────────
+
+{output of format_health_table()}
 
 Escalations:
-  🚨 TASK-003 (Worker 1): ambiguous_spec
-     "Spec says 'handle auth errors' but doesn't define error types"
-  Total: 1 unresolved, 0 resolved
+{output of format_escalations()}
 
-Progress:
-  Worker 1:  2/5 tasks ████░░░░░░ 40%
-  Worker 2:  3/5 tasks ██████░░░░ 60%
-  Worker 3:  0/5 tasks ░░░░░░░░░░  0%
-──────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────
 ```
 
-### Worker Intelligence Data Sources
+If no heartbeat files exist, display "No worker data available" and skip the table.
 
-- Heartbeats: read `.zerg/state/heartbeat-{id}.json` for each active worker
-- Escalations: read `.zerg/state/escalations.json`
-- Progress: read `.zerg/state/progress-{id}.json` for each active worker
+## Repository Map
+
+Display repository index statistics from the incremental symbol index.
+
+### Procedure
+
+1. Read index file: `.zerg/state/repo-index.json`
+2. Parse the `_meta` and `files` sections to build stats (or use `IncrementalIndex.get_stats()`)
+3. Format with `zerg.status_formatter`:
+
+```python
+from zerg.status_formatter import format_repo_map_stats
+
+repo_map_output = format_repo_map_stats(index_data)
+```
+
+4. Render in the dashboard:
+
+```
+───────────────────────────────────────────────────────────────────────────────
+                           REPOSITORY MAP
+───────────────────────────────────────────────────────────────────────────────
+
+{output of format_repo_map_stats()}
+
+───────────────────────────────────────────────────────────────────────────────
+```
+
+If no repo-index.json exists, display "No repo map data available" and skip the section.
+
+### Data Sources
+
+- Index file: `.zerg/state/repo-index.json` — `_meta.last_updated`, file entries with hash + symbols
+- Stats: `IncrementalIndex.get_stats()` — total_files, indexed_files, stale_files, last_updated
+
+### Data Sources
+
+- Heartbeats: `.zerg/state/heartbeat-{id}.json` — worker_id, timestamp, task_id, step, progress_pct
+- Escalations: `.zerg/state/escalations.json` — list of {worker_id, task_id, category, message, resolved}
+- Progress: `.zerg/state/progress-{id}.json` — worker_id, tasks_completed, tasks_total, tier_results
 - Stall threshold: `config.heartbeat.stall_timeout_seconds` (default: 120s)
 
 ## Context Budget
@@ -131,6 +177,53 @@ Security Rules:
 - Task context: read `task.context` field from task-graph.json
 - Security filtering: check task file extensions vs loaded rules
 - Budget config: `ContextEngineeringConfig.task_context_budget_tokens`
+
+## Token Usage
+
+Display per-worker token consumption and savings analysis from the token aggregator.
+
+### Procedure
+
+1. Read token files: `.zerg/state/tokens-*.json` via `TokenAggregator`
+2. Call `aggregate()` and `calculate_savings()`
+3. Format with `zerg.status_formatter`:
+
+```python
+from zerg.token_aggregator import TokenAggregator
+from zerg.status_formatter import format_token_table, format_savings
+
+aggregator = TokenAggregator(state_dir=".zerg/state")
+agg = aggregator.aggregate()
+savings = aggregator.calculate_savings()
+
+token_table = format_token_table(agg.per_worker)
+savings_output = format_savings(savings)
+```
+
+4. Render in the dashboard:
+
+```
+───────────────────────────────────────────────────────────────────────────────
+                            TOKEN USAGE
+───────────────────────────────────────────────────────────────────────────────
+
+{output of format_token_table()}
+
+Savings:
+{output of format_savings()}
+
+───────────────────────────────────────────────────────────────────────────────
+```
+
+If no token files exist, display "No token data available" and skip the section.
+
+Note: The Mode column shows "(estimated)" when using heuristic token counting and "(exact)" when using API-counted values.
+
+### Token Usage Data Sources
+
+- Token files: `.zerg/state/tokens-*.json` — per-worker cumulative and per-task breakdowns
+- Aggregator: `TokenAggregator.aggregate()` — AggregateResult with per_worker, total_tokens, breakdown_totals
+- Savings: `TokenAggregator.calculate_savings()` — SavingsResult with injected vs baseline comparison
 
 ## Data Sources
 
