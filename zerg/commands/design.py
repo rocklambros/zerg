@@ -1,6 +1,7 @@
 """ZERG design command - generate architecture and task graph."""
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -52,6 +53,13 @@ def design(
     """
     try:
         console.print("\n[bold cyan]ZERG Design[/bold cyan]\n")
+
+        # Print task list ID for coordination visibility
+        task_list_id = os.environ.get("CLAUDE_CODE_TASK_LIST_ID")
+        if task_list_id:
+            console.print(f"Task List ID: {task_list_id}")
+        else:
+            console.print("Task List ID: (default)")
 
         # Get feature name
         if not feature:
@@ -602,6 +610,19 @@ def validate_task_graph(path: Path) -> None:
                 msg = f"File conflict: {file} modified by {owner} and {task_id} at L{level}"
                 errors.append(msg)
             file_owners[key] = task_id
+
+    # Check for mandatory L5 final analysis task
+    l5_tasks = [t for t in tasks if t.get("level") == 5]
+    has_analysis = any(
+        "analysis" in t.get("title", "").lower()
+        or "quality" in t.get("title", "").lower()
+        for t in l5_tasks
+    )
+    if not has_analysis:
+        errors.append(
+            "Missing mandatory L5 final analysis task "
+            "(must include 'analysis' or 'quality' in title)"
+        )
 
     # Report results
     if errors:

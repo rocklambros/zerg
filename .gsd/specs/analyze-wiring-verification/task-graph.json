@@ -1,0 +1,366 @@
+{
+  "feature": "analyze-wiring-verification",
+  "version": "2.0",
+  "generated": "2026-02-02T18:00:00-07:00",
+  "total_tasks": 14,
+  "estimated_duration_minutes": 180,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Extend CheckType enum and AnalyzeConfig",
+      "description": "Add 6 new CheckType enum values (DEAD_CODE, WIRING, CROSS_FILE, CONVENTIONS, IMPORT_CHAIN, CONTEXT_ENGINEERING) to analyze.py. Extend AnalyzeConfig dataclass with fields for dead_code_confidence, wiring_strict, cross_file_scope, conventions_naming, import_chain_max_depth, context_engineering_auto_split. Load from .zerg/config.yaml analyze section.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py"],
+        "read": [".zerg/config.yaml"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands.analyze import CheckType; assert hasattr(CheckType, 'DEAD_CODE'); assert hasattr(CheckType, 'WIRING'); print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-004", "TASK-005", "TASK-006", "TASK-008"],
+      "integration_test": "tests/integration/test_analyze_all_checks.py",
+      "context": "## Spec Context\nFR-1 through FR-8 require 6 new check types. CheckType enum at analyze.py:23-30 currently has LINT, COMPLEXITY, COVERAGE, SECURITY, PERFORMANCE. Add DEAD_CODE='dead-code', WIRING='wiring', CROSS_FILE='cross-file', CONVENTIONS='conventions', IMPORT_CHAIN='import-chain', CONTEXT_ENGINEERING='context-engineering'. AnalyzeConfig at line 34-41 needs new fields with defaults matching NFR-2 config schema.\n\n## Security Rules (Python)\n- Use yaml.safe_load for config parsing\n- Validate config values (min_confidence: 0-100, max_depth: positive int)"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add analyze config section to config.yaml",
+      "description": "Add the 'analyze' configuration section to .zerg/config.yaml with subsections for dead_code, wiring, cross_file, conventions, import_chain, context_engineering. Use defaults from NFR-2.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".zerg/config.yaml"],
+        "read": [".gsd/specs/analyze-wiring-verification/requirements.md"]
+      },
+      "verification": {
+        "command": "python -c \"import yaml; d=yaml.safe_load(open('.zerg/config.yaml')); assert 'analyze' in d; assert d['analyze']['dead_code']['min_confidence']==80; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["yaml"],
+      "consumers": ["TASK-004", "TASK-005", "TASK-006"],
+      "integration_test": "tests/integration/test_analyze_all_checks.py",
+      "context": "## Spec Context\nNFR-2 specifies config schema:\nanalyze:\n  dead_code:\n    min_confidence: 80\n  wiring:\n    strict: false\n    exclude_patterns: []\n  cross_file:\n    scope: 'zerg/'\n  conventions:\n    naming: snake_case\n    require_task_prefixes: true\n  import_chain:\n    max_depth: 10\n  context_engineering:\n    auto_split: false"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Create AST cache utility module",
+      "description": "Create zerg/ast_cache.py with ASTCache class. Uses functools.lru_cache keyed on (file_path, mtime). Provides parse(path) -> ast.Module. Shared between CrossFileChecker and ImportChainChecker to avoid double-parsing. Include collect_exports(module) and collect_imports(module) helper functions.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/ast_cache.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.ast_cache import ASTCache; c=ASTCache(); print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "ast"],
+      "consumers": ["TASK-005"],
+      "integration_test": "tests/integration/test_analyze_all_checks.py",
+      "context": "## Spec Context\nNFR-1 requires AST-based checkers cache parsed ASTs. CrossFileChecker (FR-3) and ImportChainChecker (FR-6) both walk ASTs. Cache keyed on (path, mtime) avoids reparsing.\n\n## Security Rules (Python)\n- ast.parse is safe for untrusted code (it parses, doesn't execute)\n- Use Path.resolve() before caching to prevent path confusion"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Implement DeadCodeChecker, WiringChecker, ConventionsChecker",
+      "description": "Add 3 checker classes to analyze.py following BaseChecker pattern.\n\nDeadCodeChecker: wraps vulture via subprocess (min-confidence from config). Parses output, returns AnalysisResult with DEAD_CODE type.\n\nWiringChecker: calls validate_module_wiring(strict=config) from validate_commands.py. Converts (bool, list[str]) to AnalysisResult with WIRING type.\n\nConventionsChecker: checks snake_case naming for .py files in zerg/, bracketed Task prefixes in command .md files, file org rules (tests in tests/, scripts in scripts/). Returns CONVENTIONS type.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py"],
+        "read": ["zerg/validate_commands.py", "zerg/performance/adapters/vulture_adapter.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands.analyze import DeadCodeChecker, WiringChecker, ConventionsChecker; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": ["TASK-005", "TASK-008"],
+      "integration_test": "tests/integration/test_analyze_all_checks.py",
+      "context": "## Spec Context\nFR-1: DeadCodeChecker wraps VultureAdapter pattern — vulture --min-confidence 80 via subprocess. See vulture_adapter.py for reference.\nFR-2: WiringChecker wraps validate_module_wiring(). Exempt: __init__.py, __main__.py, conftest.py, if __name__.\nFR-4: ConventionsChecker reads CLAUDE.md rules. Check bracketed prefixes, snake_case, file org.\n\n## Dependencies\nTASK-001 adds CheckType.DEAD_CODE, WIRING, CONVENTIONS and config fields.\n\n## Security Rules (Python)\n- subprocess.run with list args, not shell=True for vulture\n- Validate file paths before access"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Implement CrossFileChecker and ImportChainChecker",
+      "description": "Add 2 AST-based checker classes to analyze.py.\n\nCrossFileChecker: uses ASTCache to parse all .py in zerg/ (not tests). Collects module-level def/class as exports. Collects all imports project-wide. Reports symbols exported but never imported. Returns CROSS_FILE type.\n\nImportChainChecker: builds import graph from AST. DFS for circular imports. Reports chains exceeding max_depth from config. Returns IMPORT_CHAIN type. Shares ASTCache with CrossFileChecker.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py"],
+        "read": ["zerg/ast_cache.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands.analyze import CrossFileChecker, ImportChainChecker; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 40,
+      "skills_required": ["python", "ast"],
+      "consumers": ["TASK-006", "TASK-008"],
+      "integration_test": "tests/integration/test_analyze_all_checks.py",
+      "context": "## Spec Context\nFR-3: CrossFileChecker walks AST across zerg/ package. Collect exported symbols (module-level functions, classes). Collect all imports project-wide. Report exported-but-never-imported. Scope: Python files within zerg/ only.\nFR-6: ImportChainChecker DFS on import graph. Detect circular imports. Flag deep chains > max_depth (default 10).\nNFR-1: Cache ASTs via ASTCache to avoid double-parsing.\n\n## Dependencies\nTASK-003 creates zerg/ast_cache.py with ASTCache, collect_exports(), collect_imports().\nTASK-004 adds prior checkers — this task appends after them in analyze.py."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Implement ContextEngineeringChecker",
+      "description": "Add ContextEngineeringChecker class to analyze.py. Wraps all 7 validate_commands.py checks: task references, backbone depth, split pairs, split threshold, state JSON, engineering rules, module wiring. Calls validate_all() and converts output to AnalysisResult with CONTEXT_ENGINEERING type. Config-driven auto_split parameter.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-005"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py"],
+        "read": ["zerg/validate_commands.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands.analyze import ContextEngineeringChecker; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-008"],
+      "integration_test": "tests/integration/test_analyze_all_checks.py",
+      "context": "## Spec Context\nFR-7: ContextEngineeringChecker wraps all 7 validate_commands.py checks:\n1. Task references in command files\n2. Backbone command depth (>= 3 Task refs)\n3. Split pair consistency (.core.md + .details.md)\n4. Split threshold (large files should be split)\n5. State JSON references have TaskList/TaskGet fallback\n6. Engineering rules valid\n7. Module wiring\nCalls validate_all(auto_split=config.context_engineering.auto_split).\n\n## Dependencies\nTASK-005 adds prior AST checkers. This task appends ContextEngineeringChecker after them."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Create graph_validation module",
+      "description": "Create zerg/graph_validation.py with validate_graph_properties() function. Takes task_graph dict, returns (errors: list[str], warnings: list[str]). Implements 6 checks:\n1. All dependencies reference existing task IDs\n2. No intra-level circular deps\n3. Orphan tasks (L2+ with no dependents) → warning\n4. Unreachable tasks (not from L1 roots) → error\n5. consumers reference real task IDs → error\n6. Tasks with consumers have integration_test → error if missing",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/graph_validation.py"],
+        "modify": [],
+        "read": ["zerg/validation.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.graph_validation import validate_graph_properties; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 35,
+      "skills_required": ["python", "graph-algorithms"],
+      "consumers": ["TASK-009"],
+      "integration_test": "tests/integration/test_rush_validation.py",
+      "context": "## Spec Context\nFR-5: validate_graph_properties() checks:\n- dependencies reference existing task IDs → error\n- No intra-level circular deps → error\n- Orphan tasks (L2+ with no dependents) → warning\n- Unreachable tasks → error\n- consumers reference real task IDs → error\n- Tasks with consumers have integration_test → error\n\nExisting validation.py has validate_dependencies() at line 255 that checks level consistency and cycles. This new module handles property validation beyond structural checks.\n\n## Security Rules (Python)\n- No eval/exec on task graph data\n- Validate all dict keys before access"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Register all checkers, fix --check all, update CLI",
+      "description": "Wire all 6 new checkers into AnalyzeCommand.__init__ checkers dict. Fix run() method: remove 'if k != performance' filter so --check all runs everything. Update click.Choice to include all new check names. Update analyze.md command documentation with new check types and examples.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-006"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py", "zerg/data/commands/analyze.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands.analyze import AnalyzeCommand; a=AnalyzeCommand(); assert 'wiring' in a.checkers; assert 'dead-code' in a.checkers; assert len(a.checkers) >= 11; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "click"],
+      "consumers": ["TASK-010", "TASK-011"],
+      "integration_test": "tests/integration/test_analyze_all_checks.py",
+      "context": "## Spec Context\nFR-8: --check all runs every registered checker — no exclusions. Remove the k != 'performance' filter at analyze.py:261. Line currently reads: checks = [k for k in self.checkers if k != 'performance']. Change to: checks = list(self.checkers.keys()).\n\nUpdate CLI click.Choice at line 372 to include: lint, complexity, coverage, security, performance, dead-code, wiring, cross-file, conventions, import-chain, context-engineering, all.\n\nUpdate analyze.md with new check types documentation.\n\n## Dependencies\nTASK-006 completes all checker implementations. This task registers them and fixes the CLI."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Wire graph validation into rush and validation, print task list ID",
+      "description": "Integrate validate_graph_properties() into rush.py after load_and_validate_task_graph() call at line 108. On errors → fail-fast with console output. On warnings → print and continue.\n\nAlso wire into validation.py:load_and_validate_task_graph() as 4th validation step after validate_dependencies().\n\nAdd CLAUDE_CODE_TASK_LIST_ID printing at rush command start (FR-9): print 'Task List ID: {value}' or 'Task List ID: (default)' before any worker launches.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-007"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/rush.py", "zerg/validation.py"],
+        "read": ["zerg/graph_validation.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.validation import load_and_validate_task_graph; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-012"],
+      "integration_test": "tests/integration/test_rush_validation.py",
+      "context": "## Spec Context\nFR-5: Integrate into rush.py after load_and_validate_task_graph() at line 108. Also wire into validation.py:load_and_validate_task_graph() as 4th validation step.\nFR-9: rush.py must print Task List ID at command start. Format: 'Task List ID: {value}'. Use os.environ.get('CLAUDE_CODE_TASK_LIST_ID', '(default)').\n\n## Dependencies\nTASK-007 creates zerg/graph_validation.py with validate_graph_properties().\nRush.py currently calls load_and_validate_task_graph(task_graph_path) at line 108.\nvalidation.py runs 3 validations: schema, file_ownership, dependencies. Add graph_properties as 4th."
+    },
+    {
+      "id": "TASK-010",
+      "title": "Add mandatory L5 analysis task to design, print task list ID",
+      "description": "Update design.core.md Phase 5 section to mandate a final analysis task that runs /z:analyze --check all --format json and creates GitHub issues for failures.\n\nAdd validation in design.py:validate_task_graph() — check that L5 tasks include one with 'analysis' or 'quality analysis' in title. Error if missing.\n\nAdd CLAUDE_CODE_TASK_LIST_ID printing in design command (FR-9).",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-008"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/design.core.md", "zerg/commands/design.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'final.*analysis\\|quality.*analysis' zerg/data/commands/design.core.md && echo 'OK'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-10: Every task graph must include final L5 task running /z:analyze --check all --format json. Parse results, create GitHub issues via gh issue create labeled quality-gate + category. Log to .zerg/state/final-analysis.json.\ndesign.py validator must reject graphs missing this task.\nFR-9: design command must print Task List ID when set/inherited.\n\nTemplate task for design.core.md Phase 5:\n{\n  \"id\": \"{FEATURE}-L5-FINAL\",\n  \"title\": \"Run quality analysis and create GitHub issues\",\n  \"phase\": \"quality\",\n  \"level\": 5\n}\n\n## Dependencies\nTASK-008 completes analyze wiring so the final task can reference real check names."
+    },
+    {
+      "id": "TASK-011",
+      "title": "Unit and integration tests for new analyze checks",
+      "description": "Create tests/unit/test_analyze_new_checks.py with unit tests for all 6 new checkers. Mock subprocess for DeadCodeChecker, mock validate_module_wiring for WiringChecker, etc.\n\nCreate tests/integration/test_analyze_all_checks.py that runs AnalyzeCommand with checks=['all'] and verifies 11 results returned.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-008"],
+      "files": {
+        "create": ["tests/unit/test_analyze_new_checks.py", "tests/integration/test_analyze_all_checks.py"],
+        "modify": [],
+        "read": ["zerg/commands/analyze.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_analyze_new_checks.py -v --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 40,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nNFR-4: Unit tests for each new checker. Integration test for --check all running 10+ checks.\n\nCheckers to test:\n1. DeadCodeChecker — mock subprocess, verify AnalysisResult\n2. WiringChecker — mock validate_module_wiring, verify result\n3. CrossFileChecker — create temp .py files with exports/imports\n4. ConventionsChecker — test snake_case, prefix detection\n5. ImportChainChecker — create circular import fixture\n6. ContextEngineeringChecker — mock validate_all\n\nIntegration: AnalyzeCommand(config).run(['all'], files) returns len >= 11."
+    },
+    {
+      "id": "TASK-012",
+      "title": "Unit and integration tests for graph validation",
+      "description": "Create tests/unit/test_graph_validation.py with tests for all 6 graph checks: missing deps, intra-level cycles, orphan tasks, unreachable tasks, bad consumer refs, missing integration_test.\n\nCreate tests/integration/test_rush_validation.py that loads a fixture task-graph.json with bad refs and verifies rush pre-execution rejects it.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-009"],
+      "files": {
+        "create": ["tests/unit/test_graph_validation.py", "tests/integration/test_rush_validation.py"],
+        "modify": [],
+        "read": ["zerg/graph_validation.py", "zerg/validation.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_graph_validation.py -v --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 35,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nNFR-4: Unit tests for graph validation. Integration test for rush pre-execution validation.\n\nGraph validation checks to test:\n1. dependencies reference existing task IDs → error\n2. intra-level circular deps → error\n3. Orphan tasks (L2+ no dependents) → warning\n4. Unreachable from L1 roots → error\n5. consumers reference real IDs → error\n6. consumers present but no integration_test → error\n\nFixture: task-graph.json with intentionally bad refs, cycles, orphans."
+    },
+    {
+      "id": "TASK-013",
+      "title": "Update CHANGELOG.md",
+      "description": "Add entries under [Unreleased] in CHANGELOG.md:\n- Added: 6 new /z:analyze check types (dead-code, wiring, cross-file, conventions, import-chain, context-engineering)\n- Changed: --check all now runs all checks including performance\n- Added: Dependency graph validation in /zerg:rush (blocks/blockedBy/consumers verification)\n- Added: Mandatory final L5 analysis task in /zerg:design\n- Added: CLAUDE_CODE_TASK_LIST_ID printing in design and rush commands\n- Added: AST cache utility for cross-file and import-chain analysis",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-010", "TASK-011", "TASK-012"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'wiring' CHANGELOG.md && grep -q 'dead-code' CHANGELOG.md && echo 'OK'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-014",
+      "title": "Run quality analysis and create GitHub issues",
+      "description": "Run /z:analyze --check all --format json. Parse results. For each failure, create a GitHub issue via gh issue create with labels quality-gate and the check category (e.g., lint, wiring, dead-code). Log results to .zerg/state/final-analysis.json.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-013"],
+      "files": {
+        "create": [".zerg/state/final-analysis.json"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "test -f .zerg/state/final-analysis.json && echo 'OK'",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "gh-cli"],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "parallel": true,
+      "estimated_minutes": 40,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-008", "TASK-009", "TASK-010"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["TASK-011", "TASK-012"],
+      "parallel": true,
+      "estimated_minutes": 40,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["TASK-013", "TASK-014"],
+      "parallel": false,
+      "estimated_minutes": 25,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TASK-004", "TASK-005", "TASK-006"],
+        "reason": "All modify zerg/commands/analyze.py — serialized via dependency chain",
+        "resolution": "TASK-004 → TASK-005 → TASK-006"
+      }
+    ]
+  }
+}

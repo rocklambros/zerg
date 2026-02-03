@@ -103,6 +103,15 @@ def rush(
 
         console.print(f"\n[bold cyan]ZERG Rush[/bold cyan] - {feature}\n")
 
+        # Print task list ID for coordination visibility
+        import os
+
+        task_list_id = os.environ.get("CLAUDE_CODE_TASK_LIST_ID")
+        if task_list_id:
+            console.print(f"Task List ID: {task_list_id}")
+        else:
+            console.print("Task List ID: (default)")
+
         # Validate task graph
         with console.status("Validating task graph..."):
             task_data = load_and_validate_task_graph(task_graph_path)

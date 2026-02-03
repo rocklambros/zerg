@@ -65,3 +65,20 @@ security:
   pre_commit_hooks: true
   audit_logging: true
   container_readonly: true
+
+# Analysis check configuration
+analyze:
+  dead_code:
+    min_confidence: 80
+  wiring:
+    strict: false
+    exclude_patterns: []
+  cross_file:
+    scope: "zerg/"
+  conventions:
+    naming: snake_case
+    require_task_prefixes: true
+  import_chain:
+    max_depth: 10
+  context_engineering:
+    auto_split: false

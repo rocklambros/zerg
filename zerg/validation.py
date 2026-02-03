@@ -357,4 +357,21 @@ def load_and_validate_task_graph(path: str | Path) -> dict[str, Any]:
             details={"errors": dep_errors},
         )
 
+    # Graph property validation (consumers, reachability, integration_test)
+    from zerg.graph_validation import validate_graph_properties
+
+    graph_errors, graph_warnings = validate_graph_properties(data)
+    if graph_warnings:
+        import logging
+
+        log = logging.getLogger("validation")
+        for warning in graph_warnings:
+            log.warning("Graph validation warning: %s", warning)
+    if graph_errors:
+        raise ValidationError(
+            f"Graph property validation failed: {'; '.join(graph_errors)}",
+            field="graph_properties",
+            details={"errors": graph_errors, "warnings": graph_warnings},
+        )
+
     return dict(data)
