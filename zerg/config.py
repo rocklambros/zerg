@@ -233,7 +233,10 @@ class ModeConfig(BaseModel):
     """Behavioral mode configuration."""
 
     auto_detect: bool = True
-    default_mode: str = Field(default="precision", pattern="^(precision|speed|exploration|refactor|debug)$")
+    default_mode: str = Field(
+        default="precision",
+        pattern="^(precision|speed|exploration|refactor|debug)$",
+    )
     log_transitions: bool = True
 
 
