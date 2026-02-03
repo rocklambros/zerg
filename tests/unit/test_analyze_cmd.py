@@ -54,7 +54,11 @@ class TestCheckType:
 
     def test_all_check_types_have_values(self) -> None:
         """Test that all check types have string values."""
-        expected = {"lint", "complexity", "coverage", "security", "performance"}
+        expected = {
+            "lint", "complexity", "coverage", "security", "performance",
+            "dead-code", "wiring", "cross-file", "conventions",
+            "import-chain", "context-engineering",
+        }
         actual = {ct.value for ct in CheckType}
         assert actual == expected
 
@@ -517,12 +521,18 @@ class TestAnalyzeCommandClass:
         checks = cmd.supported_checks()
 
         assert isinstance(checks, list)
-        assert len(checks) == 5
+        assert len(checks) == 11
         assert "lint" in checks
         assert "complexity" in checks
         assert "coverage" in checks
         assert "security" in checks
         assert "performance" in checks
+        assert "dead-code" in checks
+        assert "wiring" in checks
+        assert "cross-file" in checks
+        assert "conventions" in checks
+        assert "import-chain" in checks
+        assert "context-engineering" in checks
 
     def test_run_single_check_without_mock(self) -> None:
         """Test running a single check directly (lines 223-234)."""
@@ -541,12 +551,14 @@ class TestAnalyzeCommandClass:
         # Run with empty files to trigger actual code path
         results = cmd.run(["all"], [])
 
-        assert len(results) == 4
+        assert len(results) == 11
         check_types = {r.check_type for r in results}
         assert CheckType.LINT in check_types
         assert CheckType.COMPLEXITY in check_types
         assert CheckType.COVERAGE in check_types
         assert CheckType.SECURITY in check_types
+        assert CheckType.DEAD_CODE in check_types
+        assert CheckType.WIRING in check_types
 
     def test_run_multiple_checks(self) -> None:
         """Test running multiple specific checks."""

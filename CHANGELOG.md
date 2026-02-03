@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- 6 new `/z:analyze` check types: `dead-code`, `wiring`, `cross-file`, `conventions`, `import-chain`, `context-engineering`
+- `--check all` now runs all 11 checkers with no exclusions (FR-8)
+- `--check wiring` wraps `validate_module_wiring()` for orphaned module detection
+- `--check cross-file` detects exported symbols never imported by other modules
+- `--check import-chain` detects circular imports and deep import chains via DFS
+- `--check conventions` validates snake_case naming, bracketed Task prefixes, file organization
+- `--check context-engineering` wraps all 7 `validate_commands.py` checks
+- AST cache module (`zerg/ast_cache.py`) shared between cross-file and import-chain checkers
+- Graph property validation (`zerg/graph_validation.py`) for task dependency/consumer/reachability checks
+- Graph validation integrated into `load_and_validate_task_graph()` as 4th validation step
+- `CLAUDE_CODE_TASK_LIST_ID` printed in `/zerg:rush` and `/zerg:design` for worker coordination visibility
+- Mandatory L5 final analysis task validation in `design.py`
+- Analyze config section in `.zerg/config.yaml` with per-checker settings
+- Unit and integration tests for all new checkers and graph validation
 - CHANGELOG enforcement: `/zerg:design` always includes a CHANGELOG.md update task in the quality level
 - CHANGELOG enforcement: `/zerg:git --action ship` validates CHANGELOG.md changes before pushing, warns if missing
 - Post-approval handoff prompt in `/zerg:plan` — AskUserQuestion with 3 next-step options after requirements approval (#94)

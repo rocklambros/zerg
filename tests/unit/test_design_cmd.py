@@ -166,7 +166,7 @@ class TestCreateTaskGraphTemplate:
         with open(graph_path) as f:
             data = json.load(f)
 
-        assert len(data["tasks"]) == 5
+        assert len(data["tasks"]) == 6
         assert data["tasks"][0]["id"] == "AUTH-L1-001"
         assert data["tasks"][0]["level"] == 1
 

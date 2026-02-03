@@ -2,6 +2,7 @@
 
 import contextlib
 import json
+import re
 import shlex
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -13,6 +14,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from zerg.ast_cache import ASTCache, collect_exports, collect_imports
 from zerg.command_executor import CommandExecutor, CommandValidationError
 from zerg.logging import get_logger
 
@@ -28,6 +30,12 @@ class CheckType(Enum):
     COVERAGE = "coverage"
     SECURITY = "security"
     PERFORMANCE = "performance"
+    DEAD_CODE = "dead-code"
+    WIRING = "wiring"
+    CROSS_FILE = "cross-file"
+    CONVENTIONS = "conventions"
+    IMPORT_CHAIN = "import-chain"
+    CONTEXT_ENGINEERING = "context-engineering"
 
 
 @dataclass
@@ -38,6 +46,14 @@ class AnalyzeConfig:
     coverage_threshold: int = 70
     lint_command: str = "ruff check"
     security_command: str = "bandit"
+    dead_code_min_confidence: int = 80
+    wiring_strict: bool = False
+    wiring_exclude_patterns: list[str] = field(default_factory=list)
+    cross_file_scope: str = "zerg/"
+    conventions_naming: str = "snake_case"
+    conventions_require_task_prefixes: bool = True
+    import_chain_max_depth: int = 10
+    context_engineering_auto_split: bool = False
 
 
 @dataclass
@@ -233,6 +249,434 @@ class PerformanceChecker(BaseChecker):
         )
 
 
+class DeadCodeChecker(BaseChecker):
+    """Detect unused code via vulture static analysis."""
+
+    name = "dead-code"
+
+    def __init__(self, min_confidence: int = 80) -> None:
+        """Initialize dead code checker.
+
+        Args:
+            min_confidence: Minimum confidence threshold for vulture (0-100).
+        """
+        self.min_confidence = min_confidence
+        self._executor = CommandExecutor(
+            allow_unlisted=True,
+            timeout=120,
+        )
+
+    def check(self, files: list[str]) -> AnalysisResult:
+        """Run vulture dead code detection on given files."""
+        if not files:
+            return AnalysisResult(
+                check_type=CheckType.DEAD_CODE, passed=True, issues=[], score=100.0
+            )
+
+        try:
+            paths: list[str | Path] = list(files)
+            sanitized_files = self._executor.sanitize_paths(paths)
+            cmd_parts = [
+                "vulture",
+                "--min-confidence",
+                str(self.min_confidence),
+            ]
+            cmd_parts.extend(sanitized_files)
+
+            result = self._executor.execute(cmd_parts, timeout=120)
+
+            if result.success:
+                return AnalysisResult(
+                    check_type=CheckType.DEAD_CODE, passed=True, issues=[], score=100.0
+                )
+            else:
+                issues = (
+                    [line for line in result.stdout.strip().split("\n") if line.strip()]
+                    if result.stdout
+                    else []
+                )
+                score = max(0.0, 100.0 - len(issues) * 5)
+                return AnalysisResult(
+                    check_type=CheckType.DEAD_CODE,
+                    passed=len(issues) == 0,
+                    issues=issues,
+                    score=score,
+                )
+        except CommandValidationError:
+            # vulture not installed or not on PATH
+            return AnalysisResult(
+                check_type=CheckType.DEAD_CODE,
+                passed=True,
+                issues=["vulture not installed — skipping dead code analysis"],
+                score=100.0,
+            )
+        except FileNotFoundError:
+            return AnalysisResult(
+                check_type=CheckType.DEAD_CODE,
+                passed=True,
+                issues=["vulture not installed — skipping dead code analysis"],
+                score=100.0,
+            )
+        except Exception as e:
+            return AnalysisResult(
+                check_type=CheckType.DEAD_CODE,
+                passed=False,
+                issues=[f"Dead code analysis error: {e}"],
+                score=0.0,
+            )
+
+
+class WiringChecker(BaseChecker):
+    """Check module wiring to detect orphaned modules with no production callers."""
+
+    name = "wiring"
+
+    def __init__(self, strict: bool = False) -> None:
+        """Initialize wiring checker.
+
+        Args:
+            strict: If True, orphaned modules cause failure. Otherwise warnings only.
+        """
+        self.strict = strict
+
+    def check(self, files: list[str]) -> AnalysisResult:
+        """Run module wiring validation."""
+        try:
+            from zerg.validate_commands import validate_module_wiring
+
+            passed, messages = validate_module_wiring(strict=self.strict)
+            score = 100.0 if passed else max(0.0, 100.0 - len(messages) * 10)
+            return AnalysisResult(
+                check_type=CheckType.WIRING,
+                passed=passed,
+                issues=messages,
+                score=score,
+            )
+        except ImportError as e:
+            return AnalysisResult(
+                check_type=CheckType.WIRING,
+                passed=False,
+                issues=[f"Could not import validate_commands: {e}"],
+                score=0.0,
+            )
+        except Exception as e:
+            return AnalysisResult(
+                check_type=CheckType.WIRING,
+                passed=False,
+                issues=[f"Wiring check error: {e}"],
+                score=0.0,
+            )
+
+
+class ConventionsChecker(BaseChecker):
+    """Check naming conventions and file organization standards."""
+
+    name = "conventions"
+
+    # Pattern for valid snake_case Python filenames
+    _SNAKE_CASE_RE = re.compile(r"^[a-z][a-z0-9_]*\.py$")
+
+    # Pattern for bracketed Task prefixes in command files
+    _TASK_PREFIX_RE = re.compile(
+        r"\[(?:Plan|Design|L\d+|Brainstorm|Init|Cleanup|Review|Build|Test|Security)\]"
+    )
+
+    def __init__(
+        self, naming: str = "snake_case", require_task_prefixes: bool = True
+    ) -> None:
+        """Initialize conventions checker.
+
+        Args:
+            naming: Naming convention to enforce (currently only 'snake_case').
+            require_task_prefixes: Whether to check for bracketed Task prefixes
+                in command .md files.
+        """
+        self.naming = naming
+        self.require_task_prefixes = require_task_prefixes
+
+    def check(self, files: list[str]) -> AnalysisResult:
+        """Run conventions checks on the given files and project structure."""
+        issues: list[str] = []
+
+        # 1. Check snake_case naming for .py files
+        if self.naming == "snake_case":
+            issues.extend(self._check_snake_case(files))
+
+        # 2. Check bracketed Task prefixes in command .md files
+        if self.require_task_prefixes:
+            issues.extend(self._check_task_prefixes())
+
+        # 3. Check file organization (tests in tests/, scripts in scripts/)
+        issues.extend(self._check_file_organization(files))
+
+        score = max(0.0, 100.0 - len(issues) * 5)
+        return AnalysisResult(
+            check_type=CheckType.CONVENTIONS,
+            passed=len(issues) == 0,
+            issues=issues,
+            score=score,
+        )
+
+    def _check_snake_case(self, files: list[str]) -> list[str]:
+        """Check that .py files follow snake_case naming."""
+        issues: list[str] = []
+        for filepath in files:
+            p = Path(filepath)
+            if p.suffix != ".py":
+                continue
+            filename = p.name
+            # Skip dunder files like __init__.py, __main__.py
+            if filename.startswith("__") and filename.endswith("__.py"):
+                continue
+            if not self._SNAKE_CASE_RE.match(filename):
+                issues.append(f"Naming violation: {filepath} is not snake_case")
+        return issues
+
+    def _check_task_prefixes(self) -> list[str]:
+        """Check that command .md files reference bracketed Task prefixes."""
+        issues: list[str] = []
+        commands_dir = Path(__file__).parent.parent / "data" / "commands"
+        if not commands_dir.is_dir():
+            return issues
+
+        for md_file in sorted(commands_dir.glob("*.md")):
+            name = md_file.name
+            # Skip split fragments and internal files
+            if ".core.md" in name or ".details.md" in name:
+                continue
+            if name.startswith("_"):
+                continue
+
+            content = md_file.read_text()
+            if not self._TASK_PREFIX_RE.search(content):
+                issues.append(
+                    f"Missing Task prefix: {name} has no bracketed prefix "
+                    f"(e.g., [Plan], [L1], [Build])"
+                )
+        return issues
+
+    def _check_file_organization(self, files: list[str]) -> list[str]:
+        """Check that tests and scripts are in proper directories."""
+        issues: list[str] = []
+        for filepath in files:
+            p = Path(filepath)
+            filename = p.name
+
+            # Test files should be in tests/ directory
+            if (
+                filename.startswith("test_")
+                or filename.endswith("_test.py")
+            ) and "tests" not in p.parts and "test" not in p.parts:
+                issues.append(
+                    f"File organization: {filepath} looks like a test but is not in tests/"
+                )
+
+        return issues
+
+
+def _path_to_module(path: Path) -> str:
+    """Convert a file path to a dotted module name."""
+    parts = path.with_suffix("").parts
+    return ".".join(parts)
+
+
+def _max_import_depth(graph: dict[str, set[str]], node: str, seen: set[str]) -> int:
+    """Calculate max import chain depth from a node."""
+    if node in seen or node not in graph:
+        return 0
+    seen.add(node)
+    max_d = 0
+    for neighbor in graph[node]:
+        d = _max_import_depth(graph, neighbor, seen)
+        max_d = max(max_d, d)
+    seen.discard(node)
+    return max_d + 1
+
+
+class CrossFileChecker(BaseChecker):
+    """Detect exported symbols that are never imported by any other module."""
+
+    name = "cross-file"
+
+    def __init__(self, scope: str = "zerg/") -> None:
+        self.scope = scope
+        self._cache = ASTCache()
+
+    def check(self, files: list[str]) -> AnalysisResult:
+        """Run cross-file export/import analysis."""
+        issues: list[str] = []
+        scope_path = Path(self.scope)
+        if not scope_path.is_dir():
+            return AnalysisResult(
+                check_type=CheckType.CROSS_FILE, passed=True, issues=[], score=100.0
+            )
+
+        py_files = sorted(scope_path.rglob("*.py"))
+
+        # Phase 1: collect all exports per module
+        exports_by_file: dict[str, list[str]] = {}
+        for pf in py_files:
+            if pf.name.startswith("__"):
+                continue
+            try:
+                tree = self._cache.parse(pf)
+                exports_by_file[str(pf)] = collect_exports(tree)
+            except Exception:
+                logger.debug("Failed to parse %s for exports", pf)
+                continue
+
+        # Phase 2: collect all imported names across entire scope
+        all_imported_names: set[str] = set()
+        for pf in py_files:
+            try:
+                tree = self._cache.parse(pf)
+                for _module_name, name in collect_imports(tree):
+                    if name:
+                        all_imported_names.add(name)
+            except Exception:
+                logger.debug("Failed to parse %s for imports", pf)
+                continue
+
+        # Phase 3: diff -- exported but never imported
+        for filepath, exports in exports_by_file.items():
+            for symbol in exports:
+                if symbol not in all_imported_names:
+                    issues.append(f"Unused export: {symbol} in {filepath}")
+
+        score = max(0.0, 100.0 - len(issues) * 3)
+        return AnalysisResult(
+            check_type=CheckType.CROSS_FILE,
+            passed=len(issues) == 0,
+            issues=issues,
+            score=score,
+        )
+
+
+class ImportChainChecker(BaseChecker):
+    """Detect circular imports and deep import chains via DFS."""
+
+    name = "import-chain"
+
+    def __init__(self, max_depth: int = 10) -> None:
+        self.max_depth = max_depth
+        self._cache = ASTCache()
+
+    def check(self, files: list[str]) -> AnalysisResult:
+        """Run import chain analysis for cycles and excessive depth."""
+        issues: list[str] = []
+
+        # Build import graph: module_stem -> set of imported module stems
+        # Focus on intra-project imports (zerg.*)
+        scope_path = Path("zerg/")
+        if not scope_path.is_dir():
+            return AnalysisResult(
+                check_type=CheckType.IMPORT_CHAIN,
+                passed=True,
+                issues=[],
+                score=100.0,
+            )
+
+        py_files = sorted(scope_path.rglob("*.py"))
+
+        # Map: module dotted name -> set of imported zerg module names
+        graph: dict[str, set[str]] = {}
+
+        for pf in py_files:
+            mod_name = _path_to_module(pf)
+            graph[mod_name] = set()
+            try:
+                tree = self._cache.parse(pf)
+                for module_name, _name in collect_imports(tree):
+                    if module_name and module_name.startswith("zerg"):
+                        graph[mod_name].add(module_name)
+            except Exception:
+                logger.debug("Failed to parse %s for dependency graph", pf)
+                continue
+
+        # Detect cycles via DFS
+        visited: set[str] = set()
+        rec_stack: set[str] = set()
+        cycles_found: list[list[str]] = []
+
+        def dfs(node: str, path: list[str]) -> None:
+            visited.add(node)
+            rec_stack.add(node)
+            path.append(node)
+
+            for neighbor in graph.get(node, set()):
+                if neighbor not in visited:
+                    dfs(neighbor, path)
+                elif neighbor in rec_stack:
+                    # Found cycle
+                    cycle_start = path.index(neighbor)
+                    cycle = path[cycle_start:] + [neighbor]
+                    cycles_found.append(cycle)
+
+            path.pop()
+            rec_stack.discard(node)
+
+        for mod in sorted(graph):
+            if mod not in visited:
+                dfs(mod, [])
+
+        for cycle in cycles_found:
+            issues.append(f"Circular import: {' -> '.join(cycle)}")
+
+        # Check import depth (longest chain from each root)
+        for mod in sorted(graph):
+            depth = _max_import_depth(graph, mod, set())
+            if depth > self.max_depth:
+                issues.append(
+                    f"Deep import chain: {mod} has depth {depth} "
+                    f"(max: {self.max_depth})"
+                )
+
+        score = max(0.0, 100.0 - len(issues) * 10)
+        return AnalysisResult(
+            check_type=CheckType.IMPORT_CHAIN,
+            passed=len(issues) == 0,
+            issues=issues,
+            score=score,
+        )
+
+
+class ContextEngineeringChecker(BaseChecker):
+    """Validate context engineering principles via validate_commands checks."""
+
+    name = "context-engineering"
+
+    def __init__(self, auto_split: bool = False) -> None:
+        self.auto_split = auto_split
+
+    def check(self, files: list[str]) -> AnalysisResult:
+        """Run all 7 validate_commands.py checks."""
+        try:
+            from zerg.validate_commands import validate_all
+
+            passed, messages = validate_all(auto_split=self.auto_split)
+            score = 100.0 if passed else max(0.0, 100.0 - len(messages) * 10)
+            return AnalysisResult(
+                check_type=CheckType.CONTEXT_ENGINEERING,
+                passed=passed,
+                issues=messages,
+                score=score,
+            )
+        except ImportError as e:
+            return AnalysisResult(
+                check_type=CheckType.CONTEXT_ENGINEERING,
+                passed=False,
+                issues=[f"Could not import validate_commands: {e}"],
+                score=0.0,
+            )
+        except Exception as e:
+            return AnalysisResult(
+                check_type=CheckType.CONTEXT_ENGINEERING,
+                passed=False,
+                issues=[f"Context engineering check error: {e}"],
+                score=0.0,
+            )
+
+
 class AnalyzeCommand:
     """Main analyze command orchestrator."""
 
@@ -245,6 +689,17 @@ class AnalyzeCommand:
             "coverage": CoverageChecker(self.config.coverage_threshold),
             "security": SecurityChecker(self.config.security_command),
             "performance": PerformanceChecker(),
+            "dead-code": DeadCodeChecker(self.config.dead_code_min_confidence),
+            "wiring": WiringChecker(self.config.wiring_strict),
+            "cross-file": CrossFileChecker(self.config.cross_file_scope),
+            "conventions": ConventionsChecker(
+                self.config.conventions_naming,
+                self.config.conventions_require_task_prefixes,
+            ),
+            "import-chain": ImportChainChecker(self.config.import_chain_max_depth),
+            "context-engineering": ContextEngineeringChecker(
+                self.config.context_engineering_auto_split
+            ),
         }
 
     def supported_checks(self) -> list[str]:
@@ -258,7 +713,7 @@ class AnalyzeCommand:
         results = []
 
         if "all" in checks:
-            checks = [k for k in self.checkers if k != "performance"]
+            checks = list(self.checkers.keys())
 
         for check_name in checks:
             if check_name in self.checkers:
@@ -369,7 +824,11 @@ def _collect_files(path: str | None) -> list[str]:
 @click.option(
     "--check",
     "-c",
-    type=click.Choice(["lint", "complexity", "coverage", "security", "performance", "all"]),
+    type=click.Choice([
+        "lint", "complexity", "coverage", "security", "performance",
+        "dead-code", "wiring", "cross-file", "conventions",
+        "import-chain", "context-engineering", "all",
+    ]),
     default="all",
     help="Type of check to run",
 )

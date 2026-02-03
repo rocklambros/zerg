@@ -1,0 +1,67 @@
+{
+  "feature": "analyze-wiring-verification",
+  "generated": "2026-02-02T18:05:00-07:00",
+  "workers": [
+    {
+      "id": 0,
+      "assignments": {
+        "1": ["TASK-001"],
+        "2": ["TASK-004", "TASK-007"],
+        "3": ["TASK-008"],
+        "4": ["TASK-011"],
+        "5": ["TASK-013"]
+      }
+    },
+    {
+      "id": 1,
+      "assignments": {
+        "1": ["TASK-002"],
+        "2": ["TASK-005"],
+        "3": ["TASK-009"],
+        "4": ["TASK-012"],
+        "5": ["TASK-014"]
+      }
+    },
+    {
+      "id": 2,
+      "assignments": {
+        "1": ["TASK-003"],
+        "2": ["TASK-006"],
+        "3": ["TASK-010"]
+      }
+    }
+  ],
+  "execution_plan": [
+    {
+      "level": 1,
+      "workers_active": [0, 1, 2],
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "merge_after": true
+    },
+    {
+      "level": 2,
+      "workers_active": [0, 1, 2],
+      "tasks": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "merge_after": true,
+      "note": "TASK-004->005->006 serialized (shared analyze.py). TASK-007 parallel."
+    },
+    {
+      "level": 3,
+      "workers_active": [0, 1, 2],
+      "tasks": ["TASK-008", "TASK-009", "TASK-010"],
+      "merge_after": true
+    },
+    {
+      "level": 4,
+      "workers_active": [0, 1],
+      "tasks": ["TASK-011", "TASK-012"],
+      "merge_after": true
+    },
+    {
+      "level": 5,
+      "workers_active": [0, 1],
+      "tasks": ["TASK-013", "TASK-014"],
+      "merge_after": false
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 """ZERG design command - generate architecture and task graph."""
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -52,6 +53,13 @@ def design(
     """
     try:
         console.print("\n[bold cyan]ZERG Design[/bold cyan]\n")
+
+        # Print task list ID for coordination visibility
+        task_list_id = os.environ.get("CLAUDE_CODE_TASK_LIST_ID")
+        if task_list_id:
+            console.print(f"Task List ID: {task_list_id}")
+        else:
+            console.print("Task List ID: (default)")
 
         # Get feature name
         if not feature:
@@ -366,8 +374,8 @@ def create_task_graph_template(
         "feature": feature,
         "version": "2.0",
         "generated": timestamp,
-        "total_tasks": 5,
-        "estimated_duration_minutes": 90,
+        "total_tasks": 6,
+        "estimated_duration_minutes": 105,
         "max_parallelization": 3,
         "critical_path_minutes": 60,
 
@@ -488,6 +496,29 @@ def create_task_graph_template(
                 "estimate_minutes": 30,
                 "critical_path": True,
             },
+            {
+                "id": f"{feature.upper()[:4]}-L5-001",
+                "title": "Run quality analysis and create issues",
+                "description": "Run /z:analyze --check all and create GitHub issues for findings",
+                "phase": "quality",
+                "level": 5,
+                "dependencies": [f"{feature.upper()[:4]}-L4-001"],
+                "files": {
+                    "create": [],
+                    "modify": ["CHANGELOG.md"],
+                    "read": [],
+                },
+                "acceptance_criteria": [
+                    "All analysis checks run",
+                    "Issues created for failures",
+                    "CHANGELOG updated",
+                ],
+                "verification": {
+                    "command": "test -f .zerg/state/final-analysis.json",
+                    "timeout_seconds": 300,
+                },
+                "estimate_minutes": 15,
+            },
         ],
 
         "levels": {
@@ -517,6 +548,13 @@ def create_task_graph_template(
                 "parallel": True,
                 "estimated_minutes": 30,
                 "depends_on_levels": [3],
+            },
+            "5": {
+                "name": "quality",
+                "tasks": [f"{feature.upper()[:4]}-L5-001"],
+                "parallel": False,
+                "estimated_minutes": 15,
+                "depends_on_levels": [4],
             },
         },
     }
@@ -602,6 +640,19 @@ def validate_task_graph(path: Path) -> None:
                 msg = f"File conflict: {file} modified by {owner} and {task_id} at L{level}"
                 errors.append(msg)
             file_owners[key] = task_id
+
+    # Check for mandatory L5 final analysis task
+    l5_tasks = [t for t in tasks if t.get("level") == 5]
+    has_analysis = any(
+        "analysis" in t.get("title", "").lower()
+        or "quality" in t.get("title", "").lower()
+        for t in l5_tasks
+    )
+    if not has_analysis:
+        warnings.append(
+            "Missing mandatory L5 final analysis task "
+            "(must include 'analysis' or 'quality' in title)"
+        )
 
     # Report results
     if errors:
