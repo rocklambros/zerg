@@ -792,9 +792,9 @@ class TestDesignBacklog:
 
         assert result.exit_code == 0
         backlog_path = tmp_path / "tasks" / "TEST-BACKLOG.md"
-        assert (
-            backlog_path.exists()
-        ), f"Expected backlog at {backlog_path}, but it was not created. Output: {result.output}"
+        assert backlog_path.exists(), (
+            f"Expected backlog at {backlog_path}, but it was not created. Output: {result.output}"
+        )
 
     def test_backlog_contains_all_tasks(self, tmp_path: Path, monkeypatch) -> None:
         """Test that every task ID from task-graph.json appears in the backlog."""
@@ -895,9 +895,9 @@ class TestDesignManifest:
 
         assert result.exit_code == 0, f"Design failed: {result.output}"
         manifest_path = spec_dir / "design-tasks-manifest.json"
-        assert (
-            manifest_path.exists()
-        ), f"Expected manifest at {manifest_path}, but it was not created. Output: {result.output}"
+        assert manifest_path.exists(), (
+            f"Expected manifest at {manifest_path}, but it was not created. Output: {result.output}"
+        )
 
     def test_manifest_structure(self, tmp_path: Path, monkeypatch) -> None:
         """Test that manifest has feature, generated, and tasks[] with required fields."""
@@ -939,9 +939,9 @@ class TestDesignManifest:
 
         assert result.exit_code == 0, f"Validate-only failed: {result.output}"
         manifest_path = spec_dir / "design-tasks-manifest.json"
-        assert (
-            manifest_path.exists()
-        ), f"Expected manifest at {manifest_path} after --validate-only. Output: {result.output}"
+        assert manifest_path.exists(), (
+            f"Expected manifest at {manifest_path} after --validate-only. Output: {result.output}"
+        )
 
         # Verify it's valid JSON with expected structure
         with open(manifest_path) as f:
@@ -967,6 +967,6 @@ class TestDesignManifest:
         result = runner.invoke(cli, ["design", "--update-backlog"])
 
         assert result.exit_code == 0, f"Update-backlog failed: {result.output}"
-        assert (
-            manifest_path.exists()
-        ), f"Expected manifest at {manifest_path} after --update-backlog. Output: {result.output}"
+        assert manifest_path.exists(), (
+            f"Expected manifest at {manifest_path} after --update-backlog. Output: {result.output}"
+        )

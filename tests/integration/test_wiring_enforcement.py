@@ -102,17 +102,17 @@ class TestTaskGraphSchema:
         task_ids = {t["id"] for t in task_graph["tasks"]}
         for task in task_graph["tasks"]:
             for consumer_id in task.get("consumers", []):
-                assert (
-                    consumer_id in task_ids
-                ), f"{task['id']} references consumer {consumer_id} which does not exist in the task graph"
+                assert consumer_id in task_ids, (
+                    f"{task['id']} references consumer {consumer_id} which does not exist in the task graph"
+                )
 
     def test_integration_test_when_consumers_nonempty(self, task_graph: dict) -> None:
         """Tasks with non-empty consumers should have an integration_test path."""
         for task in task_graph["tasks"]:
             if task.get("consumers"):
-                assert (
-                    task.get("integration_test") is not None
-                ), f"{task['id']} has consumers {task['consumers']} but no integration_test"
+                assert task.get("integration_test") is not None, (
+                    f"{task['id']} has consumers {task['consumers']} but no integration_test"
+                )
 
 
 class TestCIWorkflow:

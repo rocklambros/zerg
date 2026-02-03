@@ -138,15 +138,15 @@ class TestContainerSpawnsWithResourceLimits:
 
             # 256 MB in bytes
             expected_memory = 256 * 1024 * 1024
-            assert (
-                host_config["Memory"] == expected_memory
-            ), f"Expected Memory={expected_memory}, got {host_config['Memory']}"
+            assert host_config["Memory"] == expected_memory, (
+                f"Expected Memory={expected_memory}, got {host_config['Memory']}"
+            )
 
             # 1.0 CPU = 1_000_000_000 NanoCpus
             expected_nano_cpus = 1_000_000_000
-            assert (
-                host_config["NanoCpus"] == expected_nano_cpus
-            ), f"Expected NanoCpus={expected_nano_cpus}, got {host_config['NanoCpus']}"
+            assert host_config["NanoCpus"] == expected_nano_cpus, (
+                f"Expected NanoCpus={expected_nano_cpus}, got {host_config['NanoCpus']}"
+            )
         finally:
             _remove_container(self.CONTAINER_NAME)
             _remove_image(TEST_IMAGE)
@@ -226,9 +226,9 @@ class TestOrphanCleanup:
                 ],
                 timeout=10,
             )
-            assert (
-                self.CONTAINER_NAME not in verify_result.stdout
-            ), f"Orphan container still exists after cleanup. Output: {verify_result.stdout}"
+            assert self.CONTAINER_NAME not in verify_result.stdout, (
+                f"Orphan container still exists after cleanup. Output: {verify_result.stdout}"
+            )
         finally:
             _remove_container(self.CONTAINER_NAME)
 

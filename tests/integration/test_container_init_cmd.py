@@ -38,9 +38,9 @@ class TestInitCommand:
             result = runner.invoke(cli, ["init", "--detect", "--force"])
 
             # Check for success or already initialized
-            assert (
-                result.exit_code == 0 or "already initialized" in result.output.lower()
-            ), f"Init failed: {result.output}"
+            assert result.exit_code == 0 or "already initialized" in result.output.lower(), (
+                f"Init failed: {result.output}"
+            )
 
             # Check devcontainer created
             devcontainer_path = tmp_path / ".devcontainer" / "devcontainer.json"

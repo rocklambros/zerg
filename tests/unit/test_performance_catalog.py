@@ -44,9 +44,9 @@ class TestFactorCatalogLoad:
             "cloc",
         }
         for factor in static:
-            assert any(
-                t in static_tool_names for t in factor.cli_tools
-            ), f"Factor {factor.id} has no static tools in {factor.cli_tools}"
+            assert any(t in static_tool_names for t in factor.cli_tools), (
+                f"Factor {factor.id} has no static tools in {factor.cli_tools}"
+            )
 
     def test_get_tool_factor_mapping_has_expected_keys(self) -> None:
         catalog = FactorCatalog.load()
