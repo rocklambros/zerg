@@ -50,6 +50,7 @@ The goal was simple: stop repeating myself and start shipping faster. ZERG is th
   - [Dev Containers](#dev-containers)
   - [Plugin System](#plugin-system)
   - [Diagnostics Engine](#diagnostics-engine)
+  - [Resilience](#resilience)
 - **Detailed Documentation**
   - [Command Reference](docs/commands.md) — All 26 commands with every flag and option
   - [Configuration Guide](docs/configuration.md) — Config files, tuning, environment variables
@@ -539,6 +540,105 @@ When things go wrong, `/zerg:debug` provides deep investigation capabilities:
 # Generate and execute recovery plan
 /zerg:debug --fix
 ```
+
+---
+
+## Resilience
+
+ZERG includes automatic failure recovery for container mode execution. When workers crash, tasks stall, or spawns fail, ZERG recovers without manual intervention.
+
+### Spawn Retry with Backoff
+
+Worker spawning retries automatically on transient failures:
+
+- Retries up to 3 attempts (configurable)
+- Exponential backoff: 2s → 4s → 8s (capped at 30s)
+- Logs each retry with timestamp and reason
+- Fails gracefully with actionable error after exhausting retries
+
+### Task Timeout Watchdog
+
+Tasks stuck in `in_progress` are auto-failed and retried:
+
+- Default timeout: 10 minutes (600 seconds)
+- Timeout triggers task failure with reason "timeout"
+- Task immediately requeued for reassignment
+- Prevents single stuck task from blocking level progression
+
+### Worker Crash Recovery
+
+When a worker crashes mid-task:
+
+1. Task marked `failed` with reason "worker_crash"
+2. Retry count NOT incremented (crash ≠ task bug)
+3. Task reassigned to healthy worker within one heartbeat interval
+4. If no healthy workers available, task queued for when workers recover
+
+### Auto-Respawn
+
+Failed workers are automatically replaced:
+
+- Orchestrator maintains target worker count from `--workers` flag
+- Replacement spawns use the same retry logic as initial spawns
+- Respawn capped at 5 attempts per worker to prevent infinite loops
+
+### State Reconciliation
+
+Periodic checks prevent state drift:
+
+- **Light check (every 60s)**: Compares task states, logs divergence
+- **Thorough check (on level transitions)**: Full reconciliation before advancing
+- Auto-fixes:
+  - Tasks `in_progress` with dead workers → mark failed, requeue
+  - Level marked "done" with incomplete tasks → recalculate status
+  - Task with `level=None` → parse from ID pattern `*-L{level}-*`
+
+### Structured Logging
+
+All resilience events written to `.zerg/monitor.log`:
+
+```
+2026-02-03T05:41:55.123Z [W0] [INFO] Worker 0 claimed task A-L1-002
+2026-02-03T05:42:30.789Z [W0] [ERROR] Claude Code failed: exit code 1
+2026-02-03T05:42:31.001Z [ORCH] [INFO] Task A-L1-002 reassigned to W1
+```
+
+Events logged: worker lifecycle (spawn/ready/exit/crash/respawn), task lifecycle (claim/start/complete/fail/timeout/reassign), heartbeat (stale detection), state reconciliation (divergence/fixes).
+
+### Configuration
+
+```yaml
+# .zerg/config.yaml
+resilience:
+  enabled: true                    # Master toggle (default: true)
+
+workers:
+  # Spawn retry
+  spawn_retry_attempts: 3
+  spawn_backoff_strategy: exponential  # exponential|linear|fixed
+  spawn_backoff_base_seconds: 2
+  spawn_backoff_max_seconds: 30
+
+  # Task timeout
+  task_stale_timeout_seconds: 600  # 10 minutes
+
+  # Heartbeat
+  heartbeat_interval_seconds: 30
+  heartbeat_stale_threshold: 120   # 2 minutes
+
+  # Worker management
+  auto_respawn: true
+  max_respawn_attempts: 5
+```
+
+### Troubleshooting Resilience Issues
+
+| Problem | Diagnosis | Solution |
+|---------|-----------|----------|
+| Workers failing to spawn | Check Docker daemon, image availability | `docker info`, rebuild image |
+| Tasks stuck in progress | Check heartbeat files, worker health | `/zerg:status`, inspect `.zerg/state/heartbeat-*.json` |
+| Level not advancing | State reconciliation may have found issues | Check `.zerg/monitor.log` for reconciliation events |
+| High respawn count | Systemic issue causing repeated crashes | Check worker logs, verify task verification commands |
 
 ---
 

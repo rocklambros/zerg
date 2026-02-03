@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Container mode resilience: spawn retry with exponential backoff, task timeout watchdog, state reconciliation (#102)
+- Worker crash recovery with automatic task reassignment (#102)
+- Auto-respawn of failed workers to maintain target worker count (#102)
+- Structured resilience logging to `.zerg/monitor.log` with ISO8601 timestamps (#102)
+- `StateReconciler` class for periodic and level-transition state reconciliation (#102)
+- `ResilienceEvent` enum constants for structured event logging (#102)
+- `ResilienceConfig` and extended `WorkersConfig` with spawn retry, task timeout, and heartbeat settings (#102)
+- `MonitorLogWriter` class for resilience event logging (#102)
+- Enhanced heartbeat system with `progress_pct` field for task progress tracking (#102)
 - 6 new `/z:analyze` check types: `dead-code`, `wiring`, `cross-file`, `conventions`, `import-chain`, `context-engineering`
 - `--check all` now runs all 11 checkers with no exclusions (FR-8)
 - `--check wiring` wraps `validate_module_wiring()` for orphaned module detection
