@@ -47,6 +47,65 @@ class WorkersConfig(BaseModel):
         description="Override CLAUDE_CODE_TASK_LIST_ID (default: feature name)",
     )
 
+    # Resilience: Spawn retry configuration (FR-1)
+    spawn_retry_attempts: int = Field(
+        default=3,
+        ge=0,
+        le=10,
+        description="Number of retry attempts for worker spawn failures",
+    )
+    spawn_backoff_strategy: str = Field(
+        default="exponential",
+        pattern="^(exponential|linear|fixed)$",
+        description="Backoff strategy for spawn retries: exponential, linear, or fixed",
+    )
+    spawn_backoff_base_seconds: int = Field(
+        default=2,
+        ge=1,
+        le=60,
+        description="Base delay in seconds for spawn retry backoff",
+    )
+    spawn_backoff_max_seconds: int = Field(
+        default=30,
+        ge=1,
+        le=300,
+        description="Maximum delay in seconds for spawn retry backoff",
+    )
+
+    # Resilience: Task timeout configuration (FR-2)
+    task_stale_timeout_seconds: int = Field(
+        default=600,
+        ge=60,
+        le=3600,
+        description="Timeout in seconds before a stale in_progress task is auto-failed",
+    )
+
+    # Resilience: Heartbeat configuration (FR-3)
+    heartbeat_interval_seconds: int = Field(
+        default=30,
+        ge=5,
+        le=300,
+        description="Interval in seconds between worker heartbeats",
+    )
+    heartbeat_stale_threshold: int = Field(
+        default=120,
+        ge=30,
+        le=600,
+        description="Threshold in seconds before a worker is considered stale (no heartbeat)",
+    )
+
+    # Resilience: Auto-respawn configuration (FR-6)
+    auto_respawn: bool = Field(
+        default=True,
+        description="Automatically respawn workers that crash to maintain target count",
+    )
+    max_respawn_attempts: int = Field(
+        default=5,
+        ge=0,
+        le=20,
+        description="Maximum respawn attempts per worker before giving up",
+    )
+
 
 class PortsConfig(BaseModel):
     """Port allocation configuration."""
@@ -95,6 +154,20 @@ class SecurityConfig(BaseModel):
     pre_commit_hooks: bool = True
     audit_logging: bool = True
     container_readonly: bool = True
+
+
+class ResilienceConfig(BaseModel):
+    """Resilience configuration for auto-recovery and fault tolerance.
+
+    This config acts as a master toggle for resilience features.
+    Individual feature settings are in WorkersConfig for consistency
+    with existing configuration patterns.
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Master toggle for all resilience features",
+    )
 
 
 class EfficiencyConfig(BaseModel):
@@ -251,6 +324,7 @@ class ZergConfig(BaseModel):
     resources: ResourcesConfig = Field(default_factory=ResourcesConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    resilience: ResilienceConfig = Field(default_factory=ResilienceConfig)
     plugins: PluginsConfig = Field(default_factory=PluginsConfig)
     efficiency: EfficiencyConfig = Field(default_factory=EfficiencyConfig)
     rules: RulesConfig = Field(default_factory=RulesConfig)

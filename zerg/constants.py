@@ -168,3 +168,42 @@ class PluginHookEvent(Enum):
     WORKER_EXITED = "worker_exited"
     PRE_TASK_PROMPT = "pre_task_prompt"
     POST_CONTEXT_BUILD = "post_context_build"
+
+
+class ResilienceEvent(Enum):
+    """Resilience event types for structured logging.
+
+    Used for logging resilience-related events to .zerg/monitor.log.
+    All events use ISO8601 timestamps with milliseconds and include
+    worker ID prefix for correlation.
+    """
+
+    # Worker lifecycle events
+    WORKER_SPAWN = "worker_spawn"
+    WORKER_SPAWN_RETRY = "worker_spawn_retry"
+    WORKER_SPAWN_FAILED = "worker_spawn_failed"
+    WORKER_READY = "worker_ready"
+    WORKER_EXIT = "worker_exit"
+    WORKER_CRASH = "worker_crash"
+    WORKER_RESPAWN = "worker_respawn"
+
+    # Task lifecycle events
+    TASK_CLAIMED = "task_claimed"
+    TASK_STARTED = "task_started"
+    TASK_COMPLETE = "task_complete"
+    TASK_FAILED = "task_failed"
+    TASK_TIMEOUT = "task_timeout"
+    TASK_REASSIGNED = "task_reassigned"
+
+    # Heartbeat events
+    HEARTBEAT_STALE = "heartbeat_stale"
+    HEARTBEAT_RECOVERED = "heartbeat_recovered"
+
+    # State reconciliation events
+    STATE_RECONCILE_START = "state_reconcile_start"
+    STATE_RECONCILE_FIX = "state_reconcile_fix"
+    STATE_RECONCILE_COMPLETE = "state_reconcile_complete"
+
+    # Level events
+    LEVEL_CHECK = "level_check"
+    LEVEL_COMPLETE = "level_complete"
