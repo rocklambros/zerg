@@ -1,10 +1,10 @@
 """Shared data types for ZERG git operations."""
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class CommitType(str, Enum):
+class CommitType(StrEnum):
     """Conventional commit types."""
 
     FEAT = "feat"
