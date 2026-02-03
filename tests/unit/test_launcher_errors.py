@@ -10,14 +10,11 @@ Tests cover:
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from zerg.constants import WorkerStatus
 from zerg.launcher import (
     ContainerLauncher,
-    LauncherConfig,
     WorkerHandle,
 )
 
@@ -34,7 +31,10 @@ class TestDockerDaemonNotRunning:
         mock_run.side_effect = subprocess.CalledProcessError(
             returncode=1,
             cmd=["docker", "run"],
-            stderr="Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+            stderr=(
+                "Cannot connect to the Docker daemon at "
+                "unix:///var/run/docker.sock. Is the docker daemon running?"
+            ),
         )
 
         launcher = ContainerLauncher()
@@ -196,7 +196,10 @@ class TestImagePullFailure:
         mock_run.return_value = MagicMock(
             returncode=1,
             stdout="",
-            stderr="Error response from daemon: net/http: request canceled while waiting for connection",
+            stderr=(
+                "Error response from daemon: net/http: "
+                "request canceled while waiting for connection"
+            ),
         )
 
         launcher = ContainerLauncher()
@@ -556,7 +559,18 @@ class TestVerifyWorkerProcessErrors:
         """Test _verify_worker_process returns False on timeout."""
         # pgrep keeps returning "not found"
         mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="")
-        mock_time.side_effect = [0, 1, 2, 3, 4, 6]  # Exceeds 5 second timeout
+        # Use a counter so logging's internal time.time() calls don't
+        # exhaust the mock (StopIteration in CI).
+        call_count = 0
+        timeline = [0, 1, 2, 3, 4, 6]
+
+        def advancing_time():
+            nonlocal call_count
+            idx = min(call_count, len(timeline) - 1)
+            call_count += 1
+            return timeline[idx]
+
+        mock_time.side_effect = advancing_time
 
         launcher = ContainerLauncher()
         result = launcher._verify_worker_process("container-abc123", timeout=5.0)
@@ -574,7 +588,16 @@ class TestVerifyWorkerProcessErrors:
     ) -> None:
         """Test _verify_worker_process handles pgrep command timeout."""
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="pgrep", timeout=2)
-        mock_time.side_effect = [0, 1, 6]
+        call_count = 0
+        timeline = [0, 1, 6]
+
+        def advancing_time():
+            nonlocal call_count
+            idx = min(call_count, len(timeline) - 1)
+            call_count += 1
+            return timeline[idx]
+
+        mock_time.side_effect = advancing_time
 
         launcher = ContainerLauncher()
         result = launcher._verify_worker_process("container-abc123", timeout=5.0)
@@ -592,7 +615,16 @@ class TestVerifyWorkerProcessErrors:
     ) -> None:
         """Test _verify_worker_process handles generic exceptions."""
         mock_run.side_effect = Exception("Docker exec failed unexpectedly")
-        mock_time.side_effect = [0, 1, 6]
+        call_count = 0
+        timeline = [0, 1, 6]
+
+        def advancing_time():
+            nonlocal call_count
+            idx = min(call_count, len(timeline) - 1)
+            call_count += 1
+            return timeline[idx]
+
+        mock_time.side_effect = advancing_time
 
         launcher = ContainerLauncher()
         result = launcher._verify_worker_process("container-abc123", timeout=5.0)
@@ -614,7 +646,16 @@ class TestVerifyWorkerProcessErrors:
             MagicMock(returncode=1, stdout="", stderr=""),  # Not found
             MagicMock(returncode=0, stdout="12345\n", stderr=""),  # Found
         ]
-        mock_time.side_effect = [0, 1, 2]
+        call_count = 0
+        timeline = [0, 1, 2]
+
+        def advancing_time():
+            nonlocal call_count
+            idx = min(call_count, len(timeline) - 1)
+            call_count += 1
+            return timeline[idx]
+
+        mock_time.side_effect = advancing_time
 
         launcher = ContainerLauncher()
         result = launcher._verify_worker_process("container-abc123", timeout=5.0)

@@ -17,13 +17,10 @@ from zerg.dryrun import (
     DryRunReport,
     DryRunSimulator,
     GateCheckResult,
-    LevelTimeline,
-    TimelineEstimate,
 )
-from zerg.preflight import PreflightReport, CheckResult
+from zerg.preflight import CheckResult, PreflightReport
 from zerg.risk_scoring import RiskReport
 from zerg.types import GateRunResult
-
 
 # =============================================================================
 # Fixtures
@@ -110,7 +107,13 @@ class TestBasicSimulation:
             feature="test-feature",
             config=default_config,
         )
-        report = sim.run()
+        # Mock preflight so environment-specific checks (Docker image
+        # availability, disk space) don't cause spurious failures in CI.
+        mock_preflight = PreflightReport(
+            checks=[CheckResult(name="mock", passed=True, message="ok", severity="error")]
+        )
+        with patch.object(sim, "_run_preflight", return_value=mock_preflight):
+            report = sim.run()
 
         assert not report.has_errors
         assert report.feature == "test-feature"
@@ -337,7 +340,9 @@ class TestTimeline:
 class TestResourceChecks:
     """Tests for _check_resources."""
 
-    def test_resource_no_git(self, default_config: ZergConfig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_resource_no_git(
+        self, default_config: ZergConfig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """Missing .git directory is an error."""
         monkeypatch.chdir(tmp_path)
 
@@ -429,7 +434,10 @@ class TestReportProperties:
         assert report.has_errors
 
     def test_report_has_errors_on_file_ownership(self) -> None:
-        report = DryRunReport(feature="x", workers=1, mode="auto", file_ownership_issues=["conflict"])
+        report = DryRunReport(
+            feature="x", workers=1, mode="auto",
+            file_ownership_issues=["conflict"],
+        )
         assert report.has_errors
 
     def test_report_has_errors_on_dependency_issues(self) -> None:
@@ -443,14 +451,21 @@ class TestReportProperties:
     def test_report_has_errors_on_required_gate_failure(self) -> None:
         report = DryRunReport(
             feature="x", workers=1, mode="auto",
-            gate_results=[GateCheckResult(name="lint", command="x", required=True, status="failed")],
+            gate_results=[
+                GateCheckResult(name="lint", command="x", required=True, status="failed"),
+            ],
         )
         assert report.has_errors
 
     def test_report_no_error_on_optional_gate_failure(self) -> None:
         report = DryRunReport(
             feature="x", workers=1, mode="auto",
-            gate_results=[GateCheckResult(name="lint", command="x", required=False, status="failed")],
+            gate_results=[
+                GateCheckResult(
+                    name="lint", command="x",
+                    required=False, status="failed",
+                ),
+            ],
         )
         assert not report.has_errors
         assert report.has_warnings
