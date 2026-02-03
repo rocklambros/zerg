@@ -8,9 +8,13 @@ import tempfile
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from zerg.constants import STATE_DIR
 from zerg.logging import get_logger
+
+if TYPE_CHECKING:
+    from zerg.config import HeartbeatConfig
 
 logger = get_logger("heartbeat")
 
@@ -101,10 +105,59 @@ class HeartbeatWriter:
 
 
 class HeartbeatMonitor:
-    """Orchestrator-side heartbeat reader. Detects stalled workers."""
+    """Orchestrator-side heartbeat reader. Detects stalled workers.
 
-    def __init__(self, state_dir: str | Path | None = None) -> None:
+    Supports config-driven stale thresholds when instantiated with
+    stale_timeout_seconds or through convenience methods that use
+    the configured default.
+    """
+
+    # Default stale timeout if no config provided (2 minutes per FR-3)
+    DEFAULT_STALE_TIMEOUT_SECONDS: int = 120
+
+    def __init__(
+        self,
+        state_dir: str | Path | None = None,
+        stale_timeout_seconds: int | None = None,
+    ) -> None:
+        """Initialize HeartbeatMonitor.
+
+        Args:
+            state_dir: Directory containing heartbeat files. Defaults to STATE_DIR.
+            stale_timeout_seconds: Default stale timeout in seconds. If not provided,
+                uses DEFAULT_STALE_TIMEOUT_SECONDS (120). Can be overridden per-call.
+        """
         self._state_dir = Path(state_dir) if state_dir else Path(STATE_DIR)
+        self._stale_timeout_seconds = (
+            stale_timeout_seconds
+            if stale_timeout_seconds is not None
+            else self.DEFAULT_STALE_TIMEOUT_SECONDS
+        )
+
+    @property
+    def stale_timeout_seconds(self) -> int:
+        """Get the configured stale timeout in seconds."""
+        return self._stale_timeout_seconds
+
+    @classmethod
+    def from_config(
+        cls,
+        config: "HeartbeatConfig",
+        state_dir: str | Path | None = None,
+    ) -> "HeartbeatMonitor":
+        """Create HeartbeatMonitor from HeartbeatConfig.
+
+        Args:
+            config: HeartbeatConfig instance with stall_timeout_seconds.
+            state_dir: Optional state directory override.
+
+        Returns:
+            HeartbeatMonitor configured with the config's stale timeout.
+        """
+        return cls(
+            state_dir=state_dir,
+            stale_timeout_seconds=config.stall_timeout_seconds,
+        )
 
     def read(self, worker_id: int) -> Heartbeat | None:
         """Read heartbeat file for a given worker."""
@@ -136,20 +189,44 @@ class HeartbeatMonitor:
         return result
 
     def check_stale(
-        self, worker_id: int, timeout_seconds: int
+        self, worker_id: int, timeout_seconds: int | None = None
     ) -> bool:
-        """Return True if worker's heartbeat is stale or missing."""
+        """Return True if worker's heartbeat is stale or missing.
+
+        Args:
+            worker_id: The worker ID to check.
+            timeout_seconds: Stale timeout in seconds. If None, uses the
+                configured stale_timeout_seconds from __init__.
+
+        Returns:
+            True if heartbeat is stale or missing, False otherwise.
+        """
         hb = self.read(worker_id)
         if hb is None:
             return True
-        return hb.is_stale(timeout_seconds)
+        effective_timeout = (
+            timeout_seconds if timeout_seconds is not None else self._stale_timeout_seconds
+        )
+        return hb.is_stale(effective_timeout)
 
     def get_stalled_workers(
-        self, worker_ids: list[int], timeout_seconds: int
+        self, worker_ids: list[int], timeout_seconds: int | None = None
     ) -> list[int]:
-        """Return worker IDs whose heartbeats are stale."""
+        """Return worker IDs whose heartbeats are stale.
+
+        Args:
+            worker_ids: List of worker IDs to check.
+            timeout_seconds: Stale timeout in seconds. If None, uses the
+                configured stale_timeout_seconds from __init__.
+
+        Returns:
+            List of worker IDs with stale or missing heartbeats.
+        """
+        effective_timeout = (
+            timeout_seconds if timeout_seconds is not None else self._stale_timeout_seconds
+        )
         stalled = []
         for wid in worker_ids:
-            if self.check_stale(wid, timeout_seconds):
+            if self.check_stale(wid, effective_timeout):
                 stalled.append(wid)
         return stalled

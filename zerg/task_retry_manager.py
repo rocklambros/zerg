@@ -16,6 +16,9 @@ from zerg.state import StateManager
 
 logger = get_logger("task_retry_manager")
 
+# Default stale task timeout (FR-2: tasks in_progress > 600s auto-fail)
+DEFAULT_STALE_TIMEOUT_SECONDS = 600
+
 
 class TaskRetryManager:
     """Manage task retry logic including backoff, requeueing, and verification retries.
@@ -55,6 +58,72 @@ class TaskRetryManager:
             self._state.set_task_status(task_id, TaskStatus.PENDING)
             self._state.set_task_retry_schedule(task_id, "")
             self._state.append_event("task_retry_ready", {"task_id": task_id})
+
+    def check_stale_tasks(self, timeout_seconds: int | None = None) -> list[str]:
+        """Check for tasks stuck in in_progress status beyond timeout.
+
+        Finds tasks that have been in_progress longer than the configured timeout,
+        marks them as failed, and requeues them for retry per FR-2.
+
+        Args:
+            timeout_seconds: Override timeout in seconds. If None, uses config
+                value or DEFAULT_STALE_TIMEOUT_SECONDS.
+
+        Returns:
+            List of task IDs that were marked as stale and requeued for retry.
+        """
+        # Use provided timeout, config value, or default
+        if timeout_seconds is None:
+            timeout_seconds = getattr(
+                self._config.workers, "task_stale_timeout_seconds",
+                DEFAULT_STALE_TIMEOUT_SECONDS
+            )
+
+        stale_tasks = self._state.get_stale_in_progress_tasks(timeout_seconds)
+        requeued = []
+
+        for task_info in stale_tasks:
+            task_id = task_info["task_id"]
+            worker_id = task_info.get("worker_id", 0)
+            elapsed = task_info["elapsed_seconds"]
+
+            logger.warning(
+                f"Task {task_id} stale: in_progress for {elapsed}s "
+                f"(timeout={timeout_seconds}s), worker={worker_id}"
+            )
+
+            # Log structured event for stale task detection
+            self._state.append_event("task_stale_detected", {
+                "task_id": task_id,
+                "worker_id": worker_id,
+                "elapsed_seconds": elapsed,
+                "timeout_seconds": timeout_seconds,
+            })
+
+            if self._structured_writer:
+                self._structured_writer.emit(
+                    "warn",
+                    f"Task {task_id} timed out after {elapsed}s",
+                    event=LogEvent.TASK_FAILED,
+                    data={
+                        "task_id": task_id,
+                        "worker_id": worker_id,
+                        "elapsed_seconds": elapsed,
+                        "reason": "stale_timeout",
+                    },
+                )
+
+            # Use handle_task_failure to apply retry logic with backoff
+            error_msg = f"Task stale: in_progress for {elapsed}s exceeds {timeout_seconds}s timeout"
+            scheduled = self.handle_task_failure(task_id, worker_id or 0, error_msg)
+
+            if scheduled:
+                requeued.append(task_id)
+
+        if requeued:
+            logger.info(f"Requeued {len(requeued)} stale tasks for retry")
+
+        return requeued
 
     def handle_task_failure(self, task_id: str, worker_id: int, error: str) -> bool:
         """Handle task failure with retry logic and backoff.

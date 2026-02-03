@@ -6,10 +6,16 @@ and reassigns tasks stranded on stopped/crashed workers.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from zerg.constants import TaskStatus
 from zerg.levels import LevelController
 from zerg.logging import get_logger
 from zerg.state import StateManager
+from zerg.state_reconciler import ReconciliationResult, StateReconciler
+
+if TYPE_CHECKING:
+    from zerg.heartbeat import HeartbeatMonitor
 
 logger = get_logger("state_sync")
 
@@ -21,15 +27,22 @@ class StateSyncService:
     decoupled from the Orchestrator and is independently testable.
     """
 
-    def __init__(self, state: StateManager, levels: LevelController) -> None:
+    def __init__(
+        self,
+        state: StateManager,
+        levels: LevelController,
+        heartbeat_monitor: HeartbeatMonitor | None = None,
+    ) -> None:
         """Initialize StateSyncService.
 
         Args:
             state: Shared state manager for reading/writing disk state.
             levels: In-memory level controller to keep in sync.
+            heartbeat_monitor: Optional heartbeat monitor for stale worker detection.
         """
         self.state = state
         self.levels = levels
+        self._reconciler = StateReconciler(state, levels, heartbeat_monitor)
 
     def sync_from_disk(self) -> None:
         """Sync LevelController with task completions from disk state.
@@ -82,3 +95,32 @@ class StateSyncService:
                     f"Reassigned stranded task {task_id} (was worker {worker_id}, now unassigned)"
                 )
         self.state.save()
+
+    def reconcile_periodic(self) -> ReconciliationResult:
+        """Perform light periodic reconciliation check (every 60s).
+
+        Delegates to StateReconciler for:
+        - Comparing task states between disk and in-memory LevelController
+        - Logging divergences
+        - Fixing critical issues (tasks with dead workers, missing levels)
+
+        Returns:
+            ReconciliationResult with details of checks and fixes applied.
+        """
+        return self._reconciler.reconcile_periodic()
+
+    def reconcile_level_transition(self, level: int) -> ReconciliationResult:
+        """Perform thorough reconciliation before level advancement.
+
+        Called before advancing from level N to level N+1 to ensure:
+        - All tasks in level N are truly in terminal state (complete or failed)
+        - LevelController accurately reflects actual task states
+        - No tasks are stuck in_progress with dead workers
+
+        Args:
+            level: The level being completed (about to transition FROM).
+
+        Returns:
+            ReconciliationResult with details of checks and fixes applied.
+        """
+        return self._reconciler.reconcile_level_transition(level)

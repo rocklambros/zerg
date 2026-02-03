@@ -7,6 +7,7 @@ import asyncio
 import os
 import subprocess
 import sys
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -16,6 +17,7 @@ from typing import Any
 
 from zerg.constants import LOGS_TASKS_DIR, LOGS_WORKERS_DIR, WorkerStatus
 from zerg.logging import get_logger
+from zerg.retry_backoff import RetryBackoffCalculator
 
 logger = get_logger("launcher")
 
@@ -344,6 +346,162 @@ class WorkerLauncher(ABC):
                 del self._workers[worker_id]
 
         return results
+
+    def spawn_with_retry(
+        self,
+        worker_id: int,
+        feature: str,
+        worktree_path: Path,
+        branch: str,
+        env: dict[str, str] | None = None,
+        max_attempts: int = 3,
+        backoff_strategy: str = "exponential",
+        backoff_base_seconds: float = 2.0,
+        backoff_max_seconds: float = 30.0,
+    ) -> SpawnResult:
+        """Spawn a worker with retry logic using exponential backoff.
+
+        Attempts to spawn a worker, retrying on transient failures with
+        configurable backoff. Uses RetryBackoffCalculator for delay calculation.
+
+        Args:
+            worker_id: Unique worker identifier
+            feature: Feature name being worked on
+            worktree_path: Path to worker's git worktree
+            branch: Git branch for worker
+            env: Additional environment variables
+            max_attempts: Maximum number of spawn attempts (default: 3)
+            backoff_strategy: Backoff strategy (exponential, linear, fixed)
+            backoff_base_seconds: Base delay in seconds for backoff
+            backoff_max_seconds: Maximum delay cap in seconds
+
+        Returns:
+            SpawnResult with handle on success, or error after all attempts fail
+        """
+        last_error: str = ""
+
+        for attempt in range(1, max_attempts + 1):
+            logger.info(
+                f"Spawn attempt {attempt}/{max_attempts} for worker {worker_id}"
+            )
+
+            result = self.spawn(worker_id, feature, worktree_path, branch, env)
+
+            if result.success:
+                if attempt > 1:
+                    logger.info(
+                        f"Worker {worker_id} spawned successfully on attempt {attempt}"
+                    )
+                return result
+
+            last_error = result.error or "Unknown error"
+            logger.warning(
+                f"Spawn attempt {attempt}/{max_attempts} failed for worker {worker_id}: "
+                f"{last_error}"
+            )
+
+            # Don't sleep after the last attempt
+            if attempt < max_attempts:
+                delay = RetryBackoffCalculator.calculate_delay(
+                    attempt=attempt,
+                    strategy=backoff_strategy,
+                    base_seconds=int(backoff_base_seconds),
+                    max_seconds=int(backoff_max_seconds),
+                )
+                logger.info(
+                    f"Waiting {delay:.2f}s before retry {attempt + 1}/{max_attempts}"
+                )
+                time.sleep(delay)
+
+        # All attempts exhausted
+        logger.error(
+            f"All {max_attempts} spawn attempts failed for worker {worker_id}. "
+            f"Last error: {last_error}"
+        )
+        return SpawnResult(
+            success=False,
+            error=f"All {max_attempts} spawn attempts failed. Last error: {last_error}",
+            worker_id=worker_id,
+        )
+
+    async def spawn_with_retry_async(
+        self,
+        worker_id: int,
+        feature: str,
+        worktree_path: Path,
+        branch: str,
+        env: dict[str, str] | None = None,
+        max_attempts: int = 3,
+        backoff_strategy: str = "exponential",
+        backoff_base_seconds: float = 2.0,
+        backoff_max_seconds: float = 30.0,
+    ) -> SpawnResult:
+        """Spawn a worker with retry logic asynchronously.
+
+        Async version of spawn_with_retry() using asyncio.sleep() for non-blocking
+        delays between retry attempts.
+
+        Args:
+            worker_id: Unique worker identifier
+            feature: Feature name being worked on
+            worktree_path: Path to worker's git worktree
+            branch: Git branch for worker
+            env: Additional environment variables
+            max_attempts: Maximum number of spawn attempts (default: 3)
+            backoff_strategy: Backoff strategy (exponential, linear, fixed)
+            backoff_base_seconds: Base delay in seconds for backoff
+            backoff_max_seconds: Maximum delay cap in seconds
+
+        Returns:
+            SpawnResult with handle on success, or error after all attempts fail
+        """
+        last_error: str = ""
+
+        for attempt in range(1, max_attempts + 1):
+            logger.info(
+                f"Async spawn attempt {attempt}/{max_attempts} for worker {worker_id}"
+            )
+
+            result = await self.spawn_async(
+                worker_id, feature, worktree_path, branch, env
+            )
+
+            if result.success:
+                if attempt > 1:
+                    logger.info(
+                        f"Worker {worker_id} spawned successfully on attempt {attempt}"
+                    )
+                return result
+
+            last_error = result.error or "Unknown error"
+            logger.warning(
+                f"Async spawn attempt {attempt}/{max_attempts} failed for worker "
+                f"{worker_id}: {last_error}"
+            )
+
+            # Don't sleep after the last attempt
+            if attempt < max_attempts:
+                delay = RetryBackoffCalculator.calculate_delay(
+                    attempt=attempt,
+                    strategy=backoff_strategy,
+                    base_seconds=int(backoff_base_seconds),
+                    max_seconds=int(backoff_max_seconds),
+                )
+                logger.info(
+                    f"Waiting {delay:.2f}s before async retry {attempt + 1}/{max_attempts}"
+                )
+                await asyncio.sleep(delay)
+
+        # All attempts exhausted
+        logger.error(
+            f"All {max_attempts} async spawn attempts failed for worker {worker_id}. "
+            f"Last error: {last_error}"
+        )
+        return SpawnResult(
+            success=False,
+            error=f"All {max_attempts} spawn attempts failed. Last error: {last_error}",
+            worker_id=worker_id,
+        )
 
     async def spawn_async(
         self,

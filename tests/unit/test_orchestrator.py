@@ -1008,7 +1008,11 @@ class TestPollWorkers:
     def test_poll_workers_crashed_status(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
     ) -> None:
-        """Test polling handles crashed worker status."""
+        """Test polling handles crashed worker status.
+
+        FR-5: Worker crash uses _handle_worker_crash (not _handle_task_failure)
+        to avoid incrementing retry count for infrastructure failures.
+        """
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
@@ -1020,12 +1024,13 @@ class TestPollWorkers:
         orch._spawn_worker(0)
         orch._workers[0].current_task = "TASK-001"
 
-        with patch.object(orch, "_handle_task_failure") as failure_mock:
+        with patch.object(orch, "_handle_worker_crash") as crash_mock:
             orch._poll_workers()
 
         # Worker is removed after crash is handled (via _handle_worker_exit)
         assert 0 not in orch._workers
-        failure_mock.assert_called_with("TASK-001", 0, "Worker crashed")
+        # FR-5: Crash handler is called instead of task failure handler
+        crash_mock.assert_called_with("TASK-001", 0)
 
     def test_poll_workers_checkpointing_status(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch

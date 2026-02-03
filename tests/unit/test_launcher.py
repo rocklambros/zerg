@@ -1816,3 +1816,350 @@ class TestGetPluginLauncher:
         result = get_plugin_launcher("failing-launcher", registry)
 
         assert result is None
+
+
+# =============================================================================
+# spawn_with_retry Tests (FR-1: Spawn Retry with Exponential Backoff)
+# =============================================================================
+
+
+class TestSpawnWithRetry:
+    """Tests for spawn_with_retry method with exponential backoff."""
+
+    @patch.object(SubprocessLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_spawn_with_retry_success_first_attempt(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test spawn_with_retry succeeds on first attempt (no retries needed)."""
+        mock_spawn.return_value = SpawnResult(
+            success=True,
+            worker_id=0,
+            handle=WorkerHandle(worker_id=0, pid=12345, status=WorkerStatus.RUNNING),
+        )
+
+        launcher = SubprocessLauncher()
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+        )
+
+        assert result.success is True
+        assert result.worker_id == 0
+        assert mock_spawn.call_count == 1
+        mock_sleep.assert_not_called()  # No retry delay needed
+
+    @patch.object(SubprocessLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_spawn_with_retry_success_after_failures(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test spawn_with_retry succeeds after initial failures."""
+        # Fail twice, then succeed on third attempt
+        mock_spawn.side_effect = [
+            SpawnResult(success=False, worker_id=0, error="Docker not ready"),
+            SpawnResult(success=False, worker_id=0, error="Network timeout"),
+            SpawnResult(
+                success=True,
+                worker_id=0,
+                handle=WorkerHandle(worker_id=0, pid=12345, status=WorkerStatus.RUNNING),
+            ),
+        ]
+
+        launcher = SubprocessLauncher()
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=3,
+            backoff_base_seconds=2.0,
+            backoff_max_seconds=30.0,
+        )
+
+        assert result.success is True
+        assert result.worker_id == 0
+        assert mock_spawn.call_count == 3
+        assert mock_sleep.call_count == 2  # Sleep between retry 1->2 and 2->3
+
+    @patch.object(SubprocessLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_spawn_with_retry_all_attempts_fail(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test spawn_with_retry fails after exhausting all attempts."""
+        mock_spawn.return_value = SpawnResult(
+            success=False, worker_id=0, error="Persistent failure"
+        )
+
+        launcher = SubprocessLauncher()
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=3,
+        )
+
+        assert result.success is False
+        assert result.worker_id == 0
+        assert "Persistent failure" in str(result.error)
+        assert mock_spawn.call_count == 3
+        assert mock_sleep.call_count == 2  # Sleep between attempts
+
+    @patch.object(SubprocessLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_spawn_with_retry_respects_max_attempts(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test spawn_with_retry stops at max_attempts."""
+        mock_spawn.return_value = SpawnResult(
+            success=False, worker_id=0, error="Failure"
+        )
+
+        launcher = SubprocessLauncher()
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=5,
+        )
+
+        assert result.success is False
+        assert mock_spawn.call_count == 5
+
+    @patch.object(SubprocessLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_spawn_with_retry_no_retries_when_max_attempts_is_one(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test spawn_with_retry with max_attempts=1 does not retry."""
+        mock_spawn.return_value = SpawnResult(
+            success=False, worker_id=0, error="Immediate failure"
+        )
+
+        launcher = SubprocessLauncher()
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=1,
+        )
+
+        assert result.success is False
+        assert mock_spawn.call_count == 1
+        mock_sleep.assert_not_called()
+
+    @patch.object(SubprocessLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_spawn_with_retry_exponential_backoff(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test spawn_with_retry uses exponential backoff."""
+        mock_spawn.return_value = SpawnResult(
+            success=False, worker_id=0, error="Failure"
+        )
+
+        launcher = SubprocessLauncher()
+        launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=4,
+            backoff_strategy="exponential",
+            backoff_base_seconds=2.0,
+            backoff_max_seconds=30.0,
+        )
+
+        # With exponential backoff and base=2:
+        # attempt 1 fails -> sleep ~4s (2 * 2^1 = 4, with jitter)
+        # attempt 2 fails -> sleep ~8s (2 * 2^2 = 8, with jitter)
+        # attempt 3 fails -> sleep ~16s (2 * 2^3 = 16, with jitter)
+        # attempt 4 fails -> no more sleep
+        assert mock_sleep.call_count == 3
+        # Check delays are increasing (exponential pattern)
+        delays = [call.args[0] for call in mock_sleep.call_args_list]
+        # Allow for jitter variation (+/- 10%)
+        assert delays[0] < delays[1] < delays[2]
+
+    @patch.object(SubprocessLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_spawn_with_retry_passes_env_to_spawn(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test spawn_with_retry passes env variables to underlying spawn."""
+        mock_spawn.return_value = SpawnResult(
+            success=True,
+            worker_id=0,
+            handle=WorkerHandle(worker_id=0, pid=12345, status=WorkerStatus.RUNNING),
+        )
+
+        launcher = SubprocessLauncher()
+        env = {"CUSTOM_VAR": "value"}
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            env=env,
+        )
+
+        assert result.success is True
+        mock_spawn.assert_called_once()
+        call_args = mock_spawn.call_args
+        assert call_args[0] == (0, "test-feature", tmp_path, "main", env)
+
+
+class TestSpawnWithRetryAsync:
+    """Tests for async spawn_with_retry_async method."""
+
+    @pytest.mark.asyncio
+    @patch.object(SubprocessLauncher, "spawn_async")
+    @patch("zerg.launcher.asyncio.sleep")
+    async def test_spawn_with_retry_async_success_first_attempt(
+        self, mock_sleep: MagicMock, mock_spawn_async: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test async spawn_with_retry succeeds on first attempt."""
+        mock_spawn_async.return_value = SpawnResult(
+            success=True,
+            worker_id=0,
+            handle=WorkerHandle(worker_id=0, pid=12345, status=WorkerStatus.RUNNING),
+        )
+
+        launcher = SubprocessLauncher()
+        result = await launcher.spawn_with_retry_async(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+        )
+
+        assert result.success is True
+        assert mock_spawn_async.call_count == 1
+        mock_sleep.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch.object(SubprocessLauncher, "spawn_async")
+    @patch("zerg.launcher.asyncio.sleep")
+    async def test_spawn_with_retry_async_retries_on_failure(
+        self, mock_sleep: MagicMock, mock_spawn_async: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test async spawn_with_retry retries on failure with async sleep."""
+        mock_spawn_async.side_effect = [
+            SpawnResult(success=False, worker_id=0, error="Transient error"),
+            SpawnResult(
+                success=True,
+                worker_id=0,
+                handle=WorkerHandle(worker_id=0, pid=12345, status=WorkerStatus.RUNNING),
+            ),
+        ]
+        # asyncio.sleep needs to be a coroutine
+        mock_sleep.return_value = None
+
+        launcher = SubprocessLauncher()
+        result = await launcher.spawn_with_retry_async(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=3,
+        )
+
+        assert result.success is True
+        assert mock_spawn_async.call_count == 2
+        assert mock_sleep.call_count == 1  # Only one retry needed
+
+    @pytest.mark.asyncio
+    @patch.object(SubprocessLauncher, "spawn_async")
+    @patch("zerg.launcher.asyncio.sleep")
+    async def test_spawn_with_retry_async_all_attempts_fail(
+        self, mock_sleep: MagicMock, mock_spawn_async: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test async spawn_with_retry fails after all attempts exhausted."""
+        mock_spawn_async.return_value = SpawnResult(
+            success=False, worker_id=0, error="Persistent async failure"
+        )
+        mock_sleep.return_value = None
+
+        launcher = SubprocessLauncher()
+        result = await launcher.spawn_with_retry_async(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=3,
+        )
+
+        assert result.success is False
+        assert "Persistent async failure" in str(result.error)
+        assert mock_spawn_async.call_count == 3
+
+
+class TestContainerLauncherSpawnWithRetry:
+    """Tests for spawn_with_retry in ContainerLauncher."""
+
+    @patch.object(ContainerLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_container_spawn_with_retry_success(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test ContainerLauncher spawn_with_retry works correctly."""
+        mock_spawn.return_value = SpawnResult(
+            success=True,
+            worker_id=0,
+            handle=WorkerHandle(
+                worker_id=0,
+                container_id="abc123",
+                status=WorkerStatus.RUNNING,
+            ),
+        )
+
+        launcher = ContainerLauncher(image_name="test-image:latest")
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+        )
+
+        assert result.success is True
+        assert result.handle.container_id == "abc123"
+        mock_spawn.assert_called_once()
+
+    @patch.object(ContainerLauncher, "spawn")
+    @patch("zerg.launcher.time.sleep")
+    def test_container_spawn_with_retry_recovers_from_docker_error(
+        self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test ContainerLauncher spawn_with_retry recovers from Docker errors."""
+        mock_spawn.side_effect = [
+            SpawnResult(success=False, worker_id=0, error="Docker daemon not responding"),
+            SpawnResult(
+                success=True,
+                worker_id=0,
+                handle=WorkerHandle(
+                    worker_id=0,
+                    container_id="recovered123",
+                    status=WorkerStatus.RUNNING,
+                ),
+            ),
+        ]
+
+        launcher = ContainerLauncher(image_name="test-image:latest")
+        result = launcher.spawn_with_retry(
+            worker_id=0,
+            feature="test-feature",
+            worktree_path=tmp_path,
+            branch="main",
+            max_attempts=3,
+        )
+
+        assert result.success is True
+        assert result.handle.container_id == "recovered123"
+        assert mock_spawn.call_count == 2
+        assert mock_sleep.call_count == 1

@@ -7,7 +7,7 @@ import json
 import tempfile
 import threading
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -683,6 +683,41 @@ class StateManager:
                 self._state["tasks"][task_id].pop("last_retry_at", None)
 
         logger.debug(f"Task {task_id} retry count reset")
+
+    def get_stale_in_progress_tasks(self, timeout_seconds: int) -> list[dict[str, Any]]:
+        """Get tasks that have been in_progress longer than the timeout.
+
+        Args:
+            timeout_seconds: Maximum seconds a task can be in_progress before
+                considered stale
+
+        Returns:
+            List of dicts with task_id, worker_id, started_at, elapsed_seconds
+        """
+        cutoff = datetime.now() - timedelta(seconds=timeout_seconds)
+        cutoff_iso = cutoff.isoformat()
+
+        with self._lock:
+            stale = []
+            for task_id, task_state in self._state.get("tasks", {}).items():
+                status = task_state.get("status")
+                if status != TaskStatus.IN_PROGRESS.value:
+                    continue
+
+                started_at = task_state.get("started_at")
+                if not started_at:
+                    continue
+
+                if started_at <= cutoff_iso:
+                    started_dt = datetime.fromisoformat(started_at)
+                    elapsed = (datetime.now() - started_dt).total_seconds()
+                    stale.append({
+                        "task_id": task_id,
+                        "worker_id": task_state.get("worker_id"),
+                        "started_at": started_at,
+                        "elapsed_seconds": round(elapsed),
+                    })
+            return stale
 
     def get_failed_tasks(self) -> list[dict[str, Any]]:
         """Get all failed tasks with their retry information.

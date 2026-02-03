@@ -300,6 +300,71 @@ def validate_rules(rules_dir: Path | None = None) -> tuple[bool, list[str]]:
     return not errors, errors
 
 
+# Resilience modules that must be imported by specific production modules
+# Maps module name -> list of expected importers
+RESILIENCE_MODULE_WIRING: dict[str, list[str]] = {
+    "state_reconciler": ["state_sync_service", "orchestrator"],
+}
+
+
+def validate_resilience_wiring(
+    package_dir: Path | None = None,
+) -> tuple[bool, list[str]]:
+    """Validate that resilience modules are properly wired into production code.
+
+    Checks that specific resilience modules (like state_reconciler) are imported
+    by their expected consumer modules (like state_sync_service or orchestrator).
+
+    Args:
+        package_dir: Path to the package directory. Defaults to zerg/ (this package).
+
+    Returns:
+        Tuple of (passed, list of error messages).
+    """
+    if package_dir is None:
+        package_dir = Path(__file__).parent
+
+    package_dir = package_dir.resolve()
+    pkg_name = package_dir.name
+    errors: list[str] = []
+
+    for module_name, expected_importers in RESILIENCE_MODULE_WIRING.items():
+        module_path = package_dir / f"{module_name}.py"
+
+        # Skip if the resilience module doesn't exist yet (dependency not complete)
+        if not module_path.exists():
+            continue
+
+        # Check that at least one expected importer imports this module
+        found_importer = False
+        import_patterns = [
+            f"from {pkg_name}.{module_name} import",
+            f"import {pkg_name}.{module_name}",
+            f"from .{module_name} import",
+        ]
+
+        for importer_name in expected_importers:
+            importer_path = package_dir / f"{importer_name}.py"
+            if not importer_path.exists():
+                continue
+
+            try:
+                importer_content = importer_path.read_text()
+                if any(pattern in importer_content for pattern in import_patterns):
+                    found_importer = True
+                    break
+            except OSError:
+                continue
+
+        if not found_importer:
+            errors.append(
+                f"{module_name}.py: resilience module not imported by any of "
+                f"{', '.join(expected_importers)}"
+            )
+
+    return not errors, errors
+
+
 def validate_module_wiring(
     package_dir: Path | None = None,
     tests_dir: Path | None = None,
@@ -441,6 +506,7 @@ def validate_all(
         ("State JSON", validate_state_json_without_tasks(commands_dir)),
         ("Engineering rules", validate_rules()),
         ("Module wiring", validate_module_wiring(strict=strict_wiring)),
+        ("Resilience wiring", validate_resilience_wiring()),
     ]
 
     base_count = len(_get_base_command_files(commands_dir))
@@ -457,6 +523,7 @@ def validate_all(
         "State JSON": "no files reference state without TaskList/TaskGet",
         "Engineering rules": "all rule files valid",
         "Module wiring": "no orphaned modules without production imports",
+        "Resilience wiring": "resilience modules imported by expected consumers",
     }
 
     fail_count = 0
@@ -483,6 +550,73 @@ def validate_all(
     return all_passed, all_errors
 
 
+def validate_wiring_only(strict_general: bool = False) -> tuple[bool, list[str]]:
+    """Run only wiring-related validation checks.
+
+    This is a focused check that validates:
+    1. General module wiring (no orphaned modules) - warnings only unless strict
+    2. Resilience module wiring (specific modules imported by expected consumers) - always strict
+
+    Args:
+        strict_general: If True, general module wiring errors cause failure.
+            Default False, so only resilience wiring is enforced strictly.
+
+    Returns:
+        Tuple of (all_passed, list of all error messages).
+    """
+    all_errors: list[str] = []
+    all_passed = True
+
+    # Resilience wiring is always strict (causes failure)
+    # General module wiring is only strict if explicitly requested
+    checks: list[tuple[str, tuple[bool, list[str]], bool]] = [
+        ("Module wiring", validate_module_wiring(strict=strict_general), strict_general),
+        ("Resilience wiring", validate_resilience_wiring(), True),
+    ]
+
+    descriptions: dict[str, str] = {
+        "Module wiring": "no orphaned modules without production imports",
+        "Resilience wiring": "resilience modules imported by expected consumers",
+    }
+
+    fail_count = 0
+
+    for name, (passed, errors), is_strict in checks:
+        if passed and not errors:
+            # Clean pass - no messages at all
+            print(f"[PASS] {name}: {descriptions[name]}")
+        elif passed and errors:
+            # Passed but with warnings (non-strict mode)
+            warn_count = len(errors)
+            print(f"[WARN] {name}: {warn_count} warning{'s' if warn_count != 1 else ''}")
+            for error in errors:
+                print(f"  - {error}")
+        elif is_strict:
+            # Strict check failed
+            error_count = len(errors)
+            print(f"[FAIL] {name}: {error_count} error{'s' if error_count != 1 else ''}")
+            for error in errors:
+                print(f"  - {error}")
+            all_passed = False
+            fail_count += 1
+        else:
+            # Non-strict check with errors - show as warnings
+            warn_count = len(errors)
+            print(f"[WARN] {name}: {warn_count} warning{'s' if warn_count != 1 else ''}")
+            for error in errors:
+                print(f"  - {error}")
+
+        all_errors.extend(errors)
+
+    print()
+    if all_passed:
+        print("All wiring checks passed.")
+    else:
+        print(f"{fail_count} wiring check{'s' if fail_count != 1 else ''} failed.")
+
+    return all_passed, all_errors
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Validate ZERG command files for Task ecosystem integrity "
@@ -504,11 +638,22 @@ if __name__ == "__main__":
         action="store_true",
         help="Treat orphaned modules (zero production imports) as errors.",
     )
+    parser.add_argument(
+        "--check-wiring",
+        action="store_true",
+        help="Run only wiring validation checks (module wiring + resilience wiring).",
+    )
 
     args = parser.parse_args()
-    passed, _ = validate_all(
-        commands_dir=args.commands_dir,
-        auto_split=args.auto_split,
-        strict_wiring=args.strict_wiring,
-    )
+
+    if args.check_wiring:
+        # Run only wiring checks when --check-wiring is specified
+        passed, _ = validate_wiring_only()
+    else:
+        # Run all checks
+        passed, _ = validate_all(
+            commands_dir=args.commands_dir,
+            auto_split=args.auto_split,
+            strict_wiring=args.strict_wiring,
+        )
     sys.exit(0 if passed else 1)

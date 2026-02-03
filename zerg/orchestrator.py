@@ -6,6 +6,7 @@ Delegates to extracted components:
 - StateSyncService: disk-to-memory state synchronization
 - WorkerManager: worker spawning, initialization, termination
 - LevelCoordinator: level start, complete, merge workflows
+- Resilience: spawn_with_retry, check_stale_tasks, auto_respawn, crash recovery
 """
 
 import asyncio
@@ -181,6 +182,8 @@ class Orchestrator:
         self._poll_interval = 5  # seconds
         self._max_retry_attempts = self.config.workers.retry_attempts
         self._restart_counts: dict[int, int] = {}  # worker_id -> restart count
+        self._respawn_counts: dict[int, int] = {}  # worker_id -> respawn count for auto_respawn
+        self._target_worker_count: int = 0  # Target worker count for auto-respawn
 
         # Wire extracted components
         self._retry_manager = TaskRetryManager(
@@ -377,6 +380,129 @@ class Orchestrator:
     def _check_retry_ready_tasks(self) -> None:
         self._retry_manager.check_retry_ready_tasks()
 
+    def _check_stale_tasks(self) -> None:
+        """Check for tasks stuck in in_progress beyond timeout (FR-2).
+
+        Detects tasks that have been in_progress for longer than the configured
+        stale timeout and marks them as failed, triggering retry logic.
+        This is the task timeout watchdog integration.
+        """
+        # Use default timeout from config if available, otherwise use reasonable default
+        timeout_seconds = getattr(
+            self.config.workers, 'task_stale_timeout_seconds', 600
+        )
+        try:
+            # check_stale_tasks is added by RES-L2-002
+            stale_tasks = self._retry_manager.check_stale_tasks(timeout_seconds)
+            if stale_tasks:
+                logger.warning(f"Detected {len(stale_tasks)} stale tasks: {stale_tasks}")
+                self.state.append_event("stale_tasks_detected", {
+                    "task_ids": stale_tasks,
+                    "timeout_seconds": timeout_seconds,
+                })
+        except AttributeError:
+            # check_stale_tasks not yet implemented (dependency not merged)
+            pass
+
+    def _handle_worker_crash(self, task_id: str, worker_id: int) -> None:
+        """Handle task reassignment after worker crash (FR-5).
+
+        Unlike task failures, worker crashes do NOT increment the retry count.
+        The task is marked failed with reason=worker_crash and reassigned.
+
+        Args:
+            task_id: ID of the task that was running when worker crashed
+            worker_id: ID of the crashed worker
+        """
+        logger.warning(f"Worker {worker_id} crashed with task {task_id}, reassigning")
+
+        # Mark task failed with crash reason (don't increment retry count)
+        self.state.set_task_status(
+            task_id,
+            TaskStatus.FAILED,
+            worker_id=worker_id,
+            error="Worker crashed (infrastructure failure)",
+        )
+
+        # Record failure reason for analytics
+        self.state.append_event("task_crash_reassign", {
+            "task_id": task_id,
+            "worker_id": worker_id,
+            "failure_reason": "worker_crash",
+            "retry_count_incremented": False,
+        })
+
+        # Reset task to pending for reassignment (no retry count change)
+        self.levels.reset_task(task_id)
+        self.state.set_task_status(task_id, TaskStatus.PENDING)
+
+        logger.info(f"Task {task_id} reset to pending for reassignment after crash")
+
+    def _auto_respawn_workers(self, level: int, remaining_task_count: int) -> None:
+        """Auto-respawn workers with respawn count tracking (FR-6).
+
+        Spawns replacement workers up to the configured limit, tracking respawn
+        counts per worker slot to prevent infinite respawn loops.
+
+        Args:
+            level: Current level being processed
+            remaining_task_count: Number of tasks still needing completion
+        """
+        # Get max respawn attempts from config (default 5 if not set)
+        max_respawn = getattr(self.config.workers, 'max_respawn_attempts', 5)
+        auto_respawn_enabled = getattr(self.config.workers, 'auto_respawn', True)
+
+        if not auto_respawn_enabled:
+            logger.warning(
+                f"Auto-respawn disabled, {remaining_task_count} tasks remain at level {level}"
+            )
+            return
+
+        # Determine how many workers to spawn (min of remaining tasks and target count)
+        workers_to_spawn = min(remaining_task_count, self._target_worker_count or 1)
+
+        spawned = 0
+        for worker_id in range(workers_to_spawn):
+            respawn_count = self._respawn_counts.get(worker_id, 0)
+
+            if respawn_count >= max_respawn:
+                logger.warning(
+                    f"Worker {worker_id} exceeded max respawns ({max_respawn}), skipping"
+                )
+                continue
+
+            try:
+                self._respawn_counts[worker_id] = respawn_count + 1
+                logger.info(
+                    f"Auto-respawning worker {worker_id} "
+                    f"(respawn {respawn_count + 1}/{max_respawn}) for level {level}"
+                )
+                self._spawn_worker(worker_id)
+                spawned += 1
+
+                # Record respawn event
+                self.state.append_event("worker_auto_respawn", {
+                    "worker_id": worker_id,
+                    "level": level,
+                    "respawn_count": respawn_count + 1,
+                    "max_respawn": max_respawn,
+                })
+            except Exception as e:
+                logger.error(f"Failed to auto-respawn worker {worker_id}: {e}")
+
+        if spawned == 0 and remaining_task_count > 0:
+            logger.error(
+                f"Could not spawn any workers for {remaining_task_count} remaining tasks - "
+                f"all workers have exceeded max respawn limit ({max_respawn})"
+            )
+            self.state.append_event("auto_respawn_exhausted", {
+                "level": level,
+                "remaining_tasks": remaining_task_count,
+                "max_respawn": max_respawn,
+            })
+        else:
+            logger.info(f"Auto-respawned {spawned} workers for level {level}")
+
     def _sync_levels_from_state(self) -> None:
         self._state_sync.sync_from_disk()
 
@@ -396,6 +522,8 @@ class Orchestrator:
         return self._worker_manager.spawn_worker(worker_id)
 
     def _spawn_workers(self, count: int) -> int:
+        # Track target worker count for auto-respawn (FR-6)
+        self._target_worker_count = count
         return self._worker_manager.spawn_workers(count)
 
     def _wait_for_initialization(self, timeout: int = 600) -> bool:
@@ -734,7 +862,7 @@ class Orchestrator:
                             self._running = False
                             break
 
-                # Check if all workers are gone but tasks remain
+                # Check if all workers are gone but tasks remain (FR-6: Auto-respawn)
                 active_workers = [
                     w for w in self._workers.values()
                     if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
@@ -742,11 +870,8 @@ class Orchestrator:
                 if not active_workers and self._running:
                     remaining = self._get_remaining_tasks_for_level(current)
                     if remaining:
-                        logger.warning(
-                            f"All workers exited but {len(remaining)} tasks remain "
-                            f"at level {current}. Respawning workers."
-                        )
-                        self._respawn_workers_for_level(current)
+                        # FR-6: Auto-spawn replacement workers with respawn cap
+                        self._auto_respawn_workers(current, len(remaining))
 
                 time.sleep(self._poll_interval)
 
@@ -783,6 +908,10 @@ class Orchestrator:
         # Aggregate progress for status
         self._aggregate_progress()
 
+        # Check for stale tasks (FR-2: Task timeout watchdog)
+        # This detects tasks stuck in in_progress beyond the configured timeout
+        self._check_stale_tasks()
+
         for worker_id, worker in list(self._workers.items()):
             if worker.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
                 continue
@@ -806,7 +935,9 @@ class Orchestrator:
                 worker.status = WorkerStatus.CRASHED
                 self.state.set_worker_state(worker)
                 if worker.current_task:
-                    self._handle_task_failure(worker.current_task, worker_id, "Worker crashed")
+                    # FR-5: Worker crash → mark task failed with reason=worker_crash
+                    # This does NOT increment retry count (crash != task failure)
+                    self._handle_worker_crash(worker.current_task, worker_id)
                 self._handle_worker_exit(worker_id)
             elif status == WorkerStatus.CHECKPOINTING:
                 logger.info(f"Worker {worker_id} checkpointing")
@@ -1042,7 +1173,7 @@ class Orchestrator:
                             self._running = False
                             break
 
-                # Check if all workers are gone but tasks remain
+                # Check if all workers are gone but tasks remain (FR-6: Auto-respawn)
                 active_workers = [
                     w for w in self._workers.values()
                     if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
@@ -1050,11 +1181,8 @@ class Orchestrator:
                 if not active_workers and self._running:
                     remaining = self._get_remaining_tasks_for_level(current)
                     if remaining:
-                        logger.warning(
-                            f"All workers exited but {len(remaining)} tasks remain "
-                            f"at level {current}. Respawning workers."
-                        )
-                        self._respawn_workers_for_level(current)
+                        # FR-6: Auto-spawn replacement workers with respawn cap
+                        self._auto_respawn_workers(current, len(remaining))
 
                 await asyncio.sleep(self._poll_interval)
 
@@ -1089,6 +1217,9 @@ class Orchestrator:
         self.task_sync.sync_state()
         self.launcher.sync_state()
 
+        # Check for stale tasks (FR-2: Task timeout watchdog)
+        self._check_stale_tasks()
+
         for worker_id, worker in list(self._workers.items()):
             if worker.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
                 continue
@@ -1098,7 +1229,8 @@ class Orchestrator:
                 worker.status = WorkerStatus.CRASHED
                 self.state.set_worker_state(worker)
                 if worker.current_task:
-                    self._handle_task_failure(worker.current_task, worker_id, "Worker crashed")
+                    # FR-5: Worker crash → don't increment retry count
+                    self._handle_worker_crash(worker.current_task, worker_id)
                 self._handle_worker_exit(worker_id)
             elif status == WorkerStatus.CHECKPOINTING:
                 logger.info(f"Worker {worker_id} checkpointing")
