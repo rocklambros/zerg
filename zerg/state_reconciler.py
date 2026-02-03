@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from zerg.constants import TaskStatus
@@ -52,7 +52,7 @@ class ReconciliationResult:
     """Result of a reconciliation operation."""
 
     reconciliation_type: str  # "periodic" or "level_transition"
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     fixes_applied: list[ReconciliationFix] = field(default_factory=list)
     divergences_found: int = 0
     tasks_checked: int = 0
@@ -294,23 +294,24 @@ class StateReconciler:
                 elif disk_status in (
                     TaskStatus.IN_PROGRESS.value,
                     TaskStatus.CLAIMED.value,
-                ) and level_status not in (
-                    TaskStatus.IN_PROGRESS.value,
-                    TaskStatus.CLAIMED.value,
                 ):
-                    worker_id = task_state.get("worker_id")
-                    self._levels.mark_task_in_progress(task_id, worker_id)
-                    result.fixes_applied.append(
-                        ReconciliationFix(
-                            fix_type="task_status_sync",
-                            task_id=task_id,
-                            level=task_level,
-                            worker_id=worker_id,
-                            old_value=level_status,
-                            new_value=disk_status,
-                            reason="Disk shows in_progress, syncing to LevelController",
+                    if level_status not in (
+                        TaskStatus.IN_PROGRESS.value,
+                        TaskStatus.CLAIMED.value,
+                    ):
+                        worker_id = task_state.get("worker_id")
+                        self._levels.mark_task_in_progress(task_id, worker_id)
+                        result.fixes_applied.append(
+                            ReconciliationFix(
+                                fix_type="task_status_sync",
+                                task_id=task_id,
+                                level=task_level,
+                                worker_id=worker_id,
+                                old_value=level_status,
+                                new_value=disk_status,
+                                reason="Disk shows in_progress, syncing to LevelController",
+                            )
                         )
-                    )
 
     def _fix_missing_task_levels(self, result: ReconciliationResult) -> None:
         """Fix tasks with missing level by parsing from task ID.
@@ -372,40 +373,37 @@ class StateReconciler:
             worker_id = task_state.get("worker_id")
 
             # Check if task is stuck: in_progress but worker is not active
-            if (
-                status == TaskStatus.IN_PROGRESS.value
-                and worker_id is not None
-                and worker_id not in active_workers
-            ):
-                # Mark task as failed with reason
-                self._state.set_task_status(
-                    task_id,
-                    TaskStatus.FAILED.value,
-                    error="worker_crash",
-                )
-                self._levels.mark_task_failed(
-                    task_id, error=f"Worker {worker_id} crashed/stopped"
-                )
-
-                # Reset retry count since this is a crash, not a task bug
-                # (the task_retry_manager will handle requeueing)
-                self._state.reset_task_retry(task_id)
-
-                result.fixes_applied.append(
-                    ReconciliationFix(
-                        fix_type="stuck_task_recovered",
-                        task_id=task_id,
-                        level=task_level,
-                        worker_id=worker_id,
-                        old_value=TaskStatus.IN_PROGRESS.value,
-                        new_value=TaskStatus.FAILED.value,
-                        reason=f"Worker {worker_id} no longer active, marking failed",
+            if status == TaskStatus.IN_PROGRESS.value and worker_id is not None:
+                if worker_id not in active_workers:
+                    # Mark task as failed with reason
+                    self._state.set_task_status(
+                        task_id,
+                        TaskStatus.FAILED.value,
+                        error_message="worker_crash",
                     )
-                )
-                logger.warning(
-                    f"Task {task_id} stuck on dead worker {worker_id}, "
-                    "marked failed for reassignment"
-                )
+                    self._levels.mark_task_failed(
+                        task_id, error=f"Worker {worker_id} crashed/stopped"
+                    )
+
+                    # Reset retry count since this is a crash, not a task bug
+                    # (the task_retry_manager will handle requeueing)
+                    self._state.reset_task_retry(task_id)
+
+                    result.fixes_applied.append(
+                        ReconciliationFix(
+                            fix_type="stuck_task_recovered",
+                            task_id=task_id,
+                            level=task_level,
+                            worker_id=worker_id,
+                            old_value=TaskStatus.IN_PROGRESS.value,
+                            new_value=TaskStatus.FAILED.value,
+                            reason=f"Worker {worker_id} no longer active, marking failed for reassignment",
+                        )
+                    )
+                    logger.warning(
+                        f"Task {task_id} stuck on dead worker {worker_id}, "
+                        "marked failed for reassignment"
+                    )
 
     def _check_stale_workers(
         self, result: ReconciliationResult, timeout_seconds: int = 120
@@ -420,7 +418,7 @@ class StateReconciler:
             return
 
         workers_state = self._state._state.get("workers", {})
-        worker_ids = [int(wid) for wid in workers_state]
+        worker_ids = [int(wid) for wid in workers_state.keys()]
 
         stale_workers = self._heartbeat_monitor.get_stalled_workers(
             worker_ids, timeout_seconds
