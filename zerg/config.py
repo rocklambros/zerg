@@ -350,6 +350,19 @@ class PlanningConfig(BaseModel):
     )
 
 
+class RushConfig(BaseModel):
+    """Rush execution configuration."""
+
+    defer_merge_to_ship: bool = Field(
+        default=True,
+        description="Defer merging to main until /zerg:git ship is called",
+    )
+    gates_at_ship_only: bool = Field(
+        default=True,
+        description="Run quality gates only at ship time, not after each level",
+    )
+
+
 class ZergConfig(BaseModel):
     """Complete ZERG configuration."""
 
@@ -378,6 +391,7 @@ class ZergConfig(BaseModel):
     repo_map: RepoMapConfig = Field(default_factory=RepoMapConfig)
     token_metrics: TokenMetricsConfig = Field(default_factory=TokenMetricsConfig)
     planning: PlanningConfig = Field(default_factory=PlanningConfig)
+    rush: RushConfig = Field(default_factory=RushConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "ZergConfig":

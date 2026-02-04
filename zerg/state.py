@@ -17,6 +17,7 @@ from zerg.logging import get_logger
 from zerg.types import ExecutionEvent, WorkerState
 
 if TYPE_CHECKING:
+    from zerg.dependency_checker import DependencyChecker
     from zerg.types import FeatureMetrics
 
 logger = get_logger("state")
@@ -315,7 +316,13 @@ class StateManager:
                 workers[int(wid_str)] = WorkerState.from_dict(data)
             return workers
 
-    def claim_task(self, task_id: str, worker_id: int) -> bool:
+    def claim_task(
+        self,
+        task_id: str,
+        worker_id: int,
+        current_level: int | None = None,
+        dependency_checker: "DependencyChecker | None" = None,
+    ) -> bool:
         """Attempt to claim a task for a worker.
 
         Uses cross-process file locking to prevent race conditions.
@@ -323,6 +330,8 @@ class StateManager:
         Args:
             task_id: Task to claim
             worker_id: Worker claiming the task
+            current_level: If provided, verify task is at this level
+            dependency_checker: If provided, verify all dependencies are complete
 
         Returns:
             True if claim succeeded
@@ -330,6 +339,20 @@ class StateManager:
         with self._atomic_update():
             task_state = self._state.get("tasks", {}).get(task_id, {})
             current_status = task_state.get("status", TaskStatus.PENDING.value)
+
+            # Level enforcement: verify task is at expected level
+            if current_level is not None:
+                task_level = task_state.get("level")
+                if task_level != current_level:
+                    logger.warning(f"Level mismatch for {task_id}: expected L{current_level}, task is L{task_level}")
+                    return False
+
+            # Dependency enforcement: verify all dependencies are complete
+            if dependency_checker is not None:
+                incomplete = dependency_checker.get_incomplete_dependencies(task_id)
+                if incomplete:
+                    logger.warning(f"Cannot claim {task_id}: incomplete dependencies {incomplete}")
+                    return False
 
             # Can only claim pending tasks
             if current_status not in (TaskStatus.TODO.value, TaskStatus.PENDING.value):

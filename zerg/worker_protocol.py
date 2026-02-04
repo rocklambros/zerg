@@ -22,6 +22,7 @@ from zerg.constants import (
     WorkerStatus,
 )
 from zerg.context_tracker import ContextTracker
+from zerg.dependency_checker import DependencyChecker
 from zerg.git_ops import GitOps
 from zerg.log_writer import StructuredLogWriter, TaskArtifactCapture
 from zerg.logging import get_logger, set_worker_context, setup_structured_logging
@@ -146,6 +147,12 @@ class WorkerProtocol:
             except Exception as e:
                 logger.warning(f"Failed to load task graph: {e}")
                 self.task_parser = None
+
+        # Dependency checker for enforcing task dependencies during claim
+        self.dependency_checker: DependencyChecker | None = None
+        if self.task_parser:
+            self.dependency_checker = DependencyChecker(self.task_parser, self.state)
+            logger.debug("Initialized DependencyChecker for task claiming")
 
         # Spec loader for feature context injection
         spec_dir = os.environ.get("ZERG_SPEC_DIR")
@@ -366,8 +373,12 @@ class WorkerProtocol:
             pending = self.state.get_tasks_by_status(TaskStatus.PENDING)
 
             for task_id in pending:
-                # Try to claim this task
-                if self.state.claim_task(task_id, self.worker_id):
+                # Try to claim this task with dependency enforcement
+                if self.state.claim_task(
+                    task_id,
+                    self.worker_id,
+                    dependency_checker=self.dependency_checker,
+                ):
                     # Load full task from task graph if available
                     task = self._load_task_details(task_id)
                     self.current_task = task
@@ -420,8 +431,12 @@ class WorkerProtocol:
             pending = self.state.get_tasks_by_status(TaskStatus.PENDING)
 
             for task_id in pending:
-                # Try to claim this task
-                if self.state.claim_task(task_id, self.worker_id):
+                # Try to claim this task with dependency enforcement
+                if self.state.claim_task(
+                    task_id,
+                    self.worker_id,
+                    dependency_checker=self.dependency_checker,
+                ):
                     # Load full task from task graph if available
                     task = self._load_task_details(task_id)
                     self.current_task = task

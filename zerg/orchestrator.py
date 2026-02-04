@@ -33,6 +33,7 @@ from zerg.constants import (
 )
 from zerg.containers import ContainerManager
 from zerg.context_plugin import ContextEngineeringPlugin
+from zerg.event_emitter import EventEmitter
 from zerg.gates import GateRunner
 from zerg.launcher import (
     ContainerLauncher,
@@ -128,6 +129,7 @@ class Orchestrator:
 
         # Initialize core components
         self.state = StateManager(feature)
+        self.event_emitter = EventEmitter(feature, state_dir=self.repo_path / ".zerg" / "state")
         self.levels = LevelController()
         self.parser = TaskParser()
         self.gates = GateRunner(self.config, plugin_registry=self._plugin_registry)
@@ -179,6 +181,11 @@ class Orchestrator:
         self._workers: dict[int, WorkerState] = {}
         self._on_task_complete: list[Callable[[str], None]] = []
         self._on_level_complete: list[Callable[[int], None]] = []
+
+        # Wire EventEmitter to emit events for live streaming
+        self._on_task_complete.append(lambda task_id: self.event_emitter.emit("task_complete", {"task_id": task_id}))
+        self._on_level_complete.append(lambda level: self.event_emitter.emit("level_complete", {"level": level}))
+
         self._poll_interval = 15  # seconds (FR-2: reduced from 5s for lower monitoring overhead)
         self._max_retry_attempts = self.config.workers.retry_attempts
         self._restart_counts: dict[int, int] = {}  # worker_id -> restart count
@@ -365,6 +372,7 @@ class Orchestrator:
         return self._launcher_config._get_worker_image_name()
 
     def _handle_task_failure(self, task_id: str, worker_id: int, error: str) -> bool:
+        self.event_emitter.emit("task_fail", {"task_id": task_id, "worker_id": worker_id, "error": error})
         return self._retry_manager.handle_task_failure(task_id, worker_id, error)
 
     def _check_retry_ready_tasks(self) -> None:
@@ -536,6 +544,7 @@ class Orchestrator:
     def _start_level(self, level: int) -> None:
         self._level_coord.assigner = self.assigner
         self._level_coord.start_level(level)
+        self.event_emitter.emit("level_start", {"level": level})
 
     def _on_level_complete_handler(self, level: int) -> bool:
         result = self._level_coord.handle_level_complete(level)

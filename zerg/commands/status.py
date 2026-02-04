@@ -15,6 +15,7 @@ from rich.text import Text
 
 from zerg.claude_tasks_reader import ClaudeTasksReader
 from zerg.constants import SPECS_DIR, STATE_DIR, TaskStatus, WorkerStatus
+from zerg.event_emitter import EventEmitter
 from zerg.heartbeat import HeartbeatMonitor
 from zerg.logging import get_logger
 from zerg.metrics import MetricsCollector
@@ -125,6 +126,7 @@ def get_step_progress_for_task(
 @click.option("--feature", "-f", help="Feature to show status for")
 @click.option("--watch", "-w", is_flag=True, help="Continuous update mode")
 @click.option("--dashboard", "-d", is_flag=True, help="Real-time dashboard view")
+@click.option("--live", is_flag=True, help="Live event streaming mode")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.option("--level", "-l", type=int, help="Filter to specific level")
 @click.option("--interval", default=1, type=int, help="Refresh interval in seconds (default: 1)")
@@ -137,6 +139,7 @@ def status(
     feature: str | None,
     watch: bool,
     dashboard: bool,
+    live: bool,
     json_output: bool,
     level: int | None,
     interval: int,
@@ -236,6 +239,8 @@ def status(
             show_commits_view(state, feature)
         elif json_output:
             show_json_status(state, level)
+        elif live:
+            show_live_status(state, feature)
         elif dashboard:
             show_dashboard(state, feature, interval)
         elif watch:
@@ -608,6 +613,63 @@ class DashboardRenderer:
 
         content = Text("[dim]No events yet[/dim]") if not lines else Text("\n").join(lines)
         return Panel(content, title="[bold]EVENTS[/bold]", title_align="left", padding=(0, 1))
+
+
+def show_live_status(state: StateManager, feature: str) -> None:
+    """Live event streaming mode using EventEmitter.
+
+    Subscribes to events and displays them in real-time using Rich Live.
+
+    Args:
+        state: State manager
+        feature: Feature name
+    """
+    emitter = EventEmitter(feature)
+    events_text = Text()
+    event_count = 0
+
+    def handle_event(event_type: str, data: dict[str, Any]) -> None:
+        nonlocal events_text, event_count
+        event_count += 1
+        ts = datetime.now().strftime("%H:%M:%S")
+
+        line = Text()
+        line.append(f"[{ts}] ", style="dim")
+
+        if event_type == "level_start":
+            line.append("▶ ", style="cyan")
+            line.append(f"Level {data.get('level', '?')} started")
+        elif event_type == "task_complete":
+            line.append("✓ ", style="green")
+            line.append(f"Task {data.get('task_id', '?')} complete")
+        elif event_type == "task_fail":
+            line.append("✗ ", style="red")
+            line.append(f"Task {data.get('task_id', '?')} failed: {data.get('error', 'unknown')[:40]}")
+        elif event_type == "level_complete":
+            line.append("✓ ", style="green bold")
+            line.append(f"Level {data.get('level', '?')} complete")
+        else:
+            line.append(f"• {event_type}: ")
+            line.append(str(data)[:60])
+
+        events_text.append(line)
+        events_text.append("\n")
+
+    console.print(f"[bold]Live Events for {feature}[/bold]")
+    console.print("[dim]Watching for events... (Ctrl+C to stop)[/dim]\n")
+
+    emitter.start_watching(handle_event)
+
+    try:
+        with Live(events_text, console=console, refresh_per_second=4) as live:
+            while True:
+                time.sleep(0.25)
+                live.update(events_text)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        emitter.stop_watching()
+        console.print(f"\n[dim]Received {event_count} events[/dim]")
 
 
 def show_dashboard(state: StateManager, feature: str, interval: int = 1) -> None:

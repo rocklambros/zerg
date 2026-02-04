@@ -257,6 +257,9 @@ class MergeCoordinator:
     ) -> str:
         """Finalize merge by merging staging into target.
 
+        Uses detached HEAD checkout to prevent 'branch used by worktree'
+        errors when deleting the staging branch afterward.
+
         Args:
             staging_branch: Staging branch with merged changes
             target_branch: Final target branch
@@ -265,6 +268,17 @@ class MergeCoordinator:
             Merge commit SHA
         """
         logger.info(f"Finalizing: merging {staging_branch} into {target_branch}")
+
+        # Detach HEAD first to release any branch lock from current worktree
+        # This prevents "cannot delete branch used by worktree" errors
+        try:
+            current = self.git.current_branch()
+            if current == staging_branch:
+                # Detach HEAD to release staging branch lock
+                self.git._run("checkout", "--detach", "HEAD")
+                logger.debug(f"Detached HEAD from {staging_branch}")
+        except Exception as e:
+            logger.debug(f"Could not detach HEAD (may already be detached): {e}")
 
         self.git.checkout(target_branch)
         commit = self.git.merge(

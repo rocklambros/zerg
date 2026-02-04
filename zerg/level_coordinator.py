@@ -177,6 +177,22 @@ class LevelCoordinator:
         """
         logger.info(f"Level {level} complete")
 
+        # Check if merge should be deferred to ship time
+        if self.config.rush.defer_merge_to_ship:
+            logger.info(f"Deferring merge for level {level} (defer_merge_to_ship=True)")
+            self.state.set_level_status(level, "complete")
+            self.state.set_level_merge_status(level, LevelMergeStatus.PENDING)
+            self.state.append_event(
+                "level_complete",
+                {"level": level, "merge_deferred": True},
+            )
+
+            # Notify callbacks
+            for callback in self._on_level_complete:
+                callback(level)
+
+            return True
+
         # Update merge status to indicate we're starting merge
         self.state.set_level_merge_status(level, LevelMergeStatus.MERGING)
 
@@ -353,11 +369,17 @@ class LevelCoordinator:
                 target_branch="main",
             )
 
+        # Check if gates should be skipped (only run at ship time)
+        skip_gates = self.config.rush.gates_at_ship_only
+        if skip_gates:
+            logger.info(f"Skipping gates for level {level} (gates_at_ship_only=True)")
+
         # Execute full merge flow and store result for loop reuse
         result = self.merger.full_merge_flow(
             level=level,
             worker_branches=worker_branches,
             target_branch="main",
+            skip_gates=skip_gates,
         )
         self.last_merge_result = result
         return result

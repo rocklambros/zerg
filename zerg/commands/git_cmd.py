@@ -441,6 +441,9 @@ def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_me
     """Ship: commit -> push -> PR -> merge -> cleanup in one shot."""
     import subprocess as _subprocess
 
+    from zerg.config import ZergConfig
+    from zerg.merge import MergeCoordinator
+
     current = git.current_branch()
     if current == base:
         console.print(f"[yellow]Already on {base}, nothing to ship[/yellow]")
@@ -476,35 +479,68 @@ def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_me
 
     # Step 3: Merge PR
     console.print("\n[bold]Step 3/5: Merge PR[/bold]")
-    try:
-        # Get PR number
-        pr_result = _subprocess.run(
-            ["gh", "pr", "view", "--json", "number", "-q", ".number"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        pr_number = pr_result.stdout.strip()
 
-        # Try regular merge first
-        merge_result = _subprocess.run(
-            ["gh", "pr", "merge", pr_number, "--squash", "--delete-branch"],
-            capture_output=True,
-            text=True,
-        )
-        if merge_result.returncode != 0:
-            # Fall back to admin merge
-            console.print("[dim]Regular merge blocked, trying with --admin...[/dim]")
-            _subprocess.run(
-                ["gh", "pr", "merge", pr_number, "--squash", "--admin", "--delete-branch"],
+    # Check if we should use ZERG merge with gates
+    config = ZergConfig.load()
+    feature = _detect_zerg_feature(current)
+    use_zerg_merge = feature is not None and config.rush.gates_at_ship_only
+
+    if use_zerg_merge:
+        console.print("[dim]Using ZERG merge coordinator with quality gates...[/dim]")
+        try:
+            merger = MergeCoordinator(feature, git, config)
+
+            # Run full merge with gates enabled
+            result = merger.full_merge_flow(
+                level=0,  # Ship level (all levels combined)
+                worker_branches=[current],
+                target_branch=base,
+                skip_gates=False,  # Always run gates at ship time
+            )
+
+            if not result.success:
+                console.print(f"[red]ZERG merge failed:[/red] {result.error}")
+                if result.gate_results:
+                    for gr in result.gate_results:
+                        if not gr.passed:
+                            console.print(f"  [red]\u2717[/red] Gate '{gr.gate_name}' failed")
+                return 1
+
+            console.print(f"[green]\u2713[/green] Merged with commit {result.merge_commit}")
+        except Exception as e:
+            console.print(f"[yellow]ZERG merge failed, falling back to gh merge:[/yellow] {e}")
+            use_zerg_merge = False
+
+    if not use_zerg_merge:
+        try:
+            # Get PR number
+            pr_result = _subprocess.run(
+                ["gh", "pr", "view", "--json", "number", "-q", ".number"],
                 capture_output=True,
                 text=True,
                 check=True,
             )
-        console.print(f"[green]\u2713[/green] Merged PR #{pr_number}")
-    except _subprocess.CalledProcessError as e:
-        console.print(f"[red]Merge failed:[/red] {e.stderr or e}")
-        return 1
+            pr_number = pr_result.stdout.strip()
+
+            # Try regular merge first
+            merge_result = _subprocess.run(
+                ["gh", "pr", "merge", pr_number, "--squash", "--delete-branch"],
+                capture_output=True,
+                text=True,
+            )
+            if merge_result.returncode != 0:
+                # Fall back to admin merge
+                console.print("[dim]Regular merge blocked, trying with --admin...[/dim]")
+                _subprocess.run(
+                    ["gh", "pr", "merge", pr_number, "--squash", "--admin", "--delete-branch"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+            console.print(f"[green]\u2713[/green] Merged PR #{pr_number}")
+        except _subprocess.CalledProcessError as e:
+            console.print(f"[red]Merge failed:[/red] {e.stderr or e}")
+            return 1
 
     # Step 4: Switch to base + pull
     console.print("\n[bold]Step 4/5: Update base[/bold]")
@@ -522,6 +558,23 @@ def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_me
 
     console.print(f"\n[bold green]\u2713 Shipped {current} \u2192 {base}[/bold green]")
     return 0
+
+
+def _detect_zerg_feature(branch: str) -> str | None:
+    """Detect ZERG feature name from branch name.
+
+    Args:
+        branch: Git branch name
+
+    Returns:
+        Feature name if this is a ZERG branch, None otherwise
+    """
+    # ZERG branches follow pattern: zerg/{feature}/worker-{n}
+    if branch.startswith("zerg/"):
+        parts = branch.split("/")
+        if len(parts) >= 2:
+            return parts[1]
+    return None
 
 
 @click.command("git")

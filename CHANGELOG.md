@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `DependencyChecker` class for verifying task dependencies before claiming (#OCF)
+- `EventEmitter` class for JSONL-based live event streaming with subscribe/unsubscribe (#OCF)
+- `RushConfig` with `defer_merge_to_ship` and `gates_at_ship_only` flags for deferred merge workflows (#OCF)
+- Level enforcement in `StateManager.claim_task()` via `current_level` parameter (#OCF)
+- Dependency enforcement in `StateManager.claim_task()` via `dependency_checker` parameter (#OCF)
+- `LevelMergeStatus` enum for tracking per-level merge state (PENDING, IN_PROGRESS, COMPLETE, FAILED) (#OCF)
+- Integration tests for claim enforcement (`test_claim_enforcement.py`) and deferred merge (`test_deferred_merge.py`) (#OCF)
+- Unit tests for `DependencyChecker` and `EventEmitter` (#OCF)
 - `--skip-tests` flag for `/zerg:rush`: skip test gates until final level for faster iteration (lint-only mode)
 - Integration tests for rush performance optimizations (`tests/integration/test_rush_performance.py`)
 - `@pytest.mark.slow` markers on resilience tests (`test_resilience_config.py`, `test_state_reconciler.py`, `test_resilience_e2e.py`)
@@ -30,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `DependencyChecker` now uses `TaskStatus.COMPLETE.value` instead of hardcoded "COMPLETE" string (#OCF)
+- `WorkerProtocol` now initializes and passes `DependencyChecker` to claim_task for runtime dependency enforcement (#OCF)
 - Lint issues resolved by PR #117 (#104)
 - Task prefixes added to all ZERG command files for Claude Task integration (#105)
 - Removed confirmed dead code after improved `CrossFileChecker` analysis (#107)
