@@ -13,13 +13,7 @@
       "worker_id": 0,
       "level": 0,
       "estimated_minutes": 15
-    },
-    {
-      "task_id": "T3",
-      "worker_id": 0,
-      "level": 0,
-      "estimated_minutes": 15
     }
   ],
-  "generated_at": "2026-02-03T12:38:52.641989"
+  "generated_at": "2026-02-04T09:10:05.315035"
 }

@@ -1,0 +1,13 @@
+{
+  "gate_name": "security",
+  "timestamp": 1770170366.662627,
+  "result": {
+    "name": "security",
+    "result": "fail",
+    "command": "ruff check . --select S",
+    "exit_code": 1,
+    "duration_ms": 42,
+    "stdout": "S603 `subprocess` call: check for execution of untrusted input\n  --> tests/conftest.py:18:5\n   |\n16 | def _run_git(*args: str, cwd: Path | None = None) -> None:\n17 |     \"\"\"Run git command safely without shell=True.\"\"\"\n18 |     subprocess.run(\n   |     ^^^^^^^^^^^^^^\n19 |         [\"git\", *args],\n20 |         cwd=cwd,\n   |\n\nS607 Starting a process with a partial executable path\n  --> tests/conftest.py:19:9\n   |\n17 |     \"\"\"Run git command safely without shell=True.\"\"\"\n18 |     subprocess.run(\n19 ",
+    "stderr": ""
+  }
+}

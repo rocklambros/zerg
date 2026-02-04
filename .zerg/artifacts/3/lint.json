@@ -1,0 +1,13 @@
+{
+  "gate_name": "lint",
+  "timestamp": 1770170298.221129,
+  "result": {
+    "name": "lint",
+    "result": "pass",
+    "command": "ruff check .",
+    "exit_code": 0,
+    "duration_ms": 25,
+    "stdout": "All checks passed!\n",
+    "stderr": ""
+  }
+}

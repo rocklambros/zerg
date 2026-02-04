@@ -1,0 +1,13 @@
+{
+  "gate_name": "typecheck",
+  "timestamp": 1770179826.984444,
+  "result": {
+    "name": "typecheck",
+    "result": "fail",
+    "command": "mypy zerg/ --ignore-missing-imports",
+    "exit_code": 1,
+    "duration_ms": 895,
+    "stdout": "zerg/repo_map_js.py:80: error: Missing type parameters for generic type \"Match\"  [type-arg]\nzerg/doc_engine/mermaid.py:213: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\nzerg/doc_engine/mermaid.py:219: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\nzerg/doc_engine/mermaid.py:221: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-def",
+    "stderr": ""
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "gate_name": "coverage",
+  "timestamp": 1770170366.6202319,
+  "result": {
+    "name": "coverage",
+    "result": "fail",
+    "command": "pytest tests/unit/ --cov=zerg --cov-fail-under=80 -q --timeout=30",
+    "exit_code": 1,
+    "duration_ms": 309710,
+    "stdout": "............................................+++++++++++++++++++++++++++++++++++ Timeout ++++++++++++++++++++++++++++++++++++\n~~~~~~~~~~~~~~~~~ Stack of ThreadPoolExecutor-1_7 (6299234304) ~~~~~~~~~~~~~~~~~\n  File \"/opt/anaconda3/lib/python3.13/threading.py\", line 1014, in _bootstrap\n    self._bootstrap_inner()\n  File \"/opt/anaconda3/lib/python3.13/threading.py\", line 1043, in _bootstrap_inner\n    self.run()\n  File \"/opt/anaconda3/lib/python3.13/threading.py\", line 994, in run\n    self._target(*s",
+    "stderr": ""
+  }
+}

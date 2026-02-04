@@ -1,0 +1,173 @@
+{
+  "feature": "github-issues-batch",
+  "version": "2.0",
+  "generated": "2026-02-04T09:20:00Z",
+  "total_tasks": 6,
+  "estimated_duration_minutes": 45,
+  "max_parallelization": 2,
+  "formatting_required": true,
+  "pre_commit_commands": ["ruff format", "ruff check --fix"],
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Fix circular imports and deep import chains (#106)",
+      "description": "Resolve 3 circular imports and 5 deep import chains in zerg/ module. Use lazy imports or restructure modules to break cycles. IMPORTANT: Run 'ruff format .' and 'ruff check --fix .' before staging any changes.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/__init__.py", "zerg/orchestrator.py", "zerg/launcher.py"],
+        "read": ["zerg/"]
+      },
+      "verification": {
+        "command": "ruff format . && ruff check . && python -c 'import zerg; print(\"imports ok\")'",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-003"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add Task prefixes to command files (#105)",
+      "description": "Audit command files in zerg/data/commands/ and ensure TaskCreate/TaskUpdate calls have [Bracketed] subject prefixes. IMPORTANT: Run 'ruff format .' before staging.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/analyze.md", "zerg/data/commands/build.md", "zerg/data/commands/cleanup.md", "zerg/data/commands/test.md"],
+        "read": ["zerg/data/commands/_template.md"]
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands 2>&1 | grep -q 'validated' || python -m zerg.validate_commands",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-003",
+      "title": "Fix task state inconsistency (#111)",
+      "description": "Ensure tasks cannot transition from 'complete' to 'failed'. Add state machine validation in state.py. IMPORTANT: Run 'ruff format zerg/' and 'ruff check --fix zerg/' before staging.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/state.py"],
+        "read": ["zerg/types.py"]
+      },
+      "verification": {
+        "command": "ruff format zerg/state.py && ruff check zerg/state.py && python -m pytest tests/unit/test_state.py -v --timeout=30",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-005"],
+      "integration_test": "tests/integration/test_state_transitions.py"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Fix level order violations (#110)",
+      "description": "Ensure tasks complete in level order. Add level validation in level_coordinator.py. IMPORTANT: Run 'ruff format zerg/' before staging.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/level_coordinator.py"],
+        "read": ["zerg/orchestrator.py"]
+      },
+      "verification": {
+        "command": "ruff format zerg/level_coordinator.py && ruff check zerg/level_coordinator.py && python -m pytest tests/unit/test_level_coordinator.py -v --timeout=30",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-005"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-005",
+      "title": "Fix worker pause behavior (#108)",
+      "description": "Workers should stop executing when orchestrator pauses on gate failure. Add pause check in worker protocol. IMPORTANT: Run 'ruff format zerg/' before staging.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/worker_protocol.py"],
+        "read": ["zerg/state.py", "zerg/level_coordinator.py"]
+      },
+      "verification": {
+        "command": "ruff format zerg/worker_protocol.py && ruff check zerg/worker_protocol.py && python -m pytest tests/unit/test_worker_protocol.py -v --timeout=30",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-006"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-006",
+      "title": "Add worker timeout handling (#109)",
+      "description": "Add timeout watchdog for Claude API calls in workers to prevent indefinite hangs. IMPORTANT: Run 'ruff format zerg/' before staging.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": ["zerg/worker_protocol.py"]
+      },
+      "verification": {
+        "command": "ruff format zerg/launcher.py && ruff check zerg/launcher.py && python -m pytest tests/unit/test_launcher.py -v -k timeout --timeout=30",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 15
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-005", "TASK-006"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  },
+
+  "notes": [
+    "All tasks include explicit formatting commands in verification",
+    "Workers MUST run 'ruff format' before staging changes",
+    "Issue #107 (unused exports) deferred - requires extensive refactoring"
+  ]
+}

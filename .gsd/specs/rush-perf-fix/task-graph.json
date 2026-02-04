@@ -1,0 +1,150 @@
+{
+  "feature": "rush-perf-fix",
+  "version": "2.0",
+  "generated": "2026-02-04T15:30:00-07:00",
+  "total_tasks": 5,
+  "estimated_duration_minutes": 50,
+  "max_parallelization": 2,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add monitor cooldown to ContainerLauncher",
+      "description": "Add status caching to ContainerLauncher.monitor() to skip Docker calls if status was checked recently. Add MONITOR_COOLDOWN_SECONDS constant (10s). Check handle.health_check_at age, return cached status if < cooldown. Update timestamp after actual docker checks.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_launcher.py -v -k 'container' --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/integration/test_rush_performance.py",
+      "context": "## Security Rules (Python)\n- No subprocess calls with user input\n- Use subprocess.run with explicit args list\n\n## Spec Context\nFR-1: Add cooldown to ContainerLauncher.monitor(). Cache validity 10 seconds. Return cached handle.status if last check < cooldown. Update handle.health_check_at after Docker checks.\n\n## Dependencies\nNone - this is a foundation task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add singleton HeartbeatMonitor to SubprocessLauncher",
+      "description": "Cache HeartbeatMonitor instance in SubprocessLauncher instead of creating new one every monitor() call. Add _heartbeat_monitor attribute initialized to None. Add heartbeat_monitor property with lazy initialization. Update monitor() to use self.heartbeat_monitor instead of creating new instance.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": ["zerg/heartbeat.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_launcher.py -v -k 'subprocess' --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/integration/test_rush_performance.py",
+      "context": "## Security Rules (Python)\n- Lazy imports are acceptable for optional dependencies\n\n## Spec Context\nFR-4: Cache HeartbeatMonitor instance in SubprocessLauncher. Move instantiation to lazy singleton property. Reduces object allocation overhead.\n\n## Dependencies\nNone - this is a foundation task."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Increase orchestrator poll interval to 15s",
+      "description": "Change orchestrator poll interval from 5 seconds to 15 seconds. Modify self._poll_interval in Orchestrator.__init__() from 5 to 15. Add comment explaining the rationale (reduced monitoring overhead, worker state changes are infrequent).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_orchestrator.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": ["TASK-005"],
+      "integration_test": "tests/integration/test_rush_performance.py",
+      "context": "## Spec Context\nFR-2: Change poll interval from 5s to 15s. Worker state changes are infrequent (task completion every few minutes). 15s provides good balance of responsiveness and efficiency.\n\n## Dependencies\nNone - this is a foundation task."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add unit tests for monitoring optimizations",
+      "description": "Add unit tests for ContainerLauncher monitor cooldown and SubprocessLauncher HeartbeatMonitor singleton. Test: (1) monitor() returns cached status within cooldown, (2) monitor() calls docker after cooldown expires, (3) heartbeat_monitor property returns same instance.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_launcher.py"],
+        "read": ["zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_launcher.py -v -k 'monitor_cooldown or heartbeat_singleton' --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Testing Context\nTest ContainerLauncher.monitor() cooldown: mock datetime.now(), verify docker subprocess not called within cooldown. Test SubprocessLauncher.heartbeat_monitor: verify property returns same instance on multiple calls.\n\n## Dependencies\nTASK-001 adds MONITOR_COOLDOWN_SECONDS and cooldown logic. TASK-002 adds heartbeat_monitor property."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Add integration test for rush performance",
+      "description": "Add or update integration test to verify monitoring optimizations work correctly. Test: (1) orchestrator uses 15s poll interval, (2) rush completes successfully with optimizations, (3) docker call count is reduced (if measurable).",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["tests/integration/test_rush_performance.py"],
+        "read": ["zerg/orchestrator.py", "zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_rush_performance.py -v --tb=short",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Testing Context\nVerify poll_interval is 15s in Orchestrator. Verify rush cycle completes with monitoring optimizations. Optional: count docker subprocess calls with mock to verify reduction.\n\n## Dependencies\nTASK-003 changes poll interval. TASK-004 validates unit-level correctness."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "description": "Core optimization changes to launcher and orchestrator"
+    },
+    "2": {
+      "name": "testing",
+      "tasks": ["TASK-004", "TASK-005"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [1],
+      "description": "Unit and integration tests for optimizations"
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TASK-001", "TASK-002"],
+        "file": "zerg/launcher.py",
+        "resolution": "Different classes in same file - can merge cleanly"
+      }
+    ]
+  }
+}
