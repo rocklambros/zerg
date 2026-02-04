@@ -60,6 +60,11 @@ FILES_CREATE=$(echo $TASK | jq -r '.files.create[]' 2>/dev/null)
 FILES_MODIFY=$(echo $TASK | jq -r '.files.modify[]' 2>/dev/null)
 FILES_READ=$(echo $TASK | jq -r '.files.read[]' 2>/dev/null)
 VERIFICATION=$(echo $TASK | jq -r '.verification.command')
+
+# Load steps array (if present for bite-sized planning)
+HAS_STEPS=$(echo $TASK | jq -e '.steps | length > 0' 2>/dev/null && echo "true" || echo "false")
+STEPS=$(echo $TASK | jq -r '.steps // []')
+TOTAL_STEPS=$(echo $STEPS | jq 'length')
 ```
 
 #### 4.1.1 Claim Task in Claude Task System
@@ -73,7 +78,37 @@ Call **TaskUpdate**:
 
 This signals to other workers and the orchestrator that this task is actively being worked on.
 
-#### 4.2-4.3 Read Dependencies & Implement
+#### 4.2 Step-Based Execution (Bite-Sized Planning)
+
+**IMPORTANT**: Tasks may have an optional `steps` array. If present, execute steps in **STRICT ORDER**.
+
+**Step Actions** (TDD sequence):
+1. `write_test` - Create test file (red phase)
+2. `verify_fail` - Verify test fails (`verify: exit_code_nonzero`)
+3. `implement` - Write implementation code
+4. `verify_pass` - Verify test passes (`verify: exit_code`)
+5. `format` - Run formatter
+6. `commit` - Commit changes
+
+**Exit Code Verification per Step**:
+| Verify Mode | Expected | Description |
+|-------------|----------|-------------|
+| `exit_code` | 0 | Must succeed |
+| `exit_code_nonzero` | non-0 | Must fail (TDD red phase) |
+| `none` | any | No verification |
+
+**Heartbeat Updates**: Update heartbeat JSON BEFORE and AFTER each step:
+```json
+{"current_step": 3, "total_steps": 6, "step_action": "implement", "step_status": "executing"}
+```
+
+**On Step Failure**: STOP immediately. Retry up to 3 times. Do NOT skip steps.
+
+See `worker.core.md` for detailed step execution protocol (sections 4.2.1-4.2.6).
+
+#### 4.3 Classic Mode (No Steps)
+
+For tasks without steps:
 
 - Read files this task depends on (`files.read`)
 - Create files listed in `files.create`, modify files in `files.modify`

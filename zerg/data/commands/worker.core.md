@@ -71,6 +71,11 @@ FILES_CREATE=$(echo $TASK | jq -r '.files.create[]' 2>/dev/null)
 FILES_MODIFY=$(echo $TASK | jq -r '.files.modify[]' 2>/dev/null)
 FILES_READ=$(echo $TASK | jq -r '.files.read[]' 2>/dev/null)
 VERIFICATION=$(echo $TASK | jq -r '.verification.command')
+
+# Load steps array (if present for bite-sized planning)
+HAS_STEPS=$(echo $TASK | jq -e '.steps | length > 0' 2>/dev/null && echo "true" || echo "false")
+STEPS=$(echo $TASK | jq -r '.steps // []')
+TOTAL_STEPS=$(echo $STEPS | jq 'length')
 ```
 
 #### 4.1.1 Claim Task in Claude Task System
@@ -84,7 +89,177 @@ Call **TaskUpdate**:
 
 This signals to other workers and the orchestrator that this task is actively being worked on.
 
-#### 4.2-4.3 Read Dependencies & Implement
+#### 4.2 Step-Based vs Classic Execution
+
+**IMPORTANT**: Tasks may have an optional `steps` array for bite-sized planning.
+
+- **If `steps` is present and non-empty**: Follow Step 4.2.1-4.2.6 (Step Execution Protocol)
+- **If `steps` is empty or absent**: Follow Step 4.3 (Classic Mode)
+
+#### 4.2.1 Load Steps from Task (Step Execution Protocol)
+
+When a task has steps, load and validate them first:
+
+```bash
+# Update heartbeat: step="loading_steps", current_step=0, total_steps=$TOTAL_STEPS
+# Heartbeat JSON: {"worker_id": $WORKER_ID, "task_id": "$TASK_ID", "current_step": 0, "total_steps": $TOTAL_STEPS, "step_action": "initializing"}
+
+# Steps array structure from task-graph.json:
+# [
+#   {"step": 1, "action": "write_test", "file": "tests/unit/test_foo.py", "verify": "none"},
+#   {"step": 2, "action": "verify_fail", "run": "pytest tests/unit/test_foo.py", "verify": "exit_code_nonzero"},
+#   {"step": 3, "action": "implement", "file": "zerg/foo.py", "verify": "none"},
+#   {"step": 4, "action": "verify_pass", "run": "pytest tests/unit/test_foo.py", "verify": "exit_code"},
+#   {"step": 5, "action": "format", "run": "ruff format tests/unit/test_foo.py zerg/foo.py", "verify": "exit_code"},
+#   {"step": 6, "action": "commit", "run": "git add -A && git commit -m \"...\"", "verify": "exit_code"}
+# ]
+```
+
+#### 4.2.2 Execute Steps in Strict Order
+
+**STRICT PROTOCOL**: Execute each step in sequence. NO skipping. NO reordering. NO deviation.
+
+```bash
+for STEP_NUM in $(seq 1 $TOTAL_STEPS); do
+  STEP=$(echo $STEPS | jq ".[$STEP_NUM - 1]")
+  ACTION=$(echo $STEP | jq -r '.action')
+  FILE=$(echo $STEP | jq -r '.file // empty')
+  RUN_CMD=$(echo $STEP | jq -r '.run // empty')
+  VERIFY_MODE=$(echo $STEP | jq -r '.verify // "exit_code"')
+  CODE_SNIPPET=$(echo $STEP | jq -r '.code_snippet // empty')
+
+  # Update heartbeat BEFORE executing step
+  # Heartbeat: {"current_step": $STEP_NUM, "total_steps": $TOTAL_STEPS, "step_action": "$ACTION", "status": "executing"}
+
+  case $ACTION in
+    "write_test")
+      # Create test file at $FILE
+      # If code_snippet provided (high detail), use as starting template
+      # Otherwise, write minimal failing test
+      ;;
+    "verify_fail")
+      # Run $RUN_CMD and verify it FAILS (exit_code_nonzero)
+      ;;
+    "implement")
+      # Create/modify implementation at $FILE
+      # If code_snippet provided, use as starting template
+      ;;
+    "verify_pass")
+      # Run $RUN_CMD and verify it PASSES (exit_code)
+      ;;
+    "format")
+      # Run formatter via $RUN_CMD
+      ;;
+    "commit")
+      # Run commit via $RUN_CMD
+      ;;
+  esac
+
+  # Execute verification per step (see 4.2.3)
+  # Update heartbeat AFTER step: {"current_step": $STEP_NUM, "step_status": "completed|failed"}
+
+  # If step fails, stop execution (see 4.2.4)
+done
+```
+
+#### 4.2.3 Exit Code Verification per Step
+
+Each step has a `verify` field specifying expected behavior:
+
+| Verify Mode | Expected Exit Code | Description |
+|-------------|-------------------|-------------|
+| `exit_code` | 0 | Command must succeed (exit 0) |
+| `exit_code_nonzero` | non-0 | Command must fail (TDD red phase) |
+| `none` | any | No verification (file creation steps) |
+
+```bash
+# Verification logic:
+eval "$RUN_CMD"
+EXIT_CODE=$?
+
+case $VERIFY_MODE in
+  "exit_code")
+    if [ $EXIT_CODE -ne 0 ]; then
+      echo "STEP $STEP_NUM FAILED: Expected exit 0, got $EXIT_CODE"
+      # Mark step as failed, update heartbeat
+      STEP_FAILED=true
+    fi
+    ;;
+  "exit_code_nonzero")
+    if [ $EXIT_CODE -eq 0 ]; then
+      echo "STEP $STEP_NUM FAILED: Expected non-zero exit, got 0"
+      # Mark step as failed, update heartbeat
+      STEP_FAILED=true
+    fi
+    ;;
+  "none")
+    # No verification required
+    ;;
+esac
+```
+
+#### 4.2.4 Step Failure Handling
+
+**STRICT PROTOCOL**: On step failure, STOP execution immediately. Do NOT proceed to next step.
+
+```bash
+if [ "$STEP_FAILED" = true ]; then
+  # Update heartbeat: {"step_status": "failed", "failed_step": $STEP_NUM, "failed_action": "$ACTION"}
+
+  # Retry logic (up to 3 attempts per step)
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [ $RETRY_COUNT -lt 3 ]; then
+    # Retry current step with different approach
+    continue
+  else
+    # After 3 failures: escalate and block task
+    # Write to .zerg/state/escalations.json with failed_step info
+    exit 1
+  fi
+fi
+```
+
+#### 4.2.5 Update Heartbeat Per Step
+
+**MANDATORY**: Update heartbeat BEFORE and AFTER each step execution.
+
+Heartbeat JSON structure for step execution:
+
+```json
+{
+  "worker_id": 2,
+  "timestamp": "2026-02-04T18:30:00Z",
+  "task_id": "BITE-L2-001",
+  "step_mode": true,
+  "current_step": 3,
+  "total_steps": 6,
+  "step_action": "implement",
+  "step_status": "executing",
+  "progress_pct": 50,
+  "step_history": [
+    {"step": 1, "action": "write_test", "status": "completed"},
+    {"step": 2, "action": "verify_fail", "status": "completed"},
+    {"step": 3, "action": "implement", "status": "executing"}
+  ]
+}
+```
+
+Write heartbeat to `.zerg/state/heartbeat-$WORKER_ID.json` every 15 seconds AND on each step transition.
+
+#### 4.2.6 Step Execution Complete
+
+After all steps complete successfully:
+
+```bash
+# Final heartbeat: {"step_status": "all_complete", "current_step": $TOTAL_STEPS, "progress_pct": 100}
+
+# Proceed to Step 4.4 (Verify Task) for final validation
+# Note: If steps included commit, verification may already be done
+```
+
+#### 4.3 Classic Mode (No Steps)
+
+For tasks without steps (standard detail level), follow classic execution:
 
 - Read files this task depends on (`files.read`)
 - Create files listed in `files.create`, modify files in `files.modify`
