@@ -308,6 +308,48 @@ class TokenMetricsConfig(BaseModel):
     fallback_chars_per_token: float = Field(default=4.0, ge=1.0, le=10.0)
 
 
+class PlanningConfig(BaseModel):
+    """Planning and detail level configuration for bite-sized task planning.
+
+    Controls how detailed task plans are generated, including TDD steps,
+    code snippets, and adaptive detail based on developer familiarity.
+    """
+
+    default_detail: str = Field(
+        default="standard",
+        pattern="^(standard|medium|high)$",
+        description="Default detail level: standard (no steps), medium (TDD steps), high (with snippets)",
+    )
+    include_code_snippets: bool = Field(
+        default=False,
+        description="Include code snippets in task steps (requires high detail level)",
+    )
+    include_test_first: bool = Field(
+        default=True,
+        description="Generate test-first (TDD) step sequences",
+    )
+    step_verification: bool = Field(
+        default=True,
+        description="Enable step-level exit code verification during execution",
+    )
+    adaptive_detail: bool = Field(
+        default=True,
+        description="Automatically reduce detail level based on familiarity and success rates",
+    )
+    adaptive_familiarity_threshold: int = Field(
+        default=3,
+        ge=1,
+        le=20,
+        description="Number of times a file must be modified before reducing detail",
+    )
+    adaptive_success_threshold: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Success rate threshold for reducing detail in a directory",
+    )
+
+
 class ZergConfig(BaseModel):
     """Complete ZERG configuration."""
 
@@ -335,6 +377,7 @@ class ZergConfig(BaseModel):
     verification_tiers: VerificationTiersConfig = Field(default_factory=VerificationTiersConfig)
     repo_map: RepoMapConfig = Field(default_factory=RepoMapConfig)
     token_metrics: TokenMetricsConfig = Field(default_factory=TokenMetricsConfig)
+    planning: PlanningConfig = Field(default_factory=PlanningConfig)
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "ZergConfig":
