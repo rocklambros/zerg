@@ -95,3 +95,13 @@ analyze:
     max_depth: 10
   context_engineering:
     auto_split: false
+
+# Planning configuration for bite-sized task planning
+planning:
+  default_detail: standard  # standard|medium|high
+  include_code_snippets: false
+  include_test_first: true
+  step_verification: true
+  adaptive_detail: true
+  adaptive_familiarity_threshold: 3
+  adaptive_success_threshold: 0.8

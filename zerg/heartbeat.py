@@ -28,6 +28,10 @@ class Heartbeat:
     task_id: str | None
     step: str  # "implementing", "verifying_tier1", etc.
     progress_pct: int  # 0-100
+    # Step execution progress (for bite-sized planning)
+    current_step: int | None = None  # Current step number (1-indexed)
+    total_steps: int | None = None  # Total steps in task
+    step_states: list[str] | None = None  # State per step: "completed", "in_progress", "pending", "failed"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -40,7 +44,43 @@ class Heartbeat:
             task_id=data.get("task_id"),
             step=data.get("step", "unknown"),
             progress_pct=data.get("progress_pct", 0),
+            current_step=data.get("current_step"),
+            total_steps=data.get("total_steps"),
+            step_states=data.get("step_states"),
         )
+
+    def get_step_progress_display(self) -> str | None:
+        """Get formatted step progress display.
+
+        Returns:
+            Formatted string like "[Step 3/5: ✅✅🔄⏳⏳]" or None if no steps.
+        """
+        if self.current_step is None or self.total_steps is None:
+            return None
+
+        # Build emoji indicators
+        indicators = []
+        if self.step_states:
+            for state in self.step_states:
+                if state == "completed":
+                    indicators.append("✅")
+                elif state == "in_progress":
+                    indicators.append("🔄")
+                elif state == "failed":
+                    indicators.append("❌")
+                else:  # pending or unknown
+                    indicators.append("⏳")
+        else:
+            # Fallback: derive states from current_step
+            for i in range(1, self.total_steps + 1):
+                if i < self.current_step:
+                    indicators.append("✅")
+                elif i == self.current_step:
+                    indicators.append("🔄")
+                else:
+                    indicators.append("⏳")
+
+        return f"[Step {self.current_step}/{self.total_steps}: {''.join(indicators)}]"
 
     def is_stale(self, timeout_seconds: int) -> bool:
         """Check if this heartbeat is older than timeout_seconds."""
@@ -71,14 +111,30 @@ class HeartbeatWriter:
         task_id: str | None = None,
         step: str = "idle",
         progress_pct: int = 0,
+        *,
+        current_step: int | None = None,
+        total_steps: int | None = None,
+        step_states: list[str] | None = None,
     ) -> Heartbeat:
-        """Write a heartbeat file atomically (temp+rename)."""
+        """Write a heartbeat file atomically (temp+rename).
+
+        Args:
+            task_id: Current task ID being executed.
+            step: Current activity description (e.g., "implementing").
+            progress_pct: Overall progress percentage (0-100).
+            current_step: Current step number for bite-sized tasks (1-indexed).
+            total_steps: Total number of steps in the task.
+            step_states: List of states per step ("completed", "in_progress", "pending", "failed").
+        """
         heartbeat = Heartbeat(
             worker_id=self._worker_id,
             timestamp=datetime.now(UTC).isoformat(),
             task_id=task_id,
             step=step,
             progress_pct=max(0, min(100, progress_pct)),
+            current_step=current_step,
+            total_steps=total_steps,
+            step_states=step_states,
         )
 
         target = self.heartbeat_path

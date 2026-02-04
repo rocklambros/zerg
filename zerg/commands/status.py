@@ -14,7 +14,8 @@ from rich.table import Table
 from rich.text import Text
 
 from zerg.claude_tasks_reader import ClaudeTasksReader
-from zerg.constants import SPECS_DIR, TaskStatus, WorkerStatus
+from zerg.constants import SPECS_DIR, STATE_DIR, TaskStatus, WorkerStatus
+from zerg.heartbeat import HeartbeatMonitor
 from zerg.logging import get_logger
 from zerg.metrics import MetricsCollector
 from zerg.state import StateManager
@@ -45,6 +46,79 @@ WORKER_COLORS = {
     WorkerStatus.STOPPED: "dim",
     WorkerStatus.BLOCKED: "red",
 }
+
+# Step progress emoji indicators
+STEP_INDICATORS = {
+    "completed": "✅",
+    "in_progress": "🔄",
+    "pending": "⏳",
+    "failed": "❌",
+}
+
+
+def format_step_progress(
+    current_step: int | None,
+    total_steps: int | None,
+    step_states: list[str] | None = None,
+) -> str | None:
+    """Format step progress as a visual indicator.
+
+    Args:
+        current_step: Current step number (1-indexed).
+        total_steps: Total number of steps.
+        step_states: List of states per step ("completed", "in_progress", "pending", "failed").
+
+    Returns:
+        Formatted string like "[Step 3/5: ✅✅🔄⏳⏳]" or None if no steps.
+    """
+    if current_step is None or total_steps is None or total_steps == 0:
+        return None
+
+    # Build emoji indicators
+    indicators = []
+    if step_states:
+        for state in step_states:
+            indicators.append(STEP_INDICATORS.get(state, "⏳"))
+    else:
+        # Fallback: derive states from current_step
+        for i in range(1, total_steps + 1):
+            if i < current_step:
+                indicators.append(STEP_INDICATORS["completed"])
+            elif i == current_step:
+                indicators.append(STEP_INDICATORS["in_progress"])
+            else:
+                indicators.append(STEP_INDICATORS["pending"])
+
+    return f"[Step {current_step}/{total_steps}: {''.join(indicators)}]"
+
+
+def get_step_progress_for_task(
+    task_id: str,
+    worker_id: int | None,
+    heartbeat_monitor: HeartbeatMonitor | None,
+) -> str | None:
+    """Get step progress display for a task from heartbeat data.
+
+    Args:
+        task_id: The task ID.
+        worker_id: The worker ID executing the task.
+        heartbeat_monitor: HeartbeatMonitor instance for reading heartbeats.
+
+    Returns:
+        Formatted step progress string or None.
+    """
+    if worker_id is None or heartbeat_monitor is None:
+        return None
+
+    heartbeat = heartbeat_monitor.read(worker_id)
+    if heartbeat is None:
+        return None
+
+    # Only show step progress if this heartbeat is for the requested task
+    if heartbeat.task_id != task_id:
+        return None
+
+    return heartbeat.get_step_progress_display()
 
 
 @click.command()
@@ -349,8 +423,11 @@ class DashboardRenderer:
         return Panel(content, title="[bold]LEVELS[/bold]", title_align="left", padding=(0, 1))
 
     def _render_workers(self) -> Panel:
-        """Render worker status section."""
+        """Render worker status section with step progress."""
         workers = self.state.get_all_workers()
+
+        # Initialize heartbeat monitor for reading step progress
+        heartbeat_monitor = HeartbeatMonitor(state_dir=STATE_DIR)
 
         lines = []
         for worker_id, worker in sorted(workers.items()):
@@ -366,25 +443,36 @@ class DashboardRenderer:
             line.append(f"W{worker_id} ", style="bold")
             line.append(f"{status_str:12}", style=color)
             line.append(f"{worker.current_task or '-':16}")
-            line.append(" [")
 
-            # Color context bar based on usage
-            bar_filled = int(20 * ctx)
-            if ctx > 0.85:
-                line.append(ctx_bar[:bar_filled], style="red")
-            elif ctx > 0.70:
-                line.append(ctx_bar[:bar_filled], style="yellow")
-            else:
-                line.append(ctx_bar[:bar_filled], style="green")
-            line.append(ctx_bar[bar_filled:], style="dim")
-            line.append("] ")
+            # Get step progress from heartbeat
+            step_progress = None
+            if worker.current_task:
+                heartbeat = heartbeat_monitor.read(worker_id)
+                if heartbeat and heartbeat.task_id == worker.current_task:
+                    step_progress = heartbeat.get_step_progress_display()
 
-            ctx_str = f"ctx:{ctx_percent:2}%"
-            if ctx > 0.85:
-                line.append(ctx_str, style="red")
-                line.append(" ⚠", style="yellow")
+            # Show step progress or context bar
+            if step_progress:
+                line.append(f" {step_progress}")
             else:
-                line.append(ctx_str)
+                line.append(" [")
+                # Color context bar based on usage
+                bar_filled = int(20 * ctx)
+                if ctx > 0.85:
+                    line.append(ctx_bar[:bar_filled], style="red")
+                elif ctx > 0.70:
+                    line.append(ctx_bar[:bar_filled], style="yellow")
+                else:
+                    line.append(ctx_bar[:bar_filled], style="green")
+                line.append(ctx_bar[bar_filled:], style="dim")
+                line.append("] ")
+
+                ctx_str = f"ctx:{ctx_percent:2}%"
+                if ctx > 0.85:
+                    line.append(ctx_str, style="red")
+                    line.append(" ⚠", style="yellow")
+                else:
+                    line.append(ctx_str)
 
             lines.append(line)
 
@@ -756,7 +844,7 @@ def show_recent_events(state: StateManager, limit: int = 5) -> None:
 
 
 def show_tasks_view(state: StateManager, level_filter: int | None) -> None:
-    """Show detailed task table.
+    """Show detailed task table with step progress.
 
     Args:
         state: State manager
@@ -771,6 +859,7 @@ def show_tasks_view(state: StateManager, level_filter: int | None) -> None:
     table.add_column("Status")
     table.add_column("Level", justify="center")
     table.add_column("Worker", justify="center")
+    table.add_column("Step Progress")
     table.add_column("Description")
 
     all_tasks = state._state.get("tasks", {})
@@ -778,6 +867,9 @@ def show_tasks_view(state: StateManager, level_filter: int | None) -> None:
     if not all_tasks:
         console.print("[dim]No tasks found[/dim]")
         return
+
+    # Initialize heartbeat monitor for reading step progress
+    heartbeat_monitor = HeartbeatMonitor(state_dir=STATE_DIR)
 
     for task_id, task in sorted(all_tasks.items()):
         task_level = task.get("level", 1)
@@ -797,15 +889,22 @@ def show_tasks_view(state: StateManager, level_filter: int | None) -> None:
         worker_id = task.get("worker_id")
         worker_display = f"W{worker_id}" if worker_id is not None else "-"
 
-        desc = task.get("description", task.get("title", ""))[:50]
+        # Get step progress from heartbeat if task is in progress
+        step_progress = "-"
+        if status == TaskStatus.IN_PROGRESS.value and worker_id is not None:
+            progress = get_step_progress_for_task(task_id, worker_id, heartbeat_monitor)
+            if progress:
+                step_progress = progress
 
-        table.add_row(task_id, status_display, str(task_level), worker_display, desc)
+        desc = task.get("description", task.get("title", ""))[:40]
+
+        table.add_row(task_id, status_display, str(task_level), worker_display, step_progress, desc)
 
     console.print(table)
 
 
 def show_workers_view(state: StateManager) -> None:
-    """Show detailed per-worker info.
+    """Show detailed per-worker info with step progress.
 
     Args:
         state: State manager
@@ -819,9 +918,9 @@ def show_workers_view(state: StateManager) -> None:
     table.add_column("Status")
     table.add_column("Container")
     table.add_column("Port", justify="center")
-    table.add_column("Branch")
     table.add_column("Current Task")
-    table.add_column("Progress")
+    table.add_column("Step Progress")
+    table.add_column("Context")
 
     workers = state.get_all_workers()
     workers_data = state._state.get("workers", {})
@@ -830,25 +929,36 @@ def show_workers_view(state: StateManager) -> None:
         console.print("[dim]No workers active[/dim]")
         return
 
+    # Initialize heartbeat monitor for reading step progress
+    heartbeat_monitor = HeartbeatMonitor(state_dir=STATE_DIR)
+
     for worker_id, worker in sorted(workers.items()):
         color = WORKER_COLORS.get(worker.status, "white")
         status_display = f"[{color}]{worker.status.value}[/{color}]"
 
         worker_info = workers_data.get(str(worker_id), {})
         container = worker_info.get("container", f"zerg-worker-{worker_id}")
-        branch = worker_info.get("branch", f"zerg/{state.feature}/worker-{worker_id}")
 
         ctx_pct = int(worker.context_usage * 100)
-        progress = f"{ctx_pct}% ctx"
+        ctx_display = f"{ctx_pct}% ctx"
+
+        # Get step progress from heartbeat
+        step_progress = "-"
+        if worker.current_task:
+            heartbeat = heartbeat_monitor.read(worker_id)
+            if heartbeat and heartbeat.task_id == worker.current_task:
+                progress = heartbeat.get_step_progress_display()
+                if progress:
+                    step_progress = progress
 
         table.add_row(
             f"worker-{worker_id}",
             status_display,
             container,
             str(worker.port) if worker.port else "-",
-            branch,
             worker.current_task or "-",
-            progress,
+            step_progress,
+            ctx_display,
         )
 
     console.print(table)
