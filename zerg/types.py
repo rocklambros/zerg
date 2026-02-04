@@ -1,5 +1,37 @@
 """ZERG type definitions using TypedDict and dataclass."""
 
+__all__ = [
+    # Task types
+    "FileSpec",
+    "VerificationSpec",
+    "VerificationResult",
+    "TaskExecution",
+    "Task",
+    "LevelSpec",
+    "TaskGraph",
+    # Worker types
+    "WorkerState",
+    # Level types
+    "LevelStatus",
+    # Gate types
+    "GateConfig",
+    "GateRunResult",
+    # Merge types
+    "MergeResult",
+    # Orchestrator types
+    "LevelCompleteResult",
+    "ExecutionEvent",
+    "OrchestratorState",
+    # Assignment types
+    "WorkerAssignmentEntry",
+    "WorkerAssignments",
+    # Metrics types
+    "WorkerMetrics",
+    "TaskMetrics",
+    "LevelMetrics",
+    "FeatureMetrics",
+]
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, TypedDict

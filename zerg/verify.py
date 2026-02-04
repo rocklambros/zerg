@@ -294,6 +294,7 @@ class VerificationExecutor:
         Returns:
             Path to stored artifact
         """
+        # Lazy import to avoid circular dependency with verification_gates
         from zerg.verification_gates import ArtifactStore
 
         store = ArtifactStore(base_dir=artifact_dir)
@@ -317,6 +318,7 @@ class VerificationExecutor:
         Returns:
             True if latest result is fresh
         """
+        # Lazy import to avoid circular dependency with verification_gates
         from zerg.verification_gates import ArtifactStore
 
         store = ArtifactStore(base_dir=artifact_dir)

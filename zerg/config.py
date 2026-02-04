@@ -1,5 +1,36 @@
 """ZERG configuration management using Pydantic."""
 
+__all__ = [
+    # Main config
+    "ZergConfig",
+    # Sub-configs
+    "ProjectConfig",
+    "WorkersConfig",
+    "PortsConfig",
+    "QualityGate",
+    "ResourcesConfig",
+    "LoggingConfig",
+    "SecurityConfig",
+    "ResilienceConfig",
+    "EfficiencyConfig",
+    "RulesConfig",
+    "CircuitBreakerConfig",
+    "BackpressureConfig",
+    "ErrorRecoveryConfig",
+    "LoopConfig",
+    "VerificationConfig",
+    "ModeConfig",
+    "MCPRoutingConfig",
+    "TDDConfig",
+    "HeartbeatConfig",
+    "EscalationConfig",
+    "VerificationTiersConfig",
+    "RepoMapConfig",
+    "TokenMetricsConfig",
+    "PlanningConfig",
+    "RushConfig",
+]
+
 from pathlib import Path
 from typing import Any
 
