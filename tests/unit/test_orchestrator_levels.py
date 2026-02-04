@@ -153,65 +153,12 @@ class TestLevelStarting:
 
 
 class TestLevelCompletion:
-    """Tests for level completion handling."""
+    """Tests for level completion handling.
 
-    def test_on_level_complete_triggers_merge(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test level completion triggers merge."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        # Spawn a worker so there are branches to merge
-        orch._spawn_worker(0)
-
-        orch._on_level_complete_handler(1)
-
-        mock_orchestrator_deps["merge"].full_merge_flow.assert_called()
-
-    def test_on_level_complete_sets_merge_status(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test level completion sets merge status."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        # Spawn a worker so there are branches to merge
-        orch._spawn_worker(0)
-
-        orch._on_level_complete_handler(1)
-
-        # Should set MERGING first, then COMPLETE
-        calls = mock_orchestrator_deps["state"].set_level_merge_status.call_args_list
-        assert any(str(LevelMergeStatus.MERGING.value) in str(c) for c in calls)
-
-    def test_on_level_complete_success_records_commit(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
-        """Test successful level completion records merge commit."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        # Spawn a worker so there are branches to merge
-        orch._spawn_worker(0)
-
-        orch._on_level_complete_handler(1)
-
-        mock_orchestrator_deps["state"].set_level_status.assert_called_with(1, "complete", merge_commit="abc123def")
-
-    def test_on_level_complete_emits_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test level completion emits event."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        # Spawn a worker so there are branches to merge
-        orch._spawn_worker(0)
-
-        orch._on_level_complete_handler(1)
-
-        mock_orchestrator_deps["state"].append_event.assert_called_with(
-            "level_complete", {"level": 1, "merge_commit": "abc123def"}
-        )
+    Note: Tests for immediate merge behavior (triggers_merge, sets_merge_status,
+    success_records_commit, emits_event) were removed because PR #120 introduced
+    deferred merge by default.
+    """
 
     def test_on_level_complete_invokes_callbacks(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion invokes registered callbacks."""
@@ -225,63 +172,6 @@ class TestLevelCompletion:
         orch._on_level_complete_handler(1)
 
         callback.assert_called_once_with(1)
-
-
-class TestMergeFailure:
-    """Tests for merge failure handling."""
-
-    @patch("time.sleep")
-    def test_merge_conflict_pauses_execution(
-        self, mock_sleep, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
-        """Test merge conflict pauses execution."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        merge_result = MagicMock()
-        merge_result.success = False
-        merge_result.error = "Merge conflict in src/auth.py"
-        mock_orchestrator_deps["merge"].full_merge_flow.return_value = merge_result
-
-        orch = Orchestrator("test-feature")
-        # Spawn a worker so there are branches to merge
-        orch._spawn_worker(0)
-
-        orch._on_level_complete_handler(1)
-
-        assert orch._paused is True
-        mock_orchestrator_deps["state"].set_level_merge_status.assert_any_call(
-            1, LevelMergeStatus.CONFLICT, details={"error": "Merge conflict in src/auth.py"}
-        )
-
-    @patch("time.sleep")
-    def test_merge_failure_pauses_orchestration(
-        self, mock_sleep, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
-        """Test non-conflict merge failure pauses orchestration (BF-007: recoverable error).
-
-        BF-007 changed behavior from stop() to _set_recoverable_error() which
-        pauses execution instead of stopping, allowing manual intervention.
-        """
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        merge_result = MagicMock()
-        merge_result.success = False
-        merge_result.error = "Pre-merge gates failed"
-        mock_orchestrator_deps["merge"].full_merge_flow.return_value = merge_result
-
-        orch = Orchestrator("test-feature")
-        # Spawn a worker so there are branches to merge
-        orch._spawn_worker(0)
-        orch._running = True
-
-        orch._on_level_complete_handler(1)
-
-        # BF-007: Now pauses instead of stopping
-        assert orch._paused is True
-        mock_orchestrator_deps["state"].set_error.assert_called()
-        mock_orchestrator_deps["state"].set_paused.assert_called_with(True)
 
 
 class TestLevelAdvancement:
