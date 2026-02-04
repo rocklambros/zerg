@@ -1,0 +1,85 @@
+{
+  "feature": "bite-sized-planning",
+  "worker_count": 3,
+  "assignments": [
+    {
+      "task_id": "BITE-L1-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L1-002",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L1-003",
+      "worker_id": 2,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L2-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L2-002",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L2-004",
+      "worker_id": 2,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L2-003",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L3-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L3-002",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L3-003",
+      "worker_id": 2,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L4-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L4-002",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "BITE-L5-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    }
+  ],
+  "generated_at": "2026-02-04T10:43:58.189453"
+}

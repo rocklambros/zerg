@@ -1,0 +1,421 @@
+{
+  "feature": "orchestrator-coordination-fix",
+  "version": "2.0",
+  "generated": "2026-02-04T12:00:00Z",
+  "total_tasks": 17,
+  "estimated_duration_minutes": 145,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "OCF-L1-001",
+      "title": "Add rush config flags",
+      "description": "Add defer_merge_to_ship and gates_at_ship_only config flags to RushConfig in zerg/config.py. Both should default to True.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/config.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.config import ZergConfig; c = ZergConfig(); print(c.rush.defer_merge_to_ship, c.rush.gates_at_ship_only)\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pydantic"],
+      "consumers": ["OCF-L2-001", "OCF-L2-003", "OCF-L2-004"],
+      "integration_test": "tests/integration/test_config_flags.py"
+    },
+    {
+      "id": "OCF-L1-002",
+      "title": "Create DependencyChecker helper",
+      "description": "Create zerg/dependency_checker.py with DependencyChecker class. Methods: are_dependencies_complete(task_id) -> bool, get_incomplete_dependencies(task_id) -> list[str]. Uses StateManager and TaskParser.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/dependency_checker.py"],
+        "modify": [],
+        "read": ["zerg/state.py", "zerg/dsl/task_parser.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_dependency_checker.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": ["OCF-L2-002", "OCF-L3-005"],
+      "integration_test": "tests/integration/test_claim_enforcement.py"
+    },
+    {
+      "id": "OCF-L1-003",
+      "title": "Create EventEmitter for live streaming",
+      "description": "Create zerg/event_emitter.py with EventEmitter class. JSONL file-based emitter with emit(event_type, data) and subscribe(callback) methods. Events written to .zerg/state/{feature}-events.jsonl.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/event_emitter.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_event_emitter.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": ["OCF-L3-003", "OCF-L3-004"],
+      "integration_test": "tests/integration/test_live_streaming.py"
+    },
+    {
+      "id": "OCF-L2-001",
+      "title": "Add level enforcement to claim_task",
+      "description": "Modify claim_task() in zerg/state.py to accept optional current_level parameter. If provided, verify task.level == current_level before allowing claim. Return False and log warning if mismatch.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["OCF-L1-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/state.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_state.py::test_claim_level_enforcement -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["OCF-L2-002"],
+      "integration_test": "tests/integration/test_claim_enforcement.py"
+    },
+    {
+      "id": "OCF-L2-002",
+      "title": "Add dependency enforcement to claim_task",
+      "description": "Modify claim_task() in zerg/state.py to accept optional DependencyChecker. If provided, verify all dependencies are COMPLETE before allowing claim. Return False and log warning if incomplete deps.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["OCF-L1-002", "OCF-L2-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/state.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_state.py::test_claim_dependency_enforcement -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["OCF-L3-005"],
+      "integration_test": "tests/integration/test_claim_enforcement.py"
+    },
+    {
+      "id": "OCF-L2-003",
+      "title": "Disable per-level merge to main",
+      "description": "Modify handle_level_complete() in zerg/level_coordinator.py. When config.rush.defer_merge_to_ship is True, skip full_merge_flow() call. Just set level status to complete and advance.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["OCF-L1-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/level_coordinator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_level_coordinator.py::test_deferred_merge -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": "tests/integration/test_deferred_merge.py"
+    },
+    {
+      "id": "OCF-L2-004",
+      "title": "Add skip_gates_until_ship to merge",
+      "description": "Modify full_merge_flow() in zerg/merge.py to accept skip_gates parameter. When True with gates_at_ship_only config, skip pre/post merge gates.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["OCF-L1-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/merge.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_merge.py::test_skip_gates -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["OCF-L3-001"],
+      "integration_test": "tests/integration/test_deferred_merge.py"
+    },
+    {
+      "id": "OCF-L3-001",
+      "title": "Integrate gates at ship time",
+      "description": "Modify action_ship() in zerg/commands/git_cmd.py to use MergeCoordinator.full_merge_flow() with gates enabled instead of direct gh pr merge.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["OCF-L2-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/git_cmd.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_git_cmd.py::test_ship_with_gates -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 35,
+      "skills_required": ["python", "git"],
+      "consumers": [],
+      "integration_test": "tests/integration/test_deferred_merge.py"
+    },
+    {
+      "id": "OCF-L3-002",
+      "title": "Fix staging branch worktree lock",
+      "description": "Modify finalize() in zerg/merge.py to use detached HEAD checkout before merging. Prevents 'cannot delete branch used by worktree' errors.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/merge.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_merge.py::test_finalize_no_worktree_lock -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "git"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "OCF-L3-003",
+      "title": "Wire EventEmitter to orchestrator",
+      "description": "Modify orchestrator.py to instantiate EventEmitter and emit events: level_start, task_claim, task_complete, task_fail, level_complete.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["OCF-L1-003"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_orchestrator.py::test_event_emission -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": ["OCF-L3-004"],
+      "integration_test": "tests/integration/test_live_streaming.py"
+    },
+    {
+      "id": "OCF-L3-004",
+      "title": "Add --live flag to status command",
+      "description": "Modify status.py to add --live flag. When set, subscribe to EventEmitter and display updates with Rich Live.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["OCF-L3-003"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/status.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_status_cmd.py::test_live_flag -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "rich"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "OCF-L3-005",
+      "title": "Wire DependencyChecker to workers",
+      "description": "Modify worker_manager.py to instantiate DependencyChecker and pass it to claim_task() calls.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["OCF-L2-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/worker_manager.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_claim_enforcement.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "OCF-L4-001",
+      "title": "Unit tests for DependencyChecker",
+      "description": "Create comprehensive unit tests: no deps, partial deps complete, all deps complete, missing task, circular deps detection.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["OCF-L1-002"],
+      "files": {
+        "create": ["tests/unit/test_dependency_checker.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_dependency_checker.py --cov=zerg.dependency_checker -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "OCF-L4-002",
+      "title": "Unit tests for EventEmitter",
+      "description": "Create unit tests: emit(), subscribe(), file cleanup, concurrent writes, malformed event handling.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["OCF-L1-003"],
+      "files": {
+        "create": ["tests/unit/test_event_emitter.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_event_emitter.py --cov=zerg.event_emitter -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "OCF-L4-003",
+      "title": "Integration tests for deferred merge",
+      "description": "Create integration tests: main untouched during rush, gates run at ship, config flag toggles behavior.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["OCF-L3-001"],
+      "files": {
+        "create": ["tests/integration/test_deferred_merge.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_deferred_merge.py -v",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 35,
+      "skills_required": ["python", "pytest", "git"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "OCF-L4-004",
+      "title": "Integration tests for claim enforcement",
+      "description": "Create integration tests: level enforcement blocks wrong-level claims, dependency enforcement blocks incomplete deps.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["OCF-L3-005"],
+      "files": {
+        "create": ["tests/integration/test_claim_enforcement.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_claim_enforcement.py -v",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "OCF-L5-001",
+      "title": "Final validation and docs",
+      "description": "Run full test suite, update CHANGELOG.md with feature description, verify all acceptance criteria met.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["OCF-L4-001", "OCF-L4-002", "OCF-L4-003", "OCF-L4-004"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "make lint && pytest tests/ -v",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["OCF-L1-001", "OCF-L1-002", "OCF-L1-003"],
+      "parallel": true,
+      "estimated_minutes": 30
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["OCF-L2-001", "OCF-L2-002", "OCF-L2-003", "OCF-L2-004"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["OCF-L3-001", "OCF-L3-002", "OCF-L3-003", "OCF-L3-004", "OCF-L3-005"],
+      "parallel": true,
+      "estimated_minutes": 35,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["OCF-L4-001", "OCF-L4-002", "OCF-L4-003", "OCF-L4-004"],
+      "parallel": true,
+      "estimated_minutes": 35,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["OCF-L5-001"],
+      "parallel": false,
+      "estimated_minutes": 20,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["OCF-L2-001", "OCF-L2-002"],
+        "file": "zerg/state.py",
+        "resolution": "L2-002 depends on L2-001"
+      },
+      {
+        "tasks": ["OCF-L2-004", "OCF-L3-002"],
+        "file": "zerg/merge.py",
+        "resolution": "L3-002 in different level, no conflict"
+      }
+    ]
+  }
+}

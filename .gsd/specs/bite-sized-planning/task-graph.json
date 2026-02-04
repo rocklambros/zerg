@@ -1,0 +1,416 @@
+{
+  "feature": "bite-sized-planning",
+  "version": "2.0",
+  "generated": "2026-02-04T18:00:00Z",
+  "total_tasks": 13,
+  "estimated_duration_minutes": 170,
+  "max_parallelization": 3,
+  "critical_path_minutes": 85,
+  "github_issues": [65, 119],
+
+  "tasks": [
+    {
+      "id": "BITE-L1-001",
+      "title": "Create FormatterDetector module",
+      "description": "Implement formatter auto-detection from project config files. Detect ruff/black from pyproject.toml, prettier from .prettierrc/package.json, rustfmt from rustfmt.toml, clang-format from .clang-format, gofmt from go.mod presence. Return FormatterConfig dataclass with format_cmd, fix_cmd, and file_patterns.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/formatter_detector.py"],
+        "modify": [],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Detects ruff from pyproject.toml [tool.ruff]",
+        "Detects black from pyproject.toml [tool.black]",
+        "Detects prettier from .prettierrc or package.json",
+        "Detects rustfmt from rustfmt.toml",
+        "Detects gofmt from go.mod",
+        "Returns None if no formatter found"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_formatter_detector.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["BITE-L2-001"],
+      "integration_test": "tests/integration/test_step_execution.py"
+    },
+    {
+      "id": "BITE-L1-002",
+      "title": "Add PlanningConfig to config.py",
+      "description": "Extend ZergConfig with PlanningConfig section. Fields: default_detail (standard|medium|high), include_code_snippets (bool), include_test_first (bool), step_verification (bool), adaptive_detail (bool), adaptive_familiarity_threshold (int), adaptive_success_threshold (float). Add to config.yaml schema.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/config.py"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "PlanningConfig model with all fields",
+        "Default values match requirements",
+        "Validated via Pydantic",
+        "Loaded from .zerg/config.yaml"
+      ],
+      "verification": {
+        "command": "python -c \"from zerg.config import ZergConfig; c = ZergConfig.load(); print(c.planning)\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pydantic"],
+      "consumers": ["BITE-L2-001", "BITE-L2-003"]
+    },
+    {
+      "id": "BITE-L1-003",
+      "title": "Extend task_graph.json schema with steps",
+      "description": "Add 'steps' array definition to zerg/schemas/task_graph.json. Step object: step (int), action (enum), file (string), code_snippet (string), run (string), verify (enum: exit_code|exit_code_nonzero|none). Update task definition to include optional steps array.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/schemas/task_graph.json"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Step definition added to schema",
+        "Action enum includes all TDD steps",
+        "Verify enum includes exit_code variants",
+        "Tasks can have optional steps array"
+      ],
+      "verification": {
+        "command": "python -c \"import json; s = json.load(open('zerg/schemas/task_graph.json')); assert 'step' in s.get('definitions', {})\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["json-schema"],
+      "consumers": ["BITE-L2-001", "BITE-L3-001"]
+    },
+    {
+      "id": "BITE-L2-001",
+      "title": "Create StepGenerator module",
+      "description": "Implement step generation for tasks. Takes task definition and detail level, outputs steps array. For medium/high: generate TDD sequence (write_test, verify_fail, implement, verify_pass, format, commit). For high: include code_snippet field. Use FormatterDetector for format step command. Integrate with ASTAnalyzer for snippets.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["BITE-L1-001", "BITE-L1-002", "BITE-L1-003"],
+      "files": {
+        "create": ["zerg/step_generator.py"],
+        "modify": [],
+        "read": ["zerg/formatter_detector.py", "zerg/config.py"]
+      },
+      "acceptance_criteria": [
+        "Generates 6 TDD steps for each task",
+        "Step order matches TDD sequence",
+        "Format step uses detected formatter",
+        "No steps generated for standard detail",
+        "code_snippet only included for high detail"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_step_generator.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": ["BITE-L3-001"],
+      "integration_test": "tests/integration/test_step_execution.py",
+      "critical_path": true
+    },
+    {
+      "id": "BITE-L2-002",
+      "title": "Create ASTAnalyzer module",
+      "description": "Implement AST analysis for code pattern extraction. Use existing ASTCache. Extract: import patterns, base classes, common utilities, naming conventions. Generate realistic test and implementation snippets matching project style. Fallback gracefully if parsing fails.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["BITE-L1-002"],
+      "files": {
+        "create": ["zerg/ast_analyzer.py"],
+        "modify": [],
+        "read": ["zerg/ast_cache.py"]
+      },
+      "acceptance_criteria": [
+        "Extracts import patterns from Python files",
+        "Identifies base classes and inheritance",
+        "Generates test snippets with correct imports",
+        "Generates impl snippets with correct patterns",
+        "Handles parse errors gracefully"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_ast_analyzer.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "ast"],
+      "consumers": ["BITE-L2-001"]
+    },
+    {
+      "id": "BITE-L2-003",
+      "title": "Create AdaptiveDetail module",
+      "description": "Implement adaptive detail logic. Track file modification counts and task success rates in .zerg/state/adaptive-detail.json. Reduce detail level when: file modified >= threshold times, or success rate >= threshold in same directory. Expose should_reduce_detail(task, metrics) method.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["BITE-L1-002"],
+      "files": {
+        "create": ["zerg/adaptive_detail.py"],
+        "modify": [],
+        "read": ["zerg/config.py"]
+      },
+      "acceptance_criteria": [
+        "Tracks file modification counts",
+        "Tracks task success rates by area",
+        "Reduces detail on familiarity threshold",
+        "Reduces detail on success rate threshold",
+        "Persists metrics to state file"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_adaptive_detail.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["BITE-L2-001"]
+    },
+    {
+      "id": "BITE-L2-004",
+      "title": "Create StepExecutor module",
+      "description": "Implement step execution for workers. Execute steps in strict order. Verify exit codes per step.verify field. Update heartbeat with current step number. Return TaskResult with success/failure and failed_step if applicable. Handle tasks without steps (classic mode).",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["BITE-L1-003"],
+      "files": {
+        "create": ["zerg/step_executor.py"],
+        "modify": [],
+        "read": ["zerg/heartbeat.py"]
+      },
+      "acceptance_criteria": [
+        "Executes steps in order",
+        "Verifies exit codes correctly",
+        "Updates heartbeat with step progress",
+        "Returns failed_step on failure",
+        "Handles stepless tasks"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_step_executor.py -v --tb=short",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["BITE-L3-003"],
+      "integration_test": "tests/integration/test_step_execution.py",
+      "critical_path": true
+    },
+    {
+      "id": "BITE-L3-001",
+      "title": "Integrate --detail flag into design command",
+      "description": "Add --detail option to zerg/commands/design.py. Values: standard (default), medium, high. When medium/high: call StepGenerator for each task, insert steps into task-graph.json. Validate steps in --validate-only mode. Update design summary to show detail level.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["BITE-L2-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/design.py"],
+        "read": ["zerg/step_generator.py"]
+      },
+      "acceptance_criteria": [
+        "--detail flag accepts standard|medium|high",
+        "Standard produces no steps (backward compatible)",
+        "Medium/high generates steps in task-graph",
+        "Validation checks step structure",
+        "Summary shows detail level"
+      ],
+      "verification": {
+        "command": "zerg design --help | grep -q 'detail' && echo 'OK'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "click"],
+      "consumers": ["BITE-L4-002"],
+      "critical_path": true
+    },
+    {
+      "id": "BITE-L3-002",
+      "title": "Add step progress to status command",
+      "description": "Extend zerg/commands/status.py to display step-level progress. Format: [Step 3/5: ✅✅🔄⏳⏳]. Read step progress from heartbeat files. Show completed/in_progress/pending/failed indicators. Gracefully handle tasks without steps.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["BITE-L2-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/status.py"],
+        "read": ["zerg/heartbeat.py"]
+      },
+      "acceptance_criteria": [
+        "Shows step progress for tasks with steps",
+        "Correct emoji indicators for each state",
+        "No step display for stepless tasks",
+        "Reads from heartbeat files",
+        "Handles missing heartbeat gracefully"
+      ],
+      "verification": {
+        "command": "zerg status --help && echo 'OK'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "rich"],
+      "consumers": ["BITE-L4-002"]
+    },
+    {
+      "id": "BITE-L3-003",
+      "title": "Update worker protocol for step execution",
+      "description": "Update zerg/data/commands/worker.core.md with step execution protocol. Add Step 4.x sections for: loading steps from task, executing steps in order, verifying exit codes, updating heartbeat per step, failing on verification mismatch. Emphasize strict protocol (no deviation).",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["BITE-L2-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/worker.core.md", "zerg/data/commands/worker.md"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Step loading section added",
+        "Step execution loop documented",
+        "Exit code verification documented",
+        "Heartbeat update per step",
+        "Strict protocol emphasized"
+      ],
+      "verification": {
+        "command": "grep -q 'step' zerg/data/commands/worker.core.md && echo 'OK'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["documentation"],
+      "consumers": ["BITE-L4-002"]
+    },
+    {
+      "id": "BITE-L4-001",
+      "title": "Write unit tests for new modules",
+      "description": "Create unit tests for: StepGenerator (TDD sequence, detail levels), FormatterDetector (all config file types), ASTAnalyzer (pattern extraction, snippet generation), AdaptiveDetail (thresholds, persistence), StepExecutor (exit code verification, heartbeat updates).",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["BITE-L3-001", "BITE-L3-002", "BITE-L3-003"],
+      "files": {
+        "create": [
+          "tests/unit/test_step_generator.py",
+          "tests/unit/test_formatter_detector.py",
+          "tests/unit/test_ast_analyzer.py",
+          "tests/unit/test_adaptive_detail.py",
+          "tests/unit/test_step_executor.py"
+        ],
+        "modify": [],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Test coverage > 80% for new modules",
+        "All edge cases covered",
+        "Mocks used appropriately",
+        "Tests pass in CI"
+      ],
+      "verification": {
+        "command": "pytest tests/unit/test_step_*.py tests/unit/test_formatter_*.py tests/unit/test_ast_*.py tests/unit/test_adaptive_*.py -v --tb=short",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["BITE-L5-001"]
+    },
+    {
+      "id": "BITE-L4-002",
+      "title": "Write integration tests for step execution",
+      "description": "Create end-to-end integration test: generate task-graph with --detail high, mock worker execution, verify steps execute in order, verify heartbeat updates, verify pre-commit hooks pass. Test adaptive detail triggers.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["BITE-L3-001", "BITE-L3-002", "BITE-L3-003"],
+      "files": {
+        "create": ["tests/integration/test_step_execution.py"],
+        "modify": [],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "E2E test for design → execute flow",
+        "Verifies step order enforcement",
+        "Verifies heartbeat step tracking",
+        "Verifies formatter integration",
+        "Verifies adaptive detail"
+      ],
+      "verification": {
+        "command": "pytest tests/integration/test_step_execution.py -v --tb=short",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["BITE-L5-001"],
+      "critical_path": true
+    },
+    {
+      "id": "BITE-L5-001",
+      "title": "Run quality analysis and create issues",
+      "description": "Run /z:analyze --check all on the new code. Create GitHub issues for any findings. Update CHANGELOG.md with feature description under [Unreleased]. Verify all acceptance criteria met.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["BITE-L4-001", "BITE-L4-002"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "All analysis checks pass or issues created",
+        "CHANGELOG updated",
+        "No critical security findings",
+        "Test coverage acceptable"
+      ],
+      "verification": {
+        "command": "grep -q 'bite-sized' CHANGELOG.md && echo 'OK'",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["quality"],
+      "consumers": []
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["BITE-L1-001", "BITE-L1-002", "BITE-L1-003"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "description": "Config, schema, and formatter detection"
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["BITE-L2-001", "BITE-L2-002", "BITE-L2-003", "BITE-L2-004"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [1],
+      "description": "Step generation, AST analysis, adaptive logic, execution"
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["BITE-L3-001", "BITE-L3-002", "BITE-L3-003"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [2],
+      "description": "Command integration and worker protocol"
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["BITE-L4-001", "BITE-L4-002"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [3],
+      "description": "Unit and integration tests"
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["BITE-L5-001"],
+      "parallel": false,
+      "estimated_minutes": 15,
+      "depends_on_levels": [4],
+      "description": "Quality analysis and documentation"
+    }
+  }
+}

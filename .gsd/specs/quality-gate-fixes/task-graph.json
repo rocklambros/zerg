@@ -1,0 +1,120 @@
+{
+  "feature": "quality-gate-fixes",
+  "version": "2.0",
+  "generated": "2026-02-04T00:00:00Z",
+  "total_tasks": 4,
+  "estimated_duration_minutes": 25,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Document lazy import pattern in verify.py",
+      "description": "Add comments to lines 297 and 320 in zerg/verify.py documenting the lazy import pattern used to avoid circular dependency with verification_gates.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/verify.py"],
+        "read": ["zerg/verification_gates.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.verify import VerificationExecutor\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nAdd documentation comments to lazy imports in verify.py at lines 297 and 320.\n\n## Pattern\n```python\ndef store_artifact(self, ...):\n    # Lazy import to avoid circular dependency with verification_gates\n    from zerg.verification_gates import ArtifactStore\n```\n\n## Why\nThe verify ↔ verification_gates cycle is mitigated by lazy imports inside methods. Document this for future maintainers."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add __all__ to config.py",
+      "description": "Add explicit __all__ definition to zerg/config.py listing all public configuration classes.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/config.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.config import ZergConfig; print('__all__' in dir(__import__('zerg.config')))\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nAdd __all__ to zerg/config.py to declare public exports:\n\n```python\n__all__ = [\n    \"ZergConfig\",\n    \"ProjectConfig\",\n    \"WorkersConfig\",\n    \"PortsConfig\",\n    \"QualityGate\",\n    \"ResourcesConfig\",\n    \"LoggingConfig\",\n    \"SecurityConfig\",\n    \"ResilienceConfig\",\n    \"EfficiencyConfig\",\n    \"RulesConfig\",\n    \"CircuitBreakerConfig\",\n    \"BackpressureConfig\",\n    \"ErrorRecoveryConfig\",\n    \"LoopConfig\",\n    \"VerificationConfig\",\n    \"ModeConfig\",\n    \"MCPRoutingConfig\",\n    \"TDDConfig\",\n    \"HeartbeatConfig\",\n    \"EscalationConfig\",\n    \"VerificationTiersConfig\",\n    \"RepoMapConfig\",\n    \"TokenMetricsConfig\",\n    \"PlanningConfig\",\n    \"RushConfig\",\n]\n```\n\n## Why\nClarifies the public API for the config module. Place after imports, before first class definition."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add __all__ to types.py",
+      "description": "Add explicit __all__ definition to zerg/types.py listing all public type definitions.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/types.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.types import Task; print('__all__' in dir(__import__('zerg.types')))\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nAdd __all__ to zerg/types.py to declare public exports:\n\n```python\n__all__ = [\n    # Task types\n    \"FileSpec\",\n    \"VerificationSpec\",\n    \"VerificationResult\",\n    \"TaskExecution\",\n    \"Task\",\n    \"LevelSpec\",\n    \"TaskGraph\",\n    # Worker types\n    \"WorkerState\",\n    # Level types\n    \"LevelStatus\",\n    # Gate types\n    \"GateConfig\",\n    \"GateRunResult\",\n    # Merge types\n    \"MergeResult\",\n    # Orchestrator types\n    \"LevelCompleteResult\",\n    \"ExecutionEvent\",\n    \"OrchestratorState\",\n    # Assignment types\n    \"WorkerAssignmentEntry\",\n    \"WorkerAssignments\",\n    # Metrics types (note: WorkerMetrics is defined in both types.py and worker_metrics.py)\n    \"TaskMetrics\",\n    \"LevelMetrics\",\n    \"FeatureMetrics\",\n]\n```\n\n## Why\nClarifies the public API for the types module. Place after imports, before first class definition."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Run verification tests",
+      "description": "Run all tests and validate_commands to ensure no regressions. Verify imports work correctly.",
+      "phase": "verification",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": ["zerg/verify.py", "zerg/config.py", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands.debug import DebugCommand; from zerg.verify import VerificationExecutor; from zerg.dryrun import DryRunSimulator; print('All imports successful')\" && python -m zerg.validate_commands",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nFinal verification task. Run:\n1. Import tests for all three circular import chains\n2. validate_commands drift check\n\n## Acceptance Criteria\n- `python -c \"from zerg.commands.debug import DebugCommand\"` succeeds\n- `python -c \"from zerg.verify import VerificationExecutor\"` succeeds  \n- `python -c \"from zerg.dryrun import DryRunSimulator\"` succeeds\n- `python -m zerg.validate_commands` passes"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 10
+    },
+    "2": {
+      "name": "verification",
+      "tasks": ["TASK-004"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

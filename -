@@ -50,6 +50,18 @@
     {
         "error": {
             "code": "DEP001",
+            "message": "'worktree' imported but missing from the dependency definitions"
+        },
+        "module": "worktree",
+        "location": {
+            "file": ".zerg/orchestrator.py",
+            "line": 14,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
             "message": "'messages' imported but missing from the dependency definitions"
         },
         "module": "messages",
@@ -2935,7 +2947,19 @@
         "module": "orchestrator",
         "location": {
             "file": ".zerg/tests/test_orchestrator.py",
-            "line": 10,
+            "line": 13,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'worktree' imported but missing from the dependency definitions"
+        },
+        "module": "worktree",
+        "location": {
+            "file": ".zerg/tests/test_orchestrator.py",
+            "line": 14,
             "column": 1
         }
     },
@@ -2947,7 +2971,7 @@
         "module": "orchestrator",
         "location": {
             "file": ".zerg/tests/test_orchestrator.py",
-            "line": 23,
+            "line": 27,
             "column": 9
         }
     },
@@ -5678,6 +5702,42 @@
     {
         "error": {
             "code": "DEP002",
+            "message": "'pytest-xdist' defined as a dependency but not used in the codebase"
+        },
+        "module": "pytest-xdist",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'pytest-split' defined as a dependency but not used in the codebase"
+        },
+        "module": "pytest-split",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'pytest-timeout' defined as a dependency but not used in the codebase"
+        },
+        "module": "pytest-timeout",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
             "message": "'mypy' defined as a dependency but not used in the codebase"
         },
         "module": "mypy",
@@ -5709,6 +5769,30 @@
             "file": "pyproject.toml",
             "line": null,
             "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'pre-commit' defined as a dependency but not used in the codebase"
+        },
+        "module": "pre-commit",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP003",
+            "message": "'tomli' imported but it is a transitive dependency"
+        },
+        "module": "tomli",
+        "location": {
+            "file": "zerg/formatter_detector.py",
+            "line": 16,
+            "column": 12
         }
     }
 ]

@@ -1,0 +1,51 @@
+{
+  "feature": "orchestrator-coordination-fix",
+  "generated": "2026-02-04T19:52:00Z",
+  "workers": [
+    {
+      "id": 0,
+      "branch": "zerg/orchestrator-coordination-fix/worker-0",
+      "worktree": "../.zerg-worktrees/orchestrator-coordination-fix/worker-0",
+      "port": 49152,
+      "assignments": {
+        "1": ["OCF-L1-001", "OCF-L1-002", "OCF-L1-003"],
+        "2": ["OCF-L2-001", "OCF-L2-002", "OCF-L2-003", "OCF-L2-004"],
+        "3": ["OCF-L3-001", "OCF-L3-002", "OCF-L3-003", "OCF-L3-004", "OCF-L3-005"],
+        "4": ["OCF-L4-001", "OCF-L4-002", "OCF-L4-003", "OCF-L4-004"],
+        "5": ["OCF-L5-001"]
+      }
+    }
+  ],
+  "execution_plan": [
+    {
+      "level": 1,
+      "workers_active": [0],
+      "tasks": ["OCF-L1-001", "OCF-L1-002", "OCF-L1-003"],
+      "merge_after": true
+    },
+    {
+      "level": 2,
+      "workers_active": [0],
+      "tasks": ["OCF-L2-001", "OCF-L2-002", "OCF-L2-003", "OCF-L2-004"],
+      "merge_after": true
+    },
+    {
+      "level": 3,
+      "workers_active": [0],
+      "tasks": ["OCF-L3-001", "OCF-L3-002", "OCF-L3-003", "OCF-L3-004", "OCF-L3-005"],
+      "merge_after": true
+    },
+    {
+      "level": 4,
+      "workers_active": [0],
+      "tasks": ["OCF-L4-001", "OCF-L4-002", "OCF-L4-003", "OCF-L4-004"],
+      "merge_after": true
+    },
+    {
+      "level": 5,
+      "workers_active": [0],
+      "tasks": ["OCF-L5-001"],
+      "merge_after": true
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "feature": "bite-sized-planning",
+  "generated": "2026-02-04T17:30:17Z",
+  "tasks": [
+    {
+      "subject": "[L1] Create FormatterDetector module",
+      "description": "Implement formatter auto-detection from project config files. Detect ruff/black from pyproject.toml, prettier from .prettierrc/package.json, rustfmt from rustfmt.toml, clang-format from .clang-format, gofmt from go.mod presence. Return FormatterConfig dataclass with format_cmd, fix_cmd, and file_patterns.\nFiles \u2014 create: zerg/formatter_detector.py\nVerify: pytest tests/unit/test_formatter_detector.py -v --tb=short",
+      "active_form": "Executing Create FormatterDetector module",
+      "dependencies": []
+    },
+    {
+      "subject": "[L1] Add PlanningConfig to config.py",
+      "description": "Extend ZergConfig with PlanningConfig section. Fields: default_detail (standard|medium|high), include_code_snippets (bool), include_test_first (bool), step_verification (bool), adaptive_detail (bool), adaptive_familiarity_threshold (int), adaptive_success_threshold (float). Add to config.yaml schema.\nFiles \u2014 modify: zerg/config.py\nVerify: python -c \"from zerg.config import ZergConfig; c = ZergConfig.load(); print(c.planning)\"",
+      "active_form": "Executing Add PlanningConfig to config.py",
+      "dependencies": []
+    },
+    {
+      "subject": "[L1] Extend task_graph.json schema with steps",
+      "description": "Add 'steps' array definition to zerg/schemas/task_graph.json. Step object: step (int), action (enum), file (string), code_snippet (string), run (string), verify (enum: exit_code|exit_code_nonzero|none). Update task definition to include optional steps array.\nFiles \u2014 modify: zerg/schemas/task_graph.json\nVerify: python -c \"import json; s = json.load(open('zerg/schemas/task_graph.json')); assert 'step' in s.get('definitions', {})\"",
+      "active_form": "Executing Extend task_graph.json schema with steps",
+      "dependencies": []
+    },
+    {
+      "subject": "[L2] Create StepGenerator module",
+      "description": "Implement step generation for tasks. Takes task definition and detail level, outputs steps array. For medium/high: generate TDD sequence (write_test, verify_fail, implement, verify_pass, format, commit). For high: include code_snippet field. Use FormatterDetector for format step command. Integrate with ASTAnalyzer for snippets.\nFiles \u2014 create: zerg/step_generator.py; read: zerg/formatter_detector.py, zerg/config.py\nVerify: pytest tests/unit/test_step_generator.py -v --tb=short",
+      "active_form": "Executing Create StepGenerator module",
+      "dependencies": [
+        "BITE-L1-001",
+        "BITE-L1-002",
+        "BITE-L1-003"
+      ]
+    },
+    {
+      "subject": "[L2] Create ASTAnalyzer module",
+      "description": "Implement AST analysis for code pattern extraction. Use existing ASTCache. Extract: import patterns, base classes, common utilities, naming conventions. Generate realistic test and implementation snippets matching project style. Fallback gracefully if parsing fails.\nFiles \u2014 create: zerg/ast_analyzer.py; read: zerg/ast_cache.py\nVerify: pytest tests/unit/test_ast_analyzer.py -v --tb=short",
+      "active_form": "Executing Create ASTAnalyzer module",
+      "dependencies": [
+        "BITE-L1-002"
+      ]
+    },
+    {
+      "subject": "[L2] Create AdaptiveDetail module",
+      "description": "Implement adaptive detail logic. Track file modification counts and task success rates in .zerg/state/adaptive-detail.json. Reduce detail level when: file modified >= threshold times, or success rate >= threshold in same directory. Expose should_reduce_detail(task, metrics) method.\nFiles \u2014 create: zerg/adaptive_detail.py; read: zerg/config.py\nVerify: pytest tests/unit/test_adaptive_detail.py -v --tb=short",
+      "active_form": "Executing Create AdaptiveDetail module",
+      "dependencies": [
+        "BITE-L1-002"
+      ]
+    },
+    {
+      "subject": "[L2] Create StepExecutor module",
+      "description": "Implement step execution for workers. Execute steps in strict order. Verify exit codes per step.verify field. Update heartbeat with current step number. Return TaskResult with success/failure and failed_step if applicable. Handle tasks without steps (classic mode).\nFiles \u2014 create: zerg/step_executor.py; read: zerg/heartbeat.py\nVerify: pytest tests/unit/test_step_executor.py -v --tb=short",
+      "active_form": "Executing Create StepExecutor module",
+      "dependencies": [
+        "BITE-L1-003"
+      ]
+    },
+    {
+      "subject": "[L3] Integrate --detail flag into design command",
+      "description": "Add --detail option to zerg/commands/design.py. Values: standard (default), medium, high. When medium/high: call StepGenerator for each task, insert steps into task-graph.json. Validate steps in --validate-only mode. Update design summary to show detail level.\nFiles \u2014 modify: zerg/commands/design.py; read: zerg/step_generator.py\nVerify: zerg design --help | grep -q 'detail' && echo 'OK'",
+      "active_form": "Executing Integrate --detail flag into design command",
+      "dependencies": [
+        "BITE-L2-001"
+      ]
+    },
+    {
+      "subject": "[L3] Add step progress to status command",
+      "description": "Extend zerg/commands/status.py to display step-level progress. Format: [Step 3/5: \u2705\u2705\ud83d\udd04\u23f3\u23f3]. Read step progress from heartbeat files. Show completed/in_progress/pending/failed indicators. Gracefully handle tasks without steps.\nFiles \u2014 modify: zerg/commands/status.py; read: zerg/heartbeat.py\nVerify: zerg status --help && echo 'OK'",
+      "active_form": "Executing Add step progress to status command",
+      "dependencies": [
+        "BITE-L2-004"
+      ]
+    },
+    {
+      "subject": "[L3] Update worker protocol for step execution",
+      "description": "Update zerg/data/commands/worker.core.md with step execution protocol. Add Step 4.x sections for: loading steps from task, executing steps in order, verifying exit codes, updating heartbeat per step, failing on verification mismatch. Emphasize strict protocol (no deviation).\nFiles \u2014 modify: zerg/data/commands/worker.core.md, zerg/data/commands/worker.md\nVerify: grep -q 'step' zerg/data/commands/worker.core.md && echo 'OK'",
+      "active_form": "Executing Update worker protocol for step execution",
+      "dependencies": [
+        "BITE-L2-004"
+      ]
+    },
+    {
+      "subject": "[L4] Write unit tests for new modules",
+      "description": "Create unit tests for: StepGenerator (TDD sequence, detail levels), FormatterDetector (all config file types), ASTAnalyzer (pattern extraction, snippet generation), AdaptiveDetail (thresholds, persistence), StepExecutor (exit code verification, heartbeat updates).\nFiles \u2014 create: tests/unit/test_step_generator.py, tests/unit/test_formatter_detector.py, tests/unit/test_ast_analyzer.py, tests/unit/test_adaptive_detail.py, tests/unit/test_step_executor.py\nVerify: pytest tests/unit/test_step_*.py tests/unit/test_formatter_*.py tests/unit/test_ast_*.py tests/unit/test_adaptive_*.py -v --tb=short",
+      "active_form": "Executing Write unit tests for new modules",
+      "dependencies": [
+        "BITE-L3-001",
+        "BITE-L3-002",
+        "BITE-L3-003"
+      ]
+    },
+    {
+      "subject": "[L4] Write integration tests for step execution",
+      "description": "Create end-to-end integration test: generate task-graph with --detail high, mock worker execution, verify steps execute in order, verify heartbeat updates, verify pre-commit hooks pass. Test adaptive detail triggers.\nFiles \u2014 create: tests/integration/test_step_execution.py\nVerify: pytest tests/integration/test_step_execution.py -v --tb=short",
+      "active_form": "Executing Write integration tests for step execution",
+      "dependencies": [
+        "BITE-L3-001",
+        "BITE-L3-002",
+        "BITE-L3-003"
+      ]
+    },
+    {
+      "subject": "[L5] Run quality analysis and create issues",
+      "description": "Run /z:analyze --check all on the new code. Create GitHub issues for any findings. Update CHANGELOG.md with feature description under [Unreleased]. Verify all acceptance criteria met.\nFiles \u2014 modify: CHANGELOG.md\nVerify: grep -q 'bite-sized' CHANGELOG.md && echo 'OK'",
+      "active_form": "Executing Run quality analysis and create issues",
+      "dependencies": [
+        "BITE-L4-001",
+        "BITE-L4-002"
+      ]
+    }
+  ]
+}

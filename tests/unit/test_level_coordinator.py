@@ -21,6 +21,11 @@ def mock_config():
     config = MagicMock(spec=ZergConfig)
     config.merge_timeout_seconds = 10
     config.merge_max_retries = 2
+    # Set rush config for immediate merge behavior (tests expect this)
+    rush_config = MagicMock()
+    rush_config.defer_merge_to_ship = False
+    rush_config.gates_at_ship_only = False
+    config.rush = rush_config
     return config
 
 
@@ -185,6 +190,7 @@ class TestMergeLevel:
             level=1,
             worker_branches=["zerg/test/worker-0"],
             target_branch="main",
+            skip_gates=False,
         )
         assert result.success is True
 

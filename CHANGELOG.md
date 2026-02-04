@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - `tests/e2e/test_bugfix_e2e.py` — obsolete tests for pre-deferred-merge behavior
+- `tests/integration/test_level_advancement.py` — obsolete tests expecting immediate merge after level completion
+- Obsolete test classes expecting immediate merge: `TestOrchestratorMergeFailurePause`, `TestOrchestratorLevelAdvancement`, `TestMergeConflictRecovery`, `TestLevelMerging`
 
 ### Fixed
 
