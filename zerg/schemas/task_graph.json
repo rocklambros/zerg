@@ -114,6 +114,11 @@
           "type": "boolean",
           "default": false,
           "description": "Whether task is on critical path"
+        },
+        "steps": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/step"},
+          "description": "Optional array of execution steps for bite-sized planning"
         }
       }
     },
@@ -182,6 +187,41 @@
           "type": "array",
           "items": {"type": "integer"},
           "description": "Levels that must complete before this one"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["step", "action"],
+      "description": "A single step in task execution for bite-sized planning",
+      "properties": {
+        "step": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Step number in execution sequence"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["write_test", "verify_fail", "implement", "verify_pass", "format", "commit"],
+          "description": "Action type for this step (TDD sequence)"
+        },
+        "file": {
+          "type": "string",
+          "description": "Target file for this step"
+        },
+        "code_snippet": {
+          "type": "string",
+          "description": "Code snippet to write or reference"
+        },
+        "run": {
+          "type": "string",
+          "description": "Command to execute for this step"
+        },
+        "verify": {
+          "type": "string",
+          "enum": ["exit_code", "exit_code_nonzero", "none"],
+          "default": "exit_code",
+          "description": "Verification mode: exit_code (0 = success), exit_code_nonzero (non-0 = success), none (no verification)"
         }
       }
     }
