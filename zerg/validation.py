@@ -359,9 +359,9 @@ def load_and_validate_task_graph(path: str | Path) -> dict[str, Any]:
 
     graph_errors, graph_warnings = validate_graph_properties(data)
     if graph_warnings:
-        import logging
+        from zerg.logging import get_logger
 
-        log = logging.getLogger("validation")
+        log = get_logger("validation")
         for warning in graph_warnings:
             log.warning("Graph validation warning: %s", warning)
     if graph_errors:
