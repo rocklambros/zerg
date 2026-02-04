@@ -312,6 +312,65 @@ Generate `task-graph.json` for the orchestrator:
 }
 ```
 
+### Phase 3.5: Mandatory Wiring Verification Task (REQUIRED)
+
+**After generating all feature tasks, you MUST append a wiring verification task to Level 5 (Quality).** This is mandatory for every task graph.
+
+The wiring verification task:
+1. Depends on ALL Level 4 tasks (or highest level if no L4)
+2. Runs `python -m zerg.validate_commands` for structural checks
+3. Runs scoped pytest on new + affected tests
+4. Has no consumers (it's a leaf task)
+
+**Task Template** (append to tasks array):
+
+```json
+{
+  "id": "TASK-{N}",
+  "title": "Run wiring verification",
+  "description": "Verify all new modules have production callers and imports resolve. Run validate_commands for structural checks, then scoped pytest for new + affected tests.",
+  "phase": "quality",
+  "level": 5,
+  "dependencies": ["<ALL L4 TASK IDs>"],
+  "files": {
+    "create": [],
+    "modify": [],
+    "read": ["zerg/**/*.py", "tests/**/*.py"]
+  },
+  "verification": {
+    "command": "python -m zerg.validate_commands && python -m pytest {new_test_paths} -x --timeout=60 -q",
+    "timeout_seconds": 120
+  },
+  "estimate_minutes": 5,
+  "skills_required": [],
+  "consumers": [],
+  "integration_test": null
+}
+```
+
+**Dependency Wiring Rules:**
+- If Level 4 exists: depend on ALL L4 task IDs
+- If no Level 4: depend on ALL tasks in the highest existing level
+- The wiring task blocks nothing (empty consumers)
+
+**Verification Command Construction:**
+- Always include `python -m zerg.validate_commands`
+- Replace `{new_test_paths}` with space-separated paths from `files.create` entries matching `tests/**/*.py`
+- If no new test files, use the integration test paths from tasks with `integration_test` fields
+- If no tests at all, omit the pytest portion
+
+**Level 5 Definition** (add to levels object):
+
+```json
+"5": {
+  "name": "quality-wiring",
+  "tasks": ["TASK-{N}"],
+  "parallel": false,
+  "estimated_minutes": 5,
+  "depends_on_levels": [4]
+}
+```
+
 ## Phase 4: Generate design.md
 
 ```markdown

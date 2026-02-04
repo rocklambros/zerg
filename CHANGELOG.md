@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Automated wiring verification task injection into `/zerg:design` task graphs (#98)
+- `zerg/test_scope.py` module for scoped pytest path detection from task graphs (#98)
+- Phase 3.5 in `design.core.md` mandating wiring verification task in Level 5 (#98)
 - `DependencyChecker` class for verifying task dependencies before claiming (#OCF)
 - `EventEmitter` class for JSONL-based live event streaming with subscribe/unsubscribe (#OCF)
 - `RushConfig` with `defer_merge_to_ship` and `gates_at_ship_only` flags for deferred merge workflows (#OCF)

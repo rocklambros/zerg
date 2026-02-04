@@ -1,0 +1,185 @@
+{
+  "feature": "github-issue-98",
+  "version": "2.0",
+  "generated": "2026-02-04T12:00:00Z",
+  "total_tasks": 6,
+  "estimated_duration_minutes": 75,
+  "max_parallelization": 2,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create test scope helper module",
+      "description": "Create zerg/test_scope.py with functions to detect test scope from task graph. Includes get_scoped_test_paths() to extract new test files from files.create lists and find_affected_tests() to identify tests importing modified modules.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/test_scope.py"],
+        "modify": [],
+        "read": ["zerg/parser.py", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.test_scope import get_scoped_test_paths, find_affected_tests\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-002"],
+      "integration_test": "tests/integration/test_design_wiring_injection.py",
+      "context": "## Spec Context\nFR-3: Test scope detection - Identify new test files created by the feature's tasks. Identify existing tests that import modified modules. Generate pytest path filter.\n\n## Security Rules (Python)\n- Use pathlib for file operations\n- No shell injection in subprocess calls\n- Validate file paths before reading\n\n## Dependencies\nNone - foundation task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add wiring task injection to design.core.md",
+      "description": "Modify zerg/data/commands/design.core.md Phase 3 to inject mandatory wiring verification task into L5 of every generated task graph. Add explicit instructions with task template and dependency wiring.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/design.core.md"],
+        "read": [".gsd/specs/github-issue-98/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'Run wiring verification' zerg/data/commands/design.core.md && grep -q 'python -m zerg.validate_commands' zerg/data/commands/design.core.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Auto-inject wiring task into task graphs - When /zerg:design generates task-graph.json, automatically append wiring verification task to L5. Task must depend on all L4 tasks.\n\nFR-2: Verification command scope - Run python -m zerg.validate_commands for structural checks. Run pytest with --timeout=60 and -x flags.\n\n## Dependencies\nTASK-001 creates zerg/test_scope.py with get_scoped_test_paths() function for building pytest path filter."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Create unit tests for test_scope module",
+      "description": "Create comprehensive unit tests for zerg/test_scope.py. Test get_scoped_test_paths() with various task graph configurations. Test find_affected_tests() with mock file contents.",
+      "phase": "testing",
+      "level": 3,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["tests/unit/test_test_scope.py"],
+        "modify": [],
+        "read": ["zerg/test_scope.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_test_scope.py -v --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nNFR-2: Reliability - No flaky behavior, deterministic checks only.\n\n## Security Rules (Python)\n- Use tmp_path fixture for file operations\n- No hardcoded paths\n\n## Dependencies\nTASK-001 creates zerg/test_scope.py with the functions to test."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Create integration tests for wiring injection",
+      "description": "Create integration tests verifying that /zerg:design task graphs include wiring verification task in L5. Test that wiring task dependencies include all L4 tasks. Test verification command format.",
+      "phase": "testing",
+      "level": 3,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": ["tests/integration/test_design_wiring_injection.py"],
+        "modify": [],
+        "read": ["zerg/data/commands/design.core.md", "zerg/parser.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/integration/test_design_wiring_injection.py -v --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAcceptance Criteria: /zerg:design generates task graphs with wiring verification task in L5. Wiring task runs validate_commands successfully. Task fails if any module lacks production callers.\n\n## Dependencies\nTASK-002 modifies design.core.md with wiring task injection instructions."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update CHANGELOG.md",
+      "description": "Add entry to CHANGELOG.md under [Unreleased] documenting the new wiring verification feature. Mention auto-injection into L5, validate_commands integration, and scoped pytest.",
+      "phase": "quality",
+      "level": 4,
+      "dependencies": ["TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": [".gsd/specs/github-issue-98/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'wiring verification' CHANGELOG.md || grep -q 'github-issue-98' CHANGELOG.md || grep -q 'validate_commands' CHANGELOG.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nPR Documentation Rules from CLAUDE.md: Always update CHANGELOG.md under [Unreleased] section with a brief entry describing the change.\n\n## Dependencies\nTASK-003 and TASK-004 complete testing phase."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Run wiring verification",
+      "description": "Verify all new modules have production callers and imports resolve. Run validate_commands for structural checks, then scoped pytest for new + affected tests.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": ["zerg/**/*.py", "tests/**/*.py"]
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands && python -m pytest tests/unit/test_test_scope.py tests/integration/test_design_wiring_injection.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-4: Deterministic execution - No AI/LLM inference in verification step. Command must be reproducible in CI. Exit code 0 = pass, non-zero = fail.\n\nNFR-1: Performance - Wiring verification must complete in <2 minutes. Individual test timeout: 60 seconds.\n\n## Dependencies\nAll previous tasks must be complete. This is the final quality gate."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001"],
+      "parallel": true,
+      "estimated_minutes": 10
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "testing",
+      "tasks": ["TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "quality-changelog",
+      "tasks": ["TASK-005"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality-wiring",
+      "tasks": ["TASK-006"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}
