@@ -5,6 +5,8 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from zerg.security_rules import (
     FRAMEWORK_DETECTION,
     INFRASTRUCTURE_DETECTION,
@@ -92,245 +94,60 @@ class TestProjectStack:
 class TestLanguageDetection:
     """Tests for language detection."""
 
-    def test_detect_python_by_file(self, tmp_path: Path) -> None:
-        """Test detecting Python by .py files."""
-        (tmp_path / "app.py").write_text("print('hello')")
+    @pytest.mark.parametrize(
+        "filename,content,expected_language",
+        [
+            # Python detection
+            ("app.py", "print('hello')", "python"),
+            ("pyproject.toml", "[project]\nname = 'test'", "python"),
+            ("requirements.txt", "flask==2.0.0", "python"),
+            ("Pipfile", "[packages]\nflask = '*'", "python"),
+            ("setup.py", "from setuptools import setup", "python"),
+            # JavaScript detection
+            ("app.js", "console.log('hello')", "javascript"),
+            ("module.mjs", "export default {}", "javascript"),
+            ("package.json", '{"name": "test"}', "javascript"),
+            # TypeScript detection
+            ("tsconfig.json", "{}", "typescript"),
+            ("app.ts", "const x: number = 1;", "typescript"),
+            ("App.tsx", "const App: React.FC = () => <div />;", "typescript"),
+            # Go detection
+            ("go.mod", "module test", "go"),
+            ("main.go", "package main", "go"),
+            # Rust detection
+            ("Cargo.toml", "[package]\nname = 'test'", "rust"),
+            ("main.rs", "fn main() {}", "rust"),
+            # Java detection
+            ("Main.java", "public class Main {}", "java"),
+            ("pom.xml", "<project></project>", "java"),
+            ("build.gradle", "apply plugin: 'java'", "java"),
+            # C# detection
+            ("Program.cs", "class Program {}", "csharp"),
+            ("project.csproj", "<Project></Project>", "csharp"),
+            # Ruby detection
+            ("app.rb", "puts 'hello'", "ruby"),
+            ("Gemfile", "gem 'rails'", "ruby"),
+            # C++ detection
+            ("main.cpp", "int main() {}", "cpp"),
+            ("main.cc", "int main() {}", "cpp"),
+            ("header.hpp", "#pragma once", "cpp"),
+            ("CMakeLists.txt", "cmake_minimum_required(VERSION 3.0)", "cpp"),
+            # R detection
+            ("script.r", "print('hello')", "r"),
+            ("script.R", "print('hello')", "r"),
+            # Julia detection
+            ("script.jl", 'println("hello")', "julia"),
+            # SQL detection
+            ("schema.sql", "CREATE TABLE test (id INT);", "sql"),
+        ],
+    )
+    def test_detect_language(self, tmp_path: Path, filename: str, content: str, expected_language: str) -> None:
+        """Test detecting languages by various file patterns."""
+        (tmp_path / filename).write_text(content)
 
         stack = detect_project_stack(tmp_path)
 
-        assert "python" in stack.languages
-
-    def test_detect_python_by_pyproject(self, tmp_path: Path) -> None:
-        """Test detecting Python by pyproject.toml."""
-        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "python" in stack.languages
-
-    def test_detect_python_by_requirements(self, tmp_path: Path) -> None:
-        """Test detecting Python by requirements.txt."""
-        (tmp_path / "requirements.txt").write_text("flask==2.0.0")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "python" in stack.languages
-
-    def test_detect_python_by_pipfile(self, tmp_path: Path) -> None:
-        """Test detecting Python by Pipfile."""
-        (tmp_path / "Pipfile").write_text("[packages]\nflask = '*'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "python" in stack.languages
-
-    def test_detect_python_by_setup_py(self, tmp_path: Path) -> None:
-        """Test detecting Python by setup.py."""
-        (tmp_path / "setup.py").write_text("from setuptools import setup")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "python" in stack.languages
-
-    def test_detect_javascript(self, tmp_path: Path) -> None:
-        """Test detecting JavaScript."""
-        (tmp_path / "app.js").write_text("console.log('hello')")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "javascript" in stack.languages
-
-    def test_detect_javascript_mjs(self, tmp_path: Path) -> None:
-        """Test detecting JavaScript by .mjs files."""
-        (tmp_path / "module.mjs").write_text("export default {}")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "javascript" in stack.languages
-
-    def test_detect_javascript_by_package_json(self, tmp_path: Path) -> None:
-        """Test detecting JavaScript by package.json."""
-        (tmp_path / "package.json").write_text('{"name": "test"}')
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "javascript" in stack.languages
-
-    def test_detect_typescript(self, tmp_path: Path) -> None:
-        """Test detecting TypeScript."""
-        (tmp_path / "tsconfig.json").write_text("{}")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "typescript" in stack.languages
-
-    def test_detect_typescript_by_ts_file(self, tmp_path: Path) -> None:
-        """Test detecting TypeScript by .ts files."""
-        (tmp_path / "app.ts").write_text("const x: number = 1;")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "typescript" in stack.languages
-
-    def test_detect_typescript_by_tsx_file(self, tmp_path: Path) -> None:
-        """Test detecting TypeScript by .tsx files."""
-        (tmp_path / "App.tsx").write_text("const App: React.FC = () => <div />;")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "typescript" in stack.languages
-
-    def test_detect_go(self, tmp_path: Path) -> None:
-        """Test detecting Go."""
-        (tmp_path / "go.mod").write_text("module test")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "go" in stack.languages
-
-    def test_detect_go_by_go_file(self, tmp_path: Path) -> None:
-        """Test detecting Go by .go files."""
-        (tmp_path / "main.go").write_text("package main")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "go" in stack.languages
-
-    def test_detect_rust(self, tmp_path: Path) -> None:
-        """Test detecting Rust."""
-        (tmp_path / "Cargo.toml").write_text("[package]\nname = 'test'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "rust" in stack.languages
-
-    def test_detect_rust_by_rs_file(self, tmp_path: Path) -> None:
-        """Test detecting Rust by .rs files."""
-        (tmp_path / "main.rs").write_text("fn main() {}")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "rust" in stack.languages
-
-    def test_detect_java(self, tmp_path: Path) -> None:
-        """Test detecting Java."""
-        (tmp_path / "Main.java").write_text("public class Main {}")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "java" in stack.languages
-
-    def test_detect_java_by_pom(self, tmp_path: Path) -> None:
-        """Test detecting Java by pom.xml."""
-        (tmp_path / "pom.xml").write_text("<project></project>")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "java" in stack.languages
-
-    def test_detect_java_by_gradle(self, tmp_path: Path) -> None:
-        """Test detecting Java by build.gradle."""
-        (tmp_path / "build.gradle").write_text("apply plugin: 'java'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "java" in stack.languages
-
-    def test_detect_csharp(self, tmp_path: Path) -> None:
-        """Test detecting C#."""
-        (tmp_path / "Program.cs").write_text("class Program {}")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "csharp" in stack.languages
-
-    def test_detect_csharp_by_csproj(self, tmp_path: Path) -> None:
-        """Test detecting C# by .csproj."""
-        (tmp_path / "project.csproj").write_text("<Project></Project>")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "csharp" in stack.languages
-
-    def test_detect_ruby(self, tmp_path: Path) -> None:
-        """Test detecting Ruby."""
-        (tmp_path / "app.rb").write_text("puts 'hello'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "ruby" in stack.languages
-
-    def test_detect_ruby_by_gemfile(self, tmp_path: Path) -> None:
-        """Test detecting Ruby by Gemfile."""
-        (tmp_path / "Gemfile").write_text("gem 'rails'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "ruby" in stack.languages
-
-    def test_detect_cpp(self, tmp_path: Path) -> None:
-        """Test detecting C++."""
-        (tmp_path / "main.cpp").write_text("int main() {}")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "cpp" in stack.languages
-
-    def test_detect_cpp_by_cc(self, tmp_path: Path) -> None:
-        """Test detecting C++ by .cc files."""
-        (tmp_path / "main.cc").write_text("int main() {}")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "cpp" in stack.languages
-
-    def test_detect_cpp_by_hpp(self, tmp_path: Path) -> None:
-        """Test detecting C++ by .hpp files."""
-        (tmp_path / "header.hpp").write_text("#pragma once")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "cpp" in stack.languages
-
-    def test_detect_cpp_by_cmake(self, tmp_path: Path) -> None:
-        """Test detecting C++ by CMakeLists.txt."""
-        (tmp_path / "CMakeLists.txt").write_text("cmake_minimum_required(VERSION 3.0)")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "cpp" in stack.languages
-
-    def test_detect_r_lowercase(self, tmp_path: Path) -> None:
-        """Test detecting R by .r files."""
-        (tmp_path / "script.r").write_text("print('hello')")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "r" in stack.languages
-
-    def test_detect_r_uppercase(self, tmp_path: Path) -> None:
-        """Test detecting R by .R files."""
-        (tmp_path / "script.R").write_text("print('hello')")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "r" in stack.languages
-
-    def test_detect_julia(self, tmp_path: Path) -> None:
-        """Test detecting Julia."""
-        (tmp_path / "script.jl").write_text('println("hello")')
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "julia" in stack.languages
-
-    def test_detect_sql(self, tmp_path: Path) -> None:
-        """Test detecting SQL."""
-        (tmp_path / "schema.sql").write_text("CREATE TABLE test (id INT);")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "sql" in stack.languages
+        assert expected_language in stack.languages
 
     def test_detect_multiple_languages(self, tmp_path: Path) -> None:
         """Test detecting multiple languages."""
@@ -712,48 +529,27 @@ class TestRustFrameworkDetection:
 class TestInfrastructureDetection:
     """Tests for infrastructure detection."""
 
-    def test_detect_docker(self, tmp_path: Path) -> None:
-        """Test detecting Docker."""
-        (tmp_path / "Dockerfile").write_text("FROM python:3.11")
+    @pytest.mark.parametrize(
+        "filename,content,expected_infra",
+        [
+            ("Dockerfile", "FROM python:3.11", "docker"),
+            ("docker-compose.yaml", "version: '3'", "docker"),
+            ("docker-compose.yml", "version: '3'", "docker"),
+            ("main.tf", 'provider "aws" {}', "terraform"),
+            ("Pulumi.yaml", "name: test", "pulumi"),
+            (".gitlab-ci.yml", "stages: [test]", "gitlab-ci"),
+        ],
+    )
+    def test_detect_infrastructure(self, tmp_path: Path, filename: str, content: str, expected_infra: str) -> None:
+        """Test detecting infrastructure by file patterns."""
+        (tmp_path / filename).write_text(content)
 
         stack = detect_project_stack(tmp_path)
 
-        assert "docker" in stack.infrastructure
-
-    def test_detect_docker_compose_yaml(self, tmp_path: Path) -> None:
-        """Test detecting Docker Compose with .yaml."""
-        (tmp_path / "docker-compose.yaml").write_text("version: '3'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "docker" in stack.infrastructure
-
-    def test_detect_docker_compose_yml(self, tmp_path: Path) -> None:
-        """Test detecting Docker Compose with .yml."""
-        (tmp_path / "docker-compose.yml").write_text("version: '3'")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "docker" in stack.infrastructure
-
-    def test_detect_terraform(self, tmp_path: Path) -> None:
-        """Test detecting Terraform."""
-        (tmp_path / "main.tf").write_text('provider "aws" {}')
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "terraform" in stack.infrastructure
-
-    def test_detect_pulumi(self, tmp_path: Path) -> None:
-        """Test detecting Pulumi."""
-        (tmp_path / "Pulumi.yaml").write_text("name: test")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "pulumi" in stack.infrastructure
+        assert expected_infra in stack.infrastructure
 
     def test_detect_github_actions(self, tmp_path: Path) -> None:
-        """Test detecting GitHub Actions."""
+        """Test detecting GitHub Actions (requires nested directory)."""
         workflows_dir = tmp_path / ".github" / "workflows"
         workflows_dir.mkdir(parents=True)
         (workflows_dir / "ci.yml").write_text("name: CI")
@@ -761,14 +557,6 @@ class TestInfrastructureDetection:
         stack = detect_project_stack(tmp_path)
 
         assert "github-actions" in stack.infrastructure
-
-    def test_detect_gitlab_ci(self, tmp_path: Path) -> None:
-        """Test detecting GitLab CI."""
-        (tmp_path / ".gitlab-ci.yml").write_text("stages: [test]")
-
-        stack = detect_project_stack(tmp_path)
-
-        assert "gitlab-ci" in stack.infrastructure
 
 
 class TestAIMLFlagDetection:
