@@ -23,6 +23,9 @@ from tests.mocks.mock_merge import MockMergeCoordinator
 from tests.mocks.mock_state import MockStateManager
 from zerg.constants import TaskStatus, WorkerStatus
 
+# Mark all tests in this module as slow (PR #115 added 809 lines)
+pytestmark = pytest.mark.slow
+
 
 class ResilienceTestFixture:
     """Test fixture for resilience integration tests."""

@@ -82,19 +82,26 @@ class MergeCoordinator:
     def run_pre_merge_gates(
         self,
         cwd: str | Path | None = None,
+        skip_tests: bool = False,
     ) -> tuple[bool, list[GateRunResult]]:
         """Run pre-merge quality gates.
 
         Args:
             cwd: Working directory
+            skip_tests: Skip test gates (run lint only for faster iteration)
 
         Returns:
             Tuple of (all_passed, results)
         """
         logger.info("Running pre-merge gates")
 
+        gates = list(self.config.quality_gates)
+        if skip_tests:
+            gates = [g for g in gates if g.name != "test"]
+            logger.info("Skipping test gate (--skip-tests mode)")
+
         all_passed, results = self.gates.run_all_gates(
-            gates=self.config.quality_gates,
+            gates=gates,
             cwd=cwd,
             required_only=True,
         )
@@ -161,20 +168,27 @@ class MergeCoordinator:
     def run_post_merge_gates(
         self,
         cwd: str | Path | None = None,
+        skip_tests: bool = False,
     ) -> tuple[bool, list[GateRunResult]]:
         """Run post-merge quality gates.
 
         Args:
             cwd: Working directory
+            skip_tests: Skip test gates (run lint only for faster iteration)
 
         Returns:
             Tuple of (all_passed, results)
         """
         logger.info("Running post-merge gates")
 
+        gates = list(self.config.quality_gates)
+        if skip_tests:
+            gates = [g for g in gates if g.name != "test"]
+            logger.info("Skipping test gate (--skip-tests mode)")
+
         # Post-merge gates might include integration tests
         all_passed, results = self.gates.run_all_gates(
-            gates=self.config.quality_gates,
+            gates=gates,
             cwd=cwd,
             required_only=True,
         )
@@ -231,6 +245,7 @@ class MergeCoordinator:
         worker_branches: list[str] | None = None,
         target_branch: str = "main",
         skip_gates: bool = False,
+        skip_tests: bool = False,
     ) -> MergeFlowResult:
         """Execute complete merge flow for a level.
 
@@ -238,7 +253,8 @@ class MergeCoordinator:
             level: Level being merged
             worker_branches: Branches to merge (auto-detect if None)
             target_branch: Final target branch
-            skip_gates: Skip quality gates
+            skip_gates: Skip quality gates entirely
+            skip_tests: Skip test gates (run lint only for faster iteration)
 
         Returns:
             MergeFlowResult with outcome
@@ -267,7 +283,7 @@ class MergeCoordinator:
 
             # Step 2: Run pre-merge gates
             if not skip_gates:
-                passed, results = self.run_pre_merge_gates()
+                passed, results = self.run_pre_merge_gates(skip_tests=skip_tests)
                 gate_results.extend(results)
                 if not passed:
                     return MergeFlowResult(
@@ -284,7 +300,7 @@ class MergeCoordinator:
 
             # Step 4: Run post-merge gates
             if not skip_gates:
-                passed, results = self.run_post_merge_gates()
+                passed, results = self.run_post_merge_gates(skip_tests=skip_tests)
                 gate_results.extend(results)
                 if not passed:
                     self.abort(staging_branch)

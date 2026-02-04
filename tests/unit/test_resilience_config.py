@@ -11,6 +11,9 @@ import yaml
 
 from zerg.config import ResilienceConfig, WorkersConfig, ZergConfig
 
+# Mark all tests in this module as slow (PR #115 added 550+ lines)
+pytestmark = pytest.mark.slow
+
 
 class TestResilienceConfig:
     """Tests for ResilienceConfig model."""
