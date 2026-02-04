@@ -1,0 +1,49 @@
+{
+  "feature": "rush-performance-optimization",
+  "worker_count": 2,
+  "assignments": [
+    {
+      "task_id": "TASK-001",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "TASK-002",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "TASK-003",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "TASK-004",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "TASK-006",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "TASK-005",
+      "worker_id": 1,
+      "level": 0,
+      "estimated_minutes": 15
+    },
+    {
+      "task_id": "TASK-007",
+      "worker_id": 0,
+      "level": 0,
+      "estimated_minutes": 15
+    }
+  ],
+  "generated_at": "2026-02-03T21:28:44.723874"
+}

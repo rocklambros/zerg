@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `--skip-tests` flag for `/zerg:rush`: skip test gates until final level for faster iteration (lint-only mode)
+- Integration tests for rush performance optimizations (`tests/integration/test_rush_performance.py`)
+- `@pytest.mark.slow` markers on resilience tests (`test_resilience_config.py`, `test_state_reconciler.py`, `test_resilience_e2e.py`)
 - State machine validation in `StateManager.set_task_status()` with warning on invalid transitions (#110)
 - `get_tasks_by_status_and_level()` method for combined status and level filtering (#111)
 - Pause check in `claim_next_task()` and `claim_next_task_async()` for graceful pause handling (#108)
@@ -17,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Verification staleness threshold increased from 300s to 1800s (30 min cache) for gate result reuse
+- Improvement loop max iterations reduced from 5 to 1 by default (override with `--iterations N`)
+- Orchestrator reuses post-merge gate results as initial score in improvement loop (eliminates duplicate gate runs)
 - `CrossFileChecker` now includes same-module usage, skips exception classes and TYPE_CHECKING imports (#106, #107)
 - `ImportChainChecker` skips imports inside `if TYPE_CHECKING:` blocks (#106)
 - Level filter applied in task claiming to respect current level (#111)

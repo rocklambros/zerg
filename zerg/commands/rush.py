@@ -43,6 +43,11 @@ logger = get_logger("rush")
 @click.option("--check-gates", is_flag=True, help="Pre-run quality gates during dry-run")
 @click.option("--what-if", is_flag=True, help="Compare different worker counts and modes")
 @click.option("--risk", is_flag=True, help="Show risk assessment for the task graph")
+@click.option(
+    "--skip-tests",
+    is_flag=True,
+    help="Skip test gates until final level (lint only for faster iteration)",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.pass_context
 def rush(
@@ -58,6 +63,7 @@ def rush(
     check_gates: bool,
     what_if: bool,
     risk: bool,
+    skip_tests: bool,
     verbose: bool,
 ) -> None:
     """Launch parallel worker execution.
@@ -175,7 +181,9 @@ def rush(
         )
 
         # Create orchestrator and start
-        orchestrator = Orchestrator(feature, config, launcher_mode=mode, capabilities=capabilities)
+        orchestrator = Orchestrator(
+            feature, config, launcher_mode=mode, capabilities=capabilities, skip_tests=skip_tests
+        )
         launcher_name = type(orchestrator.launcher).__name__
         mode_label = "container (Docker)" if "Container" in launcher_name else "subprocess"
         console.print(f"Launcher mode: [bold]{mode_label}[/bold]")

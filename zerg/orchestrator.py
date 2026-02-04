@@ -86,6 +86,7 @@ class Orchestrator:
         repo_path: str | Path = ".",
         launcher_mode: str | None = None,
         capabilities: ResolvedCapabilities | None = None,
+        skip_tests: bool = False,
     ) -> None:
         """Initialize orchestrator.
 
@@ -95,12 +96,14 @@ class Orchestrator:
             repo_path: Path to git repository
             launcher_mode: Launcher mode (subprocess, container, auto)
             capabilities: Resolved cross-cutting capabilities for worker env injection
+            skip_tests: Skip test gates until final level (lint only for faster iteration)
         """
         self.feature = feature
         self.config = config or ZergConfig.load()
         self.repo_path = Path(repo_path).resolve()
         self._launcher_mode = launcher_mode
         self._capabilities = capabilities
+        self._skip_tests = skip_tests
 
         # Initialize plugin registry first (needed by other components)
         self._plugin_registry = PluginRegistry()
@@ -539,12 +542,14 @@ class Orchestrator:
             self._paused = True
 
         # Run improvement loop if enabled and level merge succeeded
+        # Pass merge result to reuse gate results as initial score
         if result and self._loop_controller is not None:
-            self._run_level_loop(level)
+            merge_result = self._level_coord.last_merge_result
+            self._run_level_loop(level, merge_result=merge_result)
 
         return result
 
-    def _run_level_loop(self, level: int) -> None:
+    def _run_level_loop(self, level: int, merge_result: MergeFlowResult | None = None) -> None:
         """Run improvement loop for a completed level.
 
         Scores the level by gate pass rate and re-runs if the loop
@@ -559,6 +564,8 @@ class Orchestrator:
 
         Args:
             level: Level that just completed.
+            merge_result: Optional MergeFlowResult with gate results to reuse
+                as initial score, avoiding duplicate gate runs.
         """
         # Determine gate filtering from mode context
         verification_level = "full"
@@ -602,8 +609,14 @@ class Orchestrator:
                 logger.warning(f"Gate scoring failed in loop iteration {iteration}: {e}")
                 return 0.0
 
-        # Get initial score
-        initial_score = score_level(0)
+        # Get initial score - reuse merge result gate_results if available
+        if merge_result and merge_result.gate_results:
+            passed = sum(1 for r in merge_result.gate_results if r.result == GateResult.PASS)
+            initial_score = passed / len(merge_result.gate_results)
+            logger.info(f"Reusing merge gate results as initial score: {initial_score:.2f}")
+        else:
+            initial_score = score_level(0)
+
         if initial_score >= 1.0:
             logger.info(f"Level {level} already at perfect score, skipping loop")
             return

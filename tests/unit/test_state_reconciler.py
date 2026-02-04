@@ -16,6 +16,9 @@ from zerg.state_reconciler import (
     StateReconciler,
 )
 
+# Mark all tests in this module as slow (PR #115 added 882 lines)
+pytestmark = pytest.mark.slow
+
 
 class TestReconciliationFix:
     """Tests for ReconciliationFix dataclass."""

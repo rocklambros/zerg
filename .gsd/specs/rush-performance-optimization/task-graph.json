@@ -1,0 +1,204 @@
+{
+  "feature": "rush-performance-optimization",
+  "version": "2.0",
+  "generated": "2026-02-03T12:00:00Z",
+  "total_tasks": 7,
+  "estimated_duration_minutes": 100,
+  "max_parallelization": 2,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Update config.yaml with performance settings",
+      "description": "Add verification.staleness_threshold_seconds=1800 and improvement_loops.max_iterations=1 to .zerg/config.yaml. This reduces cache invalidation and limits loop iterations.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".zerg/config.yaml"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'staleness_threshold_seconds: 1800' .zerg/config.yaml && grep -q 'max_iterations: 1' .zerg/config.yaml",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["yaml"],
+      "consumers": ["TASK-003"],
+      "integration_test": "tests/integration/test_config_loading.py"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add skip_tests type hints and interfaces",
+      "description": "Add skip_tests: bool parameter type hints to Orchestrator.__init__ and MergeCoordinator methods. Prepare type signatures for the flag propagation.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": ["zerg/orchestrator.py", "zerg/merge.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.orchestrator import Orchestrator; from zerg.merge import MergeCoordinator'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-003",
+      "title": "Reuse post-merge gate results in improvement loop",
+      "description": "Modify Orchestrator._run_level_loop() to accept optional MergeFlowResult parameter. If gate_results are available, use them as initial score instead of re-running gates. Update _level_complete() to pass merge_result to _run_level_loop().",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": ["zerg/merge.py", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "grep -q 'merge_result.*MergeFlowResult' zerg/orchestrator.py && python -c 'from zerg.orchestrator import Orchestrator'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/integration/test_orchestrator_loop.py"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add --skip-tests CLI flag and propagate to gates",
+      "description": "Add --skip-tests flag to zerg/commands/rush.py. Propagate flag through Orchestrator to MergeCoordinator. In merge.py, filter out test gates when skip_tests=True. On final level, always run full test suite.",
+      "phase": "core",
+      "level": 3,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/rush.py", "zerg/merge.py"],
+        "read": ["zerg/orchestrator.py"]
+      },
+      "verification": {
+        "command": "zerg rush --help | grep -q 'skip-tests' && python -c 'from zerg.merge import MergeCoordinator'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python", "click"],
+      "consumers": ["TASK-005"],
+      "integration_test": "tests/integration/test_rush_skip_tests.py"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Mark resilience tests with @pytest.mark.slow",
+      "description": "Add pytestmark = pytest.mark.slow to test_resilience_config.py, test_state_reconciler.py, and test_resilience_e2e.py. These tests are heavy and should be skippable during development.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_resilience_config.py",
+          "tests/unit/test_state_reconciler.py",
+          "tests/integration/test_resilience_e2e.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest -m slow --collect-only 2>/dev/null | grep -q 'test_resilience'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["pytest"],
+      "consumers": ["TASK-006"],
+      "integration_test": "tests/integration/test_rush_performance.py"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Add integration tests for performance optimizations",
+      "description": "Create integration test verifying: (1) --skip-tests flag is recognized, (2) gate results are reused in loop, (3) slow markers filter tests correctly. Test dry-run mode to avoid long execution.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": ["tests/integration/test_rush_performance.py"],
+        "modify": [],
+        "read": ["zerg/commands/rush.py", "zerg/orchestrator.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_rush_performance.py -v --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["pytest", "python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-007",
+      "title": "Update CHANGELOG.md with performance improvements",
+      "description": "Add entry to [Unreleased] section documenting: staleness threshold increase, loop iterations default change, --skip-tests flag, and slow test markers.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-005", "TASK-006"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'skip-tests' CHANGELOG.md && grep -q 'staleness' CHANGELOG.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 5
+    },
+    "2": {
+      "name": "core-loop",
+      "tasks": ["TASK-003"],
+      "parallel": false,
+      "estimated_minutes": 30,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "core-cli",
+      "tasks": ["TASK-004"],
+      "parallel": false,
+      "estimated_minutes": 45,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["TASK-005", "TASK-006"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["TASK-007"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

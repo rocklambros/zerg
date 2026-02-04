@@ -93,6 +93,7 @@ class LevelCoordinator:
         self._structured_writer = structured_writer
         self._backpressure = backpressure
         self._paused = False
+        self.last_merge_result: MergeFlowResult | None = None
 
     @property
     def paused(self) -> bool:
@@ -352,12 +353,14 @@ class LevelCoordinator:
                 target_branch="main",
             )
 
-        # Execute full merge flow
-        return self.merger.full_merge_flow(
+        # Execute full merge flow and store result for loop reuse
+        result = self.merger.full_merge_flow(
             level=level,
             worker_branches=worker_branches,
             target_branch="main",
         )
+        self.last_merge_result = result
+        return result
 
     def rebase_all_workers(self, level: int) -> None:
         """Rebase all worker branches onto merged base.
