@@ -1,5 +1,6 @@
 # ZERG Factory
 .zerg-worktrees/
+.zerg/worktrees/
 .zerg/logs/
 .zerg/*.pid
 .zerg/schemas/archived/

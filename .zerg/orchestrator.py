@@ -11,6 +11,7 @@ from enum import Enum
 from pathlib import Path
 
 import yaml
+from worktree import LevelMergeResult, Worktree, WorktreeManager
 
 
 class OrchestratorState(str, Enum):
@@ -26,6 +27,14 @@ class OrchestratorState(str, Enum):
     FAILED = "FAILED"
 
 
+class MergeConflictError(Exception):
+    """Raised when a merge conflict occurs during level completion."""
+
+    def __init__(self, conflicts: list[str]):
+        self.conflicts = conflicts
+        super().__init__(f"Merge conflict in files: {', '.join(conflicts)}")
+
+
 @dataclass
 class WorkerInfo:
     """Information about a worker process."""
@@ -36,6 +45,7 @@ class WorkerInfo:
     current_task: str | None = None
     last_heartbeat: datetime | None = None
     tasks_completed: int = 0
+    worktree: Worktree | None = None
 
 
 @dataclass
@@ -79,6 +89,7 @@ class Orchestrator:
         # Worker management
         self._workers: dict[int, WorkerInfo] = {}
         self._max_workers = self._config.get("workers", {}).get("max_concurrent", 5)
+        self._worktree_manager = WorktreeManager()
 
         # Task management
         self._task_graph: dict = {}
@@ -295,11 +306,91 @@ class Orchestrator:
         self._logger.info(f"Loaded task graph with {len(self._task_graph.get('tasks', []))} tasks")
 
     def _spawn_workers(self, count: int) -> None:
-        """Spawn worker processes."""
+        """Spawn worker processes with isolated worktrees."""
         for i in range(count):
             worker = WorkerInfo(worker_id=i)
             self._workers[i] = worker
             self._logger.info(f"Spawned worker {i}")
+
+    def spawn_worker(self, worker_id: str, task: dict) -> WorkerInfo:
+        """Spawn a worker with an isolated worktree.
+
+        Args:
+            worker_id: Unique identifier for the worker
+            task: Task to assign to the worker
+
+        Returns:
+            WorkerInfo with worktree attached
+        """
+        # Create isolated worktree
+        worktree = self._worktree_manager.create(worker_id)
+
+        # Create worker info
+        worker = WorkerInfo(
+            worker_id=int(worker_id) if worker_id.isdigit() else hash(worker_id) % 10000,
+            worktree=worktree,
+            current_task=task.get("id"),
+            state="running",
+        )
+
+        self._workers[worker.worker_id] = worker
+        self._logger.info(f"Spawned worker {worker_id} in worktree {worktree.path}")
+
+        return worker
+
+    def complete_level(self, level: int) -> LevelMergeResult:
+        """Complete a level by merging all worker branches.
+
+        Args:
+            level: Level number that was completed
+
+        Returns:
+            LevelMergeResult with merge status
+        """
+        # Get all workers that have worktrees for this level
+        worker_ids = [
+            wt_id
+            for wt_id, w in self._workers.items()
+            if w.worktree is not None and w.state != "terminated"
+        ]
+
+        # Map integer worker IDs to worktree worker IDs
+        wt_worker_ids = [
+            self._workers[wid].worktree.worker_id
+            for wid in worker_ids
+            if self._workers[wid].worktree
+        ]
+
+        if not wt_worker_ids:
+            return LevelMergeResult(success=True, merged_count=0)
+
+        # Merge all worker branches
+        result = self._worktree_manager.merge_level_branches(level, wt_worker_ids)
+
+        if not result.success:
+            self._logger.error(
+                f"Level {level} merge failed for worker {result.failed_worker}: "
+                f"{result.conflicts}"
+            )
+            raise MergeConflictError(result.conflicts or [])
+
+        # Cleanup worktrees after successful merge
+        for wt_id in wt_worker_ids:
+            self._worktree_manager.cleanup(wt_id)
+
+        self._logger.info(f"Level {level} completed: merged {result.merged_count} branches")
+        return result
+
+    def get_level_workers(self, level: int) -> list[WorkerInfo]:
+        """Get all workers that worked on a specific level.
+
+        Args:
+            level: Level number
+
+        Returns:
+            List of WorkerInfo for workers at this level
+        """
+        return [w for w in self._workers.values() if w.worktree is not None]
 
     def _terminate_workers(self) -> None:
         """Terminate all worker processes."""
