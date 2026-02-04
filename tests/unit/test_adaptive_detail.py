@@ -1,510 +1,472 @@
-"""Comprehensive tests for ZERG adaptive detail module."""
+"""Unit tests for adaptive detail management."""
 
-from __future__ import annotations
-
-import json
+import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
 from zerg.adaptive_detail import (
-    AdaptiveDetailTracker,
+    AdaptiveDetailManager,
     AdaptiveMetrics,
-    TaskInfo,
+    DirectoryMetrics,
+    FileMetrics,
 )
+from zerg.config import PlanningConfig
+
+
+class TestFileMetrics:
+    """Tests for FileMetrics model."""
+
+    def test_default_values(self) -> None:
+        """Test default file metrics values."""
+        metrics = FileMetrics()
+        assert metrics.modification_count == 0
+        assert metrics.last_modified == ""
+        assert metrics.success_count == 0
+        assert metrics.failure_count == 0
+
+    def test_custom_values(self) -> None:
+        """Test custom file metrics values."""
+        metrics = FileMetrics(
+            modification_count=5,
+            last_modified="2025-01-01T12:00:00",
+            success_count=3,
+            failure_count=1,
+        )
+        assert metrics.modification_count == 5
+        assert metrics.success_count == 3
+        assert metrics.failure_count == 1
+
+
+class TestDirectoryMetrics:
+    """Tests for DirectoryMetrics model."""
+
+    def test_default_values(self) -> None:
+        """Test default directory metrics values."""
+        metrics = DirectoryMetrics()
+        assert metrics.task_count == 0
+        assert metrics.success_count == 0
+        assert metrics.failure_count == 0
+        assert metrics.last_task_at == ""
+
+    def test_success_rate_empty(self) -> None:
+        """Test success rate with no tasks."""
+        metrics = DirectoryMetrics()
+        assert metrics.success_rate == 0.0
+
+    def test_success_rate_all_success(self) -> None:
+        """Test success rate with all successes."""
+        metrics = DirectoryMetrics(success_count=5, failure_count=0)
+        assert metrics.success_rate == 1.0
+
+    def test_success_rate_all_failure(self) -> None:
+        """Test success rate with all failures."""
+        metrics = DirectoryMetrics(success_count=0, failure_count=5)
+        assert metrics.success_rate == 0.0
+
+    def test_success_rate_mixed(self) -> None:
+        """Test success rate with mixed results."""
+        metrics = DirectoryMetrics(success_count=8, failure_count=2)
+        assert metrics.success_rate == 0.8
 
 
 class TestAdaptiveMetrics:
-    """Tests for AdaptiveMetrics dataclass."""
+    """Tests for AdaptiveMetrics model."""
 
     def test_default_values(self) -> None:
-        """Test default metric values."""
+        """Test default adaptive metrics values."""
         metrics = AdaptiveMetrics()
-        assert metrics.file_modifications == {}
-        assert metrics.directory_successes == {}
-        assert metrics.directory_failures == {}
+        assert metrics.files == {}
+        assert metrics.directories == {}
         assert metrics.last_updated == ""
 
-    def test_to_dict(self) -> None:
-        """Test to_dict serialization."""
+    def test_with_data(self) -> None:
+        """Test adaptive metrics with data."""
         metrics = AdaptiveMetrics(
-            file_modifications={"src/main.py": 5, "src/utils.py": 2},
-            directory_successes={"src": 10},
-            directory_failures={"src": 2},
-            last_updated="2026-02-04T10:00:00",
+            files={"src/main.py": FileMetrics(modification_count=3)},
+            directories={"src": DirectoryMetrics(success_count=5)},
+            last_updated="2025-01-01T12:00:00",
         )
-        data = metrics.to_dict()
-
-        assert data["file_modifications"] == {"src/main.py": 5, "src/utils.py": 2}
-        assert data["directory_successes"] == {"src": 10}
-        assert data["directory_failures"] == {"src": 2}
-        assert data["last_updated"] == "2026-02-04T10:00:00"
-
-    def test_from_dict(self) -> None:
-        """Test from_dict deserialization."""
-        data = {
-            "file_modifications": {"src/main.py": 3},
-            "directory_successes": {"src": 5},
-            "directory_failures": {"src": 1},
-            "last_updated": "2026-02-04T11:00:00",
-        }
-        metrics = AdaptiveMetrics.from_dict(data)
-
-        assert metrics.file_modifications == {"src/main.py": 3}
-        assert metrics.directory_successes == {"src": 5}
-        assert metrics.directory_failures == {"src": 1}
-        assert metrics.last_updated == "2026-02-04T11:00:00"
-
-    def test_from_dict_missing_fields(self) -> None:
-        """Test from_dict with missing fields uses defaults."""
-        data = {"file_modifications": {"src/main.py": 1}}
-        metrics = AdaptiveMetrics.from_dict(data)
-
-        assert metrics.file_modifications == {"src/main.py": 1}
-        assert metrics.directory_successes == {}
-        assert metrics.directory_failures == {}
-        assert metrics.last_updated == ""
-
-    def test_from_dict_empty(self) -> None:
-        """Test from_dict with empty dict."""
-        metrics = AdaptiveMetrics.from_dict({})
-        assert metrics.file_modifications == {}
-        assert metrics.directory_successes == {}
-
-    def test_roundtrip(self) -> None:
-        """Test to_dict/from_dict roundtrip preserves data."""
-        original = AdaptiveMetrics(
-            file_modifications={"a.py": 1, "b.py": 2},
-            directory_successes={"src": 3},
-            directory_failures={"tests": 1},
-            last_updated="2026-02-04T12:00:00",
-        )
-        restored = AdaptiveMetrics.from_dict(original.to_dict())
-
-        assert restored.file_modifications == original.file_modifications
-        assert restored.directory_successes == original.directory_successes
-        assert restored.directory_failures == original.directory_failures
-        assert restored.last_updated == original.last_updated
+        assert len(metrics.files) == 1
+        assert len(metrics.directories) == 1
 
 
-class TestTaskInfo:
-    """Tests for TaskInfo dataclass."""
-
-    def test_basic_init(self) -> None:
-        """Test basic TaskInfo initialization."""
-        task = TaskInfo(task_id="TASK-001")
-        assert task.task_id == "TASK-001"
-        assert task.files == []
-        assert task.directory == ""
-
-    def test_with_files(self) -> None:
-        """Test TaskInfo derives directory from files."""
-        task = TaskInfo(task_id="TASK-001", files=["src/module/main.py"])
-        assert task.directory == "src/module"
-
-    def test_with_multiple_files_same_dir(self) -> None:
-        """Test TaskInfo with multiple files in same directory."""
-        task = TaskInfo(
-            task_id="TASK-001",
-            files=["src/main.py", "src/utils.py"],
-        )
-        # Should use common parent
-        assert "src" in task.directory
-
-    def test_with_explicit_directory(self) -> None:
-        """Test TaskInfo with explicit directory."""
-        task = TaskInfo(
-            task_id="TASK-001",
-            files=["src/main.py"],
-            directory="custom/dir",
-        )
-        assert task.directory == "custom/dir"
-
-    def test_empty_files_empty_dir(self) -> None:
-        """Test TaskInfo with no files has empty directory."""
-        task = TaskInfo(task_id="TASK-001", files=[])
-        assert task.directory == ""
-
-
-class TestAdaptiveDetailTracker:
-    """Tests for AdaptiveDetailTracker class."""
+class TestAdaptiveDetailManager:
+    """Tests for AdaptiveDetailManager class."""
 
     @pytest.fixture
-    def temp_state_path(self, tmp_path: Path) -> Path:
-        """Create a temporary state path."""
-        return tmp_path / ".zerg" / "state" / "adaptive-detail.json"
+    def temp_state_file(self) -> Path:
+        """Create a temporary state file path."""
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            return Path(f.name)
 
     @pytest.fixture
-    def tracker(self, temp_state_path: Path) -> AdaptiveDetailTracker:
-        """Create a tracker with temporary state path."""
-        return AdaptiveDetailTracker(state_path=temp_state_path)
-
-    def test_default_init(self, temp_state_path: Path) -> None:
-        """Test default initialization."""
-        tracker = AdaptiveDetailTracker(state_path=temp_state_path)
-        assert tracker.familiarity_threshold == 3
-        assert tracker.success_threshold == 0.8
-        assert tracker.metrics.file_modifications == {}
-
-    def test_custom_thresholds(self, temp_state_path: Path) -> None:
-        """Test initialization with custom thresholds."""
-        tracker = AdaptiveDetailTracker(
-            state_path=temp_state_path,
-            familiarity_threshold=5,
-            success_threshold=0.9,
+    def config_high_thresholds(self) -> PlanningConfig:
+        """Create config with high thresholds."""
+        return PlanningConfig(
+            adaptive_detail=True,
+            adaptive_familiarity_threshold=5,
+            adaptive_success_threshold=0.9,
         )
-        assert tracker.familiarity_threshold == 5
-        assert tracker.success_threshold == 0.9
 
-    def test_config_based_init(self, temp_state_path: Path) -> None:
-        """Test initialization from config object."""
-        mock_config = MagicMock()
-        mock_config.planning.adaptive_familiarity_threshold = 10
-        mock_config.planning.adaptive_success_threshold = 0.95
+    @pytest.fixture
+    def config_low_thresholds(self) -> PlanningConfig:
+        """Create config with low thresholds."""
+        return PlanningConfig(
+            adaptive_detail=True,
+            adaptive_familiarity_threshold=2,
+            adaptive_success_threshold=0.5,
+        )
 
-        tracker = AdaptiveDetailTracker(state_path=temp_state_path, config=mock_config)
-        assert tracker.familiarity_threshold == 10
-        assert tracker.success_threshold == 0.95
+    @pytest.fixture
+    def config_disabled(self) -> PlanningConfig:
+        """Create config with adaptive detail disabled."""
+        return PlanningConfig(adaptive_detail=False)
 
-    def test_config_without_planning(self, temp_state_path: Path) -> None:
-        """Test initialization with config missing planning section."""
-        mock_config = MagicMock()
-        mock_config.planning = None
+    def test_init_creates_manager(self, temp_state_file: Path) -> None:
+        """Test manager initialization."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        assert manager._state_file == temp_state_file
 
-        tracker = AdaptiveDetailTracker(state_path=temp_state_path, config=mock_config)
-        # Should use defaults
-        assert tracker.familiarity_threshold == 3
-        assert tracker.success_threshold == 0.8
+    def test_init_with_config(self, temp_state_file: Path, config_high_thresholds: PlanningConfig) -> None:
+        """Test manager initialization with custom config."""
+        manager = AdaptiveDetailManager(
+            state_file=temp_state_file,
+            config=config_high_thresholds,
+        )
+        assert manager._config.adaptive_familiarity_threshold == 5
 
-    def test_record_file_modification(self, tracker: AdaptiveDetailTracker) -> None:
+    def test_record_file_modification(self, temp_state_file: Path) -> None:
         """Test recording file modifications."""
-        tracker.record_file_modification("src/main.py")
-        assert tracker.get_file_modification_count("src/main.py") == 1
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        manager.record_file_modification("src/main.py")
 
-        tracker.record_file_modification("src/main.py")
-        assert tracker.get_file_modification_count("src/main.py") == 2
+        count = manager.get_file_modification_count("src/main.py")
+        assert count == 1
 
-    def test_record_file_modification_normalizes_path(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test that file paths are normalized."""
-        # Record with ./prefix - should be normalized
-        tracker.record_file_modification("./src/main.py")
-        # Both forms should find the same file
-        assert tracker.get_file_modification_count("src/main.py") == 1
-        assert tracker.get_file_modification_count("./src/main.py") == 1
+    def test_record_multiple_modifications(self, temp_state_file: Path) -> None:
+        """Test recording multiple modifications to same file."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
 
-    def test_record_task_result_success(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test recording successful task."""
-        task = TaskInfo(task_id="TASK-001", files=["src/main.py"], directory="src")
-        tracker.record_task_result(task, success=True)
+        for _ in range(5):
+            manager.record_file_modification("src/main.py")
 
-        assert tracker.metrics.directory_successes.get("src") == 1
-        assert tracker.get_file_modification_count("src/main.py") == 1
+        count = manager.get_file_modification_count("src/main.py")
+        assert count == 5
 
-    def test_record_task_result_failure(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test recording failed task."""
-        task = TaskInfo(task_id="TASK-001", files=["src/main.py"], directory="src")
-        tracker.record_task_result(task, success=False)
-
-        assert tracker.metrics.directory_failures.get("src") == 1
-        # File modifications should NOT be recorded on failure
-        assert tracker.get_file_modification_count("src/main.py") == 0
-
-    def test_get_directory_success_rate_no_tasks(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test success rate with no tasks."""
-        assert tracker.get_directory_success_rate("src") == 0.0
-
-    def test_get_directory_success_rate_all_success(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test success rate with all successes."""
-        tracker.metrics.directory_successes["src"] = 5
-        assert tracker.get_directory_success_rate("src") == 1.0
-
-    def test_get_directory_success_rate_mixed(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test success rate with mixed results."""
-        tracker.metrics.directory_successes["src"] = 8
-        tracker.metrics.directory_failures["src"] = 2
-        assert tracker.get_directory_success_rate("src") == 0.8
-
-
-class TestShouldReduceDetail:
-    """Tests for should_reduce_detail method."""
-
-    @pytest.fixture
-    def tracker(self, tmp_path: Path) -> AdaptiveDetailTracker:
-        """Create tracker with known thresholds."""
-        return AdaptiveDetailTracker(
-            state_path=tmp_path / "adaptive.json",
-            familiarity_threshold=3,
-            success_threshold=0.8,
+    def test_record_task_result_success(self, temp_state_file: Path) -> None:
+        """Test recording successful task result."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        manager.record_task_result(
+            task_files=["src/main.py", "src/utils.py"],
+            success=True,
         )
 
-    def test_no_reduction_for_new_file(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test no reduction for files never modified."""
-        task = TaskInfo(task_id="TASK-001", files=["src/new.py"])
-        assert tracker.should_reduce_detail(task) is False
+        file_metrics = manager.get_file_metrics("src/main.py")
+        assert file_metrics is not None
+        assert file_metrics.success_count == 1
 
-    def test_reduction_on_familiarity_threshold(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test reduction when file modification count reaches threshold."""
-        # Record 3 modifications
+        dir_metrics = manager.get_directory_metrics("src")
+        assert dir_metrics is not None
+        assert dir_metrics.success_count == 1
+        assert dir_metrics.success_rate == 1.0
+
+    def test_record_task_result_failure(self, temp_state_file: Path) -> None:
+        """Test recording failed task result."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        manager.record_task_result(
+            task_files=["src/main.py"],
+            success=False,
+        )
+
+        file_metrics = manager.get_file_metrics("src/main.py")
+        assert file_metrics is not None
+        assert file_metrics.failure_count == 1
+
+        dir_metrics = manager.get_directory_metrics("src")
+        assert dir_metrics is not None
+        assert dir_metrics.failure_count == 1
+        assert dir_metrics.success_rate == 0.0
+
+    def test_record_task_result_mixed(self, temp_state_file: Path) -> None:
+        """Test recording mixed task results."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+
+        # 4 successes, 1 failure
+        for _ in range(4):
+            manager.record_task_result(["src/main.py"], success=True)
+        manager.record_task_result(["src/main.py"], success=False)
+
+        dir_metrics = manager.get_directory_metrics("src")
+        assert dir_metrics is not None
+        assert dir_metrics.success_rate == 0.8
+
+    def test_should_reduce_detail_disabled(self, temp_state_file: Path, config_disabled: PlanningConfig) -> None:
+        """Test should_reduce_detail when adaptive detail is disabled."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_disabled)
+
+        # Even with high modification count, should not reduce
+        for _ in range(10):
+            manager.record_file_modification("src/main.py")
+
+        result = manager.should_reduce_detail(["src/main.py"])
+        assert result is False
+
+    def test_should_reduce_detail_empty_files(self, temp_state_file: Path) -> None:
+        """Test should_reduce_detail with empty file list."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        result = manager.should_reduce_detail([])
+        assert result is False
+
+    def test_should_reduce_detail_by_familiarity(
+        self, temp_state_file: Path, config_low_thresholds: PlanningConfig
+    ) -> None:
+        """Test should_reduce_detail based on familiarity threshold."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_low_thresholds)
+
+        # Threshold is 2, so after 2 modifications should reduce
+        manager.record_file_modification("src/main.py")
+        assert manager.should_reduce_detail(["src/main.py"]) is False
+
+        manager.record_file_modification("src/main.py")
+        assert manager.should_reduce_detail(["src/main.py"]) is True
+
+    def test_should_reduce_detail_by_success_rate(
+        self, temp_state_file: Path, config_low_thresholds: PlanningConfig
+    ) -> None:
+        """Test should_reduce_detail based on success rate threshold."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_low_thresholds)
+
+        # Threshold is 0.5, so need >= 50% success
+        # First task: 100% success
+        manager.record_task_result(["src/main.py"], success=True)
+        assert manager.should_reduce_detail(["src/other.py"]) is True
+
+    def test_should_reduce_detail_below_thresholds(
+        self, temp_state_file: Path, config_high_thresholds: PlanningConfig
+    ) -> None:
+        """Test should_reduce_detail with values below thresholds."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_high_thresholds)
+
+        # Familiarity threshold is 5, success threshold is 0.9
+        # Record 3 modifications (below threshold)
         for _ in range(3):
-            tracker.record_file_modification("src/main.py")
+            manager.record_file_modification("src/main.py")
 
-        task = TaskInfo(task_id="TASK-001", files=["src/main.py"])
-        assert tracker.should_reduce_detail(task) is True
+        # Record 3 success, 2 failure (60% success, below 90%)
+        for _ in range(3):
+            manager.record_task_result(["src/main.py"], success=True)
+        for _ in range(2):
+            manager.record_task_result(["src/main.py"], success=False)
 
-    def test_reduction_on_success_threshold(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test reduction when directory success rate reaches threshold."""
-        # Record 8 successes and 2 failures (80% success rate)
-        tracker.metrics.directory_successes["src"] = 8
-        tracker.metrics.directory_failures["src"] = 2
+        result = manager.should_reduce_detail(["src/main.py"])
+        assert result is False
 
-        task = TaskInfo(task_id="TASK-001", files=["src/new.py"], directory="src")
-        assert tracker.should_reduce_detail(task) is True
+    def test_get_recommended_detail_level_no_reduction(self, temp_state_file: Path) -> None:
+        """Test get_recommended_detail_level with no reduction needed."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
 
-    def test_no_reduction_below_success_threshold(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test no reduction when success rate is below threshold."""
-        tracker.metrics.directory_successes["src"] = 7
-        tracker.metrics.directory_failures["src"] = 3  # 70% success rate
+        level = manager.get_recommended_detail_level(["src/new_file.py"], "high")
+        assert level == "high"
 
-        task = TaskInfo(task_id="TASK-001", files=["src/new.py"], directory="src")
-        assert tracker.should_reduce_detail(task) is False
+    def test_get_recommended_detail_level_with_reduction(
+        self, temp_state_file: Path, config_low_thresholds: PlanningConfig
+    ) -> None:
+        """Test get_recommended_detail_level with reduction applied."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_low_thresholds)
 
-    def test_no_reduction_with_single_task(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test no reduction with only one task in directory."""
-        tracker.metrics.directory_successes["src"] = 1
-        # Need at least 2 tasks for meaningful rate
+        # Meet familiarity threshold
+        for _ in range(3):
+            manager.record_file_modification("src/main.py")
 
-        task = TaskInfo(task_id="TASK-001", files=["src/new.py"], directory="src")
-        assert tracker.should_reduce_detail(task) is False
+        # Should reduce from high to medium
+        level = manager.get_recommended_detail_level(["src/main.py"], "high")
+        assert level == "medium"
 
-    def test_reduction_with_custom_metrics(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test should_reduce_detail with explicit metrics."""
-        custom_metrics = AdaptiveMetrics(
-            file_modifications={"src/main.py": 5},
-        )
-        task = TaskInfo(task_id="TASK-001", files=["src/main.py"])
+    def test_get_recommended_detail_level_medium_to_standard(
+        self, temp_state_file: Path, config_low_thresholds: PlanningConfig
+    ) -> None:
+        """Test reduction from medium to standard."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_low_thresholds)
 
-        assert tracker.should_reduce_detail(task, metrics=custom_metrics) is True
+        # Meet familiarity threshold
+        for _ in range(3):
+            manager.record_file_modification("src/main.py")
 
-    def test_any_file_over_threshold_triggers_reduction(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test that any file over threshold triggers reduction."""
-        # Only one file over threshold
-        tracker.metrics.file_modifications["src/familiar.py"] = 5
-        tracker.metrics.file_modifications["src/new.py"] = 0
+        level = manager.get_recommended_detail_level(["src/main.py"], "medium")
+        assert level == "standard"
 
-        task = TaskInfo(task_id="TASK-001", files=["src/new.py", "src/familiar.py"])
-        assert tracker.should_reduce_detail(task) is True
+    def test_get_recommended_detail_level_standard_no_change(
+        self, temp_state_file: Path, config_low_thresholds: PlanningConfig
+    ) -> None:
+        """Test standard level cannot be reduced further."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_low_thresholds)
 
-    def test_uses_default_directory_when_empty(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test that empty directory defaults to '.'."""
-        tracker.metrics.directory_successes["."] = 10
-        task_info = TaskInfo(task_id="TASK-001", files=[], directory="")
+        # Meet familiarity threshold
+        for _ in range(3):
+            manager.record_file_modification("src/main.py")
 
-        # Should check "." directory when task.directory is empty
-        directory = task_info.directory or "."
-        assert tracker.get_directory_success_rate(directory) == 1.0
+        level = manager.get_recommended_detail_level(["src/main.py"], "standard")
+        assert level == "standard"
 
+    def test_get_recommended_detail_level_disabled(
+        self, temp_state_file: Path, config_disabled: PlanningConfig
+    ) -> None:
+        """Test get_recommended_detail_level when adaptive detail is disabled."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_disabled)
 
-class TestStatePersistence:
-    """Tests for state persistence functionality."""
+        # Even with high modification count
+        for _ in range(10):
+            manager.record_file_modification("src/main.py")
 
-    @pytest.fixture
-    def state_path(self, tmp_path: Path) -> Path:
-        """Create a temporary state path."""
-        return tmp_path / ".zerg" / "state" / "adaptive-detail.json"
+        level = manager.get_recommended_detail_level(["src/main.py"], "high")
+        assert level == "high"
 
-    def test_save_creates_directory(self, state_path: Path) -> None:
-        """Test that save creates parent directories."""
-        tracker = AdaptiveDetailTracker(state_path=state_path)
-        tracker.record_file_modification("test.py")
+    def test_persistence_across_instances(self, temp_state_file: Path) -> None:
+        """Test that metrics persist across manager instances."""
+        manager1 = AdaptiveDetailManager(state_file=temp_state_file)
+        for _ in range(5):
+            manager1.record_file_modification("src/main.py")
 
-        assert state_path.exists()
-        assert state_path.parent.exists()
+        # Create new manager with same state file
+        manager2 = AdaptiveDetailManager(state_file=temp_state_file)
+        count = manager2.get_file_modification_count("src/main.py")
+        assert count == 5
 
-    def test_save_writes_valid_json(self, state_path: Path) -> None:
-        """Test that saved state is valid JSON."""
-        tracker = AdaptiveDetailTracker(state_path=state_path)
-        tracker.record_file_modification("test.py")
-        # Record a task result to populate directory_successes
-        task = TaskInfo(task_id="T1", files=["src/main.py"], directory="src")
-        tracker.record_task_result(task, success=True)
+    def test_get_metrics_summary(self, temp_state_file: Path, config_low_thresholds: PlanningConfig) -> None:
+        """Test get_metrics_summary returns correct data."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_low_thresholds)
 
-        with open(state_path) as f:
-            data = json.load(f)
+        # Record some metrics
+        for _ in range(3):
+            manager.record_file_modification("src/main.py")
+        manager.record_task_result(["src/main.py"], success=True)
 
-        assert "file_modifications" in data
-        assert data["file_modifications"]["test.py"] == 1
-        assert data["directory_successes"]["src"] == 1
+        summary = manager.get_metrics_summary()
 
-    def test_load_from_existing_state(self, state_path: Path) -> None:
-        """Test loading from existing state file."""
-        # Create initial state
-        state_path.parent.mkdir(parents=True, exist_ok=True)
-        initial_data = {
-            "file_modifications": {"src/main.py": 10},
-            "directory_successes": {"src": 20},
-            "directory_failures": {},
-            "last_updated": "2026-02-04T10:00:00",
-        }
-        with open(state_path, "w") as f:
-            json.dump(initial_data, f)
+        assert summary["total_files_tracked"] == 1
+        assert summary["total_directories_tracked"] == 1
+        assert summary["total_modifications"] == 3
+        assert summary["familiar_files"] == 1  # >= threshold of 2
+        assert summary["average_success_rate"] == 1.0
+        assert summary["familiarity_threshold"] == 2
+        assert summary["success_threshold"] == 0.5
+        assert summary["adaptive_detail_enabled"] is True
 
-        # Create tracker - should load existing state
-        tracker = AdaptiveDetailTracker(state_path=state_path)
-
-        assert tracker.get_file_modification_count("src/main.py") == 10
-        assert tracker.metrics.directory_successes["src"] == 20
-
-    def test_load_handles_corrupt_file(self, state_path: Path) -> None:
-        """Test loading handles corrupt JSON gracefully."""
-        state_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(state_path, "w") as f:
-            f.write("not valid json {{{")
-
-        # Should not raise, should start with fresh metrics
-        tracker = AdaptiveDetailTracker(state_path=state_path)
-        assert tracker.metrics.file_modifications == {}
-
-    def test_load_handles_missing_file(self, state_path: Path) -> None:
-        """Test loading handles missing file."""
-        # File doesn't exist
-        tracker = AdaptiveDetailTracker(state_path=state_path)
-        assert tracker.metrics.file_modifications == {}
-
-    def test_persistence_roundtrip(self, state_path: Path) -> None:
-        """Test full save/load roundtrip."""
-        # Create tracker and add data
-        tracker1 = AdaptiveDetailTracker(state_path=state_path)
-        tracker1.record_file_modification("src/main.py")
-        tracker1.record_file_modification("src/main.py")
-        task = TaskInfo(task_id="T1", files=["src/utils.py"], directory="src")
-        tracker1.record_task_result(task, success=True)
-
-        # Create new tracker - should load saved state
-        tracker2 = AdaptiveDetailTracker(state_path=state_path)
-
-        assert tracker2.get_file_modification_count("src/main.py") == 2
-        assert tracker2.get_file_modification_count("src/utils.py") == 1
-        assert tracker2.metrics.directory_successes["src"] == 1
-
-    def test_last_updated_timestamp(self, state_path: Path) -> None:
-        """Test that last_updated is set on save."""
-        tracker = AdaptiveDetailTracker(state_path=state_path)
-        tracker.record_file_modification("test.py")
-
-        with open(state_path) as f:
-            data = json.load(f)
-
-        assert data["last_updated"] != ""
-        # Should be ISO format
-        assert "T" in data["last_updated"]
-
-
-class TestResetAndStats:
-    """Tests for reset_metrics and get_stats methods."""
-
-    @pytest.fixture
-    def tracker(self, tmp_path: Path) -> AdaptiveDetailTracker:
-        """Create tracker with some data."""
-        tracker = AdaptiveDetailTracker(state_path=tmp_path / "adaptive.json")
-        tracker.record_file_modification("a.py")
-        tracker.record_file_modification("b.py")
-        tracker.metrics.directory_successes["src"] = 5
-        tracker.metrics.directory_failures["src"] = 1
-        return tracker
-
-    def test_reset_metrics(self, tracker: AdaptiveDetailTracker) -> None:
+    def test_reset_metrics(self, temp_state_file: Path) -> None:
         """Test reset_metrics clears all data."""
-        tracker.reset_metrics()
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
 
-        assert tracker.metrics.file_modifications == {}
-        assert tracker.metrics.directory_successes == {}
-        assert tracker.metrics.directory_failures == {}
+        # Record some metrics
+        for _ in range(5):
+            manager.record_file_modification("src/main.py")
+        manager.record_task_result(["src/main.py"], success=True)
 
-    def test_get_stats_basic(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test get_stats returns correct values."""
-        stats = tracker.get_stats()
+        # Reset
+        manager.reset_metrics()
 
-        assert stats["total_files_tracked"] == 2
-        assert stats["total_modifications"] == 2
-        assert stats["total_tasks"] == 6
-        assert stats["overall_success_rate"] == pytest.approx(5 / 6)
-        assert stats["directories_tracked"] == 1
-        assert stats["familiarity_threshold"] == 3
-        assert stats["success_threshold"] == 0.8
+        # Verify cleared
+        assert manager.get_file_modification_count("src/main.py") == 0
+        assert manager.get_file_metrics("src/main.py") is None
+        assert manager.get_directory_metrics("src") is None
 
-    def test_get_stats_empty(self, tmp_path: Path) -> None:
-        """Test get_stats with no data."""
-        tracker = AdaptiveDetailTracker(state_path=tmp_path / "adaptive.json")
-        stats = tracker.get_stats()
+    def test_path_normalization(self, temp_state_file: Path) -> None:
+        """Test that paths are normalized consistently."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
 
-        assert stats["total_files_tracked"] == 0
-        assert stats["total_modifications"] == 0
-        assert stats["total_tasks"] == 0
-        assert stats["overall_success_rate"] == 0.0
-        assert stats["directories_tracked"] == 0
+        # Use different path representations
+        manager.record_file_modification("src/main.py")
+        manager.record_file_modification(Path("src/main.py"))
+        manager.record_file_modification("./src/main.py")
 
+        # Should all count for same file
+        count = manager.get_file_modification_count("src/main.py")
+        assert count == 3
 
-class TestEdgeCases:
-    """Tests for edge cases and boundary conditions."""
+    def test_multiple_directories(self, temp_state_file: Path) -> None:
+        """Test tracking across multiple directories."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
 
-    @pytest.fixture
-    def tracker(self, tmp_path: Path) -> AdaptiveDetailTracker:
-        """Create tracker for edge case testing."""
-        return AdaptiveDetailTracker(
-            state_path=tmp_path / "adaptive.json",
-            familiarity_threshold=3,
-            success_threshold=0.8,
-        )
+        manager.record_task_result(["src/main.py"], success=True)
+        manager.record_task_result(["tests/test_main.py"], success=False)
+        manager.record_task_result(["lib/utils.py"], success=True)
 
-    def test_exactly_at_familiarity_threshold(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test behavior exactly at familiarity threshold."""
-        for _ in range(3):  # Exactly threshold
-            tracker.record_file_modification("src/main.py")
+        src_metrics = manager.get_directory_metrics("src")
+        tests_metrics = manager.get_directory_metrics("tests")
+        lib_metrics = manager.get_directory_metrics("lib")
 
-        task = TaskInfo(task_id="T1", files=["src/main.py"])
-        assert tracker.should_reduce_detail(task) is True
+        assert src_metrics is not None and src_metrics.success_rate == 1.0
+        assert tests_metrics is not None and tests_metrics.success_rate == 0.0
+        assert lib_metrics is not None and lib_metrics.success_rate == 1.0
 
-    def test_one_below_familiarity_threshold(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test behavior one below familiarity threshold."""
-        for _ in range(2):  # One below threshold
-            tracker.record_file_modification("src/main.py")
+    def test_corrupted_state_file(self, temp_state_file: Path) -> None:
+        """Test handling of corrupted state file."""
+        # Write invalid JSON
+        temp_state_file.write_text("invalid json {{{")
 
-        task = TaskInfo(task_id="T1", files=["src/main.py"])
-        assert tracker.should_reduce_detail(task) is False
+        # Should initialize with empty metrics instead of crashing
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        summary = manager.get_metrics_summary()
+        assert summary["total_files_tracked"] == 0
 
-    def test_exactly_at_success_threshold(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test behavior exactly at success threshold (80%)."""
-        tracker.metrics.directory_successes["src"] = 8
-        tracker.metrics.directory_failures["src"] = 2  # 80% exactly
+    def test_missing_parent_directory(self) -> None:
+        """Test handling of missing parent directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "subdir" / "state.json"
+            manager = AdaptiveDetailManager(state_file=state_file)
 
-        task = TaskInfo(task_id="T1", files=["src/new.py"], directory="src")
-        assert tracker.should_reduce_detail(task) is True
+            # Should create directory when saving
+            manager.record_file_modification("src/main.py")
 
-    def test_one_below_success_threshold(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test behavior one below success threshold."""
-        tracker.metrics.directory_successes["src"] = 79
-        tracker.metrics.directory_failures["src"] = 21  # 79%
+            assert state_file.exists()
 
-        task = TaskInfo(task_id="T1", files=["src/new.py"], directory="src")
-        assert tracker.should_reduce_detail(task) is False
+    def test_get_file_metrics_nonexistent(self, temp_state_file: Path) -> None:
+        """Test get_file_metrics for nonexistent file."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        metrics = manager.get_file_metrics("nonexistent.py")
+        assert metrics is None
 
-    def test_special_characters_in_path(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test handling of special characters in file paths."""
-        path = "src/my file (1).py"
-        tracker.record_file_modification(path)
-        assert tracker.get_file_modification_count(path) == 1
+    def test_get_directory_metrics_nonexistent(self, temp_state_file: Path) -> None:
+        """Test get_directory_metrics for nonexistent directory."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        metrics = manager.get_directory_metrics("nonexistent")
+        assert metrics is None
 
-    def test_deep_nested_path(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test handling of deeply nested paths."""
-        path = "src/a/b/c/d/e/f/main.py"
-        tracker.record_file_modification(path)
-        assert tracker.get_file_modification_count(path) == 1
+    def test_get_directory_success_rate_nonexistent(self, temp_state_file: Path) -> None:
+        """Test get_directory_success_rate for nonexistent directory."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        rate = manager.get_directory_success_rate("nonexistent")
+        assert rate == 0.0
 
-    def test_task_with_no_directory_uses_dot(self, tracker: AdaptiveDetailTracker) -> None:
-        """Test that task with no directory uses '.' for checking."""
-        tracker.metrics.directory_successes["."] = 10
+    def test_invalid_detail_level(self, temp_state_file: Path, config_low_thresholds: PlanningConfig) -> None:
+        """Test handling of invalid detail level."""
+        manager = AdaptiveDetailManager(state_file=temp_state_file, config=config_low_thresholds)
 
-        task = TaskInfo(task_id="T1", files=[], directory="")
-        rate = tracker.get_directory_success_rate(task.directory or ".")
-        assert rate == 1.0
+        # Invalid level should default to "high"
+        level = manager.get_recommended_detail_level(["src/main.py"], "invalid")
+        assert level == "high"
+
+    def test_concurrent_modifications(self, temp_state_file: Path) -> None:
+        """Test thread-safe modifications."""
+        import threading
+
+        manager = AdaptiveDetailManager(state_file=temp_state_file)
+        threads: list[threading.Thread] = []
+
+        def modify_files() -> None:
+            for _ in range(100):
+                manager.record_file_modification("src/main.py")
+
+        # Create multiple threads
+        for _ in range(5):
+            t = threading.Thread(target=modify_files)
+            threads.append(t)
+            t.start()
+
+        # Wait for all threads
+        for t in threads:
+            t.join()
+
+        # Should have recorded all modifications
+        count = manager.get_file_modification_count("src/main.py")
+        assert count == 500
