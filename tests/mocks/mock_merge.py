@@ -54,14 +54,14 @@ class MockMergeCoordinator:
 
     def __init__(
         self,
-        feature: str,
+        feature: str = "test-feature",
         config: Any = None,
         repo_path: str | Path = ".",
     ) -> None:
         """Initialize mock merge coordinator.
 
         Args:
-            feature: Feature name
+            feature: Feature name (default: "test-feature")
             config: ZergConfig (ignored in mock)
             repo_path: Repository path (ignored in mock)
         """
@@ -79,6 +79,7 @@ class MockMergeCoordinator:
         self._fail_at_level: int | None = None
         self._conflict_at_level: int | None = None
         self._timeout_at_attempt: int | None = None
+        self._timeout: bool = False
         self._always_succeed: bool = True
         self._gate_failure_levels: set[int] = set()
         self._conflicting_files: list[str] = []
@@ -105,6 +106,7 @@ class MockMergeCoordinator:
         fail_at_level: int | None = None,
         conflict_at_level: int | None = None,
         timeout_at_attempt: int | None = None,
+        timeout: bool = False,
         always_succeed: bool = True,
         gate_failure_levels: list[int] | None = None,
         conflicting_files: list[str] | None = None,
@@ -122,6 +124,7 @@ class MockMergeCoordinator:
             fail_at_level: Level number to fail at
             conflict_at_level: Level to simulate conflict at
             timeout_at_attempt: Attempt to simulate timeout at
+            timeout: Simple flag to enable timeout simulation on first attempt
             always_succeed: Default success behavior
             gate_failure_levels: Levels where gates fail (legacy, applies to both)
             conflicting_files: Files that conflict
@@ -138,7 +141,12 @@ class MockMergeCoordinator:
         self._fail_at_attempt = fail_at_attempt
         self._fail_at_level = fail_at_level
         self._conflict_at_level = conflict_at_level
-        self._timeout_at_attempt = timeout_at_attempt
+        # timeout=True sets timeout_at_attempt to 1 if not explicitly set
+        if timeout and timeout_at_attempt is None:
+            self._timeout_at_attempt = 1
+        else:
+            self._timeout_at_attempt = timeout_at_attempt
+        self._timeout = timeout
         self._always_succeed = always_succeed
         self._gate_failure_levels = set(gate_failure_levels or [])
         self._conflicting_files = conflicting_files or []

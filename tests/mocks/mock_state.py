@@ -25,7 +25,7 @@ class StateEvent:
 
     event_type: str
     timestamp: datetime = field(default_factory=datetime.now)
-    details: dict = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class MockStateManager:
@@ -774,7 +774,7 @@ class MockStateManager:
 
     # === Mock-specific Methods ===
 
-    def _record_mock_event(self, event_type: str, details: dict) -> None:
+    def _record_mock_event(self, event_type: str, details: dict[str, Any]) -> None:
         """Record a mock state change event.
 
         Args:
@@ -891,3 +891,247 @@ class MockStateManager:
         self._last_save_time = None
         self._last_load_time = None
         self._file_exists = False
+
+    # === Async Methods (for compatibility) ===
+
+    async def load_async(self) -> dict[str, Any]:
+        """Async version of load() - wraps blocking file I/O in thread.
+
+        Returns:
+            State dictionary
+        """
+        return self.load()
+
+    async def save_async(self) -> None:
+        """Async version of save() - wraps blocking file I/O in thread."""
+        self.save()
+
+    # === Additional State Methods ===
+
+    def inject_state(self, state_dict: dict[str, Any]) -> None:
+        """Inject external state for read-only display (no disk write).
+
+        Used by the dashboard to display state from Claude Code Tasks
+        when the state JSON file has no task data.
+
+        Args:
+            state_dict: State dictionary to inject.
+        """
+        self._state = state_dict
+
+    def set_task_retry_schedule(self, task_id: str, next_retry_at: str) -> None:
+        """Set the next retry timestamp for a task.
+
+        Args:
+            task_id: Task identifier
+            next_retry_at: ISO timestamp for when retry becomes eligible
+        """
+        if "tasks" not in self._state:
+            self._state["tasks"] = {}
+
+        if task_id not in self._state["tasks"]:
+            self._state["tasks"][task_id] = {}
+
+        self._state["tasks"][task_id]["next_retry_at"] = next_retry_at
+
+        self.save()
+
+    def get_task_retry_schedule(self, task_id: str) -> str | None:
+        """Get the next retry timestamp for a task.
+
+        Args:
+            task_id: Task identifier
+
+        Returns:
+            ISO timestamp string or None if not scheduled
+        """
+        task_state = self._state.get("tasks", {}).get(task_id, {})
+        return task_state.get("next_retry_at")
+
+    def get_tasks_ready_for_retry(self) -> list[str]:
+        """Get task IDs whose scheduled retry time has passed.
+
+        Returns:
+            List of task IDs ready for retry
+        """
+        now = datetime.now().isoformat()
+        ready = []
+        for task_id, task_state in self._state.get("tasks", {}).items():
+            next_retry = task_state.get("next_retry_at")
+            if next_retry and next_retry <= now:
+                # Only include tasks that are still in a retryable state
+                status = task_state.get("status")
+                if status in (TaskStatus.FAILED.value, "waiting_retry"):
+                    ready.append(task_id)
+        return ready
+
+    def get_stale_in_progress_tasks(self, timeout_seconds: int) -> list[dict[str, Any]]:
+        """Get tasks that have been in_progress longer than the timeout.
+
+        Args:
+            timeout_seconds: Maximum seconds a task can be in_progress before
+                considered stale
+
+        Returns:
+            List of dicts with task_id, worker_id, started_at, elapsed_seconds
+        """
+        from datetime import timedelta
+
+        cutoff = datetime.now() - timedelta(seconds=timeout_seconds)
+        cutoff_iso = cutoff.isoformat()
+
+        stale = []
+        for task_id, task_state in self._state.get("tasks", {}).items():
+            status = task_state.get("status")
+            if status != TaskStatus.IN_PROGRESS.value:
+                continue
+
+            started_at = task_state.get("started_at")
+            if not started_at:
+                continue
+
+            if started_at <= cutoff_iso:
+                started_dt = datetime.fromisoformat(started_at)
+                elapsed = (datetime.now() - started_dt).total_seconds()
+                stale.append(
+                    {
+                        "task_id": task_id,
+                        "worker_id": task_state.get("worker_id"),
+                        "started_at": started_at,
+                        "elapsed_seconds": round(elapsed),
+                    }
+                )
+        return stale
+
+    def generate_state_md(self, gsd_dir: str | Path | None = None) -> Path:
+        """Generate a human-readable STATE.md file from current state.
+
+        Creates a markdown file in the GSD directory summarizing the current
+        execution state, task progress, and any decisions or blockers.
+
+        Args:
+            gsd_dir: GSD directory path (defaults to .gsd)
+
+        Returns:
+            Path to generated STATE.md file
+        """
+        gsd_path = Path(gsd_dir or ".gsd")
+        gsd_path.mkdir(parents=True, exist_ok=True)
+        state_md_path = gsd_path / "STATE.md"
+
+        lines = self._build_state_md_content()
+        state_md_path.write_text("\n".join(lines), encoding="utf-8")
+
+        self._record_mock_event(
+            "state_md_generated",
+            {"path": str(state_md_path)},
+        )
+
+        return state_md_path
+
+    def _build_state_md_content(self) -> list[str]:
+        """Build the content lines for STATE.md.
+
+        Returns:
+            List of markdown lines
+        """
+        lines = []
+        now = datetime.now().isoformat()
+
+        # Header
+        lines.append(f"# ZERG State: {self.feature}")
+        lines.append("")
+
+        # Current phase info
+        current_level = self._state.get("current_level", 0)
+        started_at = self._state.get("started_at", "unknown")
+        is_paused = self._state.get("paused", False)
+        error = self._state.get("error")
+
+        lines.append("## Current Phase")
+        lines.append(f"- **Level:** {current_level}")
+        lines.append(f"- **Started:** {started_at}")
+        lines.append(f"- **Last Update:** {now}")
+        if is_paused:
+            lines.append("- **Status:** PAUSED")
+        if error:
+            lines.append(f"- **Error:** {error}")
+        lines.append("")
+
+        # Task progress table
+        lines.append("## Tasks")
+        lines.append("")
+        lines.append("| ID | Status | Worker | Updated |")
+        lines.append("|----|--------|--------|---------|")
+
+        tasks = self._state.get("tasks", {})
+        for task_id, task_state in sorted(tasks.items()):
+            status = task_state.get("status", "unknown")
+            worker = task_state.get("worker_id", "-")
+            updated = task_state.get("updated_at", "-")
+            # Truncate timestamp for display
+            if isinstance(updated, str) and "T" in updated:
+                updated = updated.split("T")[1][:8]
+            lines.append(f"| {task_id} | {status} | {worker} | {updated} |")
+
+        lines.append("")
+
+        # Workers section
+        workers = self._state.get("workers", {})
+        if workers:
+            lines.append("## Workers")
+            lines.append("")
+            lines.append("| ID | Status | Tasks Done | Branch |")
+            lines.append("|----|--------|------------|--------|")
+            for wid, worker_data in sorted(workers.items(), key=lambda x: int(x[0])):
+                status = worker_data.get("status", "unknown")
+                tasks_done = worker_data.get("tasks_completed", 0)
+                branch = worker_data.get("branch", "-")
+                # Truncate branch name
+                if len(branch) > 30:
+                    branch = "..." + branch[-27:]
+                lines.append(f"| {wid} | {status} | {tasks_done} | {branch} |")
+            lines.append("")
+
+        # Levels section
+        levels = self._state.get("levels", {})
+        if levels:
+            lines.append("## Levels")
+            lines.append("")
+            for level, level_data in sorted(levels.items(), key=lambda x: int(x[0])):
+                status = level_data.get("status", "pending")
+                merge_status = level_data.get("merge_status", "-")
+                lines.append(f"- **Level {level}:** {status}")
+                if merge_status != "-":
+                    lines.append(f"  - Merge: {merge_status}")
+                if merge_commit := level_data.get("merge_commit"):
+                    lines.append(f"  - Commit: {merge_commit[:8]}")
+            lines.append("")
+
+        # Failed tasks details
+        failed = self.get_failed_tasks()
+        if failed:
+            lines.append("## Blockers")
+            lines.append("")
+            for task_info in failed:
+                task_id = task_info["task_id"]
+                error_msg = task_info.get("error", "Unknown error")
+                retry_count = task_info.get("retry_count", 0)
+                lines.append(f"- **{task_id}** (retries: {retry_count})")
+                lines.append(f"  - {error_msg}")
+            lines.append("")
+
+        # Recent events
+        events = self._state.get("execution_log", [])[-10:]  # Last 10 events
+        if events:
+            lines.append("## Recent Events")
+            lines.append("")
+            for event in reversed(events):
+                timestamp = event.get("timestamp", "")
+                if isinstance(timestamp, str) and "T" in timestamp:
+                    timestamp = timestamp.split("T")[1][:8]
+                event_type = event.get("event", "unknown")
+                lines.append(f"- `{timestamp}` {event_type}")
+            lines.append("")
+
+        return lines
