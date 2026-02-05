@@ -2,6 +2,16 @@
 
 Discover opportunities and generate actionable GitHub issues for domain: **$ARGUMENTS**
 
+## ⛔ WORKFLOW BOUNDARY (NON-NEGOTIABLE)
+
+This command MUST NEVER:
+- Automatically run `/z:plan` or any planning phase
+- Automatically proceed to design or implementation
+- Call the Skill tool to invoke another command
+- Write code or make code changes
+
+After Phase 4 completes, the command STOPS. The user must manually run `/z:plan`.
+
 ## Flags
 
 - `--rounds N`: Number of Socratic rounds (default: 3, max: 5)
@@ -166,7 +176,23 @@ See details file for issue template.
 Present ranked recommendations:
 1. Show prioritized feature list with effort estimates
 2. Save session summary to `.gsd/specs/{session-id}/brainstorm.md`
-3. Suggest next step: `/zerg:plan {top-feature}`
+
+**Then use AskUserQuestion to prompt the user for next steps:**
+
+Call AskUserQuestion:
+  - question: "Brainstorm complete! How would you like to proceed?"
+  - header: "Next step"
+  - options:
+    - label: "Clear context, then /z:plan (Recommended)"
+      description: "Run /compact to free token budget, then start /z:plan {top-feature} in fresh context"
+    - label: "Stop here"
+      description: "I'll run /z:plan later in a new session"
+
+Based on user response:
+- **"Clear context, then /z:plan"**: Output: "Run `/compact` to clear context, then run `/z:plan {top-feature}` to begin requirements."
+- **"Stop here"**: Command completes normally with no further output.
+
+**⛔ DO NOT auto-run /z:plan. The user must manually invoke it.**
 
 ---
 

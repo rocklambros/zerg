@@ -1,0 +1,113 @@
+{
+  "feature": "enforce-workflow-boundaries",
+  "version": "2.0",
+  "generated": "2026-02-05T00:00:00Z",
+  "total_tasks": 4,
+  "estimated_duration_minutes": 10,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add workflow boundary to plan.md",
+      "description": "Add WORKFLOW BOUNDARY section to plan.md. Update Phase 5.5 to remove 'Run /z:design now' option, keeping only 2 options. Add ⛔ warning after Phase 5.5.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'WORKFLOW BOUNDARY' zerg/data/commands/plan.md && grep -q 'MUST NEVER' zerg/data/commands/plan.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Add explicit HARD STOP rule at the top of plan.md. The WORKFLOW BOUNDARY section must state this command MUST NEVER: automatically run /z:design, proceed to implementation, call Skill tool, or write code.\n\nFR-4: Update Phase 5.5 to have only 2 options (remove 'Run /z:design now'). Add ⛔ DO NOT auto-run warning."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add workflow boundary to plan.core.md",
+      "description": "Mirror changes from plan.md to plan.core.md. Add WORKFLOW BOUNDARY section, update Phase 5.5, add ⛔ warning.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.core.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'WORKFLOW BOUNDARY' zerg/data/commands/plan.core.md && grep -q 'MUST NEVER' zerg/data/commands/plan.core.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nKeep plan.core.md in sync with plan.md. Same WORKFLOW BOUNDARY section and Phase 5.5 changes."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add workflow boundary to brainstorm.md",
+      "description": "Add WORKFLOW BOUNDARY section to brainstorm.md. Update Phase 4 (Handoff) to use AskUserQuestion with 2 options. Add ⛔ warning after Phase 4.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'WORKFLOW BOUNDARY' zerg/data/commands/brainstorm.md && grep -q 'MUST NEVER' zerg/data/commands/brainstorm.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-2: Add explicit HARD STOP rule at the top of brainstorm.md. The WORKFLOW BOUNDARY section must state this command MUST NEVER: automatically run /z:plan, proceed to design/implementation, call Skill tool, or write code.\n\nFR-3: Update Phase 4 (Handoff) to use AskUserQuestion with 2 options: 'Clear context, then /z:plan (Recommended)' and 'Stop here'. Add ⛔ DO NOT auto-run warning."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add workflow boundary to brainstorm.core.md",
+      "description": "Mirror changes from brainstorm.md to brainstorm.core.md. Add WORKFLOW BOUNDARY section, update Phase 4, add ⛔ warning.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.core.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'WORKFLOW BOUNDARY' zerg/data/commands/brainstorm.core.md && grep -q 'MUST NEVER' zerg/data/commands/brainstorm.core.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nKeep brainstorm.core.md in sync with brainstorm.md. Same WORKFLOW BOUNDARY section and Phase 4 changes."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "core",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 10
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

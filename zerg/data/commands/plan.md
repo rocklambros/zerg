@@ -3,6 +3,16 @@
 
 Capture complete requirements for feature: **$ARGUMENTS**
 
+## ⛔ WORKFLOW BOUNDARY (NON-NEGOTIABLE)
+
+This command MUST NEVER:
+- Automatically run `/z:design` or any design phase
+- Automatically proceed to implementation
+- Call the Skill tool to invoke another command
+- Write code or make code changes
+
+After Phase 5.5 completes, the command STOPS. The user must manually run `/z:design`.
+
 ## Flags
 
 - `--socratic` or `-s`: Use structured 3-round discovery mode (see details file)
@@ -114,15 +124,14 @@ Call AskUserQuestion:
   - options:
     - label: "Clear context, then /z:design (Recommended)"
       description: "Run /compact to free token budget, then start /z:design in a fresh context"
-    - label: "Run /z:design now"
-      description: "Continue in the current context — may have reduced token budget"
     - label: "Stop here"
       description: "I'll run /z:design later in a new session"
 
 Based on user response:
 - **"Clear context, then /z:design"**: Output: "Run `/compact` to clear context, then run `/z:design` to begin architecture."
-- **"Run /z:design now"**: Output: "Run `/z:design` now to begin architecture."
 - **"Stop here"**: Command completes normally with no further output.
+
+**⛔ DO NOT auto-run /z:design. DO NOT write code. The user must manually invoke the next command.**
 
 ---
 
