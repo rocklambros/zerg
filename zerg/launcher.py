@@ -1649,12 +1649,22 @@ class ContainerLauncher(WorkerLauncher):
             if handle:
                 handle.health_check_at = datetime.now()
 
-    def terminate(self, worker_id: int, force: bool = False) -> bool:
-        """Terminate a worker container.
+    async def _terminate_impl(
+        self,
+        worker_id: int,
+        force: bool,
+        run_fn: Any,
+    ) -> bool:
+        """Core terminate logic. Single source of truth.
+
+        Both terminate() and terminate_async() delegate here,
+        passing appropriate run callables for sync vs async contexts.
 
         Args:
             worker_id: Worker to terminate
             force: Force termination (docker kill vs docker stop)
+            run_fn: Awaitable callable that executes a docker command and returns
+                     (returncode, stdout, stderr) tuple
 
         Returns:
             True if termination succeeded
@@ -1667,37 +1677,28 @@ class ContainerLauncher(WorkerLauncher):
 
         try:
             # Stop or kill container
-            cmd = ["docker", "kill" if force else "stop", container_id]
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30 if not force else 10,
-            )
+            action = "kill" if force else "stop"
+            cmd = ["docker", action, container_id]
+            returncode, _stdout, stderr = await run_fn(cmd, 10 if force else 30)
 
-            if result.returncode == 0:
+            if returncode == 0:
                 handle.status = WorkerStatus.STOPPED
                 logger.info(f"Terminated container for worker {worker_id}")
 
                 # Remove container
-                subprocess.run(
-                    ["docker", "rm", "-f", container_id],
-                    capture_output=True,
-                    timeout=10,
-                )
+                await run_fn(["docker", "rm", "-f", container_id], 10)
 
                 return True
             else:
-                logger.error(f"Failed to stop container: {result.stderr}")
+                logger.error(f"Failed to stop container: {stderr}")
                 return False
 
-        except subprocess.TimeoutExpired:
-            # Force kill on timeout
-            subprocess.run(
-                ["docker", "kill", container_id],
-                capture_output=True,
-                timeout=5,
-            )
+        except (subprocess.TimeoutExpired, TimeoutError):
+            # Force kill on timeout — best effort, ignore secondary failures
+            try:
+                await run_fn(["docker", "kill", container_id], 5)
+            except (subprocess.TimeoutExpired, TimeoutError, Exception):
+                logger.debug(f"Force kill also failed for worker {worker_id}, proceeding with cleanup")
             handle.status = WorkerStatus.STOPPED
             return True
 
@@ -1712,6 +1713,37 @@ class ContainerLauncher(WorkerLauncher):
             # Also remove from worker handles to prevent stale state
             if worker_id in self._workers:
                 del self._workers[worker_id]
+
+    def terminate(self, worker_id: int, force: bool = False) -> bool:
+        """Terminate a worker container.
+
+        Sync wrapper that delegates to _terminate_impl() with a
+        sync-compatible callable.
+
+        Args:
+            worker_id: Worker to terminate
+            force: Force termination (docker kill vs docker stop)
+
+        Returns:
+            True if termination succeeded
+        """
+
+        async def _sync_run(cmd: list[str], timeout: int) -> tuple[int, str, str]:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            return result.returncode, result.stdout, result.stderr
+
+        return asyncio.run(
+            self._terminate_impl(
+                worker_id=worker_id,
+                force=force,
+                run_fn=_sync_run,
+            )
+        )
 
     def get_output(self, worker_id: int, tail: int = 100) -> str:
         """Get worker container logs.
@@ -1964,7 +1996,8 @@ class ContainerLauncher(WorkerLauncher):
     async def terminate_async(self, worker_id: int, force: bool = False) -> bool:
         """Terminate a worker container asynchronously.
 
-        Uses asyncio.create_subprocess_exec() for docker stop/kill commands.
+        Async wrapper that delegates to _terminate_impl() with
+        native async callable (asyncio.create_subprocess_exec).
 
         Args:
             worker_id: Worker to terminate
@@ -1973,65 +2006,18 @@ class ContainerLauncher(WorkerLauncher):
         Returns:
             True if termination succeeded
         """
-        container_id = self._container_ids.get(worker_id)
-        handle = self._workers.get(worker_id)
 
-        if not container_id or not handle:
-            return False
-
-        try:
-            action = "kill" if force else "stop"
-            timeout = 10 if force else 30
-
+        async def _async_run(cmd: list[str], timeout: int) -> tuple[int, str, str]:
             proc = await asyncio.create_subprocess_exec(
-                "docker",
-                action,
-                container_id,
+                *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            return proc.returncode or 0, stdout.decode(), stderr.decode()
 
-            if proc.returncode == 0:
-                handle.status = WorkerStatus.STOPPED
-                logger.info(f"Async terminated container for worker {worker_id}")
-
-                # Remove container
-                rm_proc = await asyncio.create_subprocess_exec(
-                    "docker",
-                    "rm",
-                    "-f",
-                    container_id,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                await asyncio.wait_for(rm_proc.communicate(), timeout=10)
-
-                return True
-            else:
-                logger.error(f"Failed to stop container: {stderr.decode()}")
-                return False
-
-        except TimeoutError:
-            # Force kill on timeout
-            kill_proc = await asyncio.create_subprocess_exec(
-                "docker",
-                "kill",
-                container_id,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            await kill_proc.communicate()
-            handle.status = WorkerStatus.STOPPED
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to async terminate container: {e}")
-            return False
-
-        finally:
-            # Clean up references
-            if worker_id in self._container_ids:
-                del self._container_ids[worker_id]
-            if worker_id in self._workers:
-                del self._workers[worker_id]
+        return await self._terminate_impl(
+            worker_id=worker_id,
+            force=force,
+            run_fn=_async_run,
+        )
