@@ -202,6 +202,8 @@ RULE_PATHS: dict[str, list[str]] = {
 def detect_project_stack(project_path: Path) -> ProjectStack:
     """Detect the technology stack of a project.
 
+    Uses single-pass directory traversal for performance.
+
     Args:
         project_path: Path to the project root
 
@@ -211,15 +213,32 @@ def detect_project_stack(project_path: Path) -> ProjectStack:
     stack = ProjectStack()
     project_path = Path(project_path)
 
-    # Detect languages from file patterns
+    # Single traversal - collect and classify all files
+    files_by_ext: dict[str, list[Path]] = {}  # "*.py" -> [files...]
+    exact_files: set[str] = set()  # exact filenames found (e.g., "Dockerfile")
+
+    for filepath in project_path.rglob("*"):
+        if not filepath.is_file():
+            continue
+
+        name = filepath.name
+        exact_files.add(name)
+
+        # Build extension pattern (e.g., "*.py" from "foo.py")
+        if "." in name:
+            ext = name.rsplit(".", 1)[-1]
+            ext_pattern = f"*.{ext}"
+            files_by_ext.setdefault(ext_pattern, []).append(filepath)
+
+    # Detect languages from collected file data
     for pattern, language in LANGUAGE_DETECTION.items():
         if pattern.startswith("*"):
-            # Glob pattern
-            if list(project_path.rglob(pattern)):
+            # Glob pattern - check our collected extension map
+            if pattern in files_by_ext and files_by_ext[pattern]:
                 stack.languages.add(language)
         else:
-            # Exact file match
-            if (project_path / pattern).exists():
+            # Exact file match - check our collected filenames
+            if pattern in exact_files:
                 stack.languages.add(language)
 
     # Detect frameworks from dependency files
@@ -228,16 +247,19 @@ def detect_project_stack(project_path: Path) -> ProjectStack:
     _detect_go_frameworks(project_path, stack)
     _detect_rust_frameworks(project_path, stack)
 
-    # Detect infrastructure
+    # Detect infrastructure from collected file data
     for pattern, infra in INFRASTRUCTURE_DETECTION.items():
         if pattern.startswith("*"):
-            if list(project_path.rglob(pattern)):
+            # Glob pattern - check our collected extension map
+            if pattern in files_by_ext and files_by_ext[pattern]:
                 stack.infrastructure.add(infra)
         elif "/" in pattern:
+            # Path-based check (e.g., ".github/workflows")
             if (project_path / pattern).exists():
                 stack.infrastructure.add(infra)
         else:
-            if (project_path / pattern).exists():
+            # Exact file match - check our collected filenames
+            if pattern in exact_files:
                 stack.infrastructure.add(infra)
 
     # Set AI/ML and RAG flags based on detected frameworks

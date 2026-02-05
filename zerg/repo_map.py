@@ -488,18 +488,30 @@ def _md5_file(filepath: Path) -> str:
 
 
 def _collect_files(root: Path, languages: list[str]) -> list[Path]:
-    """Collect source files matching *languages* under *root*."""
+    """Collect source files matching *languages* under *root*.
+
+    Uses single-pass directory traversal for performance.
+    """
     exts: set[str] = set()
     for lang in languages:
         exts.update(_LANG_EXTENSIONS.get(lang, []))
 
+    # Single traversal, filter in memory
     result: list[Path] = []
-    for ext in exts:
-        for fp in root.rglob(f"*{ext}"):
-            parts = fp.relative_to(root).parts
-            if any(p.startswith(".") or p in _SKIP_DIRS for p in parts):
-                continue
-            result.append(fp)
+    for fp in root.rglob("*"):
+        if not fp.is_file():
+            continue
+
+        # Check extension
+        if fp.suffix not in exts:
+            continue
+
+        # Check skip directories
+        parts = fp.relative_to(root).parts
+        if any(p.startswith(".") or p in _SKIP_DIRS for p in parts):
+            continue
+
+        result.append(fp)
     return result
 
 
