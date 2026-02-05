@@ -35,6 +35,7 @@ Commands can be invoked in two ways:
   - [/zerg:debug](#zergdebug) — Deep diagnostics
   - [/zerg:worker](#zergworker) — Worker execution protocol
   - [/zerg:plugins](#zergplugins) — Plugin management
+  - [/zerg:create-command](#zergcreate-command) — Scaffold new commands
 - **Documentation & AI**
   - [/zerg:document](#zergdocument) — Component documentation
   - [/zerg:index](#zergindex) — Project wiki generation

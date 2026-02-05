@@ -32,6 +32,25 @@ BACKBONE_MARKERS: set[str] = {"TaskUpdate", "TaskList", "TaskGet"}
 # Pattern matching state JSON references in command files
 STATE_PATTERNS: re.Pattern[str] = re.compile(r"state.*json|STATE_FILE|\.zerg/state")
 
+# Task lifecycle pattern rules for command file validation
+TASK_PATTERN_RULES: list[dict[str, str]] = [
+    {
+        "name": "lifecycle_start",
+        "pattern": r"TaskCreate:\s*\n\s*-\s*subject:",
+        "message": "Missing TaskCreate with subject field",
+    },
+    {
+        "name": "lifecycle_in_progress",
+        "pattern": r'status:\s*["\']?in_progress',
+        "message": "Missing status: in_progress transition",
+    },
+    {
+        "name": "lifecycle_completed",
+        "pattern": r'status:\s*["\']?completed',
+        "message": "Missing status: completed transition",
+    },
+]
+
 # Prefixes to exclude from base command file scanning
 EXCLUDED_PREFIXES: tuple[str, ...] = ("_",)
 
@@ -239,6 +258,116 @@ def validate_state_json_without_tasks(commands_dir: Path) -> tuple[bool, list[st
                 f"{md_file.name}: references state JSON but has no "
                 f"TaskList/TaskGet (state JSON must not be sole data source)"
             )
+
+    return not errors, errors
+
+
+# Required sections for command files with acceptable header variants
+# Includes variants found in existing commands for backward compatibility
+REQUIRED_SECTIONS: dict[str, list[str]] = {
+    "pre-flight": [
+        "Pre-Flight",
+        "Pre-flight",
+        "Preflight",
+        "Pre-Flight Checks",
+        "## Pre-Flight",
+        "## Pre-flight",
+        "## Pre-Flight Checks",
+    ],
+    "task_tracking": [
+        "Task Tracking",
+        "Track in Claude Task System",
+        "Task System Updates",
+        "TaskCreate/TaskUpdate Integration",
+        "## Task Tracking",
+        "## Track in Claude Task System",
+        "## Task System Updates",
+        "## TaskCreate/TaskUpdate Integration",
+    ],
+    "help": ["Help", "## Help"],
+}
+
+
+def validate_required_sections(
+    commands_dir: Path,
+    strict: bool = False,
+) -> tuple[bool, list[str]]:
+    """Validate that command files contain required sections.
+
+    Each command file must have Pre-Flight, Task Tracking, and Help sections.
+    Checks for various acceptable header formats (case variations, with/without ##).
+
+    Args:
+        commands_dir: Path to the commands directory.
+        strict: If True, missing sections cause failure. Default False for
+            backward compatibility with existing commands.
+
+    Returns:
+        Tuple of (all_valid, list of error/warning messages).
+    """
+    errors: list[str] = []
+    base_files = _get_base_command_files(commands_dir)
+
+    for filepath in base_files:
+        content = filepath.read_text()
+        lines = content.split("\n")
+
+        for section_key, variants in REQUIRED_SECTIONS.items():
+            found = False
+            for variant in variants:
+                # Check if any line contains the variant (case-insensitive for the check)
+                for line in lines:
+                    # Match header patterns - look for the variant in header context
+                    if variant.lower() in line.lower():
+                        # Verify it's actually a header (starts with # or contains the exact text)
+                        stripped = line.strip()
+                        if stripped.startswith("#") or variant in line:
+                            found = True
+                            break
+                if found:
+                    break
+
+            if not found:
+                # Generate helpful error message with section name
+                section_display = section_key.replace("_", " ").title()
+                expected_variants = ", ".join(f'"{v}"' for v in variants[:3])
+                errors.append(
+                    f"{filepath.name}: missing required section '{section_display}' "
+                    f"(expected one of: {expected_variants})"
+                )
+
+    # When strict=False, return True (pass) with warnings for backward compat
+    if strict:
+        return not errors, errors
+    return True, errors
+
+
+def validate_task_patterns(commands_dir: Path) -> tuple[bool, list[str]]:
+    """Validate Task tool call patterns match backbone requirements.
+
+    Checks that command files include the full Task lifecycle pattern:
+    - TaskCreate with subject field
+    - status: in_progress transition
+    - status: completed transition
+
+    Uses regex for flexible matching of various formatting styles.
+
+    Args:
+        commands_dir: Path to the commands directory.
+
+    Returns:
+        Tuple of (all_valid, list of error messages).
+    """
+    errors: list[str] = []
+    base_files = _get_base_command_files(commands_dir)
+
+    for filepath in base_files:
+        content = filepath.read_text()
+
+        for rule in TASK_PATTERN_RULES:
+            pattern = re.compile(rule["pattern"], re.MULTILINE)
+            if not pattern.search(content):
+                errors.append(f"{filepath.name}: {rule['message']}")
 
     return not errors, errors
 
@@ -451,6 +580,7 @@ def validate_all(
     commands_dir: Path | None = None,
     auto_split: bool = False,
     strict_wiring: bool = False,
+    strict_sections: bool = False,
 ) -> tuple[bool, list[str]]:
     """Run all command validation checks and aggregate results.
 
@@ -458,6 +588,8 @@ def validate_all(
         commands_dir: Path to the commands directory. Defaults to package location.
         auto_split: If True, auto-split oversized files during threshold check.
         strict_wiring: If True, orphaned modules cause a failure.
+        strict_sections: If True, missing required sections cause a failure.
+            Default False for backward compatibility with existing commands.
 
     Returns:
         Tuple of (all_passed, list of all error messages across checks).
@@ -477,6 +609,7 @@ def validate_all(
             validate_split_threshold(commands_dir, auto_split=auto_split),
         ),
         ("State JSON", validate_state_json_without_tasks(commands_dir)),
+        ("Required sections", validate_required_sections(commands_dir, strict=strict_sections)),
         ("Engineering rules", validate_rules()),
         ("Module wiring", validate_module_wiring(strict=strict_wiring)),
         ("Resilience wiring", validate_resilience_wiring()),
@@ -492,6 +625,7 @@ def validate_all(
         "Split pairs": f"all {core_count} pairs consistent",
         "Split threshold": "no oversized unsplit files",
         "State JSON": "no files reference state without TaskList/TaskGet",
+        "Required sections": f"all {base_count} command files have Pre-Flight, Task Tracking, Help",
         "Engineering rules": "all rule files valid",
         "Module wiring": "no orphaned modules without production imports",
         "Resilience wiring": "resilience modules imported by expected consumers",
@@ -500,9 +634,17 @@ def validate_all(
     fail_count = 0
 
     for name, (passed, errors) in checks:
-        if passed:
+        if passed and not errors:
+            # Clean pass - no messages
             print(f"[PASS] {name}: {descriptions[name]}")
+        elif passed and errors:
+            # Passed with warnings (non-strict mode)
+            warn_count = len(errors)
+            print(f"[WARN] {name}: {warn_count} warning{'s' if warn_count != 1 else ''}")
+            for error in errors:
+                print(f"  - {error}")
         else:
+            # Failed
             error_count = len(errors)
             print(f"[FAIL] {name}: {error_count} error{'s' if error_count != 1 else ''}")
             for error in errors:
@@ -519,6 +661,380 @@ def validate_all(
         print(f"{fail_count} check{'s' if fail_count != 1 else ''} failed.")
 
     return all_passed, all_errors
+
+
+class ScaffoldGenerator:
+    """Generate command files from _template.md."""
+
+    def __init__(self, commands_dir: Path | None = None):
+        """Initialize the scaffold generator.
+
+        Args:
+            commands_dir: Path to the commands directory. Defaults to DEFAULT_COMMANDS_DIR.
+        """
+        if commands_dir is None:
+            commands_dir = DEFAULT_COMMANDS_DIR
+        self.commands_dir = commands_dir
+        self.template_path = commands_dir / "_template.md"
+
+    def scaffold(
+        self,
+        name: str,
+        description: str = "",
+        flags: list[dict] | None = None,
+    ) -> Path:
+        """Generate command file from template.
+
+        Args:
+            name: Command name (e.g., "my-command")
+            description: One-line description
+            flags: List of {name, default, description} dicts
+
+        Returns:
+            Path to created command file
+
+        Raises:
+            FileNotFoundError: If template file doesn't exist
+            FileExistsError: If command file already exists
+        """
+        # Check template exists
+        if not self.template_path.exists():
+            raise FileNotFoundError(f"Template not found: {self.template_path}")
+
+        # Check target doesn't already exist
+        output_path = self.commands_dir / f"{name}.md"
+        if output_path.exists():
+            raise FileExistsError(f"Command file already exists: {output_path}")
+
+        # Read template
+        template = self.template_path.read_text()
+
+        # Convert name to PascalCase for {CommandName}
+        # "my-command" -> "MyCommand"
+        command_name = name.replace("-", " ").title().replace(" ", "")
+
+        # Replace placeholders
+        content = template.replace("{CommandName}", command_name)
+        content = content.replace("{command-name}", name)
+
+        # Replace description placeholder
+        if description:
+            content = content.replace("{Short description of the command's purpose.}", description)
+        else:
+            content = content.replace(
+                "{Short description of the command's purpose.}",
+                f"Short description of the {name} command's purpose.",
+            )
+
+        # Generate flags table if provided
+        if flags:
+            flags_table = self._generate_flags_table(flags)
+            # Replace the default flags section
+            content = self._replace_flags_section(content, flags_table)
+
+        # Write output file
+        output_path.write_text(content)
+
+        # Check if auto-split is needed (>300 lines)
+        line_count = content.count("\n") + 1
+        if line_count >= MIN_LINES_TO_SPLIT:
+            splitter = CommandSplitter(self.commands_dir)
+            splitter.split_file(output_path)
+
+        return output_path
+
+    def _generate_flags_table(self, flags: list[dict]) -> str:
+        """Generate markdown table for flags.
+
+        Args:
+            flags: List of {name, default, description} dicts
+
+        Returns:
+            Markdown table string
+        """
+        lines = [
+            "| Flag | Default | Description |",
+            "|------|---------|-------------|",
+        ]
+        for flag in flags:
+            flag_name = flag.get("name", "")
+            default = flag.get("default", "")
+            desc = flag.get("description", "")
+            lines.append(f"| `{flag_name}` | `{default}` | {desc} |")
+        # Always add help flag
+        lines.append("| `--help` | | Show usage and exit |")
+        return "\n".join(lines)
+
+    def _replace_flags_section(self, content: str, flags_table: str) -> str:
+        """Replace the Arguments section with generated flags table.
+
+        Args:
+            content: Full template content
+            flags_table: Generated flags table markdown
+
+        Returns:
+            Content with replaced flags section
+        """
+        # Find the Arguments section and replace the table
+        import re
+
+        # Pattern to match the Arguments section table
+        pattern = r"(## Arguments\n\n)\|[^\n]+\n\|[^\n]+\n(\|[^\n]+\n)+"
+        replacement = f"\\1{flags_table}\n"
+        return re.sub(pattern, replacement, content)
+
+
+class DocGenerator:
+    """Generate documentation from command files."""
+
+    def __init__(
+        self,
+        commands_dir: Path | None = None,
+        docs_dir: Path | None = None,
+    ):
+        """Initialize the documentation generator.
+
+        Args:
+            commands_dir: Path to the commands directory. Defaults to DEFAULT_COMMANDS_DIR.
+            docs_dir: Path to the docs directory. Defaults to project root docs/.
+        """
+        if commands_dir is None:
+            commands_dir = DEFAULT_COMMANDS_DIR
+        self.commands_dir = commands_dir
+        if docs_dir is None:
+            # docs/ is at project root, two levels up from commands
+            docs_dir = commands_dir.parent.parent.parent / "docs"
+        self.docs_dir = docs_dir
+        self.commands_docs_dir = docs_dir / "commands"
+        self.index_path = docs_dir / "commands.md"
+
+    def generate_command_doc(self, name: str) -> Path:
+        """Generate docs/commands/{name}.md from command file.
+
+        Extracts:
+        - Title from first # heading
+        - Description from first paragraph
+        - Usage section if present
+        - Flags/Arguments table if present
+        - Help text from ## Help section
+
+        Args:
+            name: Command name (e.g., "my-command")
+
+        Returns:
+            Path to generated doc file
+
+        Raises:
+            FileNotFoundError: If command file doesn't exist
+        """
+        command_file = self.commands_dir / f"{name}.md"
+        if not command_file.exists():
+            raise FileNotFoundError(f"Command file not found: {command_file}")
+
+        content = command_file.read_text()
+        lines = content.split("\n")
+
+        # Extract title from first # heading
+        title = f"/zerg:{name}"
+        for line in lines:
+            if line.startswith("# "):
+                # Extract command name from title like "# /zerg:{name}"
+                title = line[2:].strip()
+                break
+
+        # Extract description from first paragraph after title
+        description = ""
+        in_first_para = False
+        for i, line in enumerate(lines):
+            if line.startswith("# "):
+                in_first_para = True
+                continue
+            if in_first_para:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    description = stripped
+                    break
+
+        # Extract help text
+        help_text = self.extract_help_text(command_file)
+
+        # Extract usage section
+        usage = self._extract_section(content, "Usage")
+
+        # Extract flags/arguments table
+        flags = self._extract_section(content, "Arguments")
+        if not flags:
+            flags = self._extract_section(content, "Flags")
+
+        # Build documentation file
+        doc_lines = [
+            f"# {title}",
+            "",
+            description,
+            "",
+        ]
+
+        if usage:
+            doc_lines.extend(
+                [
+                    "## Usage",
+                    "",
+                    usage,
+                    "",
+                ]
+            )
+
+        if flags:
+            doc_lines.extend(
+                [
+                    "## Flags",
+                    "",
+                    flags,
+                    "",
+                ]
+            )
+
+        if help_text:
+            doc_lines.extend(
+                [
+                    "## Help",
+                    "",
+                    "```",
+                    help_text,
+                    "```",
+                    "",
+                ]
+            )
+
+        # Ensure output directory exists
+        self.commands_docs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write doc file
+        output_path = self.commands_docs_dir / f"{name}.md"
+        output_path.write_text("\n".join(doc_lines))
+
+        return output_path
+
+    def update_wiki_index(self, name: str, description: str) -> None:
+        """Add entry to docs/commands.md Table of Contents.
+
+        Adds line like:
+          - [/zerg:{name}](#zerg{name}) — {description}
+
+        Args:
+            name: Command name (e.g., "my-command")
+            description: Short description of the command
+        """
+        if not self.index_path.exists():
+            # Create minimal index if it doesn't exist
+            self.index_path.parent.mkdir(parents=True, exist_ok=True)
+            self.index_path.write_text("# ZERG Command Reference\n\n## Table of Contents\n\n")
+
+        content = self.index_path.read_text()
+
+        # Generate anchor from name (remove hyphens for GitHub anchor format)
+        anchor = f"zerg{name.replace('-', '')}"
+        entry = f"  - [/zerg:{name}](#{anchor}) — {description}"
+
+        # Check if entry already exists
+        if f"/zerg:{name}" in content:
+            # Update existing entry
+            pattern = rf"^\s*-\s*\[/zerg:{re.escape(name)}\].*$"
+            content = re.sub(pattern, entry, content, flags=re.MULTILINE)
+        else:
+            # Find Table of Contents section and add entry
+            toc_pattern = r"(## Table of Contents\n\n)(.*?)(\n\n---|\n\n##|\Z)"
+            match = re.search(toc_pattern, content, re.DOTALL)
+            if match:
+                toc_start = match.group(1)
+                toc_content = match.group(2)
+                toc_end = match.group(3) if match.group(3) else ""
+
+                # Add entry at the end of TOC
+                new_toc = toc_content.rstrip() + "\n" + entry + "\n"
+                content = content[: match.start()] + toc_start + new_toc + toc_end + content[match.end() :]
+            else:
+                # Fallback: append to end of file
+                content = content.rstrip() + "\n" + entry + "\n"
+
+        self.index_path.write_text(content)
+
+    def extract_help_text(self, filepath: Path) -> str:
+        """Extract help block from command file.
+
+        Finds ## Help section and extracts the code block content.
+
+        Args:
+            filepath: Path to command file
+
+        Returns:
+            Help text content (empty string if not found)
+        """
+        if not filepath.exists():
+            return ""
+
+        content = filepath.read_text()
+        lines = content.split("\n")
+
+        # Find ## Help section
+        in_help_section = False
+        in_code_block = False
+        help_lines: list[str] = []
+
+        for line in lines:
+            if re.match(r"^##\s+Help\s*$", line, re.IGNORECASE):
+                in_help_section = True
+                continue
+
+            if in_help_section:
+                # Check for next section (exit condition)
+                if line.startswith("## ") and not re.match(r"^##\s+Help", line, re.IGNORECASE):
+                    break
+
+                # Track code blocks
+                if line.strip().startswith("```"):
+                    if in_code_block:
+                        # End of code block
+                        break
+                    else:
+                        # Start of code block
+                        in_code_block = True
+                        continue
+
+                if in_code_block:
+                    help_lines.append(line)
+
+        return "\n".join(help_lines).strip()
+
+    def _extract_section(self, content: str, section_name: str) -> str:
+        """Extract content from a named section.
+
+        Args:
+            content: Full file content
+            section_name: Section header name (e.g., "Usage", "Arguments")
+
+        Returns:
+            Section content (empty string if not found)
+        """
+        lines = content.split("\n")
+        in_section = False
+        section_lines: list[str] = []
+
+        for line in lines:
+            # Check for section start
+            if re.match(rf"^##\s+{re.escape(section_name)}\s*$", line, re.IGNORECASE):
+                in_section = True
+                continue
+
+            if in_section:
+                # Check for next section (exit condition)
+                if line.startswith("## "):
+                    break
+                section_lines.append(line)
+
+        # Strip leading/trailing empty lines
+        result = "\n".join(section_lines).strip()
+        return result
 
 
 def validate_wiring_only(strict_general: bool = False) -> tuple[bool, list[str]]:

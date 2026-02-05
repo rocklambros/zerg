@@ -1,0 +1,250 @@
+{
+  "feature": "github-issue-64",
+  "version": "2.0",
+  "generated": "2026-02-04T20:00:00Z",
+  "total_tasks": 9,
+  "estimated_duration_minutes": 120,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Implement ScaffoldGenerator class",
+      "description": "Add ScaffoldGenerator class to validate_commands.py that generates command files from _template.md. Must handle placeholder replacement, Task boilerplate injection, and auto-split for >300 lines.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/validate_commands.py"],
+        "read": ["zerg/data/commands/_template.md", "zerg/command_splitter.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.validate_commands import ScaffoldGenerator; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": ["TASK-005", "TASK-008"],
+      "integration_test": "tests/integration/test_authoring_flow.py",
+      "context": "## Security Rules (Python)\n- Use parameterized paths, avoid shell injection\n- Validate user input for command names\n\n## Spec Context\nScaffoldGenerator must: create from _template.md, inject Task boilerplate (TaskCreate/TaskUpdate pattern), auto-split at 300 lines. Hybrid mode: quick scaffold default, --interactive for wizard.\n\n## Dependencies\nTASK-002 provides SectionValidator for checking generated content\nTASK-003 provides TaskPatternChecker for validating boilerplate"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Implement SectionValidator",
+      "description": "Add validate_required_sections() function to validate_commands.py that checks for Pre-Flight, Task Tracking, and Help sections. Report missing sections with line numbers.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/validate_commands.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.validate_commands import validate_required_sections; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-001", "TASK-005"],
+      "integration_test": "tests/integration/test_authoring_flow.py",
+      "context": "## Security Rules (Python)\n- Use safe file reading patterns\n\n## Spec Context\nFR-2.1: Validate required sections exist (Pre-Flight, Help, Task Tracking). FR-2.4: Report errors with line numbers and fix suggestions.\n\n## Dependencies\nNone - foundation task"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Implement TaskPatternChecker",
+      "description": "Add validate_task_patterns() function to validate_commands.py that checks Task tool call patterns match backbone requirements. Verify TaskCreate with subject, TaskUpdate with status transitions.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/validate_commands.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.validate_commands import validate_task_patterns; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "regex"],
+      "consumers": ["TASK-001", "TASK-005"],
+      "integration_test": "tests/integration/test_authoring_flow.py",
+      "context": "## Security Rules (Python)\n- Use safe regex patterns, avoid ReDoS\n\n## Spec Context\nFR-2.2: Check Task tool call patterns match backbone requirements. Pattern must include: TaskCreate with subject, TaskUpdate with in_progress, TaskUpdate with completed.\n\n## Dependencies\nNone - foundation task"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Implement DocGenerator class",
+      "description": "Add DocGenerator class to validate_commands.py that extracts help text from command files and generates docs/commands/{name}.md references. Also updates docs/commands.md index.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/validate_commands.py"],
+        "read": ["docs/commands.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.validate_commands import DocGenerator; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-005", "TASK-007"],
+      "integration_test": "tests/integration/test_authoring_flow.py",
+      "context": "## Security Rules (Python)\n- Validate paths before writing\n- Escape content when inserting into markdown\n\n## Spec Context\nFR-4.1: Generate command reference in docs/commands/{name}.md. FR-4.2: Update wiki index with new command entry. FR-4.3: Extract help text, flags, examples from command file.\n\n## Dependencies\nNone - can run parallel with TASK-001"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Create /zerg:create-command slash command",
+      "description": "Create zerg/data/commands/create-command.md implementing the scaffold command. Supports quick mode (default) and --interactive wizard. Uses ScaffoldGenerator, SectionValidator, TaskPatternChecker, and DocGenerator.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-001", "TASK-004"],
+      "files": {
+        "create": ["zerg/data/commands/create-command.md"],
+        "modify": [],
+        "read": ["zerg/data/commands/_template.md"]
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands --commands-dir zerg/data/commands",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["markdown", "bash"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Security Rules (Bash)\n- Quote all variables\n- Validate command name input\n\n## Spec Context\nFR-1: Scaffold Command. Hybrid mode: quick scaffold by default, --interactive for wizard. Must pass validate_commands. Generate skeleton test file alongside command.\n\n## Dependencies\nTASK-001 provides ScaffoldGenerator\nTASK-004 provides DocGenerator"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Create pressure test scaffold for create-command",
+      "description": "Create tests/pressure/test_create_command.py with basic structural tests and skipped behavioral test stubs. Tests verify command file exists and passes validation.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": ["tests/pressure/test_create_command.py"],
+        "modify": [],
+        "read": ["zerg/data/commands/create-command.md"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/pressure/test_create_command.py -v --collect-only",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-3: Pressure Testing Framework. AC-4: Scaffold generates tests/pressure/test_{name}.py, test file is syntactically valid and runnable, test verifies basic command loading.\n\n## Dependencies\nTASK-005 creates the command file to test"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Generate documentation for create-command",
+      "description": "Create docs/commands/create-command.md with usage, flags, examples. Update docs/commands.md Table of Contents with new entry.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": ["docs/commands/create-command.md"],
+        "modify": ["docs/commands.md"],
+        "read": ["zerg/data/commands/create-command.md"]
+      },
+      "verification": {
+        "command": "test -f docs/commands/create-command.md && grep -q 'create-command' docs/commands.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-4: Auto-Documentation. AC-5: docs/commands/{name}.md generated, wiki index updated, help text extracted accurately.\n\n## Dependencies\nTASK-005 creates the command file to document"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Create unit tests for authoring functions",
+      "description": "Create tests/unit/test_scaffold_generator.py with tests for ScaffoldGenerator, SectionValidator, TaskPatternChecker, and DocGenerator classes/functions.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-001", "TASK-004"],
+      "files": {
+        "create": ["tests/unit/test_scaffold_generator.py"],
+        "modify": [],
+        "read": ["zerg/validate_commands.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_scaffold_generator.py -v",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nUnit tests for: ScaffoldGenerator.scaffold() creates valid file, SectionValidator detects missing sections, TaskPatternChecker finds missing patterns, DocGenerator extracts correct content.\n\n## Dependencies\nTASK-001, TASK-004 provide the classes to test"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Create integration test for authoring flow",
+      "description": "Create tests/integration/test_authoring_flow.py that tests full scaffold → validate → generate docs flow. Verify generated command passes validation.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": ["tests/integration/test_authoring_flow.py"],
+        "modify": [],
+        "read": ["zerg/validate_commands.py", "zerg/data/commands/create-command.md"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/integration/test_authoring_flow.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nIntegration tests for full authoring flow: scaffold → validate → generate docs. Generated command must pass python -m zerg.validate_commands.\n\n## Dependencies\nTASK-005 creates the command, TASK-001/004 provide the authoring functions"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 20
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-001", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-005"],
+      "parallel": false,
+      "estimated_minutes": 30,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["TASK-006", "TASK-007", "TASK-008", "TASK-009"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [3]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+        "reason": "All modify zerg/validate_commands.py",
+        "resolution": "TASK-002 and TASK-003 run first (L1), then TASK-001 (L2)"
+      }
+    ]
+  }
+}
