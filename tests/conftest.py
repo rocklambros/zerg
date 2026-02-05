@@ -10,7 +10,28 @@ from unittest.mock import MagicMock
 import pytest
 
 from zerg.config import QualityGate, ZergConfig
+from zerg.repo_map import invalidate_cache as invalidate_repo_map_cache
 from zerg.types import Task, TaskGraph
+
+
+@pytest.fixture(autouse=True)
+def reset_caches() -> Generator[None, None, None]:
+    """Reset singleton/module-level caches between tests.
+
+    This autouse fixture ensures that caching added in performance-core
+    doesn't persist state across tests, which could cause test isolation issues.
+
+    Caches reset:
+    - ZergConfig singleton (TASK-001)
+    - RepoMap TTL cache (TASK-004)
+    """
+    # Clear caches before test
+    ZergConfig.invalidate_cache()
+    invalidate_repo_map_cache()
+    yield
+    # Clear caches after test
+    ZergConfig.invalidate_cache()
+    invalidate_repo_map_cache()
 
 
 def _run_git(*args: str, cwd: Path | None = None) -> None:

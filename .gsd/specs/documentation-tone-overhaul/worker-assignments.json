@@ -1,0 +1,73 @@
+{
+  "feature": "documentation-tone-overhaul",
+  "generated": "2026-02-04T21:55:00Z",
+  "mode": "task",
+  "workers": 4,
+  "execution_plan": [
+    {
+      "level": 1,
+      "name": "foundation",
+      "workers_active": [0, 1],
+      "tasks": ["TASK-001", "TASK-002"],
+      "assignments": {
+        "0": ["TASK-001"],
+        "1": ["TASK-002"]
+      }
+    },
+    {
+      "level": 2,
+      "name": "core-wiki",
+      "workers_active": [0, 1, 2, 3],
+      "tasks": ["TASK-003", "TASK-004", "TASK-005", "TASK-006"],
+      "assignments": {
+        "0": ["TASK-003"],
+        "1": ["TASK-004"],
+        "2": ["TASK-005"],
+        "3": ["TASK-006"]
+      }
+    },
+    {
+      "level": 3,
+      "name": "reference",
+      "workers_active": [0, 1, 2],
+      "tasks": ["TASK-007", "TASK-008", "TASK-009"],
+      "assignments": {
+        "0": ["TASK-007"],
+        "1": ["TASK-008"],
+        "2": ["TASK-009"]
+      }
+    },
+    {
+      "level": 4,
+      "name": "advanced",
+      "workers_active": [0, 1, 2],
+      "tasks": ["TASK-010", "TASK-011", "TASK-012"],
+      "assignments": {
+        "0": ["TASK-010"],
+        "1": ["TASK-011"],
+        "2": ["TASK-012"]
+      }
+    },
+    {
+      "level": 5,
+      "name": "support",
+      "workers_active": [0, 1, 2],
+      "tasks": ["TASK-013", "TASK-014", "TASK-015"],
+      "assignments": {
+        "0": ["TASK-013"],
+        "1": ["TASK-014"],
+        "2": ["TASK-015"]
+      }
+    },
+    {
+      "level": 6,
+      "name": "finalization",
+      "workers_active": [0, 1],
+      "tasks": ["TASK-016", "TASK-017"],
+      "assignments": {
+        "0": ["TASK-016"],
+        "1": ["TASK-017"]
+      }
+    }
+  ]
+}

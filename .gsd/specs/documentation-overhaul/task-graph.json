@@ -1,0 +1,506 @@
+{
+  "feature": "documentation-overhaul",
+  "version": "2.0",
+  "generated": "2026-02-04T00:00:00Z",
+  "total_tasks": 16,
+  "estimated_duration_minutes": 240,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create Wiki Home page",
+      "description": "Create the Home.md wiki page with project overview, quick start guide, and navigation links to all other wiki pages. Extract key content from README.md but keep it concise. Include: 1-paragraph overview, installation steps, link table to all 10 wiki pages.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".gsd/wiki/Home.md"],
+        "modify": [],
+        "read": ["README.md", ".gsd/specs/documentation-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Home.md && grep -q 'Command-Reference' .gsd/wiki/Home.md && grep -q '/zerg:' .gsd/wiki/Home.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Home.md exists in .gsd/wiki/",
+        "Links to all 10 other wiki pages",
+        "Uses /zerg: format for all commands",
+        "Quick start section present"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Population - Home page with overview, quick start, links to other pages.\n\n## NFR\n- All commands referenced as /zerg:command\n- Never use 'Command-init' format"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Create Wiki Command-Reference page",
+      "description": "Create exhaustive Command-Reference.md with all 26 commands. For each command: synopsis, usage, flags table (every flag with type and default), 3-5 examples, related commands, notes. Group by workflow phase (Core, Monitoring, Quality, Utilities, Docs & AI), alphabetical within groups.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".gsd/wiki/Command-Reference.md"],
+        "modify": [],
+        "read": ["docs/commands.md", "zerg/data/commands/init.md", "zerg/data/commands/plan.md", "zerg/data/commands/design.md", "zerg/data/commands/rush.md", "zerg/data/commands/brainstorm.md", "zerg/data/commands/status.md", "zerg/data/commands/git.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Command-Reference.md && grep -c '/zerg:' .gsd/wiki/Command-Reference.md | xargs test 26 -le",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "All 26 commands documented",
+        "Every flag has type and default",
+        "3-5 examples per command",
+        "Grouped by workflow phase",
+        "Alphabetical within groups"
+      ],
+      "consumers": ["TASK-012", "TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-2: Exhaustive Command Documentation. For each of 26 commands: synopsis, usage, description, flags table, 3-5 examples, related commands, notes.\n\nCommand groups:\n- Core Workflow: brainstorm, design, init, plan, rush\n- Monitoring: cleanup, logs, merge, retry, status, stop\n- Quality: analyze, build, refactor, review, security, test\n- Utilities: create-command, debug, git, plugins, worker\n- Docs & AI: document, estimate, explain, index, select-tool"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Create Wiki Configuration page",
+      "description": "Create Configuration.md wiki page covering: .zerg/config.yaml structure, all configuration sections (workers, quality_gates, plugins, resilience, etc.), environment variables, tuning recommendations. Extract from docs/configuration.md and enhance.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".gsd/wiki/Configuration.md"],
+        "modify": [],
+        "read": ["docs/configuration.md", ".zerg/config.yaml"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Configuration.md && grep -q 'config.yaml' .gsd/wiki/Configuration.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "All config sections documented",
+        "Environment variables listed",
+        "Example config snippets",
+        "Tuning recommendations"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Configuration page with .zerg/config.yaml, environment variables, tuning."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Create Wiki Architecture page",
+      "description": "Create Architecture.md wiki page with system design overview, layer diagram, module reference table, execution model, Claude Code Task integration. Synthesize from ARCHITECTURE.md but format for wiki consumption.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [".gsd/wiki/Architecture.md"],
+        "modify": [],
+        "read": ["ARCHITECTURE.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Architecture.md && grep -q 'Module Reference' .gsd/wiki/Architecture.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "System layers diagram",
+        "Module reference table",
+        "Execution flow documented",
+        "Links to source files"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Architecture page with system design, module reference, execution model."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Create Wiki Tutorial page",
+      "description": "Create Tutorial.md wiki page with comprehensive minerals-store walkthrough. Cover all ZERG phases: init, brainstorm, plan, design, rush, status, logs, review, test, git ship. Include devcontainers, security rules, quality gates. Step-by-step with command examples.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [".gsd/wiki/Tutorial.md"],
+        "modify": [],
+        "read": ["docs/tutorial-minerals-store.md", "README.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Tutorial.md && grep -q '/zerg:init' .gsd/wiki/Tutorial.md && grep -q '/zerg:rush' .gsd/wiki/Tutorial.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Complete minerals-store walkthrough",
+        "All ZERG phases covered",
+        "Devcontainer usage shown",
+        "Security rules mentioned",
+        "Quality gates explained"
+      ],
+      "consumers": ["TASK-013", "TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Tutorial page - minerals-store walkthrough with all ZERG features from brainstorming -> planning -> design -> implementation and everything in between."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Create Wiki Plugins page",
+      "description": "Create Plugins.md wiki page covering the plugin system: QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin. Include YAML configuration, Python entry points, examples for each type.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": [".gsd/wiki/Plugins.md"],
+        "modify": [],
+        "read": ["docs/plugins.md", "zerg/data/commands/plugins.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Plugins.md && grep -q 'QualityGatePlugin' .gsd/wiki/Plugins.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "All three plugin types documented",
+        "YAML config examples",
+        "Python entry point examples",
+        "Lifecycle events listed"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Plugins page - quality gates, lifecycle hooks, custom launchers."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Create Wiki Security page",
+      "description": "Create Security.md wiki page covering: security rules integration, TikiTribe repo, OWASP Top 10 2025, language-specific rules, pre-commit hooks, vulnerability reporting. Include CLI commands for security rules management.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": [".gsd/wiki/Security.md"],
+        "modify": [],
+        "read": ["CLAUDE.md", "zerg/data/commands/security.md", ".claude/rules/security/_core/owasp-2025.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Security.md && grep -q 'OWASP' .gsd/wiki/Security.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Security rules integration explained",
+        "OWASP Top 10 2025 covered",
+        "Pre-commit hooks documented",
+        "zerg security-rules CLI commands"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Security page - security rules integration, vulnerability reporting."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Create Wiki Context-Engineering page",
+      "description": "Create Context-Engineering.md wiki page covering token optimization: command splitting (.core.md/.details.md), security rule filtering by extension, task-scoped context, token budget. Include monitoring via /zerg:status.",
+      "phase": "extended",
+      "level": 3,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": [".gsd/wiki/Context-Engineering.md"],
+        "modify": [],
+        "read": ["docs/context-engineering.md", "ARCHITECTURE.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Context-Engineering.md && grep -q 'command splitting' .gsd/wiki/Context-Engineering.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Command splitting explained",
+        "Security rule filtering covered",
+        "Task-scoped context documented",
+        "Token savings metrics"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Context-Engineering page - token optimization, command splitting, task context."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Create Wiki Troubleshooting page",
+      "description": "Create Troubleshooting.md wiki page with common issues and solutions: workers not starting, tasks failing, merge conflicts, state corruption, recovery procedures. Include /zerg:debug usage and diagnostic commands.",
+      "phase": "extended",
+      "level": 3,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": [".gsd/wiki/Troubleshooting.md"],
+        "modify": [],
+        "read": ["README.md", "zerg/data/commands/debug.md", "zerg/data/commands/retry.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Troubleshooting.md && grep -q '/zerg:debug' .gsd/wiki/Troubleshooting.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Common issues listed",
+        "/zerg:debug usage covered",
+        "Recovery procedures documented",
+        "Diagnostic commands included"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Troubleshooting page - common issues, diagnostics, recovery."
+    },
+    {
+      "id": "TASK-010",
+      "title": "Create Wiki FAQ page",
+      "description": "Create FAQ.md wiki page with frequently asked questions. Categories: Getting Started, Execution Modes, Git & Branching, Quality Gates, Containers, Context & Tokens, Plugins. 15-20 Q&A pairs.",
+      "phase": "extended",
+      "level": 3,
+      "dependencies": ["TASK-006", "TASK-007"],
+      "files": {
+        "create": [".gsd/wiki/FAQ.md"],
+        "modify": [],
+        "read": ["README.md", "ARCHITECTURE.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/FAQ.md && grep -c '?' .gsd/wiki/FAQ.md | xargs test 15 -le",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "15-20 Q&A pairs",
+        "Organized by category",
+        "Links to relevant wiki pages",
+        "Covers common confusion points"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki FAQ page - frequently asked questions."
+    },
+    {
+      "id": "TASK-011",
+      "title": "Create Wiki Contributing page",
+      "description": "Create Contributing.md wiki page covering: development setup, code style, test requirements, PR process, commit conventions. Extract from CONTRIBUTING.md and format for wiki.",
+      "phase": "extended",
+      "level": 3,
+      "dependencies": ["TASK-006", "TASK-007"],
+      "files": {
+        "create": [".gsd/wiki/Contributing.md"],
+        "modify": [],
+        "read": ["CONTRIBUTING.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/Contributing.md && grep -q 'PR' .gsd/wiki/Contributing.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Development setup steps",
+        "Code style guidelines",
+        "Test requirements",
+        "PR process documented"
+      ],
+      "consumers": ["TASK-015", "TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Wiki Contributing page - development setup, code style, PR process."
+    },
+    {
+      "id": "TASK-012",
+      "title": "Sync docs/commands.md with wiki",
+      "description": "Update docs/commands.md to be exhaustive and consistent with Wiki Command-Reference. Ensure all 26 commands have complete flag tables, examples. This file serves as offline mirror of wiki content.",
+      "phase": "sync",
+      "level": 4,
+      "dependencies": ["TASK-002", "TASK-008", "TASK-009", "TASK-010", "TASK-011"],
+      "files": {
+        "create": [],
+        "modify": ["docs/commands.md"],
+        "read": [".gsd/wiki/Command-Reference.md"]
+      },
+      "verification": {
+        "command": "grep -c '/zerg:' docs/commands.md | xargs test 26 -le",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Matches wiki Command-Reference",
+        "All 26 commands complete",
+        "Every flag documented",
+        "Consistent formatting"
+      ],
+      "consumers": ["TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nNFR-4: docs/ mirrors wiki for offline access. Source of truth is wiki, docs/ syncs from it."
+    },
+    {
+      "id": "TASK-013",
+      "title": "Restructure README.md as tutorial",
+      "description": "Restructure README.md to be tutorial-focused: 1) Quick Overview (1 para), 2) Installation (step-by-step), 3) Tutorial: Your First ZERG Project (minerals-store walkthrough), 4) Command Quick Reference (table linking to wiki), 5) Configuration (brief, link to wiki), 6) Links to Full Documentation.",
+      "phase": "sync",
+      "level": 4,
+      "dependencies": ["TASK-005", "TASK-008", "TASK-009", "TASK-010", "TASK-011"],
+      "files": {
+        "create": [],
+        "modify": ["README.md"],
+        "read": [".gsd/wiki/Home.md", ".gsd/wiki/Tutorial.md", ".gsd/specs/documentation-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'Tutorial' README.md && grep -q 'Step 1' README.md && grep -q '/zerg:init' README.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Tutorial-focused structure",
+        "Step-by-step guide",
+        "Command quick reference table",
+        "Links to wiki for details",
+        "All /zerg: format"
+      ],
+      "consumers": ["TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-3: Tutorial-Focused README. Sections: Quick Overview, Installation, Tutorial (minerals-store), Command Quick Reference, Configuration, Links.\n\nTutorial steps:\n1. /zerg:init\n2. /zerg:brainstorm\n3. /zerg:plan\n4. /zerg:design\n5. /zerg:rush\n6. /zerg:status, /zerg:logs\n7. /zerg:review, /zerg:test\n8. /zerg:git --action ship"
+    },
+    {
+      "id": "TASK-014",
+      "title": "Audit and update ARCHITECTURE.md",
+      "description": "Audit ARCHITECTURE.md against current source code. Verify all module references exist. Update diagrams for worker intelligence, context engineering. Add sections for cross-cutting capabilities, resilience, diagnostics engine. Remove references to deprecated code.",
+      "phase": "sync",
+      "level": 4,
+      "dependencies": ["TASK-004", "TASK-008", "TASK-009", "TASK-010", "TASK-011"],
+      "files": {
+        "create": [],
+        "modify": ["ARCHITECTURE.md"],
+        "read": [".gsd/wiki/Architecture.md", "zerg/orchestrator.py", "zerg/launcher.py", "zerg/worker_protocol.py"]
+      },
+      "verification": {
+        "command": "grep -q 'Context Engineering' ARCHITECTURE.md && grep -q 'Resilience' ARCHITECTURE.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["markdown", "documentation", "code-review"],
+      "acceptance_criteria": [
+        "All module references verified",
+        "Diagrams updated",
+        "Cross-cutting capabilities section",
+        "Resilience section",
+        "No deprecated references"
+      ],
+      "consumers": ["TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-4: ARCHITECTURE.md Audit. Verify module references, update diagrams, add sections for cross-cutting capabilities, resilience, diagnostics engine."
+    },
+    {
+      "id": "TASK-015",
+      "title": "Create Wiki _Sidebar.md navigation",
+      "description": "Create _Sidebar.md with navigation structure for all wiki pages. Standard GitHub wiki sidebar format with hierarchical links.",
+      "phase": "sync",
+      "level": 4,
+      "dependencies": ["TASK-008", "TASK-009", "TASK-010", "TASK-011"],
+      "files": {
+        "create": [".gsd/wiki/_Sidebar.md"],
+        "modify": [],
+        "read": [".gsd/wiki/Home.md"]
+      },
+      "verification": {
+        "command": "test -f .gsd/wiki/_Sidebar.md && grep -q 'Command-Reference' .gsd/wiki/_Sidebar.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "acceptance_criteria": [
+        "_Sidebar.md exists",
+        "Links to all 11 pages",
+        "Hierarchical structure",
+        "Standard wiki sidebar format"
+      ],
+      "consumers": ["TASK-016"],
+      "integration_test": null,
+      "context": "## Spec Context\nNFR-3: Discoverability - sidebar navigation for wiki."
+    },
+    {
+      "id": "TASK-016",
+      "title": "Validate all documentation and cross-links",
+      "description": "Final validation pass: check all wiki page cross-links work, verify /zerg: format consistency, spot-check 5 commands for flag accuracy, ensure no 'Command-init' format, verify tutorials can be followed.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-012", "TASK-013", "TASK-014", "TASK-015"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": [".gsd/wiki/Home.md", ".gsd/wiki/Command-Reference.md", ".gsd/wiki/Tutorial.md", "README.md", "ARCHITECTURE.md", "docs/commands.md"]
+      },
+      "verification": {
+        "command": "! grep -r 'Command-init' .gsd/wiki/ README.md ARCHITECTURE.md docs/commands.md && echo 'No Command-init format found'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["documentation", "quality-assurance"],
+      "acceptance_criteria": [
+        "All wiki cross-links valid",
+        "All /zerg: format used",
+        "No 'Command-init' format",
+        "5 commands spot-checked for flag accuracy",
+        "Tutorial steps verified"
+      ],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAcceptance Criteria validation:\n1. Wiki Complete: All 10+ wiki pages exist\n2. Commands Documented: All 26 commands exhaustive\n3. Tutorial Works: End-to-end followable\n4. Architecture Current: Spot-checked against 5 key modules\n5. Format Consistent: All /zerg: format"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 45
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "parallel": true,
+      "estimated_minutes": 30,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "extended",
+      "tasks": ["TASK-008", "TASK-009", "TASK-010", "TASK-011"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "sync",
+      "tasks": ["TASK-012", "TASK-013", "TASK-014", "TASK-015"],
+      "parallel": true,
+      "estimated_minutes": 30,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["TASK-016"],
+      "parallel": false,
+      "estimated_minutes": 20,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts - each wiki page is created by exactly one task, existing files modified by one task each",
+    "conflicts": []
+  }
+}

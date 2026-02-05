@@ -633,6 +633,10 @@ class IncrementalIndex:
         self._data = updated
         self._save(updated)
 
+        # Invalidate build_map cache before rebuilding — incremental update
+        # explicitly requests fresh data, so bypass TTL cache
+        invalidate_cache()
+
         # Build a full SymbolGraph from the current file set
         return build_map(root, languages)
 

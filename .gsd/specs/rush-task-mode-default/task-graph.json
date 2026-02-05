@@ -1,0 +1,89 @@
+{
+  "feature": "rush-task-mode-default",
+  "version": "2.0",
+  "generated": "2026-02-04T00:00:00Z",
+  "total_tasks": 2,
+  "estimated_duration_minutes": 25,
+  "max_parallelization": 1,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Restructure rush.core.md for Task Tool Mode default",
+      "description": "Completely restructure rush.core.md to make Task Tool Mode the default execution path. Add mode detection at entry. Move container/subprocess logic to conditional section. Wire the level execution loop from rush.details.md as the primary path.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/rush.core.md"],
+        "read": ["zerg/data/commands/rush.details.md", ".gsd/specs/rush-task-mode-default/requirements.md", ".gsd/specs/rush-task-mode-default/design.md"]
+      },
+      "verification": {
+        "command": "grep -q 'Step 1: Mode Detection' zerg/data/commands/rush.core.md && grep -q 'MODE=\"task\"' zerg/data/commands/rush.core.md && grep -q 'Task Tool Mode' zerg/data/commands/rush.core.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Mode detection logic at entry (Step 1)",
+        "Task Tool Mode as Step 2 (default path)",
+        "Container/subprocess as Step 3 (conditional)",
+        "Level execution loop inline with reference to details for templates",
+        "Help text shows 'default: task'"
+      ],
+      "consumers": ["TASK-002"],
+      "integration_test": null,
+      "context": "## Security Rules\nNo code changes - documentation only. No security implications.\n\n## Spec Context\nFR-1: Mode detection at entry. FR-2: Task Tool Mode as primary. FR-4: Container/subprocess as fallback.\n\n## Design Context\nRestructure completely: Step 1 (mode detection), Step 2 (Task Tool loop), Step 3 (container/subprocess conditional)."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Sync rush.md with restructured core",
+      "description": "Update rush.md to match the restructured rush.core.md. Both files should have identical content for backward compatibility. The .md file is the entry point that skill resolution finds first.",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/rush.md"],
+        "read": ["zerg/data/commands/rush.core.md"]
+      },
+      "verification": {
+        "command": "diff -q zerg/data/commands/rush.core.md zerg/data/commands/rush.md || echo 'Files differ - checking key sections' && grep -q 'Step 1: Mode Detection' zerg/data/commands/rush.md && grep -q 'MODE=\"task\"' zerg/data/commands/rush.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown", "documentation"],
+      "acceptance_criteria": [
+        "Content matches rush.core.md",
+        "Mode detection present",
+        "Task Tool Mode as default",
+        "Help text consistent"
+      ],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nrush.md must match rush.core.md for backward compatibility. The .md file is the skill entry point.\n\n## Dependencies\nTASK-001 restructures rush.core.md - this task copies that structure to rush.md."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001"],
+      "parallel": false,
+      "estimated_minutes": 15
+    },
+    "2": {
+      "name": "quality",
+      "tasks": ["TASK-002"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts - tasks modify different files and are sequential",
+    "conflicts": []
+  }
+}

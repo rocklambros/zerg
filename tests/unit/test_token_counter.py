@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import time
 from unittest.mock import MagicMock, patch
 
@@ -124,11 +123,11 @@ class TestCaching:
         )
         counter.count("expiring text")
 
-        # Manually set timestamp to the past in the cache file
-        cache_data = json.loads(counter._cache_path.read_text())
-        for key in cache_data:
-            cache_data[key]["timestamp"] = time.time() - 120  # 2 minutes ago
-        counter._cache_path.write_text(json.dumps(cache_data))
+        # Manually set timestamp to the past in the in-memory cache
+        # (file modification alone won't work since count() uses in-memory cache)
+        with counter._cache_lock:
+            for key in counter._cache:
+                counter._cache[key]["timestamp"] = time.time() - 120  # 2 minutes ago
 
         result = counter.count("expiring text")
         assert result.source == "heuristic"  # cache expired, recomputed

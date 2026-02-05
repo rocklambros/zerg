@@ -546,6 +546,10 @@ class TestAnalyzeCommandClass:
     def test_run_all_checks_without_mock(self) -> None:
         """Test running all checks directly (expands 'all' to checker names)."""
         cmd = AnalyzeCommand()
+        # Stub performance checker to avoid jscpd timeout (180s)
+        cmd.checkers["performance"].check = MagicMock(
+            return_value=AnalysisResult(check_type=CheckType.PERFORMANCE, passed=True, issues=[], score=80.0)
+        )
         # Run with empty files to trigger actual code path
         results = cmd.run(["all"], [])
 

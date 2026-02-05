@@ -161,7 +161,7 @@ class TestLogAggregatorCaching:
                 t.join(timeout=30)
 
             # Verify no errors occurred
-            assert len(errors) == 0, f"Thread errors: {errors}"
+            assert not errors, f"Thread errors: {errors}"
 
             # Verify all queries returned expected count (10 files * 5 entries = 50)
             expected_count = 50
@@ -207,7 +207,7 @@ class TestLogAggregatorCaching:
             la = LogAggregator(log_dir)
 
             result = la.query()
-            assert result == []
+            assert not result
             assert len(la._file_cache) == 0
 
     def test_orchestrator_file_caching(self) -> None:

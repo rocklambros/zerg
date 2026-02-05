@@ -3,10 +3,12 @@
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
 from zerg.cli import cli
+from zerg.commands.analyze import AnalysisResult, CheckType
 
 
 class TestAnalyzeCommand:
@@ -39,11 +41,14 @@ class TestAnalyzeCommand:
             assert "Invalid value" not in result.output
 
     def test_analyze_format_option(self) -> None:
-        """Test analyze --format option accepts valid values."""
+        """Test analyze --format option accepts valid values.
+
+        Uses --check lint to avoid slow performance/security checks.
+        """
         runner = CliRunner()
 
         for fmt in ["text", "json", "sarif"]:
-            result = runner.invoke(cli, ["analyze", "--format", fmt])
+            result = runner.invoke(cli, ["analyze", "--format", fmt, "--check", "lint"])
             assert "Invalid value" not in result.output
 
     def test_analyze_invalid_check_rejected(self) -> None:
@@ -55,16 +60,24 @@ class TestAnalyzeCommand:
         assert "Invalid value" in result.output
 
     def test_analyze_threshold_option(self) -> None:
-        """Test analyze --threshold option works."""
+        """Test analyze --threshold option works.
+
+        Uses --check lint to avoid slow performance/security checks.
+        """
         runner = CliRunner()
-        result = runner.invoke(cli, ["analyze", "--threshold", "complexity=15", "--threshold", "coverage=80"])
+        result = runner.invoke(
+            cli, ["analyze", "--check", "lint", "--threshold", "complexity=15", "--threshold", "coverage=80"]
+        )
         # Should accept multiple thresholds
         assert "Invalid value" not in result.output
 
     def test_analyze_files_option(self) -> None:
-        """Test analyze --files option works."""
+        """Test analyze --files option works.
+
+        Uses --check lint to avoid slow performance/security checks.
+        """
         runner = CliRunner()
-        result = runner.invoke(cli, ["analyze", "--files", "src/"])
+        result = runner.invoke(cli, ["analyze", "--check", "lint", "--files", "src/"])
         assert "Invalid value" not in result.output
 
 
@@ -72,16 +85,22 @@ class TestAnalyzeOutput:
     """Tests for analyze command output formats."""
 
     def test_analyze_default_format_is_text(self) -> None:
-        """Test default output format is text."""
+        """Test default output format is text.
+
+        Uses --check lint to avoid slow performance/security checks.
+        """
         runner = CliRunner()
-        result = runner.invoke(cli, ["analyze"])
+        result = runner.invoke(cli, ["analyze", "--check", "lint"])
         # Stub returns message, not JSON
         assert "{" not in result.output or "not yet implemented" in result.output
 
     def test_analyze_json_format_requested(self) -> None:
-        """Test JSON format can be requested."""
+        """Test JSON format can be requested.
+
+        Uses --check lint to avoid slow performance/security checks.
+        """
         runner = CliRunner()
-        result = runner.invoke(cli, ["analyze", "--format", "json"])
+        result = runner.invoke(cli, ["analyze", "--format", "json", "--check", "lint"])
         # Command should accept the format option
         assert "Invalid value" not in result.output
 
@@ -90,9 +109,12 @@ class TestAnalyzeFunctional:
     """Functional tests for analyze command."""
 
     def test_analyze_displays_header(self) -> None:
-        """Test analyze shows ZERG Analyze header."""
+        """Test analyze shows ZERG Analyze header.
+
+        Uses --check lint to avoid slow performance/security checks.
+        """
         runner = CliRunner()
-        result = runner.invoke(cli, ["analyze"])
+        result = runner.invoke(cli, ["analyze", "--check", "lint"])
         # Check header is displayed
         assert "ZERG" in result.output or "Analyze" in result.output
 
@@ -113,14 +135,17 @@ class TestAnalyzeFunctional:
         assert len(result.output) > 0
 
     def test_analyze_with_path_argument(self) -> None:
-        """Test analyze with path argument."""
+        """Test analyze with path argument.
+
+        Uses --check lint to avoid slow performance/security checks.
+        """
         runner = CliRunner()
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a test file
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("def foo():\n    pass\n")
 
-            result = runner.invoke(cli, ["analyze", tmpdir])
+            result = runner.invoke(cli, ["analyze", "--check", "lint", tmpdir])
             assert result.exit_code in [0, 1]
 
     def test_analyze_json_output_is_valid(self) -> None:
@@ -152,8 +177,14 @@ class TestAnalyzeFunctional:
 
     def test_analyze_all_checks(self) -> None:
         """Test analyze with all checks enabled."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["analyze", "--check", "all"])
+        # Mock performance checker to avoid jscpd timeout (180s)
+        mock_result = AnalysisResult(check_type=CheckType.PERFORMANCE, passed=True, issues=[], score=80.0)
+        with patch(
+            "zerg.commands.analyze.PerformanceChecker.check",
+            return_value=mock_result,
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, ["analyze", "--check", "all"])
         assert result.exit_code in [0, 1]
         # Should mention multiple check types in output
         assert len(result.output) > 0

@@ -174,7 +174,7 @@ class TestCollectFilesSingleTraversal:
 
         files = _collect_files(tmp_path, [])
 
-        assert files == []
+        assert not files
 
     def test_collect_files_nested_structure(self, tmp_path: Path) -> None:
         """_collect_files finds files in nested directories."""

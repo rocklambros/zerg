@@ -1,0 +1,287 @@
+{
+  "feature": "performance-core",
+  "version": "2.0",
+  "generated": "2026-02-05T09:15:00-07:00",
+  "total_tasks": 11,
+  "estimated_duration_minutes": 75,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add mtime-based singleton caching to ZergConfig",
+      "description": "Implement caching for ZergConfig.load() using class-level variables. Check file mtime against cached mtime, return cached instance if unchanged. Add force_reload parameter, thread-safe with threading.Lock, DEBUG logging for cache hits/misses.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/config.py"],
+        "read": [".gsd/specs/performance-core/requirements.md", ".gsd/specs/performance-core/design.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.config import ZergConfig; c1=ZergConfig.load(); c2=ZergConfig.load(); assert c1 is c2, 'Cache miss'; print('ZergConfig singleton verified')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-006"],
+      "integration_test": "tests/test_config_caching.py",
+      "context": "## Spec Context\nFR-1: ZergConfig Singleton with mtime Invalidation\n- Use class-level _cached_instance and _cache_mtime variables\n- On load, check file mtime against cached mtime\n- Return cached instance if mtime unchanged\n- Support force_reload=True parameter to bypass cache\n- Thread-safe using threading.Lock\n- Log cache hits/misses at DEBUG level\n\nSignature: @classmethod def load(cls, config_path: str | Path | None = None, force_reload: bool = False) -> \"ZergConfig\"\n\n## Security Rules (Python)\n- Use safe YAML loading (yaml.safe_load) - already in place\n- Avoid unsafe deserialization\n- Thread-safe access patterns with Lock"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add per-file mtime caching to LogAggregator",
+      "description": "Implement per-file caching in LogAggregator._read_all_entries(). Track mtime per JSONL file, cache parsed entries per file, invalidate only files whose mtime changed. Use OrderedDict for LRU eviction (max 100 files). Thread-safe with lock protection.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/log_aggregator.py"],
+        "read": [".gsd/specs/performance-core/requirements.md", ".gsd/specs/performance-core/design.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.log_aggregator import LogAggregator; import tempfile, os; d=tempfile.mkdtemp(); la=LogAggregator(d); la.query(); la.query(); print('LogAggregator cache verified')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-007"],
+      "integration_test": "tests/test_log_aggregator_caching.py",
+      "context": "## Spec Context\nFR-2: LogAggregator Per-File Caching\n- Track mtime per JSONL file\n- Cache parsed entries per file\n- Invalidate only files whose mtime changed\n- Re-read only changed files on subsequent queries\n- Thread-safe with lock protection\n- Bounded cache size with LRU eviction (max 100 files)\n- Log cache statistics at DEBUG level\n\nNFR-2: max 100 cached files (LRU eviction)\n\n## Security Rules (Python)\n- Safe JSON parsing with json.loads\n- Handle file read errors gracefully"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Convert TokenCounter to in-memory cache with LRU",
+      "description": "Replace file-based cache lookups with in-memory OrderedDict. Load JSON file once on init, maintain in-memory dict for O(1) lookups, persist to file periodically with atomic writes. LRU eviction at 10000 entries. Thread-safe.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/token_counter.py"],
+        "read": [".gsd/specs/performance-core/requirements.md", ".gsd/specs/performance-core/design.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.token_counter import TokenCounter; tc=TokenCounter(); r1=tc.count('test text'); r2=tc.count('test text'); assert r2.source=='cache', f'Expected cache, got {r2.source}'; print('TokenCounter in-memory cache verified')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-008"],
+      "integration_test": "tests/test_token_counter_memory.py",
+      "context": "## Spec Context\nFR-4: TokenCounter In-Memory Cache\n- Load JSON file once on init\n- Maintain in-memory dict for lookups\n- Persist to file periodically (on store) with atomic writes\n- O(1) lookup instead of file read per call\n- LRU eviction to bound memory (max 10000 entries)\n- Thread-safe with lock protection\n\nNFR-2: max 10000 cached entries (LRU eviction)\n\n## Security Rules (Python)\n- Atomic file writes using tempfile + os.replace\n- Safe JSON handling"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add TTL-based caching to RepoMap build_map()",
+      "description": "Implement 30-second TTL caching for build_map() results. Cache complete SymbolGraph, add invalidate_cache() function, return cached result within TTL. Use module-level cache variables with threading.Lock.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/repo_map.py"],
+        "read": [".gsd/specs/performance-core/requirements.md", ".gsd/specs/performance-core/design.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.repo_map import build_map, invalidate_cache; import time; g1=build_map('.'); g2=build_map('.'); assert g1 is g2, 'TTL cache miss'; invalidate_cache(); g3=build_map('.'); assert g1 is not g3, 'invalidate_cache failed'; print('RepoMap TTL cache verified')\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": ["TASK-009"],
+      "integration_test": "tests/test_repo_map_caching.py",
+      "context": "## Spec Context\nFR-5: RepoMap TTL-Based Caching\n- Cache complete SymbolGraph result\n- TTL of 30 seconds\n- Invalidate on explicit invalidate_cache() call\n- Return cached result if within TTL\n- Thread-safe\n\nAcceptance: build_map() returns in <100ms when cached\n\n## Security Rules (Python)\n- Thread-safe global state with Lock\n- Use object identity for caching (no serialization)"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Implement single-pass directory traversal",
+      "description": "Replace multiple rglob() calls with single rglob('*') traversal in detect_project_stack() and _collect_files(). Collect all files once, classify by extension in memory. Pattern: collect-then-filter.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/security_rules.py", "zerg/repo_map.py"],
+        "read": [".gsd/specs/performance-core/requirements.md", ".gsd/specs/performance-core/design.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.security_rules import detect_project_stack; from pathlib import Path; stack=detect_project_stack(Path('.')); print(f'Detected: {stack.languages}'); assert 'python' in stack.languages\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-010"],
+      "integration_test": "tests/test_single_traversal.py",
+      "context": "## Spec Context\nFR-3: Single-Pass Directory Traversal\n- Replace multiple rglob() calls with single traversal\n- Use rglob('*') once, classify files in memory\n- Build extension to files mapping in single pass\n- Eliminate redundant directory tree walks\n- Pattern: collect-then-filter\n\nAffected: detect_project_stack() in security_rules.py, _collect_files() in repo_map.py\n\n## Security Rules (Python)\n- Validate file paths stay within project root\n- Handle symlinks safely"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Create unit tests for ZergConfig caching",
+      "description": "Write comprehensive tests for ZergConfig singleton caching: cache hit on unchanged file, cache miss on mtime change, force_reload bypasses cache, thread safety under concurrent access, invalidate_cache works.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["tests/test_config_caching.py"],
+        "modify": [],
+        "read": ["zerg/config.py", ".gsd/specs/performance-core/requirements.md"]
+      },
+      "verification": {
+        "command": "pytest tests/test_config_caching.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nTest Cases for FR-1:\n- test_singleton_returns_same_instance: c1=load(); c2=load(); assert c1 is c2\n- test_mtime_invalidation: modify file, verify cache miss\n- test_force_reload: force_reload=True always reads from disk\n- test_thread_safety: concurrent loads return same instance\n- test_invalidate_cache: after invalidate, next load reads from disk\n\n## Testing Approach\n- Use tempfile for isolated config files\n- Use time.sleep or direct mtime manipulation\n- Use threading for concurrency tests"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Create unit tests for LogAggregator caching",
+      "description": "Write tests for LogAggregator per-file cache: cache hit on unchanged file, cache miss on modification, LRU eviction at 100 files, thread safety.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": ["tests/test_log_aggregator_caching.py"],
+        "modify": [],
+        "read": ["zerg/log_aggregator.py", ".gsd/specs/performance-core/requirements.md"]
+      },
+      "verification": {
+        "command": "pytest tests/test_log_aggregator_caching.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nTest Cases for FR-2:\n- test_cache_hit_unchanged_file: query twice, second is from cache\n- test_cache_miss_on_modification: modify file, verify re-read\n- test_lru_eviction_at_100: add 101 files, verify oldest evicted\n- test_thread_safety: concurrent queries\n\n## Testing Approach\n- Create temp log directory with JSONL files\n- Manipulate mtime with os.utime\n- Verify internal _file_cache state"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Create unit tests for TokenCounter memory cache",
+      "description": "Write tests for TokenCounter in-memory cache: O(1) lookup, LRU eviction at 10000, file persistence, thread safety.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": ["tests/test_token_counter_memory.py"],
+        "modify": [],
+        "read": ["zerg/token_counter.py", ".gsd/specs/performance-core/requirements.md"]
+      },
+      "verification": {
+        "command": "pytest tests/test_token_counter_memory.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nTest Cases for FR-4:\n- test_cache_hit_returns_cache_source: count() twice, second returns source='cache'\n- test_lru_eviction_at_10000: add 10001 entries, verify oldest evicted\n- test_file_persistence: count(), create new TokenCounter, verify cache loaded\n- test_thread_safety: concurrent counts\n\n## Testing Approach\n- Use TokenMetricsConfig with short TTL for testing\n- Use tempfile for cache path isolation\n- Verify _cache contents directly"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Create unit tests for RepoMap caching",
+      "description": "Write tests for RepoMap TTL cache: cached result within 30s, cache miss after TTL, invalidate_cache() works, thread safety.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": ["tests/test_repo_map_caching.py"],
+        "modify": [],
+        "read": ["zerg/repo_map.py", ".gsd/specs/performance-core/requirements.md"]
+      },
+      "verification": {
+        "command": "pytest tests/test_repo_map_caching.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nTest Cases for FR-5:\n- test_cache_hit_within_ttl: build_map() twice, same object returned\n- test_cache_miss_after_ttl: wait >30s (or mock time), different object\n- test_invalidate_cache: call invalidate_cache(), next build_map returns new object\n- test_thread_safety: concurrent build_map calls\n\n## Testing Approach\n- Use small test directory with few files\n- Mock time.time() for TTL testing\n- Use threading for concurrency tests"
+    },
+    {
+      "id": "TASK-010",
+      "title": "Create unit tests for single-pass traversal",
+      "description": "Write tests verifying single rglob('*') traversal pattern: detect_project_stack finds all languages in single pass, _collect_files uses single traversal.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": ["tests/test_single_traversal.py"],
+        "modify": [],
+        "read": ["zerg/security_rules.py", "zerg/repo_map.py", ".gsd/specs/performance-core/requirements.md"]
+      },
+      "verification": {
+        "command": "pytest tests/test_single_traversal.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nTest Cases for FR-3:\n- test_detect_project_stack_single_traversal: verify languages detected correctly\n- test_collect_files_single_traversal: verify files collected by extension\n- test_no_multiple_rglob_calls: mock rglob, verify called once with '*'\n\n## Testing Approach\n- Create temp directory structure with mixed file types\n- Use unittest.mock to verify rglob called once\n- Verify correct file classification"
+    },
+    {
+      "id": "TASK-011",
+      "title": "Run quality gates and verify all tests pass",
+      "description": "Run full test suite, lint, and typecheck. Verify all existing tests still pass (backward compatibility). Generate coverage report.",
+      "phase": "quality",
+      "level": 3,
+      "dependencies": ["TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "make lint && make typecheck && pytest tests/ -v --tb=short",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Quality Gates\n- Lint: ruff check (must pass)\n- Typecheck: mypy --strict (must pass)\n- Tests: pytest (all tests must pass including new caching tests)\n\n## Backward Compatibility\nNFR-4: All changes must be backward compatible:\n- Existing function signatures preserved (new optional params only)\n- No changes to public API behavior\n- Existing tests must pass"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "core",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005"],
+      "parallel": true,
+      "estimated_minutes": 20
+    },
+    "2": {
+      "name": "testing",
+      "tasks": ["TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "quality",
+      "tasks": ["TASK-011"],
+      "parallel": false,
+      "estimated_minutes": 15,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TASK-004", "TASK-005"],
+        "reason": "Both modify zerg/repo_map.py",
+        "resolution": "TASK-004 modifies build_map() caching, TASK-005 modifies _collect_files() - different sections, can be merged"
+      }
+    ]
+  }
+}

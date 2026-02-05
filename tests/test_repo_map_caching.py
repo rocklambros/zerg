@@ -135,7 +135,7 @@ class SampleClass:
             t.join(timeout=10)
 
         # No errors should have occurred
-        assert len(errors) == 0, f"Thread errors occurred: {errors}"
+        assert not errors, f"Thread errors occurred: {errors}"
 
         # All threads should have gotten a result
         assert len(results) == num_threads, f"Expected {num_threads} results, got {len(results)}"

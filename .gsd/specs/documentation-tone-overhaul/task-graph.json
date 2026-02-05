@@ -1,0 +1,436 @@
+{
+  "feature": "documentation-tone-overhaul",
+  "version": "2.0",
+  "generated": "2026-02-04T21:52:00Z",
+  "total_tasks": 17,
+  "estimated_duration_minutes": 300,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create commands-quick.md",
+      "description": "Create new quick-reference command documentation. Extract flag tables and terse descriptions from current docs/commands.md. Format for fast lookup by experienced users. Include link to deep version.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["docs/commands-quick.md"],
+        "modify": [],
+        "read": ["docs/commands.md"]
+      },
+      "verification": {
+        "command": "test -f docs/commands-quick.md && grep -q 'commands-deep' docs/commands-quick.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["documentation"],
+      "consumers": ["TASK-016"],
+      "integration_test": null,
+      "context": "## Task Context\n\nCreate a quick-reference version of command docs for experienced users.\n\n## FR-4 Requirement\nCreate two versions: quick-lookup (flag tables, terse) and deep-dive (educational).\n\n## Format\n```markdown\n# Quick Reference\n\nFast lookup for experienced users. For explanations, see [commands-deep.md](commands-deep.md).\n\n## /zerg:rush\nFlags: `--workers=N`, `--mode container|task`, `--resume`\nStart parallel workers. Requires approved design.\n```"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Create commands-deep.md",
+      "description": "Create new deep-dive command documentation. Rewrite docs/commands.md following FR-1 educational pattern: each command gets CONCEPT → NARRATIVE → DIAGRAM → COMMAND treatment. Include real examples and expected output.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["docs/commands-deep.md"],
+        "modify": [],
+        "read": ["docs/commands.md", ".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "test -f docs/commands-deep.md && grep -q 'What Is It' docs/commands-deep.md && grep -q 'Why' docs/commands-deep.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["documentation"],
+      "consumers": ["TASK-007", "TASK-016"],
+      "integration_test": null,
+      "context": "## Task Context\n\nCreate educational deep-dive version of command documentation.\n\n## FR-1 Structure (REQUIRED)\nEach command MUST follow this pattern:\n\n### What Is It?\n{1-2 paragraphs explaining concept in plain language}\n\n### Why Use It?\n{Narrative context - problem solved, real-world analogy}\n\n### How It Works\n{ASCII diagram with annotations}\n\n### Using It\n{Command examples with expected output}\n\n## Target Audience (FR-2)\n- New to AI coding assistants\n- Knows basic programming, not distributed systems\n- Needs concepts explained before implementation"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Rewrite Home.md",
+      "description": "Rewrite wiki Home.md from reference-style to educational. Replace quick-start bullets with welcome narrative. Add guided navigation based on user goals. Explain ZERG concepts before showing commands.",
+      "phase": "core-wiki",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Home.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'What Is ZERG' .gsd/wiki/Home.md || grep -q 'Welcome' .gsd/wiki/Home.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nRewrite wiki entry point for educational tone.\n\n## Current Problems\n- Quick start is command-list, not narrative\n- No concept explanation before commands\n- Table-based, not welcoming\n\n## Target Structure\n1. Welcome narrative (what is ZERG, who is it for)\n2. Guided navigation by goal (new user, returning user, contributor)\n3. Visual overview (ASCII diagram of workflow)\n4. Then commands\n\n## FR-2 Target Audience\nSomeone new to AI coding assistants who needs concepts before implementation."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Rewrite Tutorial.md",
+      "description": "Rewrite wiki Tutorial.md with simulated dialogues for planning phases (brainstorm, plan, design) and real command output for execution phases (rush, status). Follow FR-1 structure and FR-3 dialogue format.",
+      "phase": "core-wiki",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Tutorial.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'ZERG:' .gsd/wiki/Tutorial.md && grep -q 'YOU:' .gsd/wiki/Tutorial.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 35,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nRewrite tutorial with simulated dialogues.\n\n## FR-3 Dialogue Format\nPlanning phases MUST include dialogues:\n```\nZERG: What problem does the minerals store solve for users?\nYOU:  Users need to browse and purchase mineral products through a REST API.\n\nZERG: What are the core entities and their relationships?\nYOU:  Products, Cart, Orders. A cart becomes an order at checkout.\n```\n\n## Phase Treatment\n- Discovery phases (brainstorm, plan, design): Simulated dialogues\n- Execution phases (rush, merge, status): Real command output\n\n## FR-1 Structure\nEach step: CONCEPT → NARRATIVE → DIAGRAM → COMMAND"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Rewrite README tutorial section",
+      "description": "Rewrite README.md tutorial section from step-list to narrative. Add simulated dialogues for planning phases. Keep 'Why I Built This' section intact. Transform 'What happens' bullets into prose explanations.",
+      "phase": "core-wiki",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["README.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'Why I Built This' README.md && grep -q 'ZERG:' README.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nRewrite README tutorial section only. Keep other sections intact.\n\n## IMPORTANT\n- Keep 'Why I Built This' section UNCHANGED\n- Only modify 'Tutorial: Your First ZERG Project' section\n\n## Current Problems\n- Step-list format ('Step 1:', 'Step 2:')\n- 'What happens:' bullets instead of explanations\n- No simulated dialogues\n\n## Target\n- Narrative flow explaining each phase\n- Simulated dialogues for brainstorm/plan/design\n- Real output for rush/status\n- 'Why' before 'How'"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Rewrite ARCHITECTURE.md",
+      "description": "Add educational prose to ARCHITECTURE.md. Keep existing diagrams but add explanatory text before and after. Explain 'why' each component exists. Add narrative context for data flows.",
+      "phase": "core-wiki",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["ARCHITECTURE.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'What Is' ARCHITECTURE.md || grep -qE 'exists because|purpose is' ARCHITECTURE.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nAdd educational prose to existing architecture doc.\n\n## Approach\n- Keep existing ASCII diagrams\n- Add explanatory prose BEFORE each diagram\n- Add context AFTER each diagram\n- Explain WHY each component exists\n\n## FR-1 Pattern\nFor each component:\n1. What is it? (plain language)\n2. Why does it exist? (problem it solves)\n3. Diagram (already exists)\n4. How it fits together (narrative)"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Rewrite Command-Reference.md (wiki)",
+      "description": "Rewrite wiki Command-Reference.md to match commands-deep.md educational style. Each command gets full FR-1 treatment. This is the wiki's deep-dive version. Keep alphabetical organization.",
+      "phase": "reference",
+      "level": 3,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Command-Reference.md"],
+        "read": ["docs/commands-deep.md", ".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'What Is It' .gsd/wiki/Command-Reference.md && grep -q 'Why' .gsd/wiki/Command-Reference.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 40,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nRewrite wiki command reference to educational style.\n\n## Dependency\nUse docs/commands-deep.md (TASK-002) as template for style and structure.\n\n## Current State\n- 1800+ lines of flag tables\n- Brief descriptions\n- No concept explanations\n\n## Target\n- Each command: CONCEPT → NARRATIVE → DIAGRAM → COMMAND\n- Match style of commands-deep.md\n- Keep alphabetical organization"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Rewrite Configuration.md",
+      "description": "Rewrite wiki Configuration.md. For each setting, explain 'why you'd change this' with real-world scenarios. Add rationale for defaults. Group by use case, not just YAML structure.",
+      "phase": "reference",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Configuration.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md", ".zerg/config.yaml"]
+      },
+      "verification": {
+        "command": "grep -qE 'why|When to change|scenario' .gsd/wiki/Configuration.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nRewrite configuration docs with rationale.\n\n## Current Problems\n- Type/default/description tables\n- No 'why' for each setting\n- No real-world scenarios\n\n## Target Pattern\nFor each setting:\n1. What does it do?\n2. Why would you change it? (scenarios)\n3. What's the default and why?\n4. Example configuration"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Rewrite Architecture.md (wiki)",
+      "description": "Rewrite wiki Architecture.md. Transform technical descriptions into narrative explanations. Add 'story' of how data flows. Explain each component's purpose before showing diagram.",
+      "phase": "reference",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Architecture.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md", "ARCHITECTURE.md"]
+      },
+      "verification": {
+        "command": "grep -qE 'story|journey|flows from|purpose' .gsd/wiki/Architecture.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nRewrite wiki architecture page with narrative.\n\n## Approach\n- Tell the 'story' of a request flowing through ZERG\n- Explain each component's role in plain language\n- Add 'why' before each diagram\n- Use analogy (e.g., factory floor) if helpful"
+    },
+    {
+      "id": "TASK-010",
+      "title": "Rewrite Context-Engineering.md",
+      "description": "Rewrite wiki Context-Engineering.md. Add 'Token economics 101' introduction explaining why context matters. Use visual token budget diagrams. Explain trade-offs before technical details.",
+      "phase": "advanced",
+      "level": 4,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Context-Engineering.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -qE 'token|budget|why.*context' .gsd/wiki/Context-Engineering.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nMake token optimization accessible to newcomers.\n\n## Current Problems\n- Technical jargon without explanation\n- Assumes reader knows LLM context windows\n- No 'why this matters'\n\n## Target\n1. 'Token economics 101' - what are tokens, why limited\n2. Visual budget diagram showing allocation\n3. Why ZERG engineers context (save money, focus workers)\n4. Then technical details"
+    },
+    {
+      "id": "TASK-011",
+      "title": "Rewrite Plugins.md",
+      "description": "Rewrite wiki Plugins.md. Add 'Why extend ZERG' narrative. Include use case stories. Create step-by-step plugin creation guide with concept explanations at each step.",
+      "phase": "advanced",
+      "level": 4,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Plugins.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -qE 'why|use case|story|example' .gsd/wiki/Plugins.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nMake plugin system accessible.\n\n## Target Structure\n1. 'Why extend ZERG' - real-world use cases\n2. Plugin types with plain-language descriptions\n3. 'Your first plugin' guide with explanations\n4. Advanced patterns (after basics established)"
+    },
+    {
+      "id": "TASK-012",
+      "title": "Rewrite Security.md",
+      "description": "Rewrite wiki Security.md. Add 'Why security matters in AI assistants' introduction. Explain threat model in plain language. Then show how ZERG addresses each concern.",
+      "phase": "advanced",
+      "level": 4,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Security.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -qE 'why security|threat|risk|matters' .gsd/wiki/Security.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nMake security accessible, not scary.\n\n## Target Structure\n1. 'Why security matters in AI assistants' - real risks\n2. Threat model in plain language (who, what, how)\n3. How ZERG addresses each threat\n4. What users need to do (minimal but important)"
+    },
+    {
+      "id": "TASK-013",
+      "title": "Rewrite Troubleshooting.md",
+      "description": "Rewrite wiki Troubleshooting.md. Transform Problem → Solution format to Problem → Why It Happens → How To Fix. Add context and prevention tips.",
+      "phase": "support",
+      "level": 5,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Troubleshooting.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -qE 'why|happens|cause' .gsd/wiki/Troubleshooting.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nAdd 'why' to troubleshooting.\n\n## Target Pattern\nFor each problem:\n1. Symptom (what you see)\n2. Why it happens (root cause)\n3. How to fix (step-by-step)\n4. How to prevent (optional)"
+    },
+    {
+      "id": "TASK-014",
+      "title": "Rewrite FAQ.md",
+      "description": "Rewrite wiki FAQ.md with deeper answers. Add context and cross-references. Expand brief Q&A to full explanations following FR-1 pattern where applicable.",
+      "phase": "support",
+      "level": 5,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/FAQ.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "test $(wc -l < .gsd/wiki/FAQ.md) -gt 300",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nExpand FAQ with deeper answers.\n\n## Current Problems\n- Brief 1-2 sentence answers\n- No context or cross-references\n\n## Target\n- Full explanations (3-5 sentences minimum)\n- Cross-references to relevant wiki pages\n- 'Why' behind the answer"
+    },
+    {
+      "id": "TASK-015",
+      "title": "Rewrite Contributing.md",
+      "description": "Rewrite wiki Contributing.md. Explain 'why' behind each convention. Create mental model for contributors. Add narrative about project philosophy before rules.",
+      "phase": "support",
+      "level": 5,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Contributing.md"],
+        "read": [".gsd/specs/documentation-tone-overhaul/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -qE 'why|philosophy|reason' .gsd/wiki/Contributing.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nExplain 'why' for contributor guidelines.\n\n## Target Structure\n1. Project philosophy (what we value)\n2. Why conventions exist (not just what they are)\n3. Mental model for contributing\n4. Then specific rules"
+    },
+    {
+      "id": "TASK-016",
+      "title": "Delete docs/commands.md",
+      "description": "Delete the old unified commands.md file after commands-quick.md and commands-deep.md are verified. Update any references to point to the new split files.",
+      "phase": "finalization",
+      "level": 6,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": ["docs/commands-quick.md", "docs/commands-deep.md"],
+        "delete": ["docs/commands.md"]
+      },
+      "verification": {
+        "command": "test ! -f docs/commands.md && test -f docs/commands-quick.md && test -f docs/commands-deep.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nCleanup after split.\n\n## Steps\n1. Verify commands-quick.md exists and has content\n2. Verify commands-deep.md exists and has content\n3. Search for references to commands.md\n4. Update references to point to appropriate split version\n5. Delete docs/commands.md"
+    },
+    {
+      "id": "TASK-017",
+      "title": "Update _Sidebar.md",
+      "description": "Update wiki sidebar to reflect new documentation structure. Ensure navigation makes sense with the educational approach. Add links to both quick and deep command references.",
+      "phase": "finalization",
+      "level": 6,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/_Sidebar.md"],
+        "read": [".gsd/wiki/Home.md"]
+      },
+      "verification": {
+        "command": "grep -q 'commands-quick\\|commands-deep\\|Quick Reference' .gsd/wiki/_Sidebar.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n\nUpdate sidebar navigation.\n\n## Changes\n1. Add link to commands-quick.md (Quick Reference)\n2. Add link to commands-deep.md (Command Guide)\n3. Ensure navigation reflects educational journey\n4. Verify all links work"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 45,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "core-wiki",
+      "tasks": ["TASK-003", "TASK-004", "TASK-005", "TASK-006"],
+      "parallel": true,
+      "estimated_minutes": 35,
+      "depends_on_levels": []
+    },
+    "3": {
+      "name": "reference",
+      "tasks": ["TASK-007", "TASK-008", "TASK-009"],
+      "parallel": true,
+      "estimated_minutes": 40,
+      "depends_on_levels": [1]
+    },
+    "4": {
+      "name": "advanced",
+      "tasks": ["TASK-010", "TASK-011", "TASK-012"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": []
+    },
+    "5": {
+      "name": "support",
+      "tasks": ["TASK-013", "TASK-014", "TASK-015"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": []
+    },
+    "6": {
+      "name": "finalization",
+      "tasks": ["TASK-016", "TASK-017"],
+      "parallel": true,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1, 2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts - each task owns exactly one file",
+    "conflicts": []
+  }
+}

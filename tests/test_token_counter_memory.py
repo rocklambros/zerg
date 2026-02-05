@@ -75,7 +75,7 @@ class TestTokenCounterCache:
         # Verify file contains the entry
         with open(cache_file) as f:
             data = json.load(f)
-        assert len(data) > 0
+        assert data
 
         # Create new TokenCounter (should load from file)
         tc2 = TokenCounter(config)
@@ -130,7 +130,7 @@ class TestTokenCounterCache:
             t.join()
 
         # Verify no errors occurred
-        assert len(errors) == 0, f"Thread errors: {errors}"
+        assert not errors, f"Thread errors: {errors}"
 
         # Verify we got results from all threads
         assert len(results) == 1000  # 10 threads * 100 iterations

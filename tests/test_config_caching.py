@@ -226,7 +226,7 @@ class TestThreadSafety:
         for t in threads:
             t.join(timeout=5.0)
 
-        assert len(errors) == 0, f"Errors during concurrent access: {errors}"
+        assert not errors, f"Errors during concurrent access: {errors}"
         assert len(results) == 10, "All threads should complete successfully"
 
         # All instances should be the same object
@@ -265,7 +265,7 @@ class TestThreadSafety:
         for t in threads:
             t.join(timeout=5.0)
 
-        assert len(errors) == 0, f"Errors during concurrent access: {errors}"
+        assert not errors, f"Errors during concurrent access: {errors}"
         assert len(results) == 10, "All threads should complete successfully"
 
         # All results should be valid ZergConfig instances
@@ -301,7 +301,7 @@ class TestThreadSafety:
         for t in threads:
             t.join(timeout=10.0)
 
-        assert len(errors) == 0, f"Race condition errors: {errors}"
+        assert not errors, f"Race condition errors: {errors}"
 
 
 class TestInvalidateCache:
@@ -359,7 +359,7 @@ class TestInvalidateCache:
         for t in threads:
             t.join(timeout=10.0)
 
-        assert len(errors) == 0, f"Thread safety errors: {errors}"
+        assert not errors, f"Thread safety errors: {errors}"
 
 
 class TestEdgeCases:
