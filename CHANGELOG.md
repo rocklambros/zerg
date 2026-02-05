@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Explicit workflow boundary enforcement in `/z:plan` and `/z:brainstorm` commands (#125)
+- ⛔ WORKFLOW BOUNDARY sections preventing auto-progression to next workflow phase
+- AskUserQuestion handoff to brainstorm.md Phase 4 for explicit user control
 - Architecture compliance quality gates with layer boundary, import restriction, and naming convention enforcement (#28)
 - `zerg/architecture.py` module with `ArchitectureChecker` and `ArchitectureConfig` for architecture validation
 - `ArchitectureGate` quality gate plugin for ship-time architecture validation (#28)
