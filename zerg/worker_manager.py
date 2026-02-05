@@ -17,7 +17,7 @@ from zerg.constants import (
     TaskStatus,
     WorkerStatus,
 )
-from zerg.launcher import WorkerLauncher
+from zerg.launchers import WorkerLauncher
 from zerg.levels import LevelController
 from zerg.log_writer import StructuredLogWriter
 from zerg.logging import get_logger

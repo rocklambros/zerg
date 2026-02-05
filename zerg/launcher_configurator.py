@@ -10,10 +10,9 @@ from pathlib import Path
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import (
+from zerg.launcher_types import LauncherConfig, LauncherType
+from zerg.launchers import (
     ContainerLauncher,
-    LauncherConfig,
-    LauncherType,
     SubprocessLauncher,
     WorkerLauncher,
     get_plugin_launcher,
