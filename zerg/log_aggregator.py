@@ -5,10 +5,15 @@ No aggregated file on disk - purely read-side merging.
 """
 
 import json
+import logging
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,7 +37,12 @@ class LogAggregator:
 
     Reads workers/*.jsonl and orchestrator.jsonl, merges by timestamp.
     Supports filtering by worker, task, phase, event, time range, and text search.
+
+    Uses per-file caching with mtime-based invalidation for performance.
+    Cache is bounded by MAX_CACHED_FILES with LRU eviction.
     """
+
+    MAX_CACHED_FILES = 100  # LRU limit
 
     def __init__(self, log_dir: str | Path) -> None:
         """Initialize aggregator.
@@ -43,6 +53,10 @@ class LogAggregator:
         self.log_dir = Path(log_dir)
         self.workers_dir = self.log_dir / "workers"
         self.tasks_dir = self.log_dir / "tasks"
+
+        # Per-file cache: {path: {"mtime": float, "entries": list}}
+        self._file_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self._cache_lock = threading.Lock()
 
     def query(
         self,
@@ -123,22 +137,52 @@ class LogAggregator:
         return filtered
 
     def _read_all_entries(self) -> list[dict[str, Any]]:
-        """Read all log entries from all worker files and orchestrator.
+        """Read all log entries with per-file caching.
+
+        Uses mtime-based invalidation to only re-read files that changed.
+        Cache is bounded by MAX_CACHED_FILES with LRU eviction.
 
         Returns:
             Unsorted list of all log entries
         """
         entries: list[dict[str, Any]] = []
+        files_to_read: list[Path] = []
 
-        # Read worker files
+        # Collect all JSONL files
         if self.workers_dir.exists():
-            for jsonl_file in self.workers_dir.glob("*.jsonl"):
-                entries.extend(self._read_jsonl(jsonl_file))
-
-        # Read orchestrator file
+            files_to_read.extend(self.workers_dir.glob("*.jsonl"))
         orchestrator_file = self.log_dir / "orchestrator.jsonl"
         if orchestrator_file.exists():
-            entries.extend(self._read_jsonl(orchestrator_file))
+            files_to_read.append(orchestrator_file)
+
+        with self._cache_lock:
+            for jsonl_file in files_to_read:
+                key = str(jsonl_file)
+                try:
+                    current_mtime = jsonl_file.stat().st_mtime
+                except FileNotFoundError:
+                    continue
+
+                cached = self._file_cache.get(key)
+                if cached and cached["mtime"] == current_mtime:
+                    # Cache hit - move to end for LRU
+                    self._file_cache.move_to_end(key)
+                    entries.extend(cached["entries"])
+                    logger.debug("Cache hit for log file %s", jsonl_file.name)
+                else:
+                    # Cache miss - read file
+                    logger.debug("Cache miss for log file %s", jsonl_file.name)
+                    file_entries = self._read_jsonl(jsonl_file)
+                    entries.extend(file_entries)
+
+                    # Update cache with LRU eviction
+                    self._file_cache[key] = {"mtime": current_mtime, "entries": file_entries}
+                    self._file_cache.move_to_end(key)
+
+                    # Evict oldest if over limit
+                    while len(self._file_cache) > self.MAX_CACHED_FILES:
+                        oldest_key, _ = self._file_cache.popitem(last=False)
+                        logger.debug("Evicting cached log file %s", oldest_key)
 
         return entries
 
