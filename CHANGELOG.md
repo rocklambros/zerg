@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Architecture compliance quality gates with layer boundary, import restriction, and naming convention enforcement (#28)
+- `zerg/architecture.py` module with `ArchitectureChecker` and `ArchitectureConfig` for architecture validation
+- `ArchitectureGate` quality gate plugin for ship-time architecture validation (#28)
+- Architecture config section in `.zerg/config.yaml` with import rules, naming conventions, layer definitions, and exceptions
 - Automated wiring verification task injection into `/zerg:design` task graphs (#98)
 - `zerg/test_scope.py` module for scoped pytest path detection from task graphs (#98)
 - Phase 3.5 in `design.core.md` mandating wiring verification task in Level 5 (#98)
