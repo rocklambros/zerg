@@ -1,0 +1,789 @@
+{
+  "feature": "core-refactoring",
+  "version": "2.0",
+  "generated": "2026-02-05T20:30:00Z",
+  "total_tasks": 26,
+  "estimated_duration_minutes": 240,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Dedup spawn_with_retry in launcher.py",
+      "description": "Unify sync spawn_with_retry (lines 354-420) and async spawn_with_retry_async (lines 422-485) into a single async-first implementation with sync wrapper. The async version becomes the source of truth. The sync wrapper calls asyncio.run(). Remove the duplicate sync method entirely.",
+      "phase": "dedup-foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": ["zerg/retry_backoff.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_launcher.py tests/unit/test_launcher_process.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/integration/test_launcher_integration.py",
+      "context": "## Spec Context\nUnify sync/async spawn_with_retry pair. Strategy: async-first + asyncio.run() wrapper.\n\n## Security Rules (Python)\n- Use subprocess safely: pass args as list, not shell=True\n- Validate file paths before access\n\n## Dependencies\nNone — first task in graph."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Dedup _start_container sync/async in launcher.py",
+      "description": "Unify _start_container (lines 1235-1357) and _start_container_async (lines 1833-1930) into single async-first implementation. Both build identical docker run commands — the only difference is subprocess.run vs asyncio.create_subprocess_exec. Keep async version, add sync wrapper.",
+      "phase": "dedup-foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_launcher_extended.py tests/unit/test_launcher_exec.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "asyncio", "docker"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/integration/test_container_launcher.py",
+      "context": "## Spec Context\nUnify _start_container and _start_container_async. Both build docker run cmd arrays identically. Async uses asyncio.create_subprocess_exec, sync uses subprocess.run. Single async-first implementation.\n\n## Security Rules (Python)\n- Use subprocess safely with argument lists\n- No shell=True with user input\n\n## Dependencies\nNone — parallel with TASK-001."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Dedup terminate sync/async in ContainerLauncher",
+      "description": "Unify terminate (lines 1557-1620) and terminate_async (lines 1937-2010) in ContainerLauncher. Both do docker stop/kill + docker rm -f. Keep async version as source of truth, add sync wrapper via asyncio.run().",
+      "phase": "dedup-foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_launcher_coverage.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/integration/test_container_launcher.py",
+      "context": "## Spec Context\nUnify terminate() and terminate_async() in ContainerLauncher. Same logic: docker stop/kill, docker rm -f, cleanup references. Async-first + wrapper.\n\n## Dependencies\nNone — parallel with TASK-001, TASK-002."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Unify _main_loop in orchestrator.py",
+      "description": "Merge _main_loop (lines 835-898) and _main_loop_async (lines 1141-1207) into single async implementation. Use callable injection for sleep_fn (asyncio.sleep default). CRITICAL: async version currently LACKS escalation check, progress aggregation, and stall detection present in sync version. The unified version must include ALL features from the sync version. Remove _main_loop_async and rename unified to _main_loop. Update start_sync to use asyncio.run(start_async(...)).",
+      "phase": "dedup-core",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_orchestrator.py tests/unit/test_orchestrator_levels.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["TASK-005"],
+      "integration_test": "tests/integration/test_orchestrator_integration.py",
+      "context": "## Spec Context\nUnify _main_loop and _main_loop_async. IMPORTANT: async version lacks escalation check, progress aggregation, stall detection. Unified version must have ALL sync features. Strategy: callable injection with sleep_fn parameter.\n\n## Dependencies\nTASK-001..003 dedup launcher methods that _main_loop calls indirectly."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Unify _poll_workers in orchestrator.py",
+      "description": "Merge _poll_workers (lines 900-954) and _poll_workers_async (lines 1209-1245) into single async implementation. CRITICAL: async version currently lacks escalation check, progress aggregation features. The unified version must include ALL 11 steps from the sync version. Remove _poll_workers_sync alias (line 1248).",
+      "phase": "dedup-core",
+      "level": 2,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_orchestrator_workers.py tests/unit/test_orchestrator_recovery.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["TASK-008"],
+      "integration_test": "tests/integration/test_orchestrator_integration.py",
+      "context": "## Spec Context\nUnify _poll_workers and _poll_workers_async. Async is missing: escalation checks, progress aggregation, STALLED detection, restart logic. Must have all 11 steps from sync.\n\n## Dependencies\nTASK-004 unifies _main_loop which calls _poll_workers."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Dedup claim_next_task and wait_for_ready in worker_protocol.py",
+      "description": "Unify claim_next_task (lines 346-400) / claim_next_task_async (lines 401-457) and wait_for_ready (lines 304-320) / wait_for_ready_async (lines 322-339). Both pairs differ only in time.sleep vs asyncio.sleep. Async-first + sync wrapper.",
+      "phase": "dedup-core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/worker_protocol.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_worker_protocol.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["TASK-008"],
+      "integration_test": "tests/integration/test_worker_protocol_extended.py",
+      "context": "## Spec Context\nTwo sync/async pairs in worker_protocol.py. claim_next_task: differs only in sleep call. wait_for_ready: same. Async-first + asyncio.run() wrapper.\n\n## Dependencies\nNone — independent file from orchestrator."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Dedup claim_next_task in level_coordinator.py",
+      "description": "Check level_coordinator.py for any sync/async duplicate pairs related to claim_next_task. The requirements mention this file. If no duplicates exist (analysis shows LevelCoordinator has no async methods), verify and document as no-op. Update any sync-only methods to match the async-first pattern if they call claim_next_task.",
+      "phase": "dedup-core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/level_coordinator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_level_coordinator.py -x -q --timeout=60",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-008"],
+      "integration_test": "tests/integration/test_orchestrator_integration.py",
+      "context": "## Spec Context\nRequirements mention level_coordinator.py claim_next_task dedup. Analysis shows LevelCoordinator has NO async methods — verify this is a no-op or identify any hidden duplication.\n\n## Dependencies\nNone."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Unit tests for sync/async deduplication",
+      "description": "Create tests/unit/test_dedup_unified.py verifying: (1) sync wrappers produce identical results to direct async calls, (2) _main_loop unified version includes all 11 steps from sync, (3) _poll_workers unified version includes escalation/progress/stall detection, (4) no remaining sync/async duplicate method pairs exist (grep-based assertion).",
+      "phase": "dedup-tests",
+      "level": 3,
+      "dependencies": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "files": {
+        "create": ["tests/unit/test_dedup_unified.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py", "zerg/orchestrator.py", "zerg/worker_protocol.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_dedup_unified.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "testing"],
+      "consumers": ["TASK-009"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-009",
+      "title": "Integration test: dedup behavioral equivalence",
+      "description": "Create tests/integration/test_dedup_behavioral.py verifying full end-to-end: orchestrator start/stop, worker spawn/terminate, claim_next_task all work correctly with unified methods. Run full existing test suite to confirm no regressions. Run ruff check and validate_commands.",
+      "phase": "dedup-verification",
+      "level": 3,
+      "dependencies": ["TASK-008"],
+      "files": {
+        "create": ["tests/integration/test_dedup_behavioral.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --timeout=120 && python -m zerg.validate_commands && ruff check zerg/",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-010",
+      "title": "Create launcher_types.py",
+      "description": "Extract from launcher.py: LauncherType enum, LauncherConfig dataclass, SpawnResult dataclass, WorkerHandle dataclass. These are pure data types with no behavior. Keep all field definitions identical. Update __all__ if present.",
+      "phase": "split-foundation",
+      "level": 4,
+      "dependencies": ["TASK-009"],
+      "files": {
+        "create": ["zerg/launcher_types.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py", "zerg/types.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.launcher_types import LauncherType, LauncherConfig, SpawnResult' && ruff check zerg/launcher_types.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-012", "TASK-013"],
+      "integration_test": "tests/integration/test_launcher_integration.py"
+    },
+    {
+      "id": "TASK-011",
+      "title": "Create env_validator.py",
+      "description": "Extract from launcher.py: ALLOWED_ENV_VARS set, DANGEROUS_ENV_VARS set, CONTAINER_HOME_DIR constant, CONTAINER_HEALTH_FILE constant, validate_env_vars() function. Pure utility with no class dependencies.",
+      "phase": "split-foundation",
+      "level": 4,
+      "dependencies": ["TASK-009"],
+      "files": {
+        "create": ["zerg/env_validator.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.env_validator import validate_env_vars, ALLOWED_ENV_VARS, DANGEROUS_ENV_VARS' && ruff check zerg/env_validator.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-013", "TASK-015"],
+      "integration_test": "tests/integration/test_launcher_integration.py"
+    },
+    {
+      "id": "TASK-017",
+      "title": "Create protocol_types.py",
+      "description": "Extract from worker_protocol.py: ClaudeInvocationResult dataclass (lines 46-68), WorkerContext dataclass (lines 71-87), CLAUDE_CLI_DEFAULT_TIMEOUT constant, CLAUDE_CLI_COMMAND constant, _SENTINEL object. Pure data types.",
+      "phase": "split-foundation",
+      "level": 4,
+      "dependencies": ["TASK-009"],
+      "files": {
+        "create": ["zerg/protocol_types.py"],
+        "modify": [],
+        "read": ["zerg/worker_protocol.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.protocol_types import ClaudeInvocationResult, WorkerContext' && ruff check zerg/protocol_types.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-018", "TASK-019"],
+      "integration_test": "tests/integration/test_worker_protocol_extended.py"
+    },
+    {
+      "id": "TASK-012",
+      "title": "Create launchers/__init__.py with factory and re-exports",
+      "description": "Create zerg/launchers/ package. __init__.py re-exports: WorkerLauncher, SubprocessLauncher, ContainerLauncher, LauncherConfig, LauncherType, SpawnResult from sub-modules. Include get_plugin_launcher() factory. Imports from launcher_types, base, subprocess_launcher, container_launcher.",
+      "phase": "split-core",
+      "level": 5,
+      "dependencies": ["TASK-010"],
+      "files": {
+        "create": ["zerg/launchers/__init__.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.launchers import WorkerLauncher, SubprocessLauncher, ContainerLauncher, LauncherConfig, SpawnResult, LauncherType'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-016", "TASK-022"],
+      "integration_test": "tests/integration/test_launcher_integration.py"
+    },
+    {
+      "id": "TASK-013",
+      "title": "Create launchers/base.py with WorkerLauncher ABC",
+      "description": "Extract WorkerLauncher ABC from launcher.py. Include: abstract methods (spawn_async, monitor, terminate, get_output), sync wrappers (spawn, terminate_sync), spawn_with_retry (unified async-first from TASK-001), common properties. Import LauncherConfig and SpawnResult from launcher_types.",
+      "phase": "split-core",
+      "level": 5,
+      "dependencies": ["TASK-010", "TASK-011"],
+      "files": {
+        "create": ["zerg/launchers/base.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py", "zerg/launcher_types.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.launchers.base import WorkerLauncher' && ruff check zerg/launchers/base.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["TASK-014", "TASK-015"],
+      "integration_test": "tests/integration/test_launcher_integration.py"
+    },
+    {
+      "id": "TASK-014",
+      "title": "Create launchers/subprocess_launcher.py",
+      "description": "Extract SubprocessLauncher from launcher.py into launchers/subprocess_launcher.py. Inherits from base.WorkerLauncher. Implements spawn_async, monitor, terminate, get_output. Uses unified async-first methods from PR1 dedup work.",
+      "phase": "split-core",
+      "level": 5,
+      "dependencies": ["TASK-013"],
+      "files": {
+        "create": ["zerg/launchers/subprocess_launcher.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.launchers.subprocess_launcher import SubprocessLauncher' && ruff check zerg/launchers/subprocess_launcher.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "asyncio"],
+      "consumers": ["TASK-012"],
+      "integration_test": "tests/integration/test_launcher_integration.py"
+    },
+    {
+      "id": "TASK-015",
+      "title": "Create launchers/container_launcher.py",
+      "description": "Extract ContainerLauncher from launcher.py. Inherits from base.WorkerLauncher. Largest file (~500 lines). Includes: spawn_async, _start_container_async (unified), _wait_ready, _exec_worker_entry, _verify_worker_process, _cleanup_failed_container, monitor, terminate_async, get_output, ensure_network, image_exists. Uses env_validator for validate_env_vars.",
+      "phase": "split-core",
+      "level": 5,
+      "dependencies": ["TASK-013", "TASK-011"],
+      "files": {
+        "create": ["zerg/launchers/container_launcher.py"],
+        "modify": [],
+        "read": ["zerg/launcher.py", "zerg/env_validator.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.launchers.container_launcher import ContainerLauncher' && ruff check zerg/launchers/container_launcher.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python", "asyncio", "docker"],
+      "consumers": ["TASK-012"],
+      "integration_test": "tests/integration/test_container_launcher.py"
+    },
+    {
+      "id": "TASK-018",
+      "title": "Create protocol_handler.py",
+      "description": "Extract from worker_protocol.py the task execution pipeline: ProtocolHandler class containing execute_task(), invoke_claude_code(), _build_task_prompt(), run_verification(), commit_task_changes(). Takes state, git, verifier, spec_loader, plugin_registry etc. as constructor args. Import ClaudeInvocationResult from protocol_types.",
+      "phase": "split-core",
+      "level": 5,
+      "dependencies": ["TASK-017"],
+      "files": {
+        "create": ["zerg/protocol_handler.py"],
+        "modify": [],
+        "read": ["zerg/worker_protocol.py", "zerg/protocol_types.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.protocol_handler import ProtocolHandler' && ruff check zerg/protocol_handler.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": ["TASK-019"],
+      "integration_test": "tests/integration/test_worker_protocol_extended.py"
+    },
+    {
+      "id": "TASK-019",
+      "title": "Create protocol_state.py with WorkerProtocol",
+      "description": "Extract from worker_protocol.py the state machine: WorkerProtocol class with __init__, start(), signal_ready(), claim_next_task() (unified), _update_worker_state(), report_complete(), report_failed(), checkpoint_and_exit(), get_status(), context tracking methods. Internally creates ProtocolHandler for task execution. Include run_worker() entry point.",
+      "phase": "split-core",
+      "level": 5,
+      "dependencies": ["TASK-017", "TASK-018"],
+      "files": {
+        "create": ["zerg/protocol_state.py"],
+        "modify": [],
+        "read": ["zerg/worker_protocol.py", "zerg/protocol_handler.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.protocol_state import WorkerProtocol, run_worker' && ruff check zerg/protocol_state.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": "tests/integration/test_worker_protocol_extended.py"
+    },
+    {
+      "id": "TASK-016",
+      "title": "Replace launcher.py with launchers package redirect",
+      "description": "Delete the content of zerg/launcher.py and replace with re-exports from zerg.launchers for backward compatibility during transition OR delete entirely. Update zerg/__init__.py if it references launcher. Verify all production code imports from zerg.launchers now. Per requirements: clean break, no re-exports — so delete launcher.py entirely after TASK-022 updates imports.",
+      "phase": "split-integration",
+      "level": 6,
+      "dependencies": ["TASK-012", "TASK-014", "TASK-015"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c 'from zerg.launchers import WorkerLauncher, SubprocessLauncher, ContainerLauncher'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-022"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-020",
+      "title": "Replace worker_protocol.py with protocol module redirect",
+      "description": "Delete zerg/worker_protocol.py content and replace with minimal re-exports from protocol_state and protocol_handler for transition OR delete entirely. Per requirements: clean break. Delete after TASK-022 updates imports. Update worker_main.py to import from protocol_state.",
+      "phase": "split-integration",
+      "level": 6,
+      "dependencies": ["TASK-018", "TASK-019"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/worker_protocol.py", "zerg/worker_main.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c 'from zerg.protocol_state import WorkerProtocol, run_worker'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-022"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-021",
+      "title": "Slim orchestrator.py by removing thin wrappers",
+      "description": "Remove ~24 one-liner delegation methods from orchestrator.py. Instead, call extracted components directly from _main_loop, _poll_workers, and public methods. Target: orchestrator.py ≤ 500 lines. Remove: _cleanup_orphan_containers, _auto_detect_launcher_type, _get_worker_image_name (direct passthrough), and similar thin wrappers identified in analysis. Keep methods that add logic beyond pure delegation.",
+      "phase": "split-integration",
+      "level": 6,
+      "dependencies": ["TASK-016"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c 'from zerg.orchestrator import Orchestrator' && python -c 'import zerg.orchestrator; lines=len(open(zerg.orchestrator.__file__).readlines()); assert lines <= 600, f\"orchestrator.py is {lines} lines (max 600)\"'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-022"],
+      "integration_test": "tests/integration/test_orchestrator_integration.py"
+    },
+    {
+      "id": "TASK-022",
+      "title": "Update all source imports for new module paths",
+      "description": "Update ALL imports across zerg/ source files: (1) from zerg.launcher import X → from zerg.launchers import X, (2) from zerg.launcher import LauncherType → from zerg.launcher_types import LauncherType (in config.py), (3) from zerg.worker_protocol import X → from zerg.protocol_state import X or zerg.protocol_handler import X. Files to update: orchestrator.py, worker_manager.py, launcher_configurator.py, config.py, worker_main.py, commands/rush.py, commands/merge_cmd.py, commands/retry.py. Then delete old launcher.py and worker_protocol.py.",
+      "phase": "split-integration",
+      "level": 6,
+      "dependencies": ["TASK-016", "TASK-020", "TASK-021"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/orchestrator.py",
+          "zerg/worker_manager.py",
+          "zerg/launcher_configurator.py",
+          "zerg/config.py",
+          "zerg/worker_main.py",
+          "zerg/commands/rush.py",
+          "zerg/commands/merge_cmd.py",
+          "zerg/commands/retry.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands && ruff check zerg/",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": ["TASK-023"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-023",
+      "title": "Update all test imports and run full suite",
+      "description": "Update ALL test file imports to use new module paths. Files: tests/unit/test_launcher*.py, tests/unit/test_orchestrator*.py, tests/unit/test_worker_protocol.py, tests/integration/test_launcher_integration.py, tests/integration/test_container_launcher*.py, tests/integration/test_orchestrator*.py, tests/integration/test_worker_protocol_extended.py, tests/test_launcher.py, tests/test_orchestrator.py, tests/test_worker_protocol.py, tests/mocks/mock_launcher.py, tests/fixtures/orchestrator_fixtures.py. Run full test suite + validate_commands + ruff.",
+      "phase": "split-verification",
+      "level": 7,
+      "dependencies": ["TASK-022"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_launcher.py",
+          "tests/unit/test_launcher_coverage.py",
+          "tests/unit/test_launcher_errors.py",
+          "tests/unit/test_launcher_exec.py",
+          "tests/unit/test_launcher_extended.py",
+          "tests/unit/test_launcher_network.py",
+          "tests/unit/test_launcher_process.py",
+          "tests/unit/test_launcher_configurator.py",
+          "tests/unit/test_orchestrator.py",
+          "tests/unit/test_orchestrator_workers.py",
+          "tests/unit/test_orchestrator_merge.py",
+          "tests/unit/test_orchestrator_container_mode.py",
+          "tests/unit/test_orchestrator_coverage.py",
+          "tests/unit/test_orchestrator_recovery.py",
+          "tests/unit/test_orchestrator_levels.py",
+          "tests/unit/test_worker_protocol.py",
+          "tests/integration/test_launcher_integration.py",
+          "tests/integration/test_container_launcher.py",
+          "tests/integration/test_container_launcher_checks.py",
+          "tests/integration/test_orchestrator_integration.py",
+          "tests/integration/test_orchestrator_fixes.py",
+          "tests/integration/test_container_orchestrator.py",
+          "tests/integration/test_worker_protocol_extended.py",
+          "tests/test_launcher.py",
+          "tests/test_orchestrator.py",
+          "tests/test_worker_protocol.py",
+          "tests/mocks/mock_launcher.py",
+          "tests/fixtures/orchestrator_fixtures.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --timeout=120 && python -m zerg.validate_commands && ruff check zerg/",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-024",
+      "title": "Create worker_registry.py",
+      "description": "Create zerg/worker_registry.py with WorkerRegistry class. Thread-safe (RLock) worker state management. Methods: register, unregister, get, update_status, all, active, by_level, keys, items, __len__, __contains__. Import WorkerState from zerg.types, WorkerStatus from zerg.constants. ~150 lines.",
+      "phase": "registry-foundation",
+      "level": 8,
+      "dependencies": ["TASK-023"],
+      "files": {
+        "create": ["zerg/worker_registry.py"],
+        "modify": [],
+        "read": ["zerg/types.py", "zerg/constants.py"]
+      },
+      "verification": {
+        "command": "python -c 'from zerg.worker_registry import WorkerRegistry; r = WorkerRegistry(); assert len(r) == 0' && ruff check zerg/worker_registry.py",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "threading"],
+      "consumers": ["TASK-025", "TASK-026", "TASK-027", "TASK-028"],
+      "integration_test": "tests/integration/test_registry_wiring.py"
+    },
+    {
+      "id": "TASK-025",
+      "title": "Migrate orchestrator.py to WorkerRegistry",
+      "description": "Replace self._workers: dict[int, WorkerState] = {} with self._registry = WorkerRegistry(). Update __init__ to pass registry (not raw dict) to WorkerManager, LevelCoordinator. Update all self._workers references in orchestrator.py: iterations → self._registry.items()/all()/active(), lookups → self._registry.get(), deletions → self._registry.unregister(). ~12 reference sites to update.",
+      "phase": "registry-migration",
+      "level": 9,
+      "dependencies": ["TASK-024"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/orchestrator.py"],
+        "read": ["zerg/worker_registry.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_orchestrator.py tests/unit/test_orchestrator_workers.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-030"],
+      "integration_test": "tests/integration/test_registry_wiring.py"
+    },
+    {
+      "id": "TASK-026",
+      "title": "Migrate worker_manager.py to WorkerRegistry",
+      "description": "Change WorkerManager constructor: workers: dict[int, WorkerState] → registry: WorkerRegistry. Update all internal references: self._workers[x] = y → self._registry.register(x, y), del self._workers[x] → self._registry.unregister(x), iterations → self._registry.items(). ~15 reference sites.",
+      "phase": "registry-migration",
+      "level": 9,
+      "dependencies": ["TASK-024"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/worker_manager.py"],
+        "read": ["zerg/worker_registry.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_worker_manager_component.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-030"],
+      "integration_test": "tests/integration/test_registry_wiring.py"
+    },
+    {
+      "id": "TASK-027",
+      "title": "Migrate level_coordinator.py to WorkerRegistry",
+      "description": "Change LevelCoordinator constructor: workers: dict[int, WorkerState] → registry: WorkerRegistry. Update merge_level() and rebase_all_workers() to use self._registry.items(). ~3 reference sites.",
+      "phase": "registry-migration",
+      "level": 9,
+      "dependencies": ["TASK-024"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/level_coordinator.py"],
+        "read": ["zerg/worker_registry.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_level_coordinator.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-030"],
+      "integration_test": "tests/integration/test_registry_wiring.py"
+    },
+    {
+      "id": "TASK-028",
+      "title": "Migrate launcher_configurator.py to WorkerRegistry",
+      "description": "Change _check_container_health parameter: workers: dict → registry: WorkerRegistry. Update iteration in method. Update orchestrator.py call site to pass registry. ~2 reference sites.",
+      "phase": "registry-migration",
+      "level": 9,
+      "dependencies": ["TASK-024"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher_configurator.py"],
+        "read": ["zerg/worker_registry.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_launcher_configurator.py -x -q --timeout=60",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-030"],
+      "integration_test": "tests/integration/test_registry_wiring.py"
+    },
+    {
+      "id": "TASK-029",
+      "title": "Unit tests for WorkerRegistry",
+      "description": "Create tests/unit/test_worker_registry.py. Test: register/unregister, get existing/missing, update_status, all/active/by_level, thread safety (concurrent register/unregister), __len__/__contains__, keys/items snapshot behavior.",
+      "phase": "registry-tests",
+      "level": 10,
+      "dependencies": ["TASK-024"],
+      "files": {
+        "create": ["tests/unit/test_worker_registry.py"],
+        "modify": [],
+        "read": ["zerg/worker_registry.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_worker_registry.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "testing", "threading"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-030",
+      "title": "Integration tests for WorkerRegistry wiring",
+      "description": "Create tests/integration/test_registry_wiring.py. Test: Orchestrator creates registry and passes to all 4 consumers; WorkerManager.register propagates to LevelCoordinator view; concurrent access from multiple components; full orchestrator init with registry. Run full suite + validate_commands + ruff.",
+      "phase": "registry-verification",
+      "level": 10,
+      "dependencies": ["TASK-025", "TASK-026", "TASK-027", "TASK-028", "TASK-029"],
+      "files": {
+        "create": ["tests/integration/test_registry_wiring.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --timeout=120 && python -m zerg.validate_commands && ruff check zerg/",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "dedup-foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "pr": "PR1"
+    },
+    "2": {
+      "name": "dedup-core",
+      "tasks": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "parallel": true,
+      "estimated_minutes": 30,
+      "depends_on_levels": [1],
+      "pr": "PR1"
+    },
+    "3": {
+      "name": "dedup-verification",
+      "tasks": ["TASK-008", "TASK-009"],
+      "parallel": false,
+      "estimated_minutes": 50,
+      "depends_on_levels": [2],
+      "pr": "PR1"
+    },
+    "4": {
+      "name": "split-foundation",
+      "tasks": ["TASK-010", "TASK-011", "TASK-017"],
+      "parallel": true,
+      "estimated_minutes": 10,
+      "depends_on_levels": [3],
+      "pr": "PR2"
+    },
+    "5": {
+      "name": "split-core",
+      "tasks": ["TASK-012", "TASK-013", "TASK-014", "TASK-015", "TASK-018", "TASK-019"],
+      "parallel": true,
+      "estimated_minutes": 30,
+      "depends_on_levels": [4],
+      "pr": "PR2"
+    },
+    "6": {
+      "name": "split-integration",
+      "tasks": ["TASK-016", "TASK-020", "TASK-021", "TASK-022"],
+      "parallel": false,
+      "estimated_minutes": 65,
+      "depends_on_levels": [5],
+      "pr": "PR2"
+    },
+    "7": {
+      "name": "split-verification",
+      "tasks": ["TASK-023"],
+      "parallel": false,
+      "estimated_minutes": 30,
+      "depends_on_levels": [6],
+      "pr": "PR2"
+    },
+    "8": {
+      "name": "registry-foundation",
+      "tasks": ["TASK-024"],
+      "parallel": false,
+      "estimated_minutes": 15,
+      "depends_on_levels": [7],
+      "pr": "PR3"
+    },
+    "9": {
+      "name": "registry-migration",
+      "tasks": ["TASK-025", "TASK-026", "TASK-027", "TASK-028"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [8],
+      "pr": "PR3"
+    },
+    "10": {
+      "name": "registry-verification",
+      "tasks": ["TASK-029", "TASK-030"],
+      "parallel": false,
+      "estimated_minutes": 35,
+      "depends_on_levels": [9],
+      "pr": "PR3"
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+        "file": "zerg/launcher.py",
+        "resolution": "Different method ranges — can parallel if careful. Sequential recommended."
+      },
+      {
+        "tasks": ["TASK-004", "TASK-005"],
+        "file": "zerg/orchestrator.py",
+        "resolution": "TASK-005 depends on TASK-004 (sequential)."
+      },
+      {
+        "tasks": ["TASK-016", "TASK-021", "TASK-022"],
+        "file": "zerg/orchestrator.py",
+        "resolution": "Sequential within level 6."
+      }
+    ]
+  }
+}
