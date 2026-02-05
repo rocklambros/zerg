@@ -10,7 +10,7 @@ workers:
   timeout_minutes: 60
   retry_attempts: 2
   context_threshold_percent: 70
-  launcher_type: subprocess
+  launcher_type: subprocess  # Python fallback; task mode is implicit default for /zerg:rush
   backoff_strategy: exponential
   backoff_base_seconds: 30
   backoff_max_seconds: 300

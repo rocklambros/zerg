@@ -76,24 +76,14 @@ class TestCreateLauncher:
         launcher = configurator.create_launcher(mode="container")
         assert launcher is mock_instance
 
-    @patch("zerg.launcher_configurator.ContainerLauncher")
-    def test_create_launcher_auto_falls_back_on_network_failure(
-        self, mock_container_cls, tmp_path, mock_config, mock_plugin_registry
-    ):
-        """Auto-detected container mode falls back to subprocess on network failure."""
-        # Set up devcontainer so auto-detect picks container
+    def test_create_launcher_auto_returns_subprocess(self, tmp_path, mock_config, mock_plugin_registry):
+        """Auto mode always returns SubprocessLauncher (task mode default)."""
+        # Even with devcontainer, auto returns subprocess
         (tmp_path / ".devcontainer").mkdir()
         (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")
 
-        mock_instance = MagicMock()
-        mock_instance.ensure_network.return_value = False
-        mock_container_cls.return_value = mock_instance
-
         cfg = LauncherConfigurator(mock_config, tmp_path, mock_plugin_registry)
-
-        with patch("subprocess.run") as sp_run:
-            sp_run.return_value = MagicMock(returncode=0)  # image exists
-            launcher = cfg.create_launcher(mode="auto")
+        launcher = cfg.create_launcher(mode="auto")
 
         assert isinstance(launcher, SubprocessLauncher)
 
@@ -101,33 +91,18 @@ class TestCreateLauncher:
 class TestAutoDetect:
     """Tests for _auto_detect_launcher_type."""
 
-    def test_auto_detect_no_devcontainer(self, configurator):
-        """No devcontainer.json -> SUBPROCESS."""
+    def test_auto_detect_always_returns_subprocess(self, configurator):
+        """Auto-detect always returns SUBPROCESS (task mode is implicit default)."""
         result = configurator._auto_detect_launcher_type()
         assert result == LauncherType.SUBPROCESS
 
-    def test_auto_detect_with_devcontainer_and_image(self, tmp_path, mock_config, mock_plugin_registry):
-        """devcontainer.json + image exists -> CONTAINER."""
+    def test_auto_detect_ignores_devcontainer(self, tmp_path, mock_config, mock_plugin_registry):
+        """devcontainer.json presence is ignored; still returns SUBPROCESS."""
         (tmp_path / ".devcontainer").mkdir()
         (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")
 
         cfg = LauncherConfigurator(mock_config, tmp_path, mock_plugin_registry)
-
-        with patch("subprocess.run") as sp_run:
-            sp_run.return_value = MagicMock(returncode=0)
-            result = cfg._auto_detect_launcher_type()
-
-        assert result == LauncherType.CONTAINER
-
-    def test_auto_detect_docker_failure_falls_back(self, tmp_path, mock_config, mock_plugin_registry):
-        """Docker check failure -> SUBPROCESS."""
-        (tmp_path / ".devcontainer").mkdir()
-        (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")
-
-        cfg = LauncherConfigurator(mock_config, tmp_path, mock_plugin_registry)
-
-        with patch("subprocess.run", side_effect=Exception("Docker not found")):
-            result = cfg._auto_detect_launcher_type()
+        result = cfg._auto_detect_launcher_type()
 
         assert result == LauncherType.SUBPROCESS
 
