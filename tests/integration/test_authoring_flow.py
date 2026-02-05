@@ -162,7 +162,7 @@ class TestAuthoringFlow:
 
         doc_gen.update_wiki_index("indexed-cmd", "An indexed command description")
 
-        index_content = (temp_workspace["docs"] / "commands.md").read_text()
+        index_content = (temp_workspace["docs"] / "commands-quick.md").read_text()
         assert "indexed-cmd" in index_content
         assert "An indexed command description" in index_content
 
@@ -188,7 +188,7 @@ class TestAuthoringFlow:
 
         # Step 4: Update index
         doc_gen.update_wiki_index("full-test", "Full test command")
-        index_content = (temp_workspace["docs"] / "commands.md").read_text()
+        index_content = (temp_workspace["docs"] / "commands-quick.md").read_text()
         assert "full-test" in index_content
 
 

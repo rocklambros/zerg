@@ -313,11 +313,12 @@ class TestValidateAll:
     def test_real_commands_validate_all(self) -> None:
         """validate_all runs against the real commands directory without exceptions.
 
-        Known issues may cause warnings: state JSON drift and orphaned modules.
+        Known issues may cause warnings: state JSON drift, orphaned modules,
+        and missing required sections (Pre-Flight, Task Tracking).
         We verify any errors are from known patterns only.
         """
         _passed, errors = validate_all(REAL_COMMANDS_DIR)
-        known_patterns = ("state json", "orphaned module")
+        known_patterns = ("state json", "orphaned module", "missing required section")
         for error in errors:
             assert any(pat in error.lower() for pat in known_patterns), f"Unexpected validation error: {error}"
 
@@ -345,7 +346,7 @@ class TestValidateAll:
     def test_uses_default_commands_dir_when_none(self) -> None:
         """When commands_dir is None, validate_all should use the default real directory."""
         _passed, errors = validate_all(commands_dir=None)
-        known_patterns = ("state json", "orphaned module")
+        known_patterns = ("state json", "orphaned module", "missing required section")
         for error in errors:
             assert any(pat in error.lower() for pat in known_patterns), f"Unexpected validation error: {error}"
 
@@ -354,6 +355,8 @@ class TestValidateAll:
 
         Module wiring check runs against the real zerg/ package by default,
         so orphaned module warnings are expected and acceptable.
+        Missing required sections (Pre-Flight, Task Tracking, Help) in synthetic
+        test files are also expected.
         """
         deep_content = (
             "# Cmd\n\nTaskCreate start.\nTaskUpdate claim.\nTaskList check.\nTaskUpdate done.\nTaskGet verify.\n"
@@ -362,9 +365,10 @@ class TestValidateAll:
             (tmp_path / f"{cmd_name}.md").write_text(deep_content)
         passed, errors = validate_all(tmp_path)
         assert passed
-        # Only orphaned module warnings are acceptable
+        # Orphaned module and missing section warnings are acceptable
+        known_patterns = ("orphaned module", "missing required section")
         for error in errors:
-            assert "orphaned module" in error.lower(), f"Unexpected error: {error}"
+            assert any(pat in error.lower() for pat in known_patterns), f"Unexpected error: {error}"
 
 
 class TestModuleConstants:

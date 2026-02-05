@@ -377,7 +377,7 @@ Flags:
         docs_dir.mkdir(parents=True, exist_ok=True)
 
         # Create existing index
-        index_path = docs_dir / "commands.md"
+        index_path = docs_dir / "commands-quick.md"
         index_path.write_text(
             """# ZERG Command Reference
 

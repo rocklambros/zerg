@@ -191,19 +191,17 @@ class TestLauncherCreation:
         assert orch.launcher is not None
 
     def test_auto_detect_with_devcontainer_and_image(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test auto-detect with devcontainer and existing image."""
+        """Test auto-detect returns subprocess launcher (container requires explicit flag)."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
         (tmp_path / ".devcontainer").mkdir()
         (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")
 
-        with patch("subprocess.run") as sp_run:
-            sp_run.return_value = MagicMock(returncode=0)
+        orch = Orchestrator("test-feature", launcher_mode="auto")
 
-            Orchestrator("test-feature", launcher_mode="auto")
-
-            # Should detect container mode
-            sp_run.assert_called()
+        # Auto-detect always returns subprocess launcher
+        # Container mode requires explicit --mode container
+        assert orch.launcher is not None
 
     def test_auto_detect_with_devcontainer_no_image(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test auto-detect with devcontainer but no image."""

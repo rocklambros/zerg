@@ -2,6 +2,12 @@
 
 Run static analysis, complexity metrics, and quality assessment.
 
+## Pre-Flight
+
+```bash
+# Analyze can run anywhere, no prerequisites
+```
+
 ## Usage
 
 ```bash
