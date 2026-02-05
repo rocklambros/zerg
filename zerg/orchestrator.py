@@ -26,15 +26,14 @@ from zerg.containers import ContainerManager
 from zerg.context_plugin import ContextEngineeringPlugin
 from zerg.event_emitter import EventEmitter
 from zerg.gates import GateRunner
-from zerg.launcher import (
+from zerg.launcher_configurator import LauncherConfigurator
+from zerg.launcher_types import LauncherConfig, LauncherType
+from zerg.launchers import (
     ContainerLauncher,
-    LauncherConfig,
-    LauncherType,
     SubprocessLauncher,
     WorkerLauncher,
     get_plugin_launcher,
 )
-from zerg.launcher_configurator import LauncherConfigurator
 from zerg.level_coordinator import GatePipeline, LevelCoordinator
 from zerg.levels import LevelController
 from zerg.log_writer import StructuredLogWriter

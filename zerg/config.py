@@ -49,7 +49,7 @@ from zerg.constants import (
     DEFAULT_WORKERS,
 )
 from zerg.git.config import GitConfig
-from zerg.launcher import LauncherType
+from zerg.launcher_types import LauncherType
 from zerg.plugin_config import PluginsConfig
 
 logger = logging.getLogger(__name__)
