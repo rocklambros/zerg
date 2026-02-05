@@ -302,8 +302,9 @@ class WorkerProtocol:
         )
 
     def wait_for_ready(self, timeout: float = 30.0) -> bool:
-        """Wait until worker is ready.
+        """Wait until worker is ready (sync wrapper).
 
+        Delegates to wait_for_ready_async via asyncio.run().
         Used primarily for testing and synchronization.
 
         Args:
@@ -312,18 +313,13 @@ class WorkerProtocol:
         Returns:
             True if ready, False if timeout
         """
-        start = time.time()
-        while time.time() - start < timeout:
-            if self._is_ready:
-                return True
-            time.sleep(0.1)
-        return False
+        return asyncio.run(self.wait_for_ready_async(timeout))
 
     async def wait_for_ready_async(self, timeout: float = 30.0) -> bool:
-        """Wait until worker is ready (async version).
+        """Wait until worker is ready.
 
-        Async counterpart of wait_for_ready() using asyncio.sleep
-        instead of time.sleep for non-blocking polling.
+        Single source of truth for wait_for_ready logic.
+        Polls with asyncio.sleep for non-blocking behavior.
 
         Args:
             timeout: Maximum seconds to wait
@@ -348,11 +344,9 @@ class WorkerProtocol:
         max_wait: float = 120.0,
         poll_interval: float = 2.0,
     ) -> Task | None:
-        """Claim the next available task, polling if none are ready yet.
+        """Claim the next available task (sync wrapper).
 
-        Workers may start before the orchestrator assigns tasks via _start_level().
-        This method polls with backoff to handle the timing gap between worker
-        readiness and task assignment.
+        Delegates to claim_next_task_async via asyncio.run().
 
         Args:
             max_wait: Maximum seconds to wait for tasks to appear (default: 120s)
@@ -361,52 +355,16 @@ class WorkerProtocol:
         Returns:
             Task to execute or None if no tasks available after waiting
         """
-        start_time = time.time()
-        interval = poll_interval
-        attempt = 0
-
-        while True:
-            # Reload state from disk to pick up orchestrator writes
-            self.state.load()
-
-            # Get pending tasks for this worker
-            pending = self.state.get_tasks_by_status(TaskStatus.PENDING)
-
-            for task_id in pending:
-                # Try to claim this task with dependency enforcement
-                if self.state.claim_task(
-                    task_id,
-                    self.worker_id,
-                    dependency_checker=self.dependency_checker,
-                ):
-                    # Load full task from task graph if available
-                    task = self._load_task_details(task_id)
-                    self.current_task = task
-                    logger.info(f"Claimed task {task_id}: {task.get('title', 'untitled')}")
-                    return task
-
-            # Check if we've waited long enough
-            elapsed = time.time() - start_time
-            if elapsed >= max_wait:
-                logger.info(f"No tasks found after {elapsed:.1f}s of polling")
-                return None
-
-            attempt += 1
-            if attempt == 1:
-                logger.info(f"No tasks available yet, polling (max {max_wait}s)...")
-
-            time.sleep(interval)
-            interval = min(interval * 1.5, 10.0)  # backoff, cap at 10s
+        return asyncio.run(self.claim_next_task_async(max_wait, poll_interval))
 
     async def claim_next_task_async(
         self,
         max_wait: float = 120.0,
         poll_interval: float = 2.0,
     ) -> Task | None:
-        """Claim the next available task, polling if none are ready yet (async version).
+        """Claim the next available task, polling if none are ready yet.
 
-        Async counterpart of claim_next_task() using asyncio.sleep
-        instead of time.sleep for non-blocking polling.
+        Single source of truth for claim_next_task logic.
 
         Workers may start before the orchestrator assigns tasks via _start_level().
         This method polls with backoff to handle the timing gap between worker
