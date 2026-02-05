@@ -6,6 +6,8 @@ Overwhelm features with coordinated worker instances.
 __version__ = "0.1.0"
 __author__ = "ZERG Team"
 
+from zerg.architecture import ArchitectureChecker, ArchitectureConfig
+from zerg.architecture_gate import ArchitectureGate
 from zerg.constants import GateResult, Level, TaskStatus, WorkerStatus
 from zerg.exceptions import ZergError
 from zerg.worker_metrics import (
@@ -23,6 +25,10 @@ __all__ = [
     "GateResult",
     "WorkerStatus",
     "ZergError",
+    # Architecture
+    "ArchitectureChecker",
+    "ArchitectureConfig",
+    "ArchitectureGate",
     # Worker Metrics
     "TaskExecutionMetrics",
     "WorkerMetrics",

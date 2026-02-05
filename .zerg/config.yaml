@@ -96,6 +96,43 @@ analyze:
   context_engineering:
     auto_split: false
 
+# Architecture compliance configuration
+# Enforces layer boundaries, import restrictions, and naming conventions
+# Runs as a quality gate at ship/merge time
+architecture:
+  enabled: false  # Enable when ready to enforce architecture rules
+
+  # Layer definitions - imports flow downward
+  # layers:
+  #   - name: core
+  #     paths: ["zerg/config.py", "zerg/constants.py", "zerg/types.py", "zerg/exceptions.py"]
+  #     allowed_imports: ["stdlib"]
+  #   - name: infrastructure
+  #     paths: ["zerg/logging.py", "zerg/ast_cache.py", "zerg/command_executor.py"]
+  #     allowed_imports: ["stdlib", "core"]
+  #   - name: domain
+  #     paths: ["zerg/gates.py", "zerg/launcher.py", "zerg/orchestrator.py"]
+  #     allowed_imports: ["stdlib", "core", "infrastructure"]
+
+  # Import allow/deny rules per directory
+  import_rules:
+    - directory: "zerg/"
+      deny: ["flask", "django", "fastapi"]  # No web frameworks in core
+    - directory: "tests/"
+      allow: ["*"]  # Tests can import anything
+
+  # Naming conventions
+  naming_conventions:
+    - directory: "zerg/"
+      files: "snake_case"
+      classes: "PascalCase"
+      functions: "snake_case"
+
+  # Exceptions from architecture rules
+  exceptions:
+    - file: "zerg/__init__.py"
+      reason: "Package re-exports need cross-layer access"
+
 # Planning configuration for bite-sized task planning
 planning:
   default_detail: standard  # standard|medium|high
