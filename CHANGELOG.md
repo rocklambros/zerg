@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Task mode is now the default for `/zerg:rush` — container mode requires explicit `--mode container`
+- Simplified auto-detection logic: removed devcontainer/Docker image checks from `launcher_configurator.py`
+- Updated help text to show `--mode MODE  Execution mode: task|container|subprocess (default: task)`
+
 ### Added
 
 - Explicit workflow boundary enforcement in `/z:plan` and `/z:brainstorm` commands (#125)

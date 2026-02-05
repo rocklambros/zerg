@@ -356,24 +356,38 @@ class TestContainerLauncher:
 
 
 class TestAutoDetectLauncherMode:
-    """Tests for auto-detect launcher mode in orchestrator."""
+    """Tests for auto-detect launcher mode.
 
-    def test_auto_detect_no_devcontainer(self, tmp_path: Path) -> None:
-        """Test auto-detect when no devcontainer exists."""
-        # Test that without a devcontainer, subprocess mode is selected
-        devcontainer_path = tmp_path / ".devcontainer" / "devcontainer.json"
+    Note: As of task-mode-default feature, auto-detect always returns SUBPROCESS.
+    Container mode requires explicit --mode container flag.
+    """
 
-        # No devcontainer = subprocess mode
-        assert not devcontainer_path.exists()
+    def test_auto_detect_always_subprocess(self, tmp_path: Path) -> None:
+        """Test that auto-detect always selects subprocess mode."""
+        from unittest.mock import MagicMock
 
-    def test_auto_detect_with_devcontainer_no_image(self, tmp_path: Path) -> None:
-        """Test auto-detect when devcontainer exists but no image."""
-        # Create devcontainer.json
+        from zerg.config import ZergConfig
+        from zerg.launcher import LauncherType
+        from zerg.launcher_configurator import LauncherConfigurator
+        from zerg.plugins import PluginRegistry
+
+        # Even with devcontainer present, auto-detect returns SUBPROCESS
         devcontainer_dir = tmp_path / ".devcontainer"
         devcontainer_dir.mkdir(parents=True)
         (devcontainer_dir / "devcontainer.json").write_text("{}")
 
-        assert (devcontainer_dir / "devcontainer.json").exists()
+        config = MagicMock(spec=ZergConfig)
+        config.workers = MagicMock()
+        config.workers.timeout_minutes = 30
+        config.logging = MagicMock()
+        config.logging.directory = ".zerg/logs"
+        del config.container_image
+
+        registry = MagicMock(spec=PluginRegistry)
+        configurator = LauncherConfigurator(config, tmp_path, registry)
+
+        result = configurator._auto_detect_launcher_type()
+        assert result == LauncherType.SUBPROCESS
 
 
 class TestInitMultiLanguage:

@@ -1,0 +1,179 @@
+{
+  "feature": "task-mode-default",
+  "version": "2.0",
+  "generated": "2026-02-05T00:00:00Z",
+  "total_tasks": 7,
+  "estimated_duration_minutes": 15,
+  "max_parallelization": 5,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Update rush.details.md auto-detection logic",
+      "description": "Simplify auto-detection logic in rush.details.md to: 1) If --mode explicit → use that, 2) Otherwise → task mode (default). Remove rules 2-4 about devcontainer/image checking.",
+      "phase": "documentation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/rush.details.md"],
+        "read": [".gsd/specs/task-mode-default/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'task mode (default)' zerg/data/commands/rush.details.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-002",
+      "title": "Update rush.core.md help text",
+      "description": "Change help text from '--mode MODE  Execution mode: subprocess|container|auto (default: auto)' to '--mode MODE  Execution mode: task|container|subprocess (default: task)'",
+      "phase": "documentation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/rush.core.md"],
+        "read": [".gsd/specs/task-mode-default/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'task|container|subprocess (default: task)' zerg/data/commands/rush.core.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 2,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-003",
+      "title": "Update rush.md help text",
+      "description": "Change help text from '--mode MODE  Execution mode: container|subprocess' to '--mode MODE  Execution mode: task|container|subprocess (default: task)'",
+      "phase": "documentation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/rush.md"],
+        "read": [".gsd/specs/task-mode-default/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q 'task|container|subprocess (default: task)' zerg/data/commands/rush.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 2,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-004",
+      "title": "Simplify _auto_detect_launcher_type()",
+      "description": "Modify zerg/launcher_configurator.py:_auto_detect_launcher_type() to always return LauncherType.SUBPROCESS. Remove devcontainer existence check and Docker image check (lines 129-155).",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/launcher_configurator.py"],
+        "read": [".gsd/specs/task-mode-default/requirements.md"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.launcher_configurator import LauncherConfigurator; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["python"],
+      "consumers": ["TASK-006", "TASK-007"],
+      "integration_test": "tests/integration/test_container_launcher.py"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update config.yaml comment",
+      "description": "Update .zerg/config.yaml comment on launcher_type line to clarify task mode is implicit default for slash commands.",
+      "phase": "configuration",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".zerg/config.yaml"],
+        "read": [".gsd/specs/task-mode-default/requirements.md"]
+      },
+      "verification": {
+        "command": "python -c \"import yaml; yaml.safe_load(open('.zerg/config.yaml')); print('OK')\"",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 1,
+      "skills_required": ["yaml"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-006",
+      "title": "Update unit tests for auto-detect",
+      "description": "Update tests/unit/test_launcher_configurator.py: change test_auto_detect_with_devcontainer_and_image to expect SUBPROCESS, remove test_auto_detect_docker_failure_falls_back (no longer relevant).",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_launcher_configurator.py"],
+        "read": ["zerg/launcher_configurator.py"]
+      },
+      "verification": {
+        "command": "pytest tests/unit/test_launcher_configurator.py -v --timeout=30",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-007",
+      "title": "Update integration tests for auto-detect",
+      "description": "Update tests/integration/test_container_launcher.py: simplify or remove TestAutoDetectLauncherMode tests since devcontainer presence no longer matters for auto-detect.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["tests/integration/test_container_launcher.py"],
+        "read": ["zerg/launcher_configurator.py"]
+      },
+      "verification": {
+        "command": "pytest tests/integration/test_container_launcher.py -v --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "documentation-and-code",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005"],
+      "parallel": true,
+      "estimated_minutes": 5
+    },
+    "2": {
+      "name": "testing",
+      "tasks": ["TASK-006", "TASK-007"],
+      "parallel": true,
+      "estimated_minutes": 7,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

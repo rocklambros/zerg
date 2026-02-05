@@ -116,43 +116,15 @@ class LauncherConfigurator:
             return SubprocessLauncher(config)
 
     def _auto_detect_launcher_type(self) -> LauncherType:
-        """Auto-detect whether to use container or subprocess launcher.
+        """Auto-detect launcher type. Always returns SUBPROCESS.
 
-        Detection logic:
-        1. Check if devcontainer.json exists
-        2. Check if worker image is built
-        3. Fall back to subprocess if containers not available
+        Container mode requires explicit --mode container flag.
+        Task mode is the implicit default for slash commands (handled at prompt level).
 
         Returns:
-            Detected LauncherType
+            LauncherType.SUBPROCESS
         """
-        devcontainer_path = self._repo_path / ".devcontainer" / "devcontainer.json"
-
-        # No devcontainer config = use subprocess
-        if not devcontainer_path.exists():
-            logger.debug("No devcontainer.json found, using subprocess mode")
-            return LauncherType.SUBPROCESS
-
-        # Check if image exists
-        image_name = self._get_worker_image_name()
-
-        try:
-            import subprocess as _sp
-
-            result = _sp.run(
-                ["docker", "image", "inspect", image_name],
-                capture_output=True,
-                timeout=10,
-            )
-            if result.returncode == 0:
-                logger.debug(f"Found worker image {image_name}, using container mode")
-                return LauncherType.CONTAINER
-            else:
-                logger.debug(f"Worker image {image_name} not found, using subprocess mode")
-                return LauncherType.SUBPROCESS
-        except Exception as e:
-            logger.debug(f"Docker check failed ({e}), using subprocess mode")
-            return LauncherType.SUBPROCESS
+        return LauncherType.SUBPROCESS
 
     def _get_worker_image_name(self) -> str:
         """Get the worker image name.

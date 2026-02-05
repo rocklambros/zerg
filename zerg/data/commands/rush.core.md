@@ -227,7 +227,7 @@ When `--help` is passed in `$ARGUMENTS`, display usage and exit:
 Flags:
   --workers N           Number of workers to launch (default: 5, max: 10)
   --resume              Resume a previous run, skipping completed tasks
-  --mode MODE           Execution mode: subprocess|container|auto (default: auto)
+  --mode MODE           Execution mode: task|container|subprocess (default: task)
   --help                Show this help message
 ```
 
