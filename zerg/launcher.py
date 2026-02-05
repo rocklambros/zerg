@@ -354,22 +354,24 @@ class WorkerLauncher(ABC):
 
         return results
 
-    def spawn_with_retry(
+    async def _spawn_with_retry_impl(
         self,
         worker_id: int,
         feature: str,
         worktree_path: Path,
         branch: str,
-        env: dict[str, str] | None = None,
-        max_attempts: int = 3,
-        backoff_strategy: str = "exponential",
-        backoff_base_seconds: float = 2.0,
-        backoff_max_seconds: float = 30.0,
+        env: dict[str, str] | None,
+        max_attempts: int,
+        backoff_strategy: str,
+        backoff_base_seconds: float,
+        backoff_max_seconds: float,
+        spawn_fn: Any,
+        sleep_fn: Any,
     ) -> SpawnResult:
-        """Spawn a worker with retry logic using exponential backoff.
+        """Core retry logic for spawning workers. Single source of truth.
 
-        Attempts to spawn a worker, retrying on transient failures with
-        configurable backoff. Uses RetryBackoffCalculator for delay calculation.
+        Both spawn_with_retry() and spawn_with_retry_async() delegate here,
+        passing appropriate spawn and sleep callables for sync vs async contexts.
 
         Args:
             worker_id: Unique worker identifier
@@ -377,10 +379,12 @@ class WorkerLauncher(ABC):
             worktree_path: Path to worker's git worktree
             branch: Git branch for worker
             env: Additional environment variables
-            max_attempts: Maximum number of spawn attempts (default: 3)
+            max_attempts: Maximum number of spawn attempts
             backoff_strategy: Backoff strategy (exponential, linear, fixed)
             backoff_base_seconds: Base delay in seconds for backoff
             backoff_max_seconds: Maximum delay cap in seconds
+            spawn_fn: Awaitable callable that spawns a worker and returns SpawnResult
+            sleep_fn: Awaitable callable for delaying between retries
 
         Returns:
             SpawnResult with handle on success, or error after all attempts fail
@@ -390,7 +394,7 @@ class WorkerLauncher(ABC):
         for attempt in range(1, max_attempts + 1):
             logger.info(f"Spawn attempt {attempt}/{max_attempts} for worker {worker_id}")
 
-            result = self.spawn(worker_id, feature, worktree_path, branch, env)
+            result = await spawn_fn(worker_id, feature, worktree_path, branch, env)
 
             if result.success:
                 if attempt > 1:
@@ -409,7 +413,7 @@ class WorkerLauncher(ABC):
                     max_seconds=int(backoff_max_seconds),
                 )
                 logger.info(f"Waiting {delay:.2f}s before retry {attempt + 1}/{max_attempts}")
-                time.sleep(delay)
+                await sleep_fn(delay)
 
         # All attempts exhausted
         logger.error(f"All {max_attempts} spawn attempts failed for worker {worker_id}. Last error: {last_error}")
@@ -417,6 +421,60 @@ class WorkerLauncher(ABC):
             success=False,
             error=f"All {max_attempts} spawn attempts failed. Last error: {last_error}",
             worker_id=worker_id,
+        )
+
+    def spawn_with_retry(
+        self,
+        worker_id: int,
+        feature: str,
+        worktree_path: Path,
+        branch: str,
+        env: dict[str, str] | None = None,
+        max_attempts: int = 3,
+        backoff_strategy: str = "exponential",
+        backoff_base_seconds: float = 2.0,
+        backoff_max_seconds: float = 30.0,
+    ) -> SpawnResult:
+        """Spawn a worker with retry logic using exponential backoff.
+
+        Sync wrapper that delegates to _spawn_with_retry_impl() with
+        sync-compatible callables (self.spawn wrapped as coroutine, time.sleep).
+
+        Args:
+            worker_id: Unique worker identifier
+            feature: Feature name being worked on
+            worktree_path: Path to worker's git worktree
+            branch: Git branch for worker
+            env: Additional environment variables
+            max_attempts: Maximum number of spawn attempts (default: 3)
+            backoff_strategy: Backoff strategy (exponential, linear, fixed)
+            backoff_base_seconds: Base delay in seconds for backoff
+            backoff_max_seconds: Maximum delay cap in seconds
+
+        Returns:
+            SpawnResult with handle on success, or error after all attempts fail
+        """
+
+        async def _sync_spawn(wid: int, feat: str, wt: Path, br: str, e: dict[str, str] | None) -> SpawnResult:
+            return self.spawn(wid, feat, wt, br, e)
+
+        async def _sync_sleep(delay: float) -> None:
+            time.sleep(delay)
+
+        return asyncio.run(
+            self._spawn_with_retry_impl(
+                worker_id=worker_id,
+                feature=feature,
+                worktree_path=worktree_path,
+                branch=branch,
+                env=env,
+                max_attempts=max_attempts,
+                backoff_strategy=backoff_strategy,
+                backoff_base_seconds=backoff_base_seconds,
+                backoff_max_seconds=backoff_max_seconds,
+                spawn_fn=_sync_spawn,
+                sleep_fn=_sync_sleep,
+            )
         )
 
     async def spawn_with_retry_async(
@@ -433,8 +491,8 @@ class WorkerLauncher(ABC):
     ) -> SpawnResult:
         """Spawn a worker with retry logic asynchronously.
 
-        Async version of spawn_with_retry() using asyncio.sleep() for non-blocking
-        delays between retry attempts.
+        Async wrapper that delegates to _spawn_with_retry_impl() with
+        native async callables (self.spawn_async, asyncio.sleep).
 
         Args:
             worker_id: Unique worker identifier
@@ -450,38 +508,18 @@ class WorkerLauncher(ABC):
         Returns:
             SpawnResult with handle on success, or error after all attempts fail
         """
-        last_error: str = ""
-
-        for attempt in range(1, max_attempts + 1):
-            logger.info(f"Async spawn attempt {attempt}/{max_attempts} for worker {worker_id}")
-
-            result = await self.spawn_async(worker_id, feature, worktree_path, branch, env)
-
-            if result.success:
-                if attempt > 1:
-                    logger.info(f"Worker {worker_id} spawned successfully on attempt {attempt}")
-                return result
-
-            last_error = result.error or "Unknown error"
-            logger.warning(f"Async spawn attempt {attempt}/{max_attempts} failed for worker {worker_id}: {last_error}")
-
-            # Don't sleep after the last attempt
-            if attempt < max_attempts:
-                delay = RetryBackoffCalculator.calculate_delay(
-                    attempt=attempt,
-                    strategy=backoff_strategy,
-                    base_seconds=int(backoff_base_seconds),
-                    max_seconds=int(backoff_max_seconds),
-                )
-                logger.info(f"Waiting {delay:.2f}s before async retry {attempt + 1}/{max_attempts}")
-                await asyncio.sleep(delay)
-
-        # All attempts exhausted
-        logger.error(f"All {max_attempts} async spawn attempts failed for worker {worker_id}. Last error: {last_error}")
-        return SpawnResult(
-            success=False,
-            error=f"All {max_attempts} spawn attempts failed. Last error: {last_error}",
+        return await self._spawn_with_retry_impl(
             worker_id=worker_id,
+            feature=feature,
+            worktree_path=worktree_path,
+            branch=branch,
+            env=env,
+            max_attempts=max_attempts,
+            backoff_strategy=backoff_strategy,
+            backoff_base_seconds=backoff_base_seconds,
+            backoff_max_seconds=backoff_max_seconds,
+            spawn_fn=self.spawn_async,
+            sleep_fn=asyncio.sleep,
         )
 
     async def spawn_async(
@@ -821,7 +859,6 @@ class SubprocessLauncher(WorkerLauncher):
         Returns:
             True if worker became ready
         """
-        import time
 
         start = time.time()
         while time.time() - start < timeout:
@@ -842,7 +879,6 @@ class SubprocessLauncher(WorkerLauncher):
         Returns:
             Final status of all workers
         """
-        import time
 
         start = time.time()
         while True:
@@ -1366,7 +1402,6 @@ class ContainerLauncher(WorkerLauncher):
         Returns:
             True if container is running
         """
-        import time
 
         start = time.time()
         while time.time() - start < timeout:
