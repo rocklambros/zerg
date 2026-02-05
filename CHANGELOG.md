@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Pre-execution validation for `/z:plan` and `/z:design` commands that checks git history, open PRs, and codebase for conflicts before proceeding
 - Explicit workflow boundary enforcement in `/z:plan` and `/z:brainstorm` commands (#125)
 - ⛔ WORKFLOW BOUNDARY sections preventing auto-progression to next workflow phase
 - AskUserQuestion handoff to brainstorm.md Phase 4 for explicit user control

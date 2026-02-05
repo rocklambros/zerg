@@ -42,6 +42,52 @@ echo "$FEATURE" > .gsd/.current-feature
 echo "$(date -Iseconds)" > ".gsd/specs/$FEATURE/.started"
 ```
 
+## Phase 0: Pre-Execution Validation
+
+Before proceeding, validate this plan hasn't been superseded:
+
+1. **Extract Objective**
+   - Read `.gsd/specs/$FEATURE/requirements.md` if exists
+   - Identify key terms: feature name, main components, file patterns
+
+2. **Check Recent Commits**
+   ```bash
+   git log --oneline -20 | grep -i "$FEATURE"
+   ```
+   - Flag if any commits mention the feature name
+
+3. **Check Open PRs**
+   ```bash
+   gh pr list --state open | grep -i "$FEATURE"
+   ```
+   - Flag if any open PRs match
+
+4. **Search Codebase**
+   - Grep for key implementation patterns from the requirements
+   - Flag if substantial matches found (>5 files)
+
+5. **Validation Decision**
+   IF any checks flag potential conflicts:
+     STOP and present:
+     ```
+     ⚠️  VALIDATION WARNING
+
+     Potential conflict detected:
+     - [Commits/PRs/Code] matching "{feature}" found
+
+     Options:
+     1. Update plan - Revise spec to account for existing work
+     2. Archive - Move to .gsd/specs/_archived/
+     3. Proceed anyway - Override and continue
+     ```
+
+     Use AskUserQuestion to get user decision.
+
+   IF validation passes:
+     Continue to Enter Plan Mode.
+
+---
+
 ## Enter Plan Mode
 
 **Press Shift+Tab twice** to enter plan mode (Opus 4.5 for reasoning).
