@@ -832,8 +832,28 @@ class Orchestrator:
             "backpressure": self._backpressure.get_status(),
         }
 
-    def _main_loop(self) -> None:
-        """Main orchestration loop."""
+    def _main_loop(self, sleep_fn: Callable[..., Any] | None = None) -> None:
+        """Unified main orchestration loop with callable injection.
+
+        Merges the previously separate sync and async loop implementations
+        into a single method. The ``sleep_fn`` parameter enables both sync
+        and async callers:
+
+        * **Sync path** (default): ``time.sleep`` — blocking.
+        * **Async path** (via ``start_async``): uses ``_main_loop_as_async()``
+          wrapper which runs this method in a thread via ``asyncio.to_thread``.
+
+        The unified implementation includes ALL features from the original
+        sync version: escalation checks (``_check_escalations``), progress
+        aggregation (``_aggregate_progress``), and stall detection — which
+        were previously missing from the async variant.
+
+        Args:
+            sleep_fn: Sleep callable accepting seconds. Defaults to ``time.sleep``.
+        """
+        if sleep_fn is None:
+            sleep_fn = time.sleep
+
         logger.info("Starting main loop")
         _handled_levels: set[int] = set()
 
@@ -874,7 +894,7 @@ class Orchestrator:
                         # FR-6: Auto-spawn replacement workers with respawn cap
                         self._auto_respawn_workers(current, len(remaining))
 
-                time.sleep(self._poll_interval)
+                sleep_fn(self._poll_interval)
 
             except KeyboardInterrupt:
                 logger.info("Interrupted by user")
@@ -1083,7 +1103,7 @@ class Orchestrator:
                     logger.info(f"Pre-marked level {prev} as complete (resuming from {effective_start})")
 
         self._start_level(effective_start)
-        await self._main_loop_async()
+        await self._main_loop_as_async()
 
     def start_sync(
         self,
@@ -1138,111 +1158,17 @@ class Orchestrator:
 
         logger.info("Orchestration stopped (async)")
 
-    async def _main_loop_async(self) -> None:
-        """Async main orchestration loop.
+    async def _main_loop_as_async(self) -> None:
+        """Async wrapper around the unified ``_main_loop``.
 
-        Uses asyncio.sleep() instead of time.sleep() for non-blocking waits.
+        Runs the synchronous ``_main_loop`` in a thread via
+        ``asyncio.to_thread`` so that ``time.sleep`` calls within do not
+        block the event loop.  This preserves full feature parity (the
+        unified ``_main_loop`` includes escalation checks, progress
+        aggregation, and stall detection) while remaining compatible
+        with async callers like ``start_async``.
         """
-        logger.info("Starting async main loop")
-        _handled_levels: set[int] = set()
-
-        while self._running:
-            try:
-                await self._poll_workers_async()
-                self._check_retry_ready_tasks()
-
-                # Check level completion (guard: only handle each level once)
-                current = self.levels.current_level
-                if current > 0 and current not in _handled_levels and self.levels.is_level_resolved(current):
-                    _handled_levels.add(current)
-                    merge_ok = self._on_level_complete_handler(current)
-
-                    if not merge_ok:
-                        logger.warning(f"Level {current} merge failed, pausing execution")
-                        continue
-
-                    if self.levels.can_advance():
-                        next_level = self.levels.advance_level()
-                        if next_level:
-                            self._start_level(next_level)
-                            self._respawn_workers_for_level(next_level)
-                    else:
-                        status = self.levels.get_status()
-                        if status["is_complete"]:
-                            logger.info("All tasks complete!")
-                            self._running = False
-                            break
-
-                # Check if all workers are gone but tasks remain (FR-6: Auto-respawn)
-                active_workers = [
-                    w for w in self._workers.values() if w.status not in (WorkerStatus.STOPPED, WorkerStatus.CRASHED)
-                ]
-                if not active_workers and self._running:
-                    remaining = self._get_remaining_tasks_for_level(current)
-                    if remaining:
-                        # FR-6: Auto-spawn replacement workers with respawn cap
-                        self._auto_respawn_workers(current, len(remaining))
-
-                await asyncio.sleep(self._poll_interval)
-
-            except KeyboardInterrupt:
-                logger.info("Interrupted by user")
-                await self.stop_async()
-                break
-            except Exception as e:
-                logger.error(f"Error in async main loop: {e}")
-                self.state.set_error(str(e))
-                await self.stop_async(force=True)
-                raise
-
-        # Emit rush finished event
-        with contextlib.suppress(Exception):
-            self._plugin_registry.emit_event(
-                LifecycleEvent(
-                    event_type=PluginHookEvent.RUSH_FINISHED.value,
-                    data={"feature": self.feature},
-                )
-            )
-
-        logger.info("Async main loop ended")
-
-    async def _poll_workers_async(self) -> None:
-        """Async poll worker status and handle completions.
-
-        Uses async state loading for non-blocking I/O.
-        """
-        await self.state.load_async()
-        self._sync_levels_from_state()
-        self._reassign_stranded_tasks()
-        self._check_container_health()
-        self.task_sync.sync_state()
-        self.launcher.sync_state()
-
-        # Check for stale tasks (FR-2: Task timeout watchdog)
-        self._check_stale_tasks()
-
-        for worker_id, worker in list(self._workers.items()):
-            if worker.status in (WorkerStatus.STOPPED, WorkerStatus.CRASHED):
-                continue
-            status = self.launcher.monitor(worker_id)
-            if status == WorkerStatus.CRASHED:
-                logger.error(f"Worker {worker_id} crashed")
-                worker.status = WorkerStatus.CRASHED
-                self.state.set_worker_state(worker)
-                if worker.current_task:
-                    # FR-5: Worker crash → don't increment retry count
-                    self._handle_worker_crash(worker.current_task, worker_id)
-                self._handle_worker_exit(worker_id)
-            elif status == WorkerStatus.CHECKPOINTING:
-                logger.info(f"Worker {worker_id} checkpointing")
-                worker.status = WorkerStatus.CHECKPOINTING
-                self.state.set_worker_state(worker)
-                self._handle_worker_exit(worker_id)
-            elif status == WorkerStatus.STOPPED:
-                worker.status = WorkerStatus.STOPPED
-                self.state.set_worker_state(worker)
-                self._handle_worker_exit(worker_id)
-            worker.health_check_at = _now()
+        await asyncio.to_thread(self._main_loop)
 
     # Alias for backward compatibility
     _poll_workers_sync = _poll_workers
