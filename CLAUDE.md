@@ -264,3 +264,16 @@ Auto-generated from [TikiTribe/claude-secure-coding-rules](https://github.com/Ti
 - `languages/python/CLAUDE.md`
 
 <!-- SECURITY_RULES_END -->
+
+## CI/CD Debugging section
+
+When asked to check CI/test failures, always fetch GitHub Actions logs first rather than running tests locally unless explicitly requested.
+
+## Workflow Execution section
+
+Before executing any plan file, verify the plan's actual purpose matches the requested task by reading the plan file contents first.
+
+
+## Custom Workflows section
+
+When invoking custom commands like /z:plan, /z:design, or /zerg workflows, confirm the intended scope and dependencies before beginning parallel execution.
