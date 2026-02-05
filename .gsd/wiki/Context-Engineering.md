@@ -1,77 +1,238 @@
 # Context Engineering
 
-Token optimization system for ZERG parallel workers. Reduces per-worker context usage by 30-50% while preserving the information each task needs.
+ZERG's token optimization system for parallel workers. Reduces per-worker context usage by 30-50% while preserving the information each task needs.
 
-## Overview
+---
 
-When running 5-10 parallel workers, each one loads command instructions, security rules, and spec documents. Without optimization, each worker consumes 15,000-30,000 tokens on instructions alone before writing code. Multiply by 10 workers and context burns fast.
+## Token Economics 101
 
-Context engineering addresses this through three subsystems (command splitting, security rule filtering, and task-scoped context):
-- **Command Splitting**: Split large commands into core essentials and detailed reference
-- **Security Rule Filtering**: Load only rules relevant to task file types
-- **Task-Scoped Context**: Provide spec excerpts instead of full documents
+Before diving into technical details, let's understand *why* context engineering exists and why it matters for parallel execution.
 
-## Why This Matters for Parallel Workers
+### What Are Tokens?
 
-ZERG workers are **stateless**. They read specs fresh each time, sharing no conversation history. This design enables crash recovery and restartability, but it means every worker must load its full instruction set independently.
+Tokens are how Large Language Models (LLMs) process text. Think of them as word fragments:
 
-| Without Optimization | With Optimization |
-|---------------------|-------------------|
-| Full command files (~2000 tokens each) | `.core.md` files (~600 tokens each) |
-| All security rules (~8000 tokens) | Filtered rules (~2000 tokens avg) |
-| Full requirements.md + design.md | Task-scoped excerpts (~1500 tokens) |
-| **~25,000 tokens/worker** | **~10,000 tokens/worker** |
+- "parallel" = 1 token
+- "authentication" = 1 token
+- "JWT" = 1 token
+- "context-engineering" = 3 tokens (context, -, engineering)
 
-At 10 workers, that's 150,000 tokens saved per execution cycle.
+Roughly: **1 token = 0.75 words** (or about 4 characters on average).
+
+When you send instructions to Claude, every character counts toward a token budget.
+
+### Why Are Tokens Limited?
+
+LLMs have a **context window** - the maximum amount of text they can "see" at once. Think of it like working memory:
+
+| Model | Context Window |
+|-------|---------------|
+| Claude Sonnet 4 | 200K tokens |
+| Claude Opus 4 | 200K tokens |
+
+That sounds like a lot - about 150,000 words, or a 500-page book. So why worry?
+
+### Why Does This Matter for ZERG?
+
+Here's the catch: **every ZERG worker is stateless**. Each worker starts fresh with no memory of previous conversations. To do its job, every worker must load:
+
+1. **Command instructions** - How to execute the task
+2. **Security rules** - Safe coding practices for the file types involved
+3. **Spec documents** - Requirements and design context
+4. **Task details** - Files to create/modify, verification commands
+
+Now multiply that by 10 parallel workers.
+
+```
+Without optimization:
+  1 worker  x 25,000 tokens = 25,000 tokens
+  10 workers x 25,000 tokens = 250,000 tokens (EXCEEDS context window!)
+
+With optimization:
+  1 worker  x 10,000 tokens = 10,000 tokens
+  10 workers x 10,000 tokens = 100,000 tokens (fits comfortably)
+```
+
+**Context engineering is how ZERG makes parallel execution practical.**
+
+---
+
+## Visual Budget Overview
+
+Here's how a worker's context budget breaks down:
+
+```
++---------------------------------------------------------------------+
+|                    WORKER CONTEXT BUDGET                            |
+|                       (~128K tokens)                                |
++---------------------------------------------------------------------+
+| #################### | ########## | ################################ |
+|    System prompt     |   Task     |      Available for work         |
+|       (~20K)         |  context   |           (~100K)               |
+|                      |   (~8K)    |                                 |
++---------------------------------------------------------------------+
+
+System prompt includes:
+  - Base Claude instructions
+  - ZERG command file (.core.md)
+  - Security rules (filtered)
+  - Project CLAUDE.md
+
+Task context includes:
+  - Spec excerpts
+  - Dependency context from upstream tasks
+  - Task-specific security rules
+```
+
+Every token spent on instructions is a token *not* available for actual code generation and reasoning.
+
+---
+
+## Why ZERG Engineers Context
+
+Before explaining *how* context engineering works, let's be clear about *why*:
+
+### 1. Save Money
+
+Every token costs money. At scale:
+
+| Scenario | Tokens/Execution | Estimated Cost |
+|----------|-----------------|----------------|
+| 10 workers, no optimization | 250,000 | $0.75 |
+| 10 workers, with optimization | 100,000 | $0.30 |
+| 50 tasks over a sprint | 5,000,000 vs 2,000,000 | $15 vs $6 |
+
+Context engineering cuts costs by 40-60%.
+
+### 2. Focus Workers
+
+A worker creating Python files doesn't need Docker security rules. A worker writing tests doesn't need deployment instructions.
+
+**Relevant context = better output.** Workers with focused, task-specific context:
+- Make fewer mistakes
+- Ask fewer clarifying questions
+- Complete tasks faster
+
+### 3. Prevent Confusion
+
+When workers load everything, they sometimes get conflicting signals:
+- "Use bcrypt for passwords" (from Python rules)
+- "Use Web Crypto API" (from JavaScript rules)
+
+For a Python-only task, the JavaScript guidance is noise that can confuse the worker.
+
+### 4. Enable More Parallelism
+
+With optimized context, you can run more workers simultaneously without hitting budget limits.
+
+---
+
+## The Trade-Offs
+
+Context engineering isn't free. Here's what you're trading:
+
+| Benefit | Trade-off |
+|---------|-----------|
+| Lower token usage | Workers may miss context they need |
+| Faster worker startup | More complexity in design phase |
+| Focused instructions | Fallback needed when filtering fails |
+| More parallelism possible | Configuration required |
+
+**The default settings balance these trade-offs for most projects.** Only adjust if you're hitting specific problems.
+
+---
+
+## How It Works (Three Subsystems)
+
+Context engineering uses three complementary techniques:
+
+```
++------------------+     +---------------------+     +------------------+
+|   COMMAND        |     |   SECURITY RULE     |     |   TASK-SCOPED    |
+|   SPLITTING      |     |   FILTERING         |     |   CONTEXT        |
++------------------+     +---------------------+     +------------------+
+| Split large      |     | Load only rules     |     | Provide spec     |
+| command files    |     | matching task's     |     | excerpts, not    |
+| into core +      |     | file extensions     |     | full documents   |
+| details          |     |                     |     |                  |
++------------------+     +---------------------+     +------------------+
+| Saves ~2,000-    |     | Saves ~1,000-       |     | Saves ~2,000-    |
+| 5,000 tokens/cmd |     | 4,000 tokens/task   |     | 5,000 tokens/    |
+|                  |     |                     |     | task             |
++------------------+     +---------------------+     +------------------+
+```
+
+Combined savings: **~10,000-15,000 tokens per worker**
+
+---
 
 ## Command Splitting
 
 Large command files (>300 lines) are split into two parts:
 
-| Part | Content | Size |
-|------|---------|------|
-| `.core.md` | Essential instructions, behavioral flow, critical rules | ~30% of original |
-| `.details.md` | Reference tables, examples, edge cases, extended options | ~70% of original |
+| Part | What It Contains | When Loaded |
+|------|------------------|-------------|
+| `.core.md` | Essential workflow, critical rules | Always (by workers) |
+| `.details.md` | Examples, edge cases, reference tables | On-demand (when needed) |
 
-The original command file retains core content for backward compatibility. Workers load `.core.md` by default and reference `.details.md` only when encountering situations that need it.
+### Why Split?
+
+The `worker.md` command file is ~500 lines. But most of that is reference material a worker rarely needs. By splitting:
+
+| Version | Tokens | Use Case |
+|---------|--------|----------|
+| Full `worker.md` | ~4,000 | Documentation, learning |
+| `worker.core.md` | ~1,200 | Normal task execution |
 
 ### Split Commands
 
-The following 10 commands are split:
+These 10 commands are split:
 
-| Command | Original Lines | Core Lines | Details Lines |
-|---------|---------------|------------|---------------|
-| brainstorm | ~400 | ~120 | ~280 |
-| init | ~500 | ~150 | ~350 |
-| design | ~600 | ~180 | ~420 |
-| rush | ~450 | ~135 | ~315 |
-| plugins | ~350 | ~105 | ~245 |
-| debug | ~400 | ~120 | ~280 |
-| plan | ~350 | ~105 | ~245 |
-| worker | ~500 | ~150 | ~350 |
-| merge | ~300 | ~90 | ~210 |
-| status | ~350 | ~105 | ~245 |
-
-### Token Savings from Splitting
-
-Per-worker per-command savings: **~2,000-5,000 tokens**
-
-For a typical worker executing 3-5 commands during a task, splitting saves 6,000-25,000 tokens.
+| Command | Core (~30%) | Details (~70%) |
+|---------|-------------|----------------|
+| brainstorm | ~120 lines | ~280 lines |
+| init | ~150 lines | ~350 lines |
+| design | ~180 lines | ~420 lines |
+| rush | ~135 lines | ~315 lines |
+| plugins | ~105 lines | ~245 lines |
+| debug | ~120 lines | ~280 lines |
+| plan | ~105 lines | ~245 lines |
+| worker | ~150 lines | ~350 lines |
+| merge | ~90 lines | ~210 lines |
+| status | ~105 lines | ~245 lines |
 
 ### How Splitting Works
 
 During ZERG initialization, the `CommandSplitter` analyzes command files:
 
-1. **Identify core content**: Sections marked with `<!-- CORE -->` or detected as essential (workflow steps, critical rules)
-2. **Identify detail content**: Examples, edge cases, reference tables, extended options
+1. **Identify core content**: Sections marked with `<!-- CORE -->` or detected as essential
+2. **Identify detail content**: Examples, edge cases, reference tables
 3. **Generate `.core.md`**: Essential content only
 4. **Generate `.details.md`**: Everything else
 
 Run `python -m zerg.validate_commands --auto-split` to automatically split oversized files.
 
+---
+
 ## Security Rule Filtering
 
-ZERG detects which file types each task will create or modify, then loads only relevant security rules.
+ZERG detects which file types each task will create/modify, then loads only relevant security rules.
+
+### Why Filter?
+
+A project might have security rules for:
+- Python (~3,000 tokens)
+- JavaScript (~2,500 tokens)
+- Docker (~3,500 tokens)
+- OWASP core (~2,000 tokens)
+
+**Total: ~11,000 tokens**
+
+A task creating only `auth_service.py` needs:
+- Python rules (~3,000 tokens)
+- OWASP core (~2,000 tokens)
+
+**Filtered: ~5,000 tokens** (55% savings)
 
 ### Filtering by Extension
 
@@ -80,14 +241,8 @@ ZERG detects which file types each task will create or modify, then loads only r
 | `.py` | Python security rules, OWASP core |
 | `.js`, `.ts` | JavaScript security rules, OWASP core |
 | `Dockerfile`, `docker-compose.yml` | Docker security rules, OWASP core |
-| `.go` | Go security rules (if available), OWASP core |
-| `.rs` | Rust security rules (if available), OWASP core |
-
-A task that only modifies Python files never sees Docker or JavaScript rules. A task creating only a Dockerfile never sees Python deserialization rules.
-
-### Token Savings from Filtering
-
-Per-task savings: **~1,000-4,000 tokens** depending on project rule count.
+| `.go` | Go security rules, OWASP core |
+| `.rs` | Rust security rules, OWASP core |
 
 ### Budget Allocation
 
@@ -110,9 +265,29 @@ ZERG auto-fetches security rules from [TikiTribe/claude-secure-coding-rules](htt
 
 Rules are fetched during `/zerg:init` and stored in `.claude/rules/security/`.
 
+---
+
 ## Task-Scoped Context
 
 Each task in `task-graph.json` includes a `context` field populated during the design phase.
+
+### Why Task-Scoped Context?
+
+Instead of loading full spec documents (~10,000+ tokens), workers receive relevant excerpts (~1,500-2,000 tokens).
+
+```
+Full spec approach:
+  requirements.md  (~5,000 tokens)
+  design.md        (~8,000 tokens)
+  --------------------------------
+  Total:            ~13,000 tokens (mostly irrelevant to specific task)
+
+Task-scoped approach:
+  Spec excerpt      (~1,500 tokens) - just the auth section
+  Dependency context  (~500 tokens) - upstream task outputs
+  --------------------------------
+  Total:              ~2,000 tokens (all relevant)
+```
 
 ### Context Field Structure
 
@@ -154,11 +329,7 @@ The context assembler prioritizes content:
 
 If content exceeds budget, lower-priority items are truncated.
 
-### Token Savings from Task Context
-
-Per-task savings: **~2,000-5,000 tokens** compared to loading full spec documents.
-
-For a feature with 20 tasks, that's 40,000-100,000 tokens saved across all workers.
+---
 
 ## Configuration
 
@@ -184,39 +355,34 @@ plugins:
 | `task_context_budget_tokens` | `4000` | Maximum tokens for task-scoped context |
 | `fallback_to_full` | `true` | If context engineering fails, load full context |
 
-### Disabling Context Engineering
+### When to Adjust Settings
 
-To disable entirely:
+**Increase `task_context_budget_tokens` to 5000-6000 when:**
+- Workers frequently ask for clarification
+- Tasks involve multiple interconnected components
+- Spec documents are highly detailed
 
-```yaml
-plugins:
-  context_engineering:
-    enabled: false
-```
+**Decrease `task_context_budget_tokens` to 2500-3000 when:**
+- Running many workers (15+) simultaneously
+- Tasks are simple and focused
+- Cost optimization is critical
 
-Workers will load full command files, all security rules, and entire spec documents.
-
-### Adjusting Token Budget
-
-For complex tasks needing more context:
-
-```yaml
-plugins:
-  context_engineering:
-    task_context_budget_tokens: 6000
-```
-
-For maximum efficiency with simple tasks:
+**Disable context engineering when:**
+- Debugging worker behavior
+- Workers are consistently missing context
+- You need to compare optimized vs full context
 
 ```yaml
 plugins:
   context_engineering:
-    task_context_budget_tokens: 2500
+    enabled: false  # Workers load everything
 ```
+
+---
 
 ## Monitoring
 
-`/zerg:status` includes a **CONTEXT BUDGET** section when context engineering is active:
+`/zerg:status` includes a **CONTEXT BUDGET** section:
 
 ```
 CONTEXT BUDGET
@@ -228,26 +394,24 @@ CONTEXT BUDGET
 
 ### Metrics Explained
 
-| Metric | What It Means |
-|--------|---------------|
-| **Split commands** | How many command files have core/details splits |
-| **Est. token savings** | Approximate tokens saved per worker from splitting |
-| **Task context rate** | Percentage of tasks with populated context fields |
-| **Security filtering** | Total rule files vs. average loaded per task |
+| Metric | What It Means | Good Value |
+|--------|---------------|------------|
+| **Split commands** | Commands with core/details splits | 40-60% |
+| **Est. token savings** | Tokens saved per worker from splitting | >5,000 |
+| **Task context rate** | Tasks with populated context fields | >90% |
+| **Security filtering** | Ratio of rules loaded vs available | <0.5 |
 
-### Interpreting Metrics
+### Warning Signs
 
-**Good health indicators**:
-- Split commands: 40-60% (large commands split)
-- Task context rate: 90-100% (all tasks have context)
-- Security filtering: ratio < 0.5 (significant filtering)
+| Symptom | Likely Cause | Solution |
+|---------|-------------|----------|
+| Task context rate < 80% | Spec docs lack structure | Add section headers to requirements.md |
+| Security filtering ratio = 1.0 | No filtering happening | Check file extensions in task definitions |
+| Est. token savings < 5,000 | Few commands split | Run `--auto-split` on oversized commands |
 
-**Warning signs**:
-- Task context rate < 80%: Spec documents may lack section structure
-- Security filtering ratio = 1.0: No filtering happening (check file extensions)
-- Est. token savings < 5,000: May not be benefiting from splitting
+---
 
-## How It Integrates
+## Integration Points
 
 ### During `/zerg:design`
 
@@ -273,33 +437,29 @@ The orchestrator passes task context to workers:
 
 ### Fallback Strategy
 
-If context engineering fails for any reason, workers fall back to full context loading. A worker with full context is better than a worker that fails to load instructions.
+If context engineering fails, workers fall back to full context loading. A worker with full context is better than a worker that fails.
 
 Fallback triggers:
 - Missing `.core.md` file (uses original command file)
 - Empty task context field (loads full spec documents)
 - Security rule filtering error (loads all rules)
 
+---
+
 ## Best Practices
 
-### Keep Task Descriptions Specific
+### Write Specific Task Descriptions
 
-The more specific a task's `title` and `description`, the better the spec excerpt matching works.
+The more specific a task's `title` and `description`, the better spec excerpt matching works.
 
-**Good**: "Implement JWT token validation middleware for Express routes"
-**Vague**: "Add auth middleware"
+| Quality | Example | Context Matching |
+|---------|---------|------------------|
+| Good | "Implement JWT token validation middleware for Express routes" | Precise - matches auth, JWT, middleware sections |
+| Vague | "Add auth middleware" | Broad - may pull unrelated auth content |
 
-Vague descriptions lead to broader, less efficient context excerpts.
+### Structure Your Spec Documents
 
-### Use the Default Budget
-
-4,000 tokens covers most task contexts well. Only adjust if:
-- Workers are missing context they need (increase)
-- Running many workers and need to minimize total usage (decrease)
-
-### Add Structure to Spec Documents
-
-If task context rate is below 80%, add clear headers and section breaks to `requirements.md`:
+Well-structured specs enable precise excerpt extraction:
 
 ```markdown
 ## Authentication Requirements
@@ -315,31 +475,17 @@ If task context rate is below 80%, add clear headers and section breaks to `requ
 ...
 ```
 
-Well-structured specs enable precise excerpt extraction.
+If task context rate is below 80%, add clear headers and section breaks.
 
-### Let Fallback Work
+### Keep Fallback Enabled
 
-Keep `fallback_to_full: true` unless you have a specific reason to disable it. A worker that falls back to full context is better than a worker that fails because it couldn't load its instructions.
+Keep `fallback_to_full: true` unless you have a specific reason to disable it. A worker that falls back to full context is better than a worker that fails because it couldn't load instructions.
 
-## Automated Validation
-
-Run `python -m zerg.validate_commands` to check:
-
-- **Split file pair consistency**: `.core.md`, `.details.md`, and parent `.md` all exist
-- **Oversized unsplit files**: Files >= 300 lines without `.core.md` split
-- **Task ecosystem integration**: Every command has Task tool calls
-
-Use `--auto-split` to automatically split oversized files:
-
-```bash
-python -m zerg.validate_commands --auto-split
-```
-
-This runs in CI and as a pre-commit hook.
+---
 
 ## Troubleshooting
 
-### Workers missing context they need
+### Workers Missing Context
 
 **Symptom**: Workers ask for clarification or miss requirements.
 
@@ -348,16 +494,16 @@ This runs in CI and as a pre-commit hook.
 2. Make task descriptions more specific
 3. Add section headers to spec documents
 
-### Task context rate below 80%
+### Low Task Context Rate
 
-**Symptom**: `/zerg:status` shows low task context population.
+**Symptom**: `/zerg:status` shows task context population below 80%.
 
 **Solutions**:
 1. Add clear section headers to requirements.md and design.md
 2. Ensure task titles match terminology in specs
 3. Check that design phase completed successfully
 
-### Security rules not filtering
+### Security Rules Not Filtering
 
 **Symptom**: Filtering ratio = 1.0 in status output.
 
@@ -366,7 +512,7 @@ This runs in CI and as a pre-commit hook.
 2. Check that security rules exist in `.claude/rules/security/`
 3. Run `/zerg:init` to fetch latest security rules
 
-### Command splitting not working
+### Command Splitting Not Working
 
 **Symptom**: Workers loading full command files despite splitting enabled.
 
@@ -374,6 +520,22 @@ This runs in CI and as a pre-commit hook.
 1. Run `python -m zerg.validate_commands` to check split consistency
 2. Use `--auto-split` to regenerate split files
 3. Verify `.core.md` files exist in `zerg/data/commands/`
+
+---
+
+## Summary
+
+Context engineering makes ZERG parallel execution practical by:
+
+1. **Splitting commands** - Workers load core instructions, not reference material
+2. **Filtering security rules** - Workers see rules for their file types only
+3. **Scoping task context** - Workers get spec excerpts, not full documents
+
+Combined savings: **~60% reduction in per-worker token usage**
+
+This enables more parallel workers, lower costs, and focused execution.
+
+---
 
 ## See Also
 

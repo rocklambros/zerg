@@ -806,7 +806,7 @@ class DocGenerator:
             docs_dir = commands_dir.parent.parent.parent / "docs"
         self.docs_dir = docs_dir
         self.commands_docs_dir = docs_dir / "commands"
-        self.index_path = docs_dir / "commands.md"
+        self.index_path = docs_dir / "commands-quick.md"
 
     def generate_command_doc(self, name: str) -> Path:
         """Generate docs/commands/{name}.md from command file.
@@ -916,7 +916,7 @@ class DocGenerator:
         return output_path
 
     def update_wiki_index(self, name: str, description: str) -> None:
-        """Add entry to docs/commands.md Table of Contents.
+        """Add entry to docs/commands-quick.md Table of Contents.
 
         Adds line like:
           - [/zerg:{name}](#zerg{name}) — {description}

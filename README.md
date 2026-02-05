@@ -97,105 +97,282 @@ Once installed, use `/zerg:*` commands inside any Claude Code session. Every com
 
 ## Tutorial: Your First ZERG Project
 
-This tutorial walks through building a "Minerals Store" — a Starcraft 2 themed ecommerce API — using all ZERG phases.
+This tutorial walks through building a "Minerals Store" — a Starcraft 2 themed ecommerce API — using all ZERG phases. You'll learn why each phase exists and see what the conversations with ZERG actually look like.
 
-### Step 1: Initialize Project
+### Initialization: Setting Up Your Project
 
-Create a new directory and initialize ZERG:
+Before ZERG can coordinate parallel workers, it needs to understand your project and create the infrastructure for safe parallel execution. The initialization phase handles detection, configuration, and scaffolding automatically.
+
+Create a new directory and enter it:
 
 ```bash
 mkdir minerals-store && cd minerals-store
 ```
 
-Inside Claude Code:
+Inside Claude Code, run the init command:
 
 ```
 /zerg:init
 ```
 
-**What happens:**
-- Detects your tech stack (or runs Inception wizard for empty projects)
-- Creates `.zerg/config.yaml` with quality gates and worker settings
-- Generates `.devcontainer/` for container mode execution
-- Fetches security rules (OWASP Top 10, language-specific rules)
-- Sets up `.gsd/` directory for specs and task graphs
+ZERG begins by analyzing your project:
 
-### Step 2: Brainstorm (Optional)
+```
+ZERG: Scanning project structure...
+      Detected: Empty project (no source files)
+      Starting Inception wizard for new project setup.
 
-If requirements are unclear, use brainstorming to discover what to build:
+ZERG: What type of project are you building?
+YOU:  A Python REST API using FastAPI.
+
+ZERG: What testing framework should I configure?
+YOU:  pytest with coverage reporting.
+
+ZERG: Creating infrastructure...
+      ✓ .zerg/config.yaml — worker settings, quality gates
+      ✓ .devcontainer/ — container mode configuration
+      ✓ .gsd/ — specs and task graphs directory
+      ✓ Security rules fetched (OWASP Top 10, Python rules)
+```
+
+Initialization matters because parallel workers need a shared understanding of project structure, coding standards, and quality gates. Without this foundation, workers would make inconsistent decisions about file organization, testing patterns, and error handling.
+
+### Brainstorming: Discovering What to Build (Optional)
+
+Sometimes you know exactly what you want to build. But often, especially for new features, you have a vague idea that needs refinement. The brainstorming phase helps you discover and articulate requirements before committing to implementation.
+
+If your requirements are unclear, start with Socratic discovery:
 
 ```
 /zerg:brainstorm --socratic
 ```
 
-**What happens:**
-- Socratic discovery mode asks probing questions in three rounds
-- Synthesizes answers into structured requirements insights
-- Outputs to `.gsd/specs/brainstorm-session.md`
+ZERG asks probing questions across three rounds:
 
-### Step 3: Plan Your Feature
+```
+ZERG: Let's discover what you want to build. I'll ask questions to help
+      clarify your vision.
 
-Capture requirements through interactive questioning:
+      ROUND 1 — Problem Space
+
+ZERG: What problem does the minerals store solve for users?
+YOU:  Users need to browse and purchase mineral products through a REST API.
+
+ZERG: Who are the primary users? How will they interact with the system?
+YOU:  Game developers integrating mineral purchases into their Starcraft-themed games.
+
+ZERG: What happens if this problem isn't solved? What workarounds exist?
+YOU:  Developers would build custom solutions, wasting time on commodity functionality.
+
+      ROUND 2 — Solution Shape
+
+ZERG: What would an ideal solution look like from a user's perspective?
+YOU:  Simple REST endpoints for catalog browsing, cart management, and checkout.
+
+ZERG: What are the absolute must-haves versus nice-to-haves?
+YOU:  Must-have: products, cart, orders. Nice-to-have: recommendations, reviews.
+
+ZERG: What should this explicitly NOT do?
+YOU:  No payment processing — that's handled by a separate payment service.
+
+      ROUND 3 — Constraints
+
+ZERG: What technical constraints exist?
+YOU:  Must use PostgreSQL for persistence. Stateless for horizontal scaling.
+
+ZERG: What's the expected scale and performance requirement?
+YOU:  100 requests/second initially, with room to scale to 1000.
+
+ZERG: Synthesizing insights...
+      ✓ Output: .gsd/specs/brainstorm-session.md
+```
+
+Brainstorming matters because unclear requirements lead to rework. By asking structured questions, ZERG helps you think through edge cases and constraints before any code is written. The output becomes input for the planning phase.
+
+### Planning: Capturing What You Want to Build
+
+Before ZERG can help build your feature, it needs to understand what you're trying to create in concrete terms. The planning phase transforms brainstorming insights (or your existing mental model) into a structured requirements document.
+
+Start the planning conversation:
 
 ```
 /zerg:plan minerals-store
 ```
 
-**What happens:**
-- Interactive prompts gather requirements (ideal solution, non-negotiables, non-goals)
-- Generates `.gsd/specs/minerals-store/requirements.md`
-- Status set to `DRAFT` — edit the file to change to `APPROVED` when ready
+ZERG begins capturing requirements:
 
-### Step 4: Design Architecture
+```
+ZERG: Let's capture the requirements for 'minerals-store'.
 
-Generate technical architecture and task graph:
+ZERG: What problem does the minerals store solve for users?
+YOU:  Users need to browse and purchase mineral products through a REST API.
+
+ZERG: Describe your ideal solution in 2-3 sentences.
+YOU:  A FastAPI service with endpoints for products, cart, and orders.
+      Products have names, descriptions, prices, and stock counts.
+      Carts persist across sessions and convert to orders at checkout.
+
+ZERG: What are the non-negotiable requirements?
+YOU:  1. Product catalog with CRUD operations
+      2. Shopping cart that persists items
+      3. Order placement with stock validation
+      4. All endpoints return JSON with proper error codes
+
+ZERG: What should this feature explicitly NOT include?
+YOU:  No payment processing, no user authentication (handled elsewhere),
+      no email notifications.
+
+ZERG: Generating requirements document...
+      ✓ .gsd/specs/minerals-store/requirements.md (Status: DRAFT)
+
+      Review and change status to APPROVED when ready for design.
+```
+
+Planning matters because ZERG workers are stateless — they don't remember previous conversations. The requirements document becomes the shared source of truth that every worker reads. Without clear requirements, workers would interpret the feature differently, leading to inconsistent implementations.
+
+### Design: Creating the Architecture
+
+With approved requirements, ZERG can design the technical architecture. This phase analyzes your codebase, creates component designs, and — critically — breaks work into atomic tasks with exclusive file ownership.
+
+First, mark your requirements as approved by editing `.gsd/specs/minerals-store/requirements.md` and changing `Status: DRAFT` to `Status: APPROVED`.
+
+Then generate the design:
 
 ```
 /zerg:design
 ```
 
-**What happens:**
-- Reads approved requirements and analyzes codebase
-- Generates `design.md` with components, data models, APIs
-- Creates `task-graph.json` with atomic tasks, file ownership, verification commands
+ZERG analyzes and generates architecture:
 
-Each task declares exclusive ownership:
-- `create`: Files this task creates
-- `modify`: Files this task modifies (no overlap within a level)
-- `read`: Read-only access
+```
+ZERG: Reading approved requirements...
+      Feature: minerals-store
+      Non-negotiables: 4 requirements identified
+      Non-goals: 3 exclusions noted
 
-### Step 5: Launch the Swarm
+ZERG: Analyzing existing codebase...
+      Project type: Python (FastAPI)
+      Patterns detected: Repository pattern, Pydantic models
+      Test location: tests/
 
-Execute tasks in parallel:
+ZERG: Generating architecture...
+
+      Components:
+      ├── models/ — Pydantic schemas, SQLAlchemy models
+      ├── routers/ — FastAPI route handlers
+      ├── services/ — Business logic layer
+      └── repositories/ — Data access layer
+
+ZERG: Creating task graph...
+      Level 1: Foundation (4 tasks, parallelizable)
+        ├── TASK-001: Create Product model and schema
+        ├── TASK-002: Create Cart model and schema
+        ├── TASK-003: Create Order model and schema
+        └── TASK-004: Create database migrations
+
+      Level 2: Data Access (3 tasks, parallelizable)
+        ├── TASK-005: Product repository
+        ├── TASK-006: Cart repository
+        └── TASK-007: Order repository
+
+      Level 3: Business Logic (3 tasks, parallelizable)
+        └── ...
+
+      ✓ .gsd/specs/minerals-store/design.md
+      ✓ .gsd/specs/minerals-store/task-graph.json
+```
+
+Design matters because parallel execution requires careful planning. Each task declares exclusive file ownership — which files it creates, modifies, and reads. This prevents merge conflicts when multiple workers run simultaneously. Without this upfront design, workers would step on each other's changes.
+
+### Rush: Launching the Swarm
+
+With the task graph ready, you can launch parallel workers. Each worker claims a task, executes it in an isolated git worktree, and reports results. The orchestrator manages task distribution and level progression.
+
+Launch the swarm:
 
 ```
 /zerg:rush --workers=4
 ```
 
-**What happens:**
-- Creates git worktrees for each worker
-- Workers claim tasks via Claude Code Task system
-- Level 1 executes in parallel
-- Quality gates run after each level
-- Branches merge, workers proceed to next level
+Real output as workers execute:
 
-**Execution modes:**
+```
+ZERG: Starting rush execution...
+      Feature: minerals-store
+      Task graph: 12 tasks across 4 levels
+      Workers requested: 4
 
-| Mode | Flag | Use Case |
-|------|------|----------|
-| subprocess | `--mode subprocess` | Development, no Docker |
-| container | `--mode container` | Production, full isolation |
-| task | `--mode task` | Claude Code slash commands |
+      Creating git worktrees...
+      ✓ .zerg/worktrees/worker-1
+      ✓ .zerg/worktrees/worker-2
+      ✓ .zerg/worktrees/worker-3
+      ✓ .zerg/worktrees/worker-4
 
-### Step 6: Monitor Progress
+      === LEVEL 1 (4 tasks) ===
 
-Track execution in real-time:
+      [Worker-1] Claimed TASK-001: Create Product model
+      [Worker-2] Claimed TASK-002: Create Cart model
+      [Worker-3] Claimed TASK-003: Create Order model
+      [Worker-4] Claimed TASK-004: Database migrations
+
+      [Worker-1] ✓ TASK-001 complete (47s)
+      [Worker-3] ✓ TASK-003 complete (52s)
+      [Worker-2] ✓ TASK-002 complete (58s)
+      [Worker-4] ✓ TASK-004 complete (63s)
+
+      Running quality gates...
+      ✓ ruff check . — passed
+      ✓ pytest tests/ — passed (4 tests)
+
+      Merging Level 1 branches...
+      ✓ All branches merged to feature/minerals-store
+
+      === LEVEL 2 (3 tasks) ===
+      ...
+```
+
+Rush matters because parallel execution is ZERG's core value proposition. A feature that takes one agent 2 hours takes a swarm 20 minutes. But parallelism requires infrastructure — worktrees for isolation, task claiming for coordination, quality gates for verification, and automated merging for integration.
+
+**Execution modes** let you choose the isolation level:
+
+| Mode | Flag | When to Use |
+|------|------|-------------|
+| Task | `--mode task` | Default. Runs as Claude Code tasks. Fast, good for development. |
+| Subprocess | `--mode subprocess` | Runs as separate processes. More isolation than task mode. |
+| Container | `--mode container` | Full Docker isolation. Best for production or untrusted code. |
+
+### Monitoring: Tracking Progress
+
+While workers execute, you can monitor progress in real-time. The status command shows task states, worker assignments, and quality gate results.
+
+Watch execution progress:
 
 ```
 /zerg:status --watch
 ```
 
-View worker logs:
+Real-time output:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ZERG Status: minerals-store                                 ║
+╠══════════════════════════════════════════════════════════════╣
+║  Progress: Level 2 of 4  |  Tasks: 7/12 complete             ║
+╠══════════════════════════════════════════════════════════════╣
+║  WORKERS                                                     ║
+║  ├── Worker-1: TASK-005 (Product repository) — running 23s   ║
+║  ├── Worker-2: TASK-006 (Cart repository) — running 31s      ║
+║  ├── Worker-3: TASK-007 (Order repository) — running 28s     ║
+║  └── Worker-4: idle (no tasks at current level)              ║
+╠══════════════════════════════════════════════════════════════╣
+║  RECENT EVENTS                                               ║
+║  14:23:07  Level 1 quality gates passed                      ║
+║  14:23:12  Level 1 branches merged                           ║
+║  14:23:15  Level 2 started (3 tasks)                         ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+For detailed worker activity, use the logs command:
 
 ```
 /zerg:logs --follow              # Stream all workers
@@ -203,44 +380,63 @@ View worker logs:
 /zerg:logs --aggregate           # All workers sorted by time
 ```
 
-### Step 7: Quality Checks
+### Quality: Verifying the Implementation
 
-Review code against spec and quality standards:
+After all levels complete, ZERG provides commands to verify the implementation meets requirements and quality standards.
+
+Review code against the spec:
 
 ```
 /zerg:review --mode full
 ```
 
-Run tests:
+Run tests with coverage:
 
 ```
 /zerg:test --coverage
 ```
 
-Security scan:
+Scan for security vulnerabilities:
 
 ```
 /zerg:security --preset owasp
 ```
 
-### Step 8: Ship It
+Quality matters because parallel execution can introduce subtle bugs — especially at integration points between tasks. Automated review, testing, and security scanning catch issues before they reach production.
 
-After all levels complete:
+### Shipping: Getting Your Feature to Main
+
+With quality verified, merge your feature branch to main:
 
 ```
 /zerg:git --action ship
 ```
 
-This merges your feature branch to main after final verification.
+Output:
 
-**Other git actions:**
+```
+ZERG: Preparing to ship minerals-store...
 
-| Action | Command |
-|--------|---------|
-| Commit | `/zerg:git commit` |
-| Create PR | `/zerg:git --action pr` |
-| Ship | `/zerg:git --action ship` |
-| Full workflow | `/zerg:git --action finish` |
+      Pre-ship checks:
+      ✓ All tasks complete (12/12)
+      ✓ Quality gates passed
+      ✓ No uncommitted changes
+
+      Merging feature/minerals-store → main...
+      ✓ Merge complete
+      ✓ Feature branch cleaned up
+
+      🎉 minerals-store shipped successfully!
+```
+
+Other git operations available:
+
+| Action | Command | Purpose |
+|--------|---------|---------|
+| Commit | `/zerg:git commit` | Commit current changes with generated message |
+| Create PR | `/zerg:git --action pr` | Open pull request for review |
+| Ship | `/zerg:git --action ship` | Merge to main after verification |
+| Full workflow | `/zerg:git --action finish` | PR → review → merge in one command |
 
 ---
 

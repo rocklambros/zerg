@@ -103,7 +103,7 @@ doc_gen = DocGenerator()
 doc_path = doc_gen.generate_command_doc(NAME)
 doc_gen.update_wiki_index(NAME, "Short description of the {name} command's purpose.")
 print(f"Created: {doc_path}")
-print(f"Updated: docs/commands.md index")
+print(f"Updated: docs/commands-quick.md index")
 ```
 
 ```bash
@@ -169,7 +169,7 @@ echo "Created:"
 echo "  - zerg/data/commands/${NAME}.md"
 echo "  - tests/pressure/test_${NAME//-/_}.py"
 echo "  - docs/commands/${NAME}.md"
-echo "  - Updated docs/commands.md index"
+echo "  - Updated docs/commands-quick.md index"
 echo ""
 echo "Run validation:"
 echo "  python -m zerg.validate_commands"
@@ -227,7 +227,7 @@ Created:
   - zerg/data/commands/my-command.md
   - tests/pressure/test_my_command.py
   - docs/commands/my-command.md
-  - Updated docs/commands.md index
+  - Updated docs/commands-quick.md index
 
 Run validation:
   python -m zerg.validate_commands
@@ -266,5 +266,5 @@ Generated files:
   - zerg/data/commands/{name}.md      Command file
   - tests/pressure/test_{name}.py     Pressure test scaffold
   - docs/commands/{name}.md           Documentation
-  - docs/commands.md                  Index (updated)
+  - docs/commands-quick.md            Index (updated)
 ```

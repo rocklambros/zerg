@@ -54,7 +54,7 @@ Interactive mode prompts for command metadata before scaffolding:
 | `zerg/data/commands/{name}.md` | Command file with Task ecosystem integration |
 | `tests/pressure/test_{name}.py` | Pressure test scaffold |
 | `docs/commands/{name}.md` | Documentation reference |
-| `docs/commands.md` | Index (updated with new entry) |
+| `docs/commands-quick.md` | Index (updated with new entry) |
 
 ## Exit Codes
 
@@ -80,7 +80,7 @@ Created:
   - zerg/data/commands/my-command.md
   - tests/pressure/test_my_command.py
   - docs/commands/my-command.md
-  - Updated docs/commands.md index
+  - Updated docs/commands-quick.md index
 
 Run validation:
   python -m zerg.validate_commands

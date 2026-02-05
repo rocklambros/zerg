@@ -30,7 +30,7 @@ class TestAuthoringFlow:
         Sets up a minimal workspace with:
         - commands/ directory with _template.md copied from real project
         - docs/commands/ directory for generated documentation
-        - docs/commands.md index file
+        - docs/commands-quick.md index file
         """
         commands_dir = tmp_path / "commands"
         commands_dir.mkdir()

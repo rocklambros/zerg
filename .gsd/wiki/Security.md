@@ -1,27 +1,89 @@
 # Security
 
-ZERG integrates automated security rules that are fetched based on your project's detected tech stack. This page covers security rules integration, OWASP Top 10 2025 coverage, language-specific rules, and vulnerability reporting.
+This guide explains how ZERG keeps your development environment safe and why each protection matters.
 
 ---
 
-## Overview
+## Why Security Matters in AI Assistants
 
-ZERG takes a **shift-left security** approach, embedding security guidance directly into the development workflow:
+AI coding assistants are incredibly powerful. They can:
 
-1. **Auto-detection** — ZERG scans your project to detect languages, frameworks, databases, and infrastructure
-2. **Intelligent fetching** — Only rules relevant to your stack are downloaded
-3. **Claude Code integration** — Rules are stored where Claude Code automatically loads them
-4. **Continuous enforcement** — Pre-commit hooks validate security on every commit
+- **Write code** that runs directly on your machine
+- **Access files** anywhere on your filesystem
+- **Execute commands** in your terminal
+- **Make network requests** to external services
 
-Security rules are sourced from [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules), a curated repository of secure coding guidelines for AI-assisted development.
+This power comes with responsibility. Without guardrails, a mistake (or a cleverly-crafted malicious prompt) could:
+
+- Delete important files
+- Expose sensitive credentials
+- Install unwanted software
+- Leak proprietary code
+
+**ZERG adds layers of protection** so you can harness AI assistance confidently. The goal is not to limit what you can do, but to ensure you're always in control.
 
 ---
 
-## Security Rules Integration
+## Understanding the Threat Model
 
-### How It Works
+Before diving into protections, let's understand what could go wrong. Security experts think in terms of **threats** — who might cause harm, how they might do it, and what the impact would be.
 
-ZERG fetches security rules from the TikiTribe repository and stores them in `.claude/rules/security/`. Claude Code automatically loads files from `.claude/` directories, making security guidance available in every session.
+### What Could Go Wrong?
+
+| Risk | Example | Impact |
+|------|---------|--------|
+| **Accidental file deletion** | AI misunderstands "clean up temp files" and deletes source code | Lost work, potentially unrecoverable |
+| **Secret exposure** | API keys accidentally committed to git | Financial loss, compromised accounts |
+| **Command injection** | Malicious input tricks the system into running harmful commands | System compromise |
+| **Dependency vulnerabilities** | Outdated packages with known security holes | Your application becomes exploitable |
+| **Prompt injection** | Malicious content in files tricks the AI into harmful actions | Unintended code execution |
+
+### Who Might Exploit This?
+
+- **Accidental misuse** — Most common. You or a teammate make a mistake.
+- **Supply chain attacks** — Compromised dependencies bring hidden vulnerabilities.
+- **Malicious inputs** — Untrusted files or repositories contain hidden payloads.
+
+### What's the Impact?
+
+The severity depends on what's compromised:
+
+- **Low**: Minor annoyance, easily recoverable
+- **Medium**: Lost time, need to rotate credentials
+- **High**: Data breach, financial loss, reputation damage
+
+---
+
+## How ZERG Addresses Each Threat
+
+### 1. Shift-Left Security — Catch Issues Early
+
+**Threat addressed**: Vulnerabilities slip into production because they're found too late.
+
+**How it works**: ZERG embeds security guidance directly into your development workflow:
+
+1. **Auto-detection** — Scans your project to detect languages, frameworks, and infrastructure
+2. **Intelligent rule fetching** — Downloads only rules relevant to your stack
+3. **Claude Code integration** — Rules are stored where Claude automatically reads them
+4. **Pre-commit enforcement** — Validates security on every commit
+
+**What you need to do**: Run `/zerg:init` once. ZERG handles the rest.
+
+### 2. Stack-Aware Security Rules
+
+**Threat addressed**: Generic security advice doesn't catch language-specific vulnerabilities.
+
+**How it works**: ZERG detects your tech stack and fetches targeted rules:
+
+```
+Your Project                    Rules Fetched
+├── Python code          →      Python security rules (CWE-502, CWE-78, etc.)
+├── JavaScript code      →      JavaScript rules (XSS, prototype pollution, etc.)
+├── Dockerfile           →      Container security (non-root, secrets, etc.)
+└── AI/ML imports        →      AI-specific rules (prompt injection, etc.)
+```
+
+Rules are stored in `.claude/rules/security/` where Claude Code automatically loads them:
 
 ```
 .claude/
@@ -30,210 +92,96 @@ ZERG fetches security rules from the TikiTribe repository and stores them in `.c
         ├── _core/
         │   └── owasp-2025.md        # Core OWASP Top 10 rules
         ├── languages/
-        │   ├── python/
-        │   │   └── CLAUDE.md        # Python-specific rules
-        │   └── javascript/
-        │       └── CLAUDE.md        # JavaScript-specific rules
+        │   ├── python/CLAUDE.md     # Python-specific rules
+        │   └── javascript/CLAUDE.md # JavaScript-specific rules
         └── containers/
-            └── docker/
-                └── CLAUDE.md        # Docker security rules
+            └── docker/CLAUDE.md     # Docker security rules
 ```
 
-### CLAUDE.md Integration
+**What you need to do**: Run `zerg security-rules integrate` to fetch rules for your stack.
 
-An informational summary is added to your project's `CLAUDE.md`:
+### 3. OWASP Top 10 Coverage
 
-```markdown
-<!-- SECURITY_RULES_START -->
-# Security Rules
+**Threat addressed**: Common web vulnerabilities that affect most applications.
 
-Auto-generated from [TikiTribe/claude-secure-coding-rules](https://github.com/TikiTribe/claude-secure-coding-rules)
+**How it works**: ZERG includes comprehensive coverage of **OWASP Top 10:2025**, the industry standard for web application security risks.
 
-## Detected Stack
+| Category | What It Prevents | Example Attack |
+|----------|-----------------|----------------|
+| **A01: Broken Access Control** | Unauthorized data access | User A reads User B's data |
+| **A02: Security Misconfiguration** | Insecure default settings | Debug mode left on in production |
+| **A03: Supply Chain Failures** | Compromised dependencies | Malicious package update |
+| **A04: Cryptographic Failures** | Weak encryption | Passwords stored in plain text |
+| **A05: Injection** | Malicious input execution | SQL injection, command injection |
+| **A06: Insecure Design** | Fundamental architecture flaws | No rate limiting on login |
+| **A07: Authentication Failures** | Account compromise | Weak session management |
+| **A08: Integrity Failures** | Data tampering | Unsigned software updates |
+| **A09: Logging Failures** | Blind spots in monitoring | Attacks go undetected |
+| **A10: Error Handling** | Information leakage | Stack traces shown to users |
 
-- **Languages**: python, javascript
-- **Infrastructure**: docker
+Each rule has an enforcement level:
 
-## Fetched Rules
-
-- `_core/owasp-2025.md`
-- `languages/python/CLAUDE.md`
-- `languages/javascript/CLAUDE.md`
-- `containers/docker/CLAUDE.md`
-
-<!-- SECURITY_RULES_END -->
-```
-
----
-
-## OWASP Top 10 2025
-
-ZERG includes comprehensive coverage of the **OWASP Top 10:2025** (Release Candidate, November 2025), the latest standard for web application security risks based on 589 CWEs across 248 categories.
-
-### Categories
-
-| Category | Risk Level | Key Control |
-|----------|------------|-------------|
-| **A01: Broken Access Control** | Critical | Server-side authorization |
-| **A02: Security Misconfiguration** | High | Secure defaults |
-| **A03: Supply Chain Failures** | Critical | Integrity verification |
-| **A04: Cryptographic Failures** | High | Strong algorithms |
-| **A05: Injection** | High | Parameterized queries |
-| **A06: Insecure Design** | High | Threat modeling |
-| **A07: Authentication Failures** | High | Secure sessions |
-| **A08: Integrity Failures** | High | Signature verification |
-| **A09: Logging Failures** | Medium | Comprehensive logging |
-| **A10: Error Handling** | Medium | Fail closed |
-
-### Rule Levels
-
-Each security rule has an enforcement level:
-
-| Level | Meaning |
-|-------|---------|
-| `strict` | Must be followed. Violations are security vulnerabilities. |
-| `warning` | Should be followed. Violations may indicate security weaknesses. |
-| `advisory` | Recommended practice. Improves security posture. |
-
-### Example: Injection Prevention (A05)
-
-```python
-# DO: Parameterized queries
-cursor.execute(
-    "SELECT * FROM users WHERE username = %s",
-    (username,)
-)
-
-# DON'T: String interpolation (SQL injection)
-cursor.execute(f"SELECT * FROM users WHERE username = '{username}'")
-```
-
----
-
-## Language-Specific Rules
-
-### Python Security Rules
-
-Located in `.claude/rules/security/languages/python/CLAUDE.md`
-
-| Rule | Level | CWE |
-|------|-------|-----|
-| Avoid unsafe deserialization | strict | CWE-502 |
-| Safe subprocess | strict | CWE-78 |
-| Path traversal prevention | strict | CWE-22 |
-| Secure temp files | warning | CWE-377 |
-| Cryptographic randomness | strict | CWE-330 |
-| Password hashing | strict | CWE-916 |
-| Parameterized queries | strict | CWE-89 |
-| URL scheme validation | strict | CWE-918 |
-| Secure cookies | strict | CWE-614 |
-| No stack traces in responses | warning | CWE-209 |
-
-**Key Points:**
-
-- Use `secrets` module for tokens, never `random`
-- Use `bcrypt` or `argon2` for password hashing, never MD5/SHA1
-- Use `json.loads()` or `yaml.safe_load()` for untrusted data
-- Use `subprocess.run()` with argument lists for shell commands
-
-### JavaScript Security Rules
-
-Located in `.claude/rules/security/languages/javascript/CLAUDE.md`
-
-| Rule | Level | CWE |
-|------|-------|-----|
-| No dynamic code execution | strict | CWE-94 |
-| Prototype pollution | strict | CWE-1321 |
-| Sanitize HTML | strict | CWE-79 |
-| Validate URLs | strict | CWE-601 |
-| Command injection | strict | CWE-78 |
-| Path traversal | strict | CWE-22 |
-| Secure dependencies | warning | CWE-1104 |
-| Crypto randomness | strict | CWE-330 |
-| Security headers | warning | — |
-| CORS configuration | strict | CWE-942 |
-
-**Key Points:**
-
-- Never execute dynamic code with user input
-- Use `DOMPurify.sanitize()` before `innerHTML`, or prefer `textContent`
-- Use `crypto.randomBytes()` for tokens, never `Math.random()`
-- Use `helmet` for security headers in Express applications
-- Pin exact versions in `package.json`, run `npm audit` regularly
-
-### Docker Container Security
-
-Located in `.claude/rules/security/containers/docker/CLAUDE.md`
-
-| Rule | Level |
-|------|-------|
-| Minimal base images | strict |
-| Non-root user directive | strict |
-| Multi-stage builds | strict |
-| No secrets in layers | strict |
-| Image vulnerability scanning | strict |
-| Content trust/signing | warning |
-| Read-only root filesystem | warning |
-| Drop all capabilities | strict |
-| No privileged containers | strict |
-| Container health checks | advisory |
-| Resource limits | warning |
-| Secure .dockerignore | warning |
-
-**Key Points:**
-
-- Use distroless or Alpine base images, never full Ubuntu
-- Always include `USER` directive with non-root user
-- Never embed secrets in `ARG`, `ENV`, or `COPY` — use BuildKit secrets
-- Always `--cap-drop=ALL` and add back only what's needed
-- Never use `--privileged` flag
-
----
-
-## Stack Detection
-
-ZERG automatically detects your project's tech stack by scanning:
-
-| Detection Target | Files Scanned |
-|-----------------|---------------|
-| Languages | `*.py`, `*.js`, `*.ts`, `*.go`, `*.rs`, `*.java` |
-| Frameworks | `requirements.txt`, `package.json`, `go.mod`, `Cargo.toml` |
-| Databases | Connection strings, ORM configs, client libraries |
-| Infrastructure | `Dockerfile`, `docker-compose.yml`, `.github/workflows/` |
-| AI/ML | LangChain, OpenAI, HuggingFace imports |
-| RAG | Vector DB clients (Pinecone, Weaviate, Chroma) |
-
-### Detection Example
-
-```bash
-$ zerg security-rules detect
-
-Detected Project Stack:
-  Languages:      python, javascript
-  Frameworks:     fastapi, react
-  Databases:      postgresql
-  Infrastructure: docker, github-actions
-  AI/ML:          yes (langchain)
-  RAG:            yes (pinecone)
-```
-
-### Rules Selection Matrix
-
-| Stack | Rules Fetched |
+| Level | What It Means |
 |-------|---------------|
-| Python | `owasp-2025.md`, `python.md` |
-| Python + FastAPI | + `fastapi.md` |
-| Python + LangChain | + `ai-security.md`, `langchain.md` |
-| Python + Pinecone | + `rag-security.md`, `pinecone.md` |
-| JavaScript | `owasp-2025.md`, `javascript.md` |
-| JavaScript + Express | + `express.md` |
-| Docker | + `docker.md` |
+| `strict` | Must follow. Violations are security vulnerabilities. |
+| `warning` | Should follow. Violations may indicate security weaknesses. |
+| `advisory` | Recommended. Improves security posture. |
+
+**What you need to do**: Review the rules in `.claude/rules/security/` to understand what's being enforced.
+
+### 4. Secret Detection
+
+**Threat addressed**: Accidentally committing API keys, passwords, or tokens to version control.
+
+**How it works**: ZERG scans for high-entropy strings and known secret patterns:
+
+- API keys (AWS, Google, GitHub, etc.)
+- Passwords and tokens
+- Private keys (RSA, SSH, PGP)
+- Database connection strings
+
+**What you need to do**:
+1. Add secret detection to your pre-commit hooks
+2. Run `detect-secrets scan > .secrets.baseline` to create a baseline
+3. Never commit files matching `.env*` or `*.key`
+
+### 5. Dependency Vulnerability Scanning
+
+**Threat addressed**: Using packages with known security holes.
+
+**How it works**: ZERG scans your dependency files for CVEs (Common Vulnerabilities and Exposures):
+
+| Package Manager | Files Scanned |
+|----------------|---------------|
+| Python | `requirements.txt`, `Pipfile.lock` |
+| Node.js | `package.json`, `package-lock.json` |
+| Rust | `Cargo.toml`, `Cargo.lock` |
+| Go | `go.mod`, `go.sum` |
+
+**What you need to do**: Run `/zerg:security` regularly and address flagged vulnerabilities.
+
+### 6. Container Security
+
+**Threat addressed**: Insecure Docker configurations that could compromise your system.
+
+**How it works**: ZERG enforces container security best practices:
+
+| Rule | Why It Matters |
+|------|---------------|
+| **Minimal base images** | Fewer packages = fewer vulnerabilities |
+| **Non-root user** | Limits damage if container is compromised |
+| **No secrets in layers** | Secrets in images are extractable forever |
+| **Multi-stage builds** | Build tools don't end up in production |
+| **Drop all capabilities** | Limits what the container can do |
+| **Read-only filesystem** | Prevents persistent modifications |
+
+**What you need to do**: Follow the Dockerfile rules in `.claude/rules/security/containers/docker/CLAUDE.md`.
 
 ---
 
-## `/zerg:security` Command
+## Security Commands
 
-### Basic Usage
+### `/zerg:security` — Run Security Scan
 
 ```bash
 # Run OWASP vulnerability scan (default)
@@ -245,286 +193,119 @@ Detected Project Stack:
 # Enable auto-fix suggestions
 /zerg:security --autofix
 
-# Output in SARIF format for IDE integration
+# Output for IDE integration
 /zerg:security --format sarif > security.sarif
 ```
 
-### Flags
+| Preset | Purpose |
+|--------|---------|
+| `owasp` | General web application security (default) |
+| `pci` | Payment card industry compliance |
+| `hipaa` | Healthcare data security |
+| `soc2` | Trust service criteria |
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--preset` | Security preset: `owasp`, `pci`, `hipaa`, `soc2` | `owasp` |
-| `--autofix` | Apply auto-fix suggestions | false |
-| `--format` | Output format: `text`, `json`, `sarif` | `text` |
-| `--help` | Show help message | — |
-
-### Presets
-
-| Preset | Description |
-|--------|-------------|
-| `owasp` | OWASP Top 10 vulnerability checks (default) |
-| `pci` | PCI-DSS payment card industry compliance |
-| `hipaa` | HIPAA healthcare data security requirements |
-| `soc2` | SOC 2 trust service criteria |
-
-### Capabilities
-
-**Secret Detection:**
-- API keys
-- Passwords and tokens
-- Private keys (RSA, SSH, PGP)
-- AWS credentials
-- GitHub tokens
-- Generic high-entropy strings
-
-**Dependency CVE Scanning:**
-- Python (`requirements.txt`, `Pipfile.lock`)
-- Node.js (`package.json`, `package-lock.json`)
-- Rust (`Cargo.toml`, `Cargo.lock`)
-- Go (`go.mod`, `go.sum`)
-
-**Code Analysis:**
-- Injection vulnerabilities (SQL, command, XSS)
-- Authentication issues
-- Access control problems
-- Cryptographic weaknesses
-
-### Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | No vulnerabilities found |
-| 1 | Vulnerabilities detected |
-| 2 | Scan error |
-
----
-
-## Security Rules CLI
-
-Manage security rules outside of Claude Code sessions:
+### `zerg security-rules` — Manage Security Rules
 
 ```bash
-# Detect project stack
+# See what stack ZERG detected
 zerg security-rules detect
 
-# List rules available for your stack
+# Preview which rules would be fetched
 zerg security-rules list
 
-# Fetch rules from TikiTribe repository
+# Download rules for your stack
 zerg security-rules fetch
 
-# Full integration: detect, fetch, and update CLAUDE.md
+# Full setup: detect, fetch, update CLAUDE.md
 zerg security-rules integrate
 ```
 
-### `zerg security-rules detect`
+---
 
-Scans the project and reports detected stack components:
+## Security Best Practices
 
-```bash
-$ zerg security-rules detect
+The most important actions you can take:
 
-Detected Project Stack:
-  Languages:      python
-  Frameworks:     fastapi, langchain
-  Databases:      pinecone
-  Infrastructure: docker, github-actions
-  AI/ML:          yes
-  RAG:            yes
-```
+### Before Every Commit
 
-### `zerg security-rules list`
+1. **No secrets in code** — Use environment variables or a secret manager
+2. **Validate user input** — Never trust external data
+3. **Use parameterized queries** — Prevent SQL injection
+4. **Pin dependencies** — Use lockfiles with exact versions
 
-Shows which rules would be fetched for your stack:
+### Set Up Once, Benefit Forever
 
-```bash
-$ zerg security-rules list
+1. **Install pre-commit hooks** — Catch issues automatically
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
 
-Rules for detected stack:
-  _core/owasp-2025.md
-  languages/python/CLAUDE.md
-  frameworks/fastapi/CLAUDE.md
-  ai/langchain/CLAUDE.md
-  containers/docker/CLAUDE.md
-```
+2. **Run security integration** — Fetch rules for your stack
+   ```bash
+   zerg security-rules integrate
+   ```
 
-### `zerg security-rules fetch`
+3. **Create a secret baseline** — Avoid false positives
+   ```bash
+   detect-secrets scan > .secrets.baseline
+   detect-secrets audit .secrets.baseline
+   ```
 
-Downloads rules to `.claude/rules/security/`:
+### During Code Review
 
-```bash
-$ zerg security-rules fetch
-
-Fetching rules from TikiTribe/claude-secure-coding-rules...
-  [OK] _core/owasp-2025.md
-  [OK] languages/python/CLAUDE.md
-  [OK] frameworks/fastapi/CLAUDE.md
-  [OK] ai/langchain/CLAUDE.md
-  [OK] containers/docker/CLAUDE.md
-
-5 rules fetched to .claude/rules/security/
-```
-
-### `zerg security-rules integrate`
-
-Full integration: detect, fetch, and update CLAUDE.md:
-
-```bash
-$ zerg security-rules integrate
-
-[1/3] Detecting project stack...
-  Languages: python
-  Infrastructure: docker
-
-[2/3] Fetching security rules...
-  3 rules fetched
-
-[3/3] Updating CLAUDE.md...
-  Added SECURITY_RULES section
-
-Integration complete!
-```
+- [ ] Authentication and authorization checks present
+- [ ] Error handling doesn't leak sensitive information
+- [ ] Logging doesn't include passwords or tokens
+- [ ] Cryptographic operations use approved algorithms
 
 ---
 
-## Pre-commit Hooks
+## Language-Specific Quick Reference
 
-ZERG integrates with [pre-commit](https://pre-commit.com/) to enforce security on every commit.
+### Python Security Essentials
 
-### Setup
+| Do This | Not This | Why |
+|---------|----------|-----|
+| `secrets.token_urlsafe(32)` | `random.random()` | Predictable tokens can be guessed |
+| `bcrypt.hashpw(password)` | `hashlib.md5(password)` | MD5 is trivially crackable |
+| `json.loads(data)` | `pickle.loads(data)` | Pickle executes arbitrary code |
+| `subprocess.run(['ls', path])` | `os.system(f'ls {path}')` | Shell injection risk |
 
-```bash
-# Install pre-commit
-pip install pre-commit
+### JavaScript Security Essentials
 
-# Install hooks
-pre-commit install
-```
+| Do This | Not This | Why |
+|---------|----------|-----|
+| `crypto.randomBytes(32)` | `Math.random()` | Predictable tokens |
+| `element.textContent = x` | Direct DOM HTML insertion | XSS vulnerability |
+| `JSON.parse(data)` | Dynamic code execution | Arbitrary code execution |
+| Use `helmet` middleware | No headers | Missing security protections |
 
-### Configuration
+### Docker Security Essentials
 
-Add to `.pre-commit-config.yaml`:
-
-```yaml
-repos:
-  # Secret detection
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
-    hooks:
-      - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
-
-  # Python security linting
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
-    hooks:
-      - id: bandit
-        args: ['-c', 'pyproject.toml']
-        additional_dependencies: ['bandit[toml]']
-
-  # Dockerfile linting
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.12.0
-    hooks:
-      - id: hadolint
-
-  # Dependency vulnerability scanning
-  - repo: https://github.com/pyupio/safety
-    rev: 2.3.5
-    hooks:
-      - id: safety
-        args: ['--full-report']
-```
-
-### Bandit Configuration
-
-Add to `pyproject.toml`:
-
-```toml
-[tool.bandit]
-exclude_dirs = ["tests", "venv", ".venv"]
-skips = ["B101"]  # Skip assert warnings in production code
-
-[tool.bandit.assert_used]
-skips = ["*_test.py", "test_*.py"]
-```
-
-### Secret Baseline
-
-Initialize secret detection baseline:
-
-```bash
-# Create baseline of existing secrets (to avoid false positives)
-detect-secrets scan > .secrets.baseline
-
-# Audit baseline
-detect-secrets audit .secrets.baseline
-```
+| Do This | Not This | Why |
+|---------|----------|-----|
+| `FROM python:3.12-alpine` | `FROM ubuntu:latest` | Smaller attack surface |
+| `USER appuser` | (no USER directive) | Runs as root by default |
+| `--cap-drop=ALL` | `--privileged` | Limit container capabilities |
+| BuildKit secrets | `ENV API_KEY=xxx` | Secrets visible in history |
 
 ---
 
-## Vulnerability Reporting
+## Reporting Security Issues
 
-### Reporting Security Issues
-
-If you discover a security vulnerability in ZERG:
+If you discover a vulnerability in ZERG:
 
 1. **Do NOT** open a public GitHub issue
 2. Email security concerns to the maintainers privately
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
-
-### Response Timeline
+3. Include: description, reproduction steps, potential impact
 
 | Phase | Timeline |
 |-------|----------|
 | Initial response | 48 hours |
-| Vulnerability assessment | 7 days |
+| Assessment | 7 days |
 | Patch development | 30 days |
 | Public disclosure | After patch release |
-
-### Security Advisories
-
-Security advisories are published via:
-- GitHub Security Advisories
-- CHANGELOG.md security section
-- Release notes
-
----
-
-## Security Checklist
-
-Quick reference for developers:
-
-### Before Committing
-
-- [ ] No secrets in code (API keys, passwords, tokens)
-- [ ] No hardcoded credentials
-- [ ] User input is validated and sanitized
-- [ ] SQL queries use parameterization
-- [ ] File paths are validated against traversal
-- [ ] Dependencies are pinned with lockfiles
-- [ ] Dockerfile uses non-root user
-
-### Before Deployment
-
-- [ ] `zerg security-rules integrate` has been run
-- [ ] `/zerg:security` scan passes
-- [ ] Pre-commit hooks are installed
-- [ ] Dependency vulnerabilities are addressed
-- [ ] Container images are scanned
-- [ ] Secrets are in environment variables or secret manager
-
-### Code Review Security Items
-
-- [ ] Authentication and authorization checks present
-- [ ] Error handling doesn't leak sensitive information
-- [ ] Logging doesn't include sensitive data
-- [ ] Cryptographic operations use approved algorithms
-- [ ] Session management follows best practices
 
 ---
 

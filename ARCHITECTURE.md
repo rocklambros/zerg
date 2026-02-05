@@ -81,6 +81,20 @@ Zerglings commit independently. No filesystem conflicts.
 
 ## System Layers
 
+### What Are System Layers?
+
+Think of ZERG like a factory assembly line. Raw materials (your requirements) enter at one end, and finished software comes out the other. But unlike a physical factory, you can't just dump everything in at once—each stage transforms the work before passing it to the next.
+
+ZERG organizes this transformation into four distinct layers, each with a specific job. Understanding these layers helps you know what's happening at any point in the build process and where to look when something goes wrong.
+
+### Why Do Layers Exist?
+
+Without clear boundaries, parallel workers would step on each other's toes. Imagine five cooks trying to simultaneously shop for ingredients, prep vegetables, and plate dishes—chaos. Layers enforce order: you finish planning before you start designing, and you finish designing before workers start building.
+
+Each layer also serves as a checkpoint. If requirements are unclear, you find out during planning—not after three workers have already built the wrong thing. This "fail early" philosophy saves hours of wasted work.
+
+### Layer Architecture
+
 ```
 +---------------------------------------------------------------------+
 |                     Layer 1: Planning                                |
@@ -114,9 +128,31 @@ Zerglings commit independently. No filesystem conflicts.
 +---------------------------------------------------------------------+
 ```
 
+### How the Layers Connect
+
+**Layer 1 (Planning)** captures what you want to build. The `/zerg:plan` command guides you through discovery and produces `requirements.md`—a document that workers will read to understand their mission.
+
+**Layer 2 (Design)** breaks requirements into buildable pieces. The `/zerg:design` command analyzes your requirements and produces both an architecture document (`design.md`) and a task graph (`task-graph.json`) that lists every atomic piece of work.
+
+**Layer 3 (Orchestration)** manages the actual building. It spawns workers (zerglings), assigns them tasks, monitors progress, and coordinates the merge dance at level boundaries. This is where the parallel magic happens.
+
+**Layer 4 (Quality Gates)** ensures nothing broken reaches your main branch. After each level completes, gates run linting, type checking, and tests. Only code that passes all gates gets merged—protecting your codebase from half-finished work.
+
 ### Plugin System
 
-ZERG's plugin architecture provides three extension points via abstract base classes:
+### What Is the Plugin System?
+
+ZERG's plugin system lets you extend the build process without modifying ZERG's core code. Think of it like adding apps to your phone—the phone works fine out of the box, but plugins let you customize it for your specific needs.
+
+Plugins come in three flavors: quality gates (add new validation checks), lifecycle hooks (react to events like "task completed"), and launchers (change how workers run). Each type has a clear contract defining what it can do and what information it receives.
+
+### Why Does the Plugin System Exist?
+
+Every team has unique requirements. Maybe you need to run security scans, post Slack notifications, or deploy workers to Kubernetes instead of local Docker. Rather than bloating ZERG with every possible feature, the plugin system lets you add exactly what you need.
+
+This separation also makes ZERG more maintainable. Core orchestration logic stays simple while specialized behaviors live in plugins that can be developed, tested, and updated independently.
+
+### Plugin Architecture
 
 ```
 PluginRegistry
@@ -137,6 +173,10 @@ LauncherPlugin (ABC)
 +-- create_launcher(config) -> WorkerLauncher
 ```
 
+### How Plugins Connect
+
+The `PluginRegistry` is the central catalog—it knows every plugin that's loaded. When the orchestrator needs to run quality gates, it asks the registry for all registered gate plugins. When a task completes, the registry dispatches the event to all lifecycle hooks.
+
 **PluginHookEvent** lifecycle (8 events): `TASK_STARTED`, `TASK_COMPLETED`, `LEVEL_COMPLETE`, `MERGE_COMPLETE`, `RUSH_FINISHED`, `QUALITY_GATE_RUN`, `WORKER_SPAWNED`, `WORKER_EXITED`
 
 **Integration points**:
@@ -153,7 +193,19 @@ Configuration models: `PluginsConfig` -> `HookConfig`, `PluginGateConfig`, `Laun
 
 ## Execution Flow
 
+Understanding how ZERG executes a feature build is like understanding how a relay race works. Each phase hands off to the next, and workers run their legs in parallel within each level. Let's trace the entire journey from "I have an idea" to "the feature is merged."
+
 ### Planning Phase (`/zerg:plan`)
+
+#### What Is Planning?
+
+Planning is the conversation phase where ZERG helps you articulate what you want to build. Rather than accepting vague requirements and guessing wrong, ZERG asks probing questions until both you and the system have a shared understanding.
+
+#### Why Does Planning Exist?
+
+The most expensive bugs are requirements bugs—building the wrong thing entirely. By investing time upfront in clarifying what you want, ZERG avoids the frustration of workers building features you didn't actually need. The output is a `requirements.md` file that workers will read as their mission brief.
+
+#### Planning Flow
 
 ```
 User Requirements -> [Socratic Discovery] -> requirements.md
@@ -164,6 +216,16 @@ User Requirements -> [Socratic Discovery] -> requirements.md
 
 ### Design Phase (`/zerg:design`)
 
+#### What Is Design?
+
+Design is where ZERG transforms "what to build" into "how to build it." The design phase analyzes your requirements, proposes an architecture, and breaks the work into atomic tasks that can be executed in parallel without stepping on each other.
+
+#### Why Does Design Exist?
+
+Parallel execution requires careful coordination. If two workers both try to modify the same file, you get merge conflicts. If a worker starts building a feature that depends on code that doesn't exist yet, it fails. Design solves both problems by assigning exclusive file ownership and organizing tasks into dependency levels.
+
+#### Design Flow
+
 ```
 requirements.md -> [Architecture Analysis] -> task-graph.json + design.md
                                                 |
@@ -173,6 +235,18 @@ requirements.md -> [Architecture Analysis] -> task-graph.json + design.md
 ```
 
 ### Rush Phase (`/zerg:rush`)
+
+#### What Is Rush?
+
+Rush is the execution phase—when workers actually write code. The orchestrator spawns multiple Claude Code instances (zerglings), each in its own isolated workspace, and coordinates their work through level-based execution.
+
+#### Why Does Rush Exist This Way?
+
+Traditional development is sequential: one developer finishes, then another starts. ZERG flips this by running workers in parallel wherever possible. But parallelism needs coordination. Rush implements that coordination: spawning workers, assigning tasks, monitoring progress, merging results, and running quality gates.
+
+The level-based approach ensures dependencies are respected. All Level 1 tasks (foundations like types and schemas) complete and merge before any Level 2 tasks (business logic that uses those types) can start.
+
+#### Rush Flow
 
 ```
 [Orchestrator Start]
@@ -202,6 +276,10 @@ requirements.md -> [Architecture Analysis] -> task-graph.json + design.md
         v
 [All tasks complete]
 ```
+
+### How the Phases Connect
+
+The phases form a pipeline: planning feeds design, design feeds rush. But it's not just data flow—it's also quality gates between each transition. You must approve the requirements before design starts. You must approve the task graph before rush starts. This prevents expensive mistakes from propagating through the pipeline.
 
 ### Zergling Protocol
 
@@ -464,6 +542,18 @@ Commands are implemented as Python modules in `zerg/commands/` and/or as markdow
 
 ## Zergling Execution Model
 
+### What Is a Zergling?
+
+A zergling is a single Claude Code worker instance—an AI that reads the spec files and writes code to complete its assigned tasks. The name comes from the idea of overwhelming a feature with many small, focused workers rather than one monolithic process.
+
+Each zergling operates independently. It doesn't share memory with other zerglings, doesn't have access to their conversation history, and works in its own isolated directory. This independence is a feature, not a limitation—it makes the system robust against crashes and easy to scale.
+
+### Why Independent Execution?
+
+If zerglings shared state, a crash in one could corrupt data for all others. Shared conversation history would mean workers waiting for context windows to sync. Shared file systems would mean merge conflicts constantly.
+
+By keeping zerglings fully isolated, ZERG achieves: crash recovery (just restart the failed worker), horizontal scaling (add more workers without coordination overhead), and deterministic behavior (same inputs always produce same outputs).
+
 ### Isolation Strategy
 
 ```
@@ -487,7 +577,27 @@ Commands are implemented as Python modules in `zerg/commands/` and/or as markdow
 +---------------------------------------------------------------------+
 ```
 
+### How Isolation Layers Work Together
+
+**Layer 1 (Git Worktree)** gives each worker its own copy of the codebase. Git worktrees are a built-in feature that creates independent working directories sharing the same repository. Worker 0 can edit files in its worktree while Worker 1 edits different files in its worktree—no conflicts possible.
+
+**Layer 2 (Process Isolation)** means each worker runs as a separate OS process. If Worker 2 crashes, Workers 0, 1, and 3 keep running. Communication happens through files on disk (the state JSON), not shared memory.
+
+**Layer 3 (Spec-Driven Execution)** is the key to restartability. Workers don't remember previous conversations—they read the spec files fresh every time. If a worker crashes mid-task, just restart it. It will read the specs, see the task is incomplete, and pick up where it left off.
+
 ### Launcher Abstraction
+
+#### What Is a Launcher?
+
+A launcher is the mechanism that starts and manages worker processes. ZERG supports multiple execution environments: local processes (subprocess), Docker containers, or plugin-provided environments like Kubernetes. The launcher abstraction hides these differences so the orchestrator doesn't need to know how workers run—just that they do.
+
+#### Why Abstract the Launcher?
+
+Different environments have different requirements. During development, you might run workers as local processes for fast iteration. In CI, you might run them in containers for reproducibility. In production, you might use Kubernetes for scaling.
+
+Rather than hard-coding one approach, ZERG lets you swap launchers. Your orchestration logic stays the same; only the "how workers run" changes.
+
+#### Launcher Architecture
 
 ```
 WorkerLauncher (ABC)
@@ -505,6 +615,12 @@ WorkerLauncher (ABC)
     +-- detect_mode() -> auto-select launcher
     +-- configure() -> build launcher with settings
 ```
+
+#### How Launchers Connect
+
+The `LauncherConfigurator` decides which launcher to use based on your environment and CLI flags. If you have Docker and a devcontainer, it picks `ContainerLauncher`. Otherwise, it defaults to `SubprocessLauncher`. You can override this with `--mode subprocess` or `--mode container`.
+
+Each launcher implements the same interface: `spawn()`, `monitor()`, `terminate()`. The orchestrator calls these methods without knowing whether it's managing processes or containers underneath.
 
 ### Execution Modes
 
@@ -533,6 +649,20 @@ Plugin launchers are resolved via `get_plugin_launcher(name, registry)` which de
 
 ## Cross-Cutting Capabilities
 
+### What Are Cross-Cutting Capabilities?
+
+Cross-cutting capabilities are behaviors that affect the entire system, not just one module. Think of them as dials and switches that tune how ZERG operates. Want workers to think more deeply? Turn up the analysis depth. Need faster iteration? Enable speed mode. Want test-driven development? Flip the TDD switch.
+
+These capabilities "cut across" all phases and all workers—hence the name. A capability like "compact output" affects planning, design, and rush equally.
+
+### Why Do Cross-Cutting Capabilities Exist?
+
+Different situations call for different approaches. A quick prototype needs speed, not exhaustive analysis. A critical production feature needs deep thinking and full verification. Rather than building separate tools for each scenario, ZERG provides one tool with tunable behavior.
+
+This also enables progressive enhancement. Start with defaults, then turn up verification as you approach release. The same command works for both; only the capability settings change.
+
+### Capability Architecture
+
 ZERG includes 8 cross-cutting capabilities that influence worker behavior across all phases:
 
 ```
@@ -553,6 +683,12 @@ ZERG includes 8 cross-cutting capabilities that influence worker behavior across
 │                                        Task-Scoped Context           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+### How Capabilities Flow
+
+CLI flags and configuration merge in the `CapabilityResolver`, which produces a `ResolvedCapabilities` object. This gets translated into environment variables that workers inherit. Workers then use these settings to adjust their behavior: how deeply they analyze, which MCP servers they enable, whether they run improvement loops, etc.
+
+The `ContextEngineeringPlugin` uses these resolved capabilities to build task-scoped context. A task running with `--ultrathink` gets more context budget than one running with `--quick`.
 
 ### Capability Matrix
 
@@ -589,6 +725,18 @@ ZERG includes 8 cross-cutting capabilities that influence worker behavior across
 
 ### Improvement Loops
 
+#### What Is an Improvement Loop?
+
+An improvement loop is an automated "make it better" cycle. After a worker completes a task, the loop runs quality gates (tests, linting, type checks), measures the quality score, and if the score isn't good enough, asks the worker to improve the code. This repeats until quality converges or the loop detects it's not making progress.
+
+#### Why Do Improvement Loops Exist?
+
+First drafts are rarely perfect. A human developer naturally iterates: write code, run tests, fix issues, repeat. Improvement loops automate this cycle. Instead of hoping the first attempt is good enough, ZERG keeps refining until quality gates pass.
+
+Loops also detect dead ends. If the quality score stops improving (plateau) or gets worse (regression), the loop stops rather than wasting time on fruitless iteration.
+
+#### Loop Architecture
+
 The `LoopController` enables iterative refinement:
 
 ```
@@ -605,13 +753,37 @@ Initial Score ──► Run Gates ──► Check Convergence ──► Iterate 
 
 Loop status values: `RUNNING`, `CONVERGED`, `PLATEAU`, `REGRESSED`, `MAX_ITERATIONS`, `ABORTED`
 
+#### How Loops Connect to Workers
+
+Improvement loops wrap worker execution. When loops are enabled (default), each task execution enters the loop. The loop runs quality gates, records the score, and decides: improve or complete? This happens transparently—workers don't need special loop-awareness.
+
 ---
 
 ## Resilience
 
+### What Is Resilience?
+
+Resilience is the system's ability to handle failures gracefully. In a distributed system with multiple workers, things will go wrong: API rate limits hit, workers crash, verification commands time out. Resilient systems anticipate these failures and have strategies to recover automatically.
+
+### Why Does Resilience Matter?
+
+Without resilience, a single failure can cascade. One worker fails, retries endlessly, consumes all the API quota, and causes all other workers to fail too. Soon you have ten workers all failing, retrying, and making things worse.
+
+ZERG's resilience mechanisms—circuit breakers, backpressure, and intelligent retry—prevent these cascades. Failures get contained, the system adapts, and progress continues even when some components struggle.
+
 ZERG includes comprehensive resilience mechanisms for fault tolerance:
 
 ### Circuit Breaker Pattern
+
+#### What Is a Circuit Breaker?
+
+A circuit breaker stops calling a failing service before it can cause more damage. Just like an electrical circuit breaker trips to prevent fires, a software circuit breaker "trips" when too many failures occur, giving the failing component time to recover.
+
+#### Why Do Circuit Breakers Exist?
+
+When an external service (like the Claude API) has a temporary outage, repeatedly retrying makes things worse. You waste time, consume quota, and potentially trigger rate limits. Circuit breakers recognize "this is broken" and stop trying for a cooldown period, then test with a single request to see if recovery happened.
+
+#### Circuit Breaker Flow
 
 ```
 Closed ──► Failures exceed threshold ──► Open
@@ -621,6 +793,8 @@ Closed ──► Failures exceed threshold ──► Open
                                      │
                                Half-Open
 ```
+
+In the **Closed** state, requests flow normally. After enough failures hit the threshold, the breaker **Opens**—all requests fail fast without even trying. After a cooldown period, it goes **Half-Open** and allows one test request. If that succeeds, back to Closed. If it fails, back to Open.
 
 **Configuration** (`.zerg/config.yaml`):
 ```yaml
@@ -658,6 +832,16 @@ error_recovery:
 
 ### Worker Crash Recovery
 
+#### What Is Crash Recovery?
+
+When a worker process dies unexpectedly (crash, killed, out of memory), the system needs to detect this and reassign the work. Crash recovery is the mechanism that detects dead workers and returns their tasks to the queue for another worker to pick up.
+
+#### Why Distinguish Crashes from Failures?
+
+A task failing verification (the code doesn't work) is different from a worker crashing (the process died). If verification fails, maybe the task is genuinely hard—incrementing the retry count makes sense. But if the process just crashed (computer restarted, network dropped), that's not the task's fault. Counting crashes against retry limits would unfairly penalize tasks for infrastructure issues.
+
+#### Crash Recovery Flow
+
 ```
 Worker Crash ──► Detect via Heartbeat ──► Mark Task "worker_crash"
                                                │
@@ -666,6 +850,8 @@ Worker Crash ──► Detect via Heartbeat ──► Mark Task "worker_crash"
                     Reset Task to PENDING           DO NOT increment
                     (for reassignment)              retry_count
 ```
+
+The heartbeat monitor periodically checks whether workers are alive. When a worker stops responding, the orchestrator marks the task status as `worker_crash`, which distinguishes it from `failed` (verification failure). The task returns to PENDING status and gets reassigned—but crucially, the retry count stays the same.
 
 **Key distinction**: Worker crashes do not count against task retry limits. Only verification failures increment retry counts.
 
@@ -687,6 +873,16 @@ Workers can escalate to human-in-the-loop via `escalation.py`:
 ---
 
 ## State Management
+
+### What Is State Management?
+
+State management tracks the current status of everything: which tasks are complete, which workers are running, which levels have merged. This information lives in JSON files that all components can read. It's the system's shared memory.
+
+### Why Is State Critical?
+
+Without state, the orchestrator can't answer basic questions: "What's left to do? Which worker should take this task? Is it safe to start Level 2?" State provides the answers.
+
+State also enables crash recovery. If the entire system restarts, reading the state file tells us exactly where we left off. No progress is lost, no work is duplicated.
 
 ### State File Structure
 
@@ -724,12 +920,33 @@ Location: `.zerg/state/{feature}.json`
 }
 ```
 
+### How State Gets Updated
+
+Every state mutation goes through the `StateManager` class, which holds a lock to prevent concurrent writes from corrupting the file. When a worker claims a task, the state updates. When a task completes, the state updates. When a level merges, the state updates. Each update is atomic—the entire file gets replaced, ensuring we never have a half-written state.
+
 ### Task Status Transitions
+
+#### What Are Status Transitions?
+
+Each task moves through a series of states from creation to completion. These states provide visibility: at any moment, you can see exactly where every task stands. Status transitions are also enforcement mechanisms—a task can't be verified before it's in progress.
+
+#### Why Define Status Transitions?
+
+Clear states prevent ambiguity. "Is this task done? Can I claim it? Has it been verified?" The state machine answers these questions definitively. It also catches bugs: if a task tries to transition from `pending` directly to `complete`, something's wrong.
+
+#### Status Flow
 
 ```
 pending -> claimed -> in_progress -> verifying -> complete
                                               \-> failed -> retry?
 ```
+
+**Pending**: The task exists but no worker has picked it up yet.
+**Claimed**: A worker has reserved this task; other workers should not touch it.
+**In Progress**: The worker is actively writing code for this task.
+**Verifying**: The code is written; now running the verification command.
+**Complete**: Verification passed; the task is done.
+**Failed**: Verification failed; depending on retry count, might try again.
 
 ### Thread Safety
 
@@ -744,6 +961,16 @@ The `state_sync_service.py` module keeps distributed state consistent across wor
 ---
 
 ## Claude Code Task Integration
+
+### What Is the Task System?
+
+The Claude Code Task system is a built-in feature of Claude Code that tracks work items across sessions. ZERG leverages this as its coordination backbone—every ZERG task maps to a Claude Code Task, enabling status tracking, dependency management, and cross-session persistence.
+
+### Why Use Claude Code Tasks?
+
+ZERG workers are separate Claude Code instances. They don't share conversation history. How do they know what work exists and what's been completed? The Task system provides that shared view. When Worker 0 marks a task complete, Worker 1 can query the Task system and see that update.
+
+Using the built-in Task system also means ZERG benefits from Claude Code's native features: task persistence across sessions, dependency tracking, and integration with the `/task` command that users already know.
 
 The Claude Code Task system is the **authoritative backbone** for all ZERG task coordination.
 
@@ -762,6 +989,12 @@ Worker       -> TaskUpdate (completed) on success
                      v
 /zerg:status -> TaskList to read current state
 ```
+
+### How Task Integration Works
+
+When `/zerg:design` runs, it creates Claude Code Tasks for every task in the task graph. The subject line uses a bracketed prefix (like `[L2]`) so tasks are easily filterable. When `/zerg:rush` launches workers, each worker claims tasks by calling `TaskUpdate` to set status to `in_progress`.
+
+This creates a feedback loop: the orchestrator creates tasks, workers update them, and `/zerg:status` reads them to report progress. Everyone reads from and writes to the same Task system, ensuring a consistent view of the world.
 
 ### Subject Convention
 
@@ -797,9 +1030,21 @@ If Task system and state JSON disagree, the **Task system wins**.
 
 ## Context Engineering
 
+### What Is Context Engineering?
+
+Context engineering is the practice of giving workers exactly the information they need—no more, no less. AI models have limited context windows (the amount of text they can "see" at once). Stuffing in irrelevant information wastes this precious space and can confuse the model.
+
+ZERG's context engineering system automatically selects relevant spec excerpts, security rules, and command instructions for each task. A task creating Python files gets Python security rules; a task modifying JavaScript gets JavaScript rules. This targeted approach saves 30-50% of context tokens per worker.
+
+### Why Does Context Engineering Matter?
+
+Context is expensive. Larger context means slower responses and higher API costs. But worse, irrelevant context dilutes the signal. A worker implementing a database model doesn't need to read about UI components—that information competes for the model's attention.
+
+By engineering context carefully, workers get focused instructions and complete tasks faster with fewer errors. It's like the difference between giving someone a 500-page manual versus a 10-page guide for exactly what they need to do.
+
 ZERG includes a context engineering plugin that reduces per-worker token usage by 30-50%. See [Context Engineering](docs/context-engineering.md) for configuration details.
 
-### Architecture
+### Context Architecture
 
 ```
 /zerg:design phase:
@@ -833,6 +1078,12 @@ ZERG includes a context engineering plugin that reduces per-worker token usage b
   Execute task with scoped context
 ```
 
+### How Context Gets Built
+
+During design, the system analyzes each task: what files will it touch? What does its description mention? It then extracts only the relevant sections from spec files and only the applicable security rules. This pre-computed context gets stored in the task graph.
+
+During rush, workers load this pre-computed context instead of reading entire spec files. They also load split command files (`.core.md` instead of the full file) further reducing token usage. The result: workers start with focused, relevant context rather than drowning in irrelevant information.
+
 ### Three Subsystems
 
 | Subsystem | What It Does | Savings |
@@ -848,6 +1099,16 @@ If context engineering fails for any reason and `fallback_to_full: true` (defaul
 ---
 
 ## Diagnostics Engine
+
+### What Is the Diagnostics Engine?
+
+The diagnostics engine is ZERG's troubleshooting brain. When something goes wrong—a task fails, a worker crashes, a merge conflicts—the diagnostics engine investigates. It parses error messages, correlates logs across workers, generates hypotheses about root causes, and proposes recovery plans.
+
+### Why Build a Diagnostics Engine?
+
+Debugging distributed systems is hard. Errors in worker logs might be symptoms, not causes. The real problem might be a race condition between workers, a misconfigured environment, or a cascading failure that started hours ago. Human developers struggle to correlate all this information.
+
+The diagnostics engine automates what an expert developer would do: gather evidence, form hypotheses, test them against observations, and rank likely causes by probability. It turns "something broke" into "here's what broke, here's why, and here's how to fix it."
 
 The `zerg/diagnostics/` package powers `/zerg:debug` with intelligent failure investigation:
 
@@ -896,6 +1157,12 @@ Error Detected
 Execute with --fix (optional)
 ```
 
+### How Diagnostics Phases Connect
+
+The phases form an investigation pipeline. **Error Intelligence** (Phase 1) parses the raw error and creates a structured representation. **Log Correlation** (Phase 2) looks beyond the immediate error to find related events across workers. **Hypothesis Generation** (Phase 3) proposes explanations and ranks them by probability using Bayesian reasoning. **Recovery Planning** (Phase 4) turns the most likely hypothesis into actionable fix steps.
+
+Each phase builds on the previous. You can't generate good hypotheses without correlated logs. You can't plan recovery without a likely root cause.
+
 ### Diagnostic Components
 
 | Component | Module | Capability |
@@ -925,7 +1192,19 @@ The knowledge base includes patterns for:
 
 ## Quality Gates
 
+### What Are Quality Gates?
+
+Quality gates are automated checkpoints that verify work meets standards before proceeding. Think of them as bouncers at a club—only code that passes inspection gets in. ZERG uses two types: per-task verification (checking individual tasks) and per-level gates (checking the merged result of all tasks in a level).
+
+### Why Do Quality Gates Exist?
+
+Without quality gates, broken code could accumulate through multiple levels before anyone notices. Imagine five workers all building on a flawed foundation—by the time tests run, the bug is deeply embedded and expensive to fix.
+
+Gates catch problems early. A task that can't even import its own module fails immediately, not after other workers have built upon it. A level that breaks linting doesn't get merged, protecting downstream levels from inheriting problems.
+
 ### Task Verification (Per-Task)
+
+Each task includes a verification command that must pass for the task to be considered complete. This is typically an import check or a simple test that proves the code exists and is syntactically valid.
 
 ```json
 {
@@ -937,7 +1216,11 @@ The knowledge base includes patterns for:
 }
 ```
 
+The verification command should be fast (under a minute) and focused on the task's output. It's not a full test suite—just a sanity check that the task produced something usable.
+
 ### Level Quality Gates (Per-Level)
+
+After all tasks in a level complete and merge, level-wide quality gates run. These are more comprehensive: linting, type checking, and tests.
 
 Configuration in `.zerg/config.yaml`:
 
@@ -953,6 +1236,8 @@ quality_gates:
     command: "pytest"
     required: true
 ```
+
+**Required gates** block progression to the next level if they fail. **Optional gates** run and report but don't block. This lets you enforce critical checks (lint, test) while still gathering information from slower or less reliable checks (typecheck).
 
 ### Gate Results
 
@@ -1010,15 +1295,29 @@ ZERG includes comprehensive pre-commit hooks at `.zerg/hooks/pre-commit`.
 
 ## Security Model
 
+### What Is the Security Model?
+
+The security model defines how ZERG protects against accidental and malicious harm. Workers execute code, run commands, and modify files—all potentially dangerous operations. The security model establishes guardrails: what workers can access, what commands they can run, and what patterns are blocked.
+
+### Why Is Security Critical?
+
+Workers are AI agents executing in your codebase. Without security controls, a confused or compromised worker could leak environment variables, execute malicious commands, or write files outside allowed directories. The security model implements defense in depth: multiple layers of protection that each reduce risk.
+
+Even unintentional mistakes need containment. A worker shouldn't accidentally read your SSH keys because someone passed `$HOME` in an environment variable.
+
 ### Environment Variable Filtering
 
-Workers receive a controlled set of environment variables:
+Workers receive a controlled set of environment variables. This prevents credential leaks and environment manipulation attacks.
 
 **Allowed**: `ZERG_WORKER_ID`, `ZERG_FEATURE`, `ZERG_WORKTREE`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CI`, `DEBUG`, `LOG_LEVEL`
 
 **Blocked**: `LD_PRELOAD`, `DYLD_INSERT_LIBRARIES`, `PYTHONPATH`, `HOME`, `USER`, `SHELL`
 
+The blocked variables are particularly dangerous. `LD_PRELOAD` could inject malicious code into every process. `PYTHONPATH` could redirect imports to attacker-controlled modules. By allowlisting rather than blocklisting, we ensure workers only see what they need.
+
 ### Command Execution Safety
+
+Commands are executed with multiple protections:
 
 | Protection | Implementation |
 |------------|----------------|
@@ -1027,7 +1326,11 @@ Workers receive a controlled set of environment variables:
 | Timeout | Every command has max duration |
 | Output capture | Separate stdout/stderr |
 
+**Why no shell?** Shell interpretation allows injection attacks. A task ID like `foo; rm -rf /` could be catastrophic. By using `shlex.split()` and passing argument lists directly to subprocess, shell metacharacters are treated as literal characters.
+
 ### Task ID Validation
+
+Task IDs are validated against a strict pattern to prevent injection attacks:
 
 ```
 Pattern: [A-Za-z][A-Za-z0-9_-]{0,63}
@@ -1038,28 +1341,56 @@ Rejects:
   - Excessive length (>64 chars)
 ```
 
+Since task IDs appear in branch names, file paths, and log messages, a malicious task ID could cause damage in multiple places. Strict validation catches these at the earliest point.
+
 ---
 
 ## Logging Architecture
 
+### What Is the Logging Architecture?
+
+The logging architecture captures what happens during execution: which tasks ran, what they outputted, how long they took, and whether they succeeded. This information enables debugging, monitoring, and post-mortem analysis.
+
+ZERG uses structured logging (JSON Lines format) because it's both human-readable and machine-parseable. You can read the logs directly or write scripts to analyze them.
+
+### Why Structured Logging?
+
+Plain text logs are hard to analyze. When five workers run in parallel, their logs interleave. Finding all messages from Worker 2 about TASK-005 means grep gymnastics.
+
+Structured logs solve this. Each entry is a JSON object with fields like `worker_id` and `task_id`. Filtering becomes trivial: "show me all entries where worker_id=2 AND task_id=TASK-005." The diagnostics engine relies on this structure to correlate events across workers.
+
 ZERG uses structured JSONL logging with two complementary outputs:
 
-**Per-worker logs** (`.zerg/logs/workers/worker-{id}.jsonl`):
+### Per-Worker Logs
+
+**Location**: `.zerg/logs/workers/worker-{id}.jsonl`
+
+Each worker writes to its own log file, avoiding contention. The log captures:
 - Thread-safe writes via `StructuredLogWriter`
 - Auto-rotation at 50 MB (renames to `.jsonl.1`)
 - Each entry: `ts`, `level`, `worker_id`, `feature`, `message`, `task_id`, `phase`, `event`, `data`, `duration_ms`
 
-**Per-task artifacts** (`.zerg/logs/tasks/{task-id}/`):
+### Per-Task Artifacts
+
+**Location**: `.zerg/logs/tasks/{task-id}/`
+
+Each task gets a directory with detailed artifacts:
 - `execution.jsonl` — structured execution events
 - `claude_output.txt` — Claude CLI stdout/stderr
 - `verification_output.txt` — verification command output
 - `git_diff.patch` — diff of task changes
+
+These artifacts are invaluable for debugging. When a task fails, you can see exactly what Claude outputted, what the verification command reported, and what code was written.
+
+### How Logs Connect
 
 **Enums**:
 - `LogPhase`: CLAIM, EXECUTE, VERIFY, COMMIT, CLEANUP
 - `LogEvent`: TASK_STARTED, TASK_COMPLETED, TASK_FAILED, VERIFICATION_PASSED, VERIFICATION_FAILED, ARTIFACT_CAPTURED, LEVEL_STARTED, LEVEL_COMPLETE, MERGE_STARTED, MERGE_COMPLETE
 
 **Aggregation**: `LogAggregator` provides read-side merging of JSONL files by timestamp at query time. No pre-built aggregate file exists on disk. Supports filtering by worker, task, level, phase, event, time range, and text search.
+
+This lazy aggregation means you don't pay storage costs for a combined log file—it's computed on demand when you query.
 
 ---
 
@@ -1101,13 +1432,37 @@ Error -> Parse (multi-language) -> Fingerprint -> Classify
 
 ## Performance Analysis
 
+### What Is Performance Analysis?
+
+Performance analysis measures code quality beyond "does it work?" It answers questions like: How complex is this code? Are there security vulnerabilities? Is there dead code nobody uses? How tangled are the dependencies?
+
+ZERG's analysis system runs multiple specialized tools and aggregates their results into a unified report. This gives you a dashboard view of code health without manually running a dozen different tools.
+
+### Why Pluggable Adapters?
+
+No single tool does everything. Radon measures Python complexity, but not JavaScript. Trivy finds vulnerabilities, but not code duplication. By using a plugin architecture, ZERG can leverage the best tool for each analysis type.
+
+The adapter pattern also handles tool differences. Each tool has its own output format, installation method, and command-line interface. Adapters normalize these differences: every adapter returns a standard result format that the aggregator understands.
+
 The `zerg/performance/` package powers `/zerg:analyze` with pluggable tool adapters:
 
-### Architecture
+### Analysis Architecture
 
 ```
 Stack Detector -> Tool Registry -> Adapter Selection -> Execution -> Aggregator -> Formatter
 ```
+
+**Stack Detector** figures out what languages and frameworks your project uses. A Python/Django project gets different tools than a Go/Docker project.
+
+**Tool Registry** knows which tools are available and how to invoke them.
+
+**Adapter Selection** picks the right adapters based on detected stack and available tools.
+
+**Execution** runs each adapter in parallel when possible.
+
+**Aggregator** combines results from all adapters into a unified data structure.
+
+**Formatter** outputs the results as markdown, SARIF (for CI integration), or JSON (for programmatic use).
 
 ### Adapters
 
@@ -1245,6 +1600,16 @@ project/
 
 ## Test Infrastructure
 
+### What Is the Test Infrastructure?
+
+The test infrastructure is how ZERG tests itself. ZERG is a complex distributed system with many moving parts—orchestrator, workers, git operations, state management. The test infrastructure ensures these components work correctly individually and together.
+
+### Why Three Tiers?
+
+Different test types catch different bugs. Unit tests are fast and focused—they verify individual functions work correctly with mocked dependencies. Integration tests verify that modules work together—real git operations, real file I/O. E2E tests verify the entire system—from "run the command" to "feature is built."
+
+This pyramid structure (many unit tests, fewer integration, even fewer E2E) balances coverage with speed. You don't want a 30-minute test suite when a 3-minute one catches 90% of bugs.
+
 ZERG uses a three-tier testing strategy:
 
 | Category | Files | Scope |
@@ -1253,15 +1618,21 @@ ZERG uses a three-tier testing strategy:
 | Integration | ~41 | Module interactions, real git operations, state management |
 | E2E | ~13 | Full pipeline: orchestrator -> workers -> merge -> gates |
 
-**E2E Harness** (`tests/e2e/harness.py`):
+### E2E Harness
+
+The E2E harness (`tests/e2e/harness.py`) creates realistic test environments:
 - `E2EHarness` creates real git repos with complete `.zerg/` directory structure
 - Supports two modes: `mock` (simulated workers via `MockWorker`) and `real` (actual Claude CLI)
 - Returns `E2EResult` with tasks_completed, tasks_failed, levels_completed, merge_commits, duration
 
-**Mock Worker** (`tests/e2e/mock_worker.py`):
+### Mock Worker
+
+The mock worker (`tests/e2e/mock_worker.py`) simulates Claude Code for deterministic testing:
 - Patches `WorkerProtocol.invoke_claude_code` for deterministic execution
 - Generates syntactically valid Python for `.py` files
 - Supports configurable failure via `fail_tasks` set
+
+This lets E2E tests run without actual API calls—fast, free, and repeatable.
 
 ---
 

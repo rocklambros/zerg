@@ -6,6 +6,8 @@
 
 **Reference**
 - [[Command-Reference]]
+- [Quick Reference](../docs/commands-quick.md)
+- [Command Guide](../docs/commands-deep.md)
 - [[Configuration]]
 - [[Architecture]]
 
