@@ -2,6 +2,12 @@
 
 Handles level START, COMPLETE, and MERGE workflows extracted from the
 Orchestrator class.
+
+Sync/async dedup note (TASK-007): This module is sync-only — no async
+methods or sync/async duplicate pairs exist. The ``claim_next_task``
+reference in the requirements table was a misattribution; that method
+lives in ``worker_protocol.py`` (handled by TASK-006). No dedup action
+required here.
 """
 
 from __future__ import annotations
