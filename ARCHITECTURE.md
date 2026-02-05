@@ -12,10 +12,13 @@ ZERG is a distributed software development system that coordinates multiple Clau
 - [System Layers](#system-layers)
 - [Execution Flow](#execution-flow)
 - [Module Reference](#module-reference)
+- [Cross-Cutting Capabilities](#cross-cutting-capabilities)
 - [Zergling Execution Model](#zergling-execution-model)
+- [Resilience](#resilience)
 - [State Management](#state-management)
 - [Claude Code Task Integration](#claude-code-task-integration)
 - [Context Engineering](#context-engineering)
+- [Diagnostics Engine](#diagnostics-engine)
 - [Quality Gates](#quality-gates)
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Security Model](#security-model)
@@ -247,6 +250,8 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 | `task_sync.py` | ClaudeTask model, TaskSyncBridge (JSON state to Claude Tasks) |
 | `task_retry_manager.py` | Retry policy and management for failed tasks |
 | `backlog.py` | Backlog generation and tracking |
+| `dependency_checker.py` | Validate task dependencies before claiming |
+| `graph_validation.py` | Task graph structure validation |
 
 ### Resilience & Flow Control
 
@@ -258,6 +263,24 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 | `risk_scoring.py` | Risk assessment for task and merge operations |
 | `whatif.py` | What-if analysis for execution planning |
 | `preflight.py` | Pre-execution validation checks |
+| `heartbeat.py` | Worker heartbeat monitoring for stall detection |
+| `escalation.py` | Worker escalation and human-in-the-loop requests |
+| `progress_reporter.py` | Real-time progress reporting from workers |
+
+### Cross-Cutting Capabilities
+
+| Module | Purpose |
+|--------|---------|
+| `capability_resolver.py` | Resolve CLI flags + config into ResolvedCapabilities |
+| `depth_tiers.py` | Analysis depth tiers (quick/standard/think/think-hard/ultrathink) |
+| `modes.py` | Behavioral modes (precision/speed/exploration/refactor/debug) |
+| `loops.py` | Iterative improvement loop controller |
+| `efficiency.py` | Token efficiency zones and compact formatting |
+| `mcp_router.py` | MCP server auto-routing based on task signals |
+| `mcp_telemetry.py` | MCP routing telemetry and analytics |
+| `tdd.py` | TDD enforcement and test-first workflow |
+| `verification_tiers.py` | Verification gate tier configuration |
+| `verification_gates.py` | Per-level verification gate runner |
 
 ### Git & Merge
 
@@ -289,8 +312,10 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 
 | Module | Purpose |
 |--------|---------|
-| `plugins.py` | Plugin ABCs (QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin), PluginRegistry |
+| `plugins.py` | Plugin ABCs (QualityGatePlugin, LifecycleHookPlugin, LauncherPlugin, ContextPlugin), PluginRegistry |
 | `plugin_config.py` | Pydantic models for plugin YAML configuration |
+| `context_plugin.py` | ContextEngineeringPlugin for token-budgeted task context |
+| `command_splitter.py` | Split large command files into .core.md + .details.md |
 
 ### Logging & Metrics
 
@@ -302,6 +327,11 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 | `metrics.py` | Duration, percentile calculations, metric type definitions |
 | `worker_metrics.py` | Per-task execution metrics (timing, context usage, retries) |
 | `render_utils.py` | Output formatting and display utilities |
+| `status_formatter.py` | Format status output for CLI display |
+| `event_emitter.py` | Event streaming for real-time status updates |
+| `token_tracker.py` | Track token usage across sessions |
+| `token_counter.py` | Estimate token counts for text |
+| `token_aggregator.py` | Aggregate token usage statistics |
 
 ### Container Management
 
@@ -320,17 +350,29 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 | `ports.py` | Port allocation for worker processes (range 49152-65535) |
 | `exceptions.py` | Exception hierarchy (ZergError -> Task/Worker/Git/Gate errors) |
 | `state_sync_service.py` | State synchronization across distributed workers |
+| `state_reconciler.py` | Reconcile state conflicts between workers |
+| `adaptive_detail.py` | Adaptive detail levels based on context pressure |
+| `step_generator.py` | Generate execution steps from task specs |
+| `step_executor.py` | Execute generated steps |
+| `claude_tasks_reader.py` | Read Claude Code Task system state |
 
 ### Project Initialization
 
 | Module | Purpose |
 |--------|---------|
-| `backlog.py` | Backlog management and generation |
 | `charter.py` | Project charter generation |
 | `inception.py` | Inception mode (empty directory -> project scaffold) |
 | `tech_selector.py` | Technology stack recommendation |
 | `devcontainer_features.py` | Devcontainer feature configuration |
 | `security_rules.py` | Security rules fetching from TikiTribe |
+| `architecture.py` | Project architecture analysis |
+| `architecture_gate.py` | Architecture compliance quality gate |
+| `repo_map.py` | Generate repository structure maps |
+| `repo_map_js.py` | JavaScript-specific repo mapping |
+| `ast_analyzer.py` | AST analysis for code understanding |
+| `ast_cache.py` | Cache AST analysis results |
+| `test_scope.py` | Determine test scope for changes |
+| `formatter_detector.py` | Detect code formatters in project |
 
 ### Diagnostics (`zerg/diagnostics/`)
 
@@ -384,10 +426,12 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 
 ### CLI Commands (`zerg/commands/`)
 
+Commands are implemented as Python modules in `zerg/commands/` and/or as markdown spec files in `zerg/data/commands/`. Some commands (marked "spec only") have no Python implementation and are interpreted directly by Claude Code.
+
 | Command | Module | Purpose |
 |---------|--------|---------|
 | `/zerg:init` | `init.py` | Project initialization (Inception/Discovery modes) |
-| `/zerg:brainstorm` | (command spec) | Feature discovery and GitHub issue creation |
+| `/zerg:brainstorm` | (spec only) | Feature discovery and GitHub issue creation |
 | `/zerg:plan` | `plan.py` | Capture requirements (Socratic discovery) |
 | `/zerg:design` | `design.py` | Generate architecture and task graph |
 | `/zerg:rush` | `rush.py` | Launch parallel zerglings |
@@ -405,14 +449,16 @@ ZERG is composed of 80+ Python modules organized into functional groups.
 | `/zerg:security` | `security_rules_cmd.py` | Vulnerability scanning |
 | `/zerg:refactor` | `refactor.py` | Automated code improvement |
 | `/zerg:git` | `git_cmd.py` | Intelligent git operations |
-| `/zerg:plugins` | (command spec) | Plugin system management |
+| `/zerg:plugins` | (spec only) | Plugin system management |
 | `/zerg:document` | `document.py` | Documentation generation for components |
-| `/zerg:estimate` | `estimate.py` | Effort estimation with PERT intervals |
-| `/zerg:explain` | `explain.py` | Educational code explanations |
-| `/zerg:index` | `index.py` | Project documentation wiki generation |
-| `/zerg:select-tool` | `select_tool.py` | Intelligent tool routing |
-| `/zerg:worker` | `worker.py` | Zergling execution protocol |
+| `/zerg:estimate` | (spec only) | Effort estimation with PERT intervals |
+| `/zerg:explain` | (spec only) | Educational code explanations |
+| `/zerg:index` | (spec only) | Project documentation wiki generation |
+| `/zerg:select-tool` | (spec only) | Intelligent tool routing |
+| `/zerg:worker` | `worker_protocol.py` | Zergling execution protocol |
+| `/zerg:wiki` | `wiki.py` | Generate wiki documentation pages |
 | `install_commands.py` | | Install/uninstall slash commands |
+| `loop_mixin.py` | | Shared improvement loop mixin for commands |
 
 ---
 
@@ -483,21 +529,160 @@ Plugin launchers are resolved via `get_plugin_launcher(name, registry)` which de
 - Zergling exits gracefully (code 2)
 - Orchestrator restarts zergling from checkpoint
 
-### Resilience Features
+---
 
-ZERG includes several resilience mechanisms:
+## Cross-Cutting Capabilities
 
-**Backpressure** (`backpressure.py`): When the system detects excessive load (too many failures, resource exhaustion), it applies flow control to prevent cascading failures.
+ZERG includes 8 cross-cutting capabilities that influence worker behavior across all phases:
 
-**Circuit Breaker** (`circuit_breaker.py`): Operations that fail repeatedly are short-circuited to avoid wasting resources on known-broken paths. The circuit opens after a threshold of failures and closes again after a cooldown period.
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Cross-Cutting Capability Flow                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  CLI Flags ──┬──► CapabilityResolver ──► ResolvedCapabilities        │
+│              │          ▲                       │                    │
+│  Config ─────┤          │                       ▼                    │
+│              │    Task Graph              Worker Env Vars            │
+│  Task ───────┴─── Analysis                (ZERG_DEPTH, etc.)         │
+│                                                 │                    │
+│                                                 ▼                    │
+│                                        ContextEngineeringPlugin      │
+│                                                 │                    │
+│                                                 ▼                    │
+│                                        Task-Scoped Context           │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-**Retry with Backoff** (`retry_backoff.py`): Failed operations are retried with exponential backoff. The `task_retry_manager.py` module provides task-specific retry policies.
+### Capability Matrix
 
-**Risk Scoring** (`risk_scoring.py`): Tasks and merge operations are assessed for risk based on factors like file count, complexity, and dependency depth. High-risk operations receive additional validation.
+| Capability | CLI Flag | Config Section | Module |
+|------------|----------|---------------|--------|
+| **Analysis Depth** | `--quick/--think/--think-hard/--ultrathink` | — | `depth_tiers.py` |
+| **Token Efficiency** | `--no-compact` (ON by default) | `efficiency` | `efficiency.py` |
+| **Behavioral Modes** | `--mode` | `behavioral_modes` | `modes.py` |
+| **MCP Auto-Routing** | `--mcp/--no-mcp` | `mcp_routing` | `mcp_router.py` |
+| **Engineering Rules** | — | `rules` | (config-driven) |
+| **Improvement Loops** | `--no-loop/--iterations` (ON by default) | `improvement_loops` | `loops.py` |
+| **Verification Gates** | — | `verification` | `verification_tiers.py` |
+| **TDD Enforcement** | `--tdd` | `tdd` | `tdd.py` |
 
-**What-If Analysis** (`whatif.py`): Before execution, ZERG can simulate the impact of task assignments and level transitions to identify potential issues.
+### Analysis Depth Tiers
 
-**Preflight Checks** (`preflight.py`): Pre-execution validation ensures the environment is ready (git state clean, dependencies installed, ports available).
+| Tier | Token Budget | MCP Servers | Use Case |
+|------|-------------|-------------|----------|
+| `quick` | ~1,000 | None | Fast, surface-level analysis |
+| `standard` | ~2,000 | None | Balanced default |
+| `think` | ~4,000 | sequential | Structured multi-step analysis |
+| `think-hard` | ~10,000 | sequential, context7 | Deep architectural analysis |
+| `ultrathink` | ~32,000 | sequential, context7, playwright, morphllm | Maximum depth |
+
+### Behavioral Modes
+
+| Mode | Description | Verification Level |
+|------|-------------|-------------------|
+| `precision` | Careful, thorough execution | Full |
+| `speed` | Fast iteration, minimal overhead | Minimal |
+| `exploration` | Broad discovery and analysis | None |
+| `refactor` | Code transformation focus | Full |
+| `debug` | Diagnostic, verbose logging | Verbose |
+
+### Improvement Loops
+
+The `LoopController` enables iterative refinement:
+
+```
+Initial Score ──► Run Gates ──► Check Convergence ──► Iterate or Stop
+                      │                 │
+                      │         ┌───────┴───────┐
+                      │         ▼               ▼
+                      │    Converged        Plateau/Regressed
+                      │    (score ≥ 0.99)   (no improvement)
+                      │         │               │
+                      ▼         ▼               ▼
+              Improve Code   Complete        Complete
+```
+
+Loop status values: `RUNNING`, `CONVERGED`, `PLATEAU`, `REGRESSED`, `MAX_ITERATIONS`, `ABORTED`
+
+---
+
+## Resilience
+
+ZERG includes comprehensive resilience mechanisms for fault tolerance:
+
+### Circuit Breaker Pattern
+
+```
+Closed ──► Failures exceed threshold ──► Open
+   ▲                                       │
+   │                                       │
+   └── Cooldown expires, test succeeds ◄───┘
+                                     │
+                               Half-Open
+```
+
+**Configuration** (`.zerg/config.yaml`):
+```yaml
+error_recovery:
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    cooldown_seconds: 60
+```
+
+### Backpressure Control
+
+The `BackpressureController` monitors failure rates and applies flow control:
+
+- **Green zone** (0-50% failure rate): Normal operation
+- **Yellow zone** (50-75%): Reduced concurrency, longer delays
+- **Red zone** (75%+): Load shedding, reject new work
+
+### Retry Strategies
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| Exponential | Base × 2^attempt (capped) | Transient failures |
+| Linear | Base × attempt | Predictable recovery |
+| Fixed | Constant delay | Rate limiting |
+
+**Configuration**:
+```yaml
+error_recovery:
+  backpressure:
+    enabled: true
+    failure_rate_threshold: 0.5
+    window_size: 100
+```
+
+### Worker Crash Recovery
+
+```
+Worker Crash ──► Detect via Heartbeat ──► Mark Task "worker_crash"
+                                               │
+                               ┌───────────────┴───────────────┐
+                               ▼                               ▼
+                    Reset Task to PENDING           DO NOT increment
+                    (for reassignment)              retry_count
+```
+
+**Key distinction**: Worker crashes do not count against task retry limits. Only verification failures increment retry counts.
+
+### Preflight Checks
+
+Before execution, `preflight.py` validates:
+- Git state (clean working directory, correct branch)
+- Dependencies (Python version, required packages)
+- Resources (disk space, available ports)
+- Configuration (valid config.yaml, task-graph.json)
+
+### Escalation System
+
+Workers can escalate to human-in-the-loop via `escalation.py`:
+- Unresolvable errors
+- Ambiguous requirements
+- Security-sensitive operations
 
 ---
 
@@ -659,6 +844,82 @@ ZERG includes a context engineering plugin that reduces per-worker token usage b
 ### Fallback Strategy
 
 If context engineering fails for any reason and `fallback_to_full: true` (default), workers load full files. A worker with full context is better than a worker that fails to load instructions.
+
+---
+
+## Diagnostics Engine
+
+The `zerg/diagnostics/` package powers `/zerg:debug` with intelligent failure investigation:
+
+### Diagnostic Flow
+
+```
+Error Detected
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PHASE 1: ERROR INTELLIGENCE                                         │
+│  error_intel.py: Parse error → Fingerprint → Classify                │
+│  - Multi-language support (Python, JavaScript, Go, Rust)            │
+│  - Stack trace parsing and chain analysis                           │
+│  - Error fingerprinting for deduplication                           │
+└─────────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PHASE 2: LOG CORRELATION                                            │
+│  log_correlator.py: Correlate across workers → Build timeline        │
+│  - Temporal clustering (events within time windows)                 │
+│  - Cross-worker correlation via Jaccard similarity                  │
+│  - Pattern analysis and trend detection                             │
+└─────────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PHASE 3: HYPOTHESIS GENERATION                                      │
+│  hypothesis_engine.py: Generate → Score → Test hypotheses            │
+│  - Bayesian prior/posterior probability calculation                 │
+│  - Knowledge base of 30+ known failure patterns                     │
+│  - Evidence-weighted hypothesis ranking                             │
+└─────────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PHASE 4: RECOVERY PLANNING                                          │
+│  recovery.py: Generate risk-rated recovery plan                      │
+│  - SAFE: Non-destructive fixes (e.g., install missing dependency)   │
+│  - MODERATE: Reversible changes (e.g., reset task state)            │
+│  - DESTRUCTIVE: Irreversible actions (e.g., clean worktrees)        │
+└─────────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+Execute with --fix (optional)
+```
+
+### Diagnostic Components
+
+| Component | Module | Capability |
+|-----------|--------|------------|
+| Error Intelligence | `error_intel.py` | Multi-language error parsing, fingerprinting |
+| Hypothesis Engine | `hypothesis_engine.py` | Bayesian hypothesis testing and scoring |
+| Knowledge Base | `knowledge_base.py` | 30+ known failure patterns with calibrated probabilities |
+| Log Correlator | `log_correlator.py` | Cross-worker log correlation, temporal clustering |
+| Log Analyzer | `log_analyzer.py` | Pattern analysis and trend detection |
+| Code Fixer | `code_fixer.py` | Import chain analysis, fix templates, git blame |
+| Recovery | `recovery.py` | Risk-rated recovery plan generation |
+| Environment | `env_diagnostics.py` | Python, Docker, resources, config validation |
+| State Introspector | `state_introspector.py` | State file analysis and corruption detection |
+| System Diagnostics | `system_diagnostics.py` | Disk, ports, worktrees, Docker health |
+
+### Known Failure Patterns
+
+The knowledge base includes patterns for:
+- Import errors (missing module, circular import)
+- Git conflicts (merge failure, detached HEAD)
+- Docker issues (image not found, container crash)
+- API failures (rate limit, authentication)
+- Resource exhaustion (disk full, port in use)
+- Configuration errors (invalid YAML, missing required field)
 
 ---
 
@@ -955,10 +1216,12 @@ project/
 |       +-- harness.py       # E2E test harness
 |       +-- mock_worker.py   # Simulated worker
 |
-+-- zerg/                    # Source code (80+ modules)
-    +-- commands/            # 20 CLI command implementations
-    +-- diagnostics/         # Debug investigation engine
-    +-- performance/         # Analysis tool adapters
++-- zerg/                    # Source code (90+ modules)
+    +-- commands/            # 24 CLI command implementations
+    +-- data/commands/       # 55+ slash command spec files
+    +-- diagnostics/         # Debug investigation engine (12 modules)
+    +-- performance/         # Analysis tool adapters (7 modules)
+    +-- performance/adapters/  # Tool-specific adapters (13 adapters)
     +-- schemas/             # JSON schema definitions
     +-- plugins.py           # Plugin ABCs + registry
     +-- orchestrator.py      # Core orchestration
@@ -1022,9 +1285,10 @@ ZERG enables rapid parallel development through:
 2. **Exclusive file ownership** — No merge conflicts possible within levels
 3. **Level-based dependencies** — Proper sequencing guaranteed
 4. **Context engineering** — 30-50% token reduction per worker via command splitting, security rule filtering, and task-scoped context
-5. **Resilient zerglings** — Circuit breakers, backpressure, retry with backoff
-6. **Quality gates** — Automated verification at every stage
-7. **Deep diagnostics** — Bayesian hypothesis testing, cross-worker log correlation
-8. **Plugin extensibility** — Custom gates, hooks, and launchers
-9. **Claude Code Task backbone** — Authoritative coordination across parallel instances
-10. **Security by design** — Auto-fetched OWASP/language/Docker rules, environment filtering, pre-commit hooks
+5. **Cross-cutting capabilities** — 8 capabilities (depth tiers, modes, MCP routing, loops, TDD, etc.) controlling worker behavior
+6. **Resilient zerglings** — Circuit breakers, backpressure, retry with backoff, heartbeat monitoring
+7. **Quality gates** — Automated verification at every stage with improvement loops
+8. **Deep diagnostics** — Bayesian hypothesis testing, cross-worker log correlation, recovery planning
+9. **Plugin extensibility** — Custom gates, hooks, launchers, and context plugins
+10. **Claude Code Task backbone** — Authoritative coordination across parallel instances
+11. **Security by design** — Auto-fetched OWASP/language/Docker rules, environment filtering, pre-commit hooks
