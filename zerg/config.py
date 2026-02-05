@@ -31,8 +31,10 @@ __all__ = [
     "RushConfig",
 ]
 
+import logging
+import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, Field
@@ -49,6 +51,8 @@ from zerg.constants import (
 from zerg.git.config import GitConfig
 from zerg.launcher import LauncherType
 from zerg.plugin_config import PluginsConfig
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectConfig(BaseModel):
@@ -397,6 +401,12 @@ class RushConfig(BaseModel):
 class ZergConfig(BaseModel):
     """Complete ZERG configuration."""
 
+    # Class-level cache for singleton pattern with mtime invalidation
+    _cached_instance: ClassVar["ZergConfig | None"] = None
+    _cache_mtime: ClassVar[float | None] = None
+    _cache_path: ClassVar[Path | None] = None
+    _cache_lock: ClassVar[threading.Lock] = threading.Lock()
+
     project: ProjectConfig = Field(default_factory=ProjectConfig)
     workers: WorkersConfig = Field(default_factory=WorkersConfig)
     ports: PortsConfig = Field(default_factory=PortsConfig)
@@ -425,24 +435,68 @@ class ZergConfig(BaseModel):
     rush: RushConfig = Field(default_factory=RushConfig)
 
     @classmethod
-    def load(cls, config_path: str | Path | None = None) -> "ZergConfig":
-        """Load configuration from YAML file.
+    def load(cls, config_path: str | Path | None = None, force_reload: bool = False) -> "ZergConfig":
+        """Load configuration from YAML file with mtime-based caching.
+
+        Uses a singleton pattern with mtime-based invalidation for performance.
+        The cached instance is returned if the file hasn't been modified since
+        the last load.
 
         Args:
             config_path: Path to config file. Defaults to .zerg/config.yaml
+            force_reload: Bypass cache and force reload from disk
 
         Returns:
-            ZergConfig instance
+            ZergConfig instance (cached if valid)
         """
         config_path = Path(".zerg/config.yaml") if config_path is None else Path(config_path)
 
-        if not config_path.exists():
-            return cls()
+        with cls._cache_lock:
+            # Check cache validity
+            if not force_reload and cls._cached_instance is not None:
+                if cls._cache_path == config_path:
+                    try:
+                        current_mtime = config_path.stat().st_mtime
+                        if current_mtime == cls._cache_mtime:
+                            logger.debug("Cache hit for ZergConfig")
+                            return cls._cached_instance
+                    except FileNotFoundError:
+                        # File was deleted - cache still valid for non-existent file
+                        if cls._cache_mtime is None:
+                            logger.debug("Cache hit for ZergConfig (no file)")
+                            return cls._cached_instance
 
-        with open(config_path) as f:
-            data = yaml.safe_load(f) or {}
+            # Cache miss or invalid
+            logger.debug("Cache miss for ZergConfig, loading from %s", config_path)
 
-        return cls.from_dict(data)
+            if not config_path.exists():
+                instance = cls()
+                current_mtime = None
+            else:
+                with open(config_path) as f:
+                    data = yaml.safe_load(f) or {}
+                instance = cls.from_dict(data)
+                current_mtime = config_path.stat().st_mtime
+
+            # Update cache
+            cls._cached_instance = instance
+            cls._cache_path = config_path
+            cls._cache_mtime = current_mtime
+
+            return instance
+
+    @classmethod
+    def invalidate_cache(cls) -> None:
+        """Invalidate the cached config instance.
+
+        Call this method when you know the config file has changed and want to
+        force a reload on the next load() call.
+        """
+        with cls._cache_lock:
+            cls._cached_instance = None
+            cls._cache_mtime = None
+            cls._cache_path = None
+            logger.debug("Invalidating cache for ZergConfig")
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ZergConfig":
