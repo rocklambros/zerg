@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -245,7 +245,7 @@ class TestHypothesisTestRunner:
         return ScoredHypothesis(**defaults)
 
     def test_can_test_safe_command(self, runner):
-        h = self._make_hypothesis(test_command="python -c 'print(1)'")
+        h = self._make_hypothesis(test_command="echo 'test'")
         assert runner.can_test(h) is True
 
     def test_can_test_unsafe_command(self, runner):
@@ -260,40 +260,44 @@ class TestHypothesisTestRunner:
         h = self._make_hypothesis(test_command="git status")
         assert runner.can_test(h) is True
 
-    @patch("zerg.diagnostics.hypothesis_engine.subprocess.run")
-    def test_test_success(self, mock_run, runner):
-        mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
-        h = self._make_hypothesis(test_command="python -c 'print(1)'")
+    def test_test_success(self, runner):
+        """Test that successful command boosts posterior probability."""
+        # Use a real allowlisted command that succeeds
+        h = self._make_hypothesis(test_command="echo 'test'")
         original_posterior = h.posterior_probability
 
         result = runner.test(h)
 
         assert result.test_result == "PASSED"
         assert result.posterior_probability > original_posterior
-        mock_run.assert_called_once()
 
-    @patch("zerg.diagnostics.hypothesis_engine.subprocess.run")
-    def test_test_failure(self, mock_run, runner):
-        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
-        h = self._make_hypothesis(test_command="python -c 'raise Exception()'")
+    def test_test_failure(self, runner):
+        """Test that failing command reduces posterior probability."""
+        # Use a real allowlisted command that fails (false always exits 1)
+        h = self._make_hypothesis(test_command="false")
         original_posterior = h.posterior_probability
 
         result = runner.test(h)
 
         assert result.test_result == "FAILED"
         assert result.posterior_probability < original_posterior
-        mock_run.assert_called_once()
 
-    @patch("zerg.diagnostics.hypothesis_engine.subprocess.run")
-    def test_test_timeout(self, mock_run, runner):
-        mock_run.side_effect = subprocess.TimeoutExpired(cmd="python", timeout=30)
-        h = self._make_hypothesis(test_command="python -c 'import time; time.sleep(999)'")
+    def test_test_timeout(self, runner):
+        """Test that timeout is handled gracefully.
 
-        result = runner.test(h)
+        The HypothesisTestRunner now uses CommandExecutor which handles
+        timeouts internally and returns a failed result rather than raising.
+        """
+        # Patch the executor's execute method to simulate timeout
+        with patch.object(runner._executor, "execute") as mock_execute:
+            mock_execute.side_effect = subprocess.TimeoutExpired(cmd="echo", timeout=30)
+            h = self._make_hypothesis(test_command="echo 'test'")
 
-        assert result.test_result is not None
-        assert "ERROR" in result.test_result
-        mock_run.assert_called_once()
+            result = runner.test(h)
+
+            assert result.test_result is not None
+            assert "ERROR" in result.test_result or "timeout" in result.test_result.lower()
+            mock_execute.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -357,12 +361,11 @@ class TestHypothesisEngine:
             assert isinstance(h, ScoredHypothesis)
             assert 0.01 <= h.posterior_probability <= 0.99
 
-    @patch("zerg.diagnostics.hypothesis_engine.subprocess.run")
-    def test_auto_test_mocked(self, mock_run, engine, sample_fingerprint, sample_evidence):
-        mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
+    def test_auto_test_mocked(self, engine, sample_fingerprint, sample_evidence):
+        """Test auto_test runs testable hypotheses."""
         hypotheses = engine.analyze(sample_fingerprint, sample_evidence)
-        # Give one a test command so auto_test exercises subprocess
-        hypotheses[0].test_command = "python -c 'print(1)'"
+        # Give one a test command so auto_test exercises the runner
+        hypotheses[0].test_command = "echo 'test'"
 
         result = engine.auto_test(hypotheses)
 
