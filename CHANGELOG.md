@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Security**: Remove dangerous command prefixes (`python -c`, `python3 -c`, `npx`) from CommandExecutor allowlist (#135)
+- **Security**: Migrate `HypothesisTestRunner`, `StepExecutor`, `RecoveryPlanner` to use `CommandExecutor` instead of direct `subprocess.run(shell=True)` calls (CWE-78, #131)
+- **Security**: Add path traversal prevention in `run_security_scan()` with explicit `followlinks=False` and boundary validation (CWE-22, #142)
+
 ### Changed
 
 - Task mode is now the default for `/zerg:rush` — container mode requires explicit `--mode container`
