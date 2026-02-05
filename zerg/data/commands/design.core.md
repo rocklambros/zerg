@@ -27,6 +27,61 @@ if ! grep -q "Status.*APPROVED" "$SPEC_DIR/requirements.md" 2>/dev/null; then
 fi
 ```
 
+## Phase 0: Pre-Execution Validation
+
+Before proceeding, validate this design is still needed:
+
+1. **Read Requirements**
+   - Load `.gsd/specs/$FEATURE/requirements.md`
+   - Extract key objectives and target files
+
+2. **Check Recent Commits**
+   ```bash
+   git log --oneline -20
+   ```
+   - Compare commit messages against requirements objectives
+
+3. **Check Open PRs**
+   ```bash
+   gh pr list --state open
+   ```
+   - Check for PRs implementing similar features
+
+4. **Grep Targets**
+   - For each file in requirements' "Files to Create/Modify":
+     ```bash
+     ls {target_file} 2>/dev/null && echo "EXISTS: {target_file}"
+     ```
+   - For key function/class names mentioned:
+     ```bash
+     grep -r "{identifier}" zerg/ tests/ --include="*.py" -l | head -5
+     ```
+
+5. **Validation Decision**
+   IF requirements.md missing:
+     ERROR: Run /z:plan first
+
+   IF target files already exist OR key identifiers found:
+     STOP and present:
+     ```
+     ⚠️  VALIDATION WARNING
+
+     Potential conflict detected:
+     - [Commits/PRs/Code/Files] matching feature found
+
+     Options:
+     1. Update plan - Revise spec to account for existing work
+     2. Archive - Move to .gsd/specs/_archived/
+     3. Proceed anyway - Override and continue
+     ```
+
+     Use AskUserQuestion to get user decision.
+
+   IF validation passes:
+     Continue to Load Context.
+
+---
+
 ## Load Context
 
 Read thoroughly:
