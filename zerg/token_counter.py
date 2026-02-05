@@ -5,7 +5,9 @@ import json
 import logging
 import os
 import tempfile
+import threading
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +27,8 @@ class TokenResult:
 class TokenCounter:
     """Count tokens with caching and heuristic/API modes."""
 
+    MAX_CACHE_ENTRIES = 10000  # LRU limit
+
     _warned_no_anthropic: bool = False
 
     def __init__(self, config: TokenMetricsConfig | None = None) -> None:
@@ -38,6 +42,12 @@ class TokenCounter:
                 self._config = TokenMetricsConfig()
 
         self._cache_path = Path(STATE_DIR) / "token-cache.json"
+        self._cache: OrderedDict[str, dict] = OrderedDict()
+        self._cache_lock = threading.Lock()
+        self._cache_dirty = False
+
+        # Load existing cache file into memory
+        self._load_cache_from_file()
 
     def count(self, text: str) -> TokenResult:
         """Count tokens in text. Never raises exceptions."""
@@ -109,16 +119,28 @@ class TokenCounter:
         """Estimate token count from character length."""
         return max(1, round(len(text) / self._config.fallback_chars_per_token))
 
-    def _cache_lookup(self, text_hash: str) -> TokenResult | None:
-        """Look up a cached token count by hash."""
+    def _load_cache_from_file(self) -> None:
+        """Load cache from disk into memory on init."""
         try:
-            if not self._cache_path.exists():
-                return None
+            if self._cache_path.exists():
+                with open(self._cache_path) as f:
+                    data = json.loads(f.read())
+                    # Convert to OrderedDict for LRU
+                    count = 0
+                    for k, v in data.items():
+                        self._cache[k] = v
+                        count += 1
+                        # Evict if over limit during load
+                        if count >= self.MAX_CACHE_ENTRIES:
+                            break
+                logger.debug("Loaded %d entries from token cache file", count)
+        except Exception:
+            logger.debug("Failed to load token cache from file")
 
-            with open(self._cache_path) as f:
-                cache = json.loads(f.read())
-
-            entry = cache.get(text_hash)
+    def _cache_lookup(self, text_hash: str) -> TokenResult | None:
+        """O(1) in-memory lookup."""
+        with self._cache_lock:
+            entry = self._cache.get(text_hash)
             if entry is None:
                 return None
 
@@ -126,48 +148,60 @@ class TokenCounter:
             if age > self._config.cache_ttl_seconds:
                 return None
 
+            # Move to end for LRU
+            self._cache.move_to_end(text_hash)
+            logger.debug("Cache hit for token hash %s", text_hash[:12])
+
             return TokenResult(
                 count=entry["count"],
                 mode=entry["mode"],
                 source="cache",
             )
-        except Exception:
-            logger.debug("Cache lookup failed for hash %s", text_hash[:12])
-            return None
 
     def _cache_store(self, text_hash: str, result: TokenResult) -> None:
-        """Store a token count result in the cache file."""
-        try:
-            self._cache_path.parent.mkdir(parents=True, exist_ok=True)
-
-            cache: dict = {}
-            if self._cache_path.exists():
-                try:
-                    with open(self._cache_path) as f:
-                        cache = json.loads(f.read())
-                except Exception:
-                    cache = {}
-
-            cache[text_hash] = {
+        """Store in memory with LRU eviction, persist periodically."""
+        with self._cache_lock:
+            self._cache[text_hash] = {
                 "count": result.count,
                 "mode": result.mode,
                 "timestamp": time.time(),
             }
+            self._cache.move_to_end(text_hash)
 
-            data = json.dumps(cache)
-            dir_path = self._cache_path.parent
+            # LRU eviction
+            while len(self._cache) > self.MAX_CACHE_ENTRIES:
+                oldest_key, _ = self._cache.popitem(last=False)
+                logger.debug("Evicting token cache entry %s", oldest_key[:12])
 
-            fd, tmp_path = tempfile.mkstemp(dir=str(dir_path), suffix=".tmp")
+            self._cache_dirty = True
+            logger.debug("Cache miss for token hash %s, stored", text_hash[:12])
+
+        # Persist to file (atomic write)
+        self._persist_cache()
+
+    def _persist_cache(self) -> None:
+        """Atomically persist cache to file."""
+        with self._cache_lock:
+            if not self._cache_dirty:
+                return
+
+            self._cache_path.parent.mkdir(parents=True, exist_ok=True)
+            data = json.dumps(dict(self._cache))
+
+        # Write outside lock to minimize contention
+        try:
+            fd, tmp_path = tempfile.mkstemp(dir=str(self._cache_path.parent), suffix=".tmp")
             try:
                 with os.fdopen(fd, "w") as f:
                     f.write(data)
                 os.replace(tmp_path, str(self._cache_path))
+                with self._cache_lock:
+                    self._cache_dirty = False
             except Exception:
-                # Clean up temp file on failure
                 try:
                     os.unlink(tmp_path)
                 except OSError:
                     pass
                 raise
         except Exception:
-            logger.debug("Cache store failed for hash %s", text_hash[:12])
+            logger.debug("Failed to persist token cache to file")
