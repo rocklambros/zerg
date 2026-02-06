@@ -573,11 +573,11 @@ class TestStartAsync:
             orch._worker_manager.spawn_workers = MagicMock(return_value=2)
             orch._worker_manager.wait_for_initialization = MagicMock(return_value=True)
             orch._start_level = MagicMock()
-            orch._main_loop_async = AsyncMock()
+            orch._main_loop_as_async = AsyncMock()
 
             asyncio.run(orch.start_async("fake.json", worker_count=5))
 
-            orch._main_loop_async.assert_awaited_once()
+            orch._main_loop_as_async.assert_awaited_once()
         finally:
             _stop_patches(patches)
 
@@ -605,7 +605,7 @@ class TestStartAsync:
             orch._worker_manager.spawn_workers = MagicMock(return_value=2)
             orch._worker_manager.wait_for_initialization = MagicMock(return_value=True)
             orch._start_level = MagicMock()
-            orch._main_loop_async = AsyncMock()
+            orch._main_loop_as_async = AsyncMock()
 
             asyncio.run(orch.start_async("fake.json", worker_count=2, start_level=2))
 
@@ -680,19 +680,19 @@ class TestStopAsync:
 
 
 # ===========================================================================
-# Lines 808-875: _main_loop_async
+# Lines 808-875: _main_loop_as_async
 # ===========================================================================
 
 
 class TestMainLoopAsync:
-    """Cover lines 808-875: async main loop branches."""
+    """Cover unified _main_loop branches (formerly separate async version)."""
 
-    def test_main_loop_async_all_complete(self, tmp_path):
+    def test_main_loop_all_complete(self, tmp_path):
         """Loop exits when all tasks are complete."""
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             orch._running = True
-            orch._poll_workers_async = AsyncMock()
+            orch._poll_workers = MagicMock()
             orch._check_retry_ready_tasks = MagicMock()
 
             levels = mocks["levels_cls"].return_value
@@ -703,18 +703,18 @@ class TestMainLoopAsync:
 
             orch._on_level_complete_handler = MagicMock(return_value=True)
 
-            asyncio.run(orch._main_loop_async())
+            orch._main_loop(sleep_fn=lambda _: None)
 
             assert orch._running is False
         finally:
             _stop_patches(patches)
 
-    def test_main_loop_async_merge_fail_continues(self, tmp_path):
-        """Merge failure in async loop continues."""
+    def test_main_loop_merge_fail_continues(self, tmp_path):
+        """Merge failure in loop continues."""
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             orch._running = True
-            orch._poll_workers_async = AsyncMock()
+            orch._poll_workers = MagicMock()
             orch._check_retry_ready_tasks = MagicMock()
 
             levels = mocks["levels_cls"].return_value
@@ -736,25 +736,24 @@ class TestMainLoopAsync:
 
             iteration = 0
 
-            async def fake_sleep(t):
+            def fake_sleep(t):
                 nonlocal iteration
                 iteration += 1
                 if iteration >= 2:
                     orch._running = False
 
-            with patch("asyncio.sleep", side_effect=fake_sleep):
-                asyncio.run(orch._main_loop_async())
+            orch._main_loop(sleep_fn=fake_sleep)
 
             assert call_count == 1
         finally:
             _stop_patches(patches)
 
-    def test_main_loop_async_advances_level(self, tmp_path):
-        """Async loop advances to next level after merge success."""
+    def test_main_loop_advances_level(self, tmp_path):
+        """Loop advances to next level after merge success."""
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             orch._running = True
-            orch._poll_workers_async = AsyncMock()
+            orch._poll_workers = MagicMock()
             orch._check_retry_ready_tasks = MagicMock()
 
             levels = mocks["levels_cls"].return_value
@@ -774,26 +773,25 @@ class TestMainLoopAsync:
 
             iteration = 0
 
-            async def fake_sleep(t):
+            def fake_sleep(t):
                 nonlocal iteration
                 iteration += 1
                 if iteration >= 1:
                     orch._running = False
 
-            with patch("asyncio.sleep", side_effect=fake_sleep):
-                asyncio.run(orch._main_loop_async())
+            orch._main_loop(sleep_fn=fake_sleep)
 
             orch._start_level.assert_called_with(2)
             orch._respawn_workers_for_level.assert_called_with(2)
         finally:
             _stop_patches(patches)
 
-    def test_main_loop_async_respawn_workers(self, tmp_path):
-        """Async loop auto-respawns workers when all exited but tasks remain."""
+    def test_main_loop_respawn_workers(self, tmp_path):
+        """Loop auto-respawns workers when all exited but tasks remain."""
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             orch._running = True
-            orch._poll_workers_async = AsyncMock()
+            orch._poll_workers = MagicMock()
             orch._check_retry_ready_tasks = MagicMock()
 
             levels = mocks["levels_cls"].return_value
@@ -802,60 +800,57 @@ class TestMainLoopAsync:
             levels.get_pending_tasks_for_level.return_value = ["T1"]
 
             orch._workers[0] = WorkerState(worker_id=0, status=WorkerStatus.STOPPED)
-            # The code now calls _auto_respawn_workers instead of _respawn_workers_for_level
             orch._auto_respawn_workers = MagicMock()
 
             iteration = 0
 
-            async def fake_sleep(t):
+            def fake_sleep(t):
                 nonlocal iteration
                 iteration += 1
                 if iteration >= 1:
                     orch._running = False
 
-            with patch("asyncio.sleep", side_effect=fake_sleep):
-                asyncio.run(orch._main_loop_async())
+            orch._main_loop(sleep_fn=fake_sleep)
 
-            # _auto_respawn_workers is called with (level, remaining_task_count)
             orch._auto_respawn_workers.assert_called_with(1, 1)
         finally:
             _stop_patches(patches)
 
-    def test_main_loop_async_keyboard_interrupt(self, tmp_path):
-        """Async loop handles KeyboardInterrupt."""
+    def test_main_loop_keyboard_interrupt(self, tmp_path):
+        """Loop handles KeyboardInterrupt."""
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             orch._running = True
-            orch._poll_workers_async = AsyncMock(side_effect=KeyboardInterrupt)
-            orch.stop_async = AsyncMock()
+            orch._poll_workers = MagicMock(side_effect=KeyboardInterrupt)
+            orch.stop = MagicMock()
 
-            asyncio.run(orch._main_loop_async())
+            orch._main_loop(sleep_fn=lambda _: None)
 
-            orch.stop_async.assert_awaited_once()
+            orch.stop.assert_called_once()
         finally:
             _stop_patches(patches)
 
-    def test_main_loop_async_exception_stops(self, tmp_path):
-        """Async loop handles generic exception by stopping."""
+    def test_main_loop_exception_stops(self, tmp_path):
+        """Loop handles generic exception by stopping."""
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             orch._running = True
-            orch._poll_workers_async = AsyncMock(side_effect=ValueError("bad"))
-            orch.stop_async = AsyncMock()
+            orch._poll_workers = MagicMock(side_effect=ValueError("bad"))
+            orch.stop = MagicMock()
 
             sm = mocks["state_cls"].return_value
 
             with pytest.raises(ValueError, match="bad"):
-                asyncio.run(orch._main_loop_async())
+                orch._main_loop(sleep_fn=lambda _: None)
 
             sm.set_error.assert_called_once()
-            orch.stop_async.assert_awaited_once_with(force=True)
+            orch.stop.assert_called_once_with(force=True)
         finally:
             _stop_patches(patches)
 
 
 # ===========================================================================
-# Lines 882-909: _poll_workers_async
+# Lines 882-909: _poll_workers (unified sync)
 # ===========================================================================
 
 
@@ -885,7 +880,7 @@ class TestPollWorkersAsync:
             orch._handle_worker_crash = MagicMock()
             orch._handle_worker_exit = MagicMock()
 
-            asyncio.run(orch._poll_workers_async())
+            orch._poll_workers()
 
             assert worker.status == WorkerStatus.CRASHED
             sm.set_worker_state.assert_called()
@@ -917,7 +912,7 @@ class TestPollWorkersAsync:
             orch._handle_task_failure = MagicMock()
             orch._handle_worker_exit = MagicMock()
 
-            asyncio.run(orch._poll_workers_async())
+            orch._poll_workers()
 
             assert worker.status == WorkerStatus.CRASHED
             # _handle_task_failure should NOT be called when no current_task
@@ -947,7 +942,7 @@ class TestPollWorkersAsync:
             orch.task_sync = MagicMock()
             orch._handle_worker_exit = MagicMock()
 
-            asyncio.run(orch._poll_workers_async())
+            orch._poll_workers()
 
             assert worker.status == WorkerStatus.CHECKPOINTING
             orch._handle_worker_exit.assert_called_once_with(0)
@@ -975,7 +970,7 @@ class TestPollWorkersAsync:
             orch.task_sync = MagicMock()
             orch._handle_worker_exit = MagicMock()
 
-            asyncio.run(orch._poll_workers_async())
+            orch._poll_workers()
 
             assert worker.status == WorkerStatus.STOPPED
             orch._handle_worker_exit.assert_called_once_with(0)
@@ -1001,7 +996,7 @@ class TestPollWorkersAsync:
             orch._check_container_health = MagicMock()
             orch.task_sync = MagicMock()
 
-            asyncio.run(orch._poll_workers_async())
+            orch._poll_workers()
 
             launcher.monitor.assert_not_called()
         finally:
