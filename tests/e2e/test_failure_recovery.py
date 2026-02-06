@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import SpawnResult
+from zerg.launcher_types import SpawnResult
 from zerg.orchestrator import Orchestrator
 
 

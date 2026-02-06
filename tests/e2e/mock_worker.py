@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from zerg.worker_protocol import ClaudeInvocationResult
+from zerg.protocol_types import ClaudeInvocationResult
 
 
 class MockWorker:

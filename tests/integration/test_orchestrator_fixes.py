@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import SubprocessLauncher
+from zerg.launchers import SubprocessLauncher
 
 
 class TestWorkerLifecycleEndToEnd:

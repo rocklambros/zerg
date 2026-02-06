@@ -17,18 +17,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import (
-    ALLOWED_ENV_VARS,
-    DANGEROUS_ENV_VARS,
-    ContainerLauncher,
-    LauncherConfig,
-    LauncherType,
-    SpawnResult,
-    SubprocessLauncher,
-    WorkerHandle,
-    get_plugin_launcher,
-    validate_env_vars,
-)
+from zerg.env_validator import ALLOWED_ENV_VARS, DANGEROUS_ENV_VARS, validate_env_vars
+from zerg.launcher_types import LauncherConfig, LauncherType, SpawnResult, WorkerHandle
+from zerg.launchers import ContainerLauncher, SubprocessLauncher, get_plugin_launcher
 
 # =============================================================================
 # validate_env_vars Tests
@@ -996,7 +987,7 @@ class TestContainerLauncherSpawn:
 
     @patch("subprocess.run")
     @patch.object(ContainerLauncher, "_verify_worker_process")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_run_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_success(
@@ -1086,7 +1077,7 @@ class TestContainerLauncherSpawn:
         mock_start.assert_not_called()
 
     @patch("subprocess.run")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_run_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test-key"})
@@ -1117,7 +1108,7 @@ class TestContainerLauncherSpawn:
         assert "ANTHROPIC_API_KEY" in call_env
 
     @patch("subprocess.run")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_run_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_with_config_env_vars(
@@ -1148,7 +1139,7 @@ class TestContainerLauncherSpawn:
         assert call_env.get("ZERG_DEBUG") == "true"
 
     @patch("subprocess.run")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_run_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_with_additional_env(
@@ -1302,36 +1293,36 @@ class TestContainerLauncherWaitReady:
 
 
 class TestContainerLauncherExecWorkerEntry:
-    """Tests for ContainerLauncher._exec_worker_entry method."""
+    """Tests for ContainerLauncher._run_worker_entry method."""
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_success(self, mock_run: MagicMock) -> None:
+    def test_run_worker_entry_success(self, mock_run: MagicMock) -> None:
         """Test successful exec of worker entry script."""
         mock_run.return_value = MagicMock(returncode=0)
 
         launcher = ContainerLauncher()
-        result = launcher._exec_worker_entry("container-abc")
+        result = launcher._run_worker_entry("container-abc")
 
         assert result is True
         mock_run.assert_called_once()
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_failure(self, mock_run: MagicMock) -> None:
+    def test_run_worker_entry_failure(self, mock_run: MagicMock) -> None:
         """Test failed exec of worker entry script."""
         mock_run.return_value = MagicMock(returncode=1)
 
         launcher = ContainerLauncher()
-        result = launcher._exec_worker_entry("container-abc")
+        result = launcher._run_worker_entry("container-abc")
 
         assert result is False
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_exception(self, mock_run: MagicMock) -> None:
+    def test_run_worker_entry_exception(self, mock_run: MagicMock) -> None:
         """Test exec worker entry handles exceptions."""
         mock_run.side_effect = Exception("Docker exec error")
 
         launcher = ContainerLauncher()
-        result = launcher._exec_worker_entry("container-abc")
+        result = launcher._run_worker_entry("container-abc")
 
         assert result is False
 
@@ -1902,7 +1893,7 @@ class TestSpawnWithRetry:
     """Tests for spawn_with_retry method with exponential backoff."""
 
     @patch.object(SubprocessLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_spawn_with_retry_success_first_attempt(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -1927,7 +1918,7 @@ class TestSpawnWithRetry:
         mock_sleep.assert_not_called()  # No retry delay needed
 
     @patch.object(SubprocessLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_spawn_with_retry_success_after_failures(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -1960,7 +1951,7 @@ class TestSpawnWithRetry:
         assert mock_sleep.call_count == 2  # Sleep between retry 1->2 and 2->3
 
     @patch.object(SubprocessLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_spawn_with_retry_all_attempts_fail(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -1983,7 +1974,7 @@ class TestSpawnWithRetry:
         assert mock_sleep.call_count == 2  # Sleep between attempts
 
     @patch.object(SubprocessLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_spawn_with_retry_respects_max_attempts(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -2003,7 +1994,7 @@ class TestSpawnWithRetry:
         assert mock_spawn.call_count == 5
 
     @patch.object(SubprocessLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_spawn_with_retry_no_retries_when_max_attempts_is_one(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -2024,7 +2015,7 @@ class TestSpawnWithRetry:
         mock_sleep.assert_not_called()
 
     @patch.object(SubprocessLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_spawn_with_retry_exponential_backoff(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -2055,7 +2046,7 @@ class TestSpawnWithRetry:
         assert delays[0] < delays[1] < delays[2]
 
     @patch.object(SubprocessLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_spawn_with_retry_passes_env_to_spawn(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -2087,7 +2078,7 @@ class TestSpawnWithRetryAsync:
 
     @pytest.mark.asyncio
     @patch.object(SubprocessLauncher, "spawn_async")
-    @patch("zerg.launcher.asyncio.sleep")
+    @patch("zerg.launchers.base.asyncio.sleep")
     async def test_spawn_with_retry_async_success_first_attempt(
         self, mock_sleep: MagicMock, mock_spawn_async: MagicMock, tmp_path: Path
     ) -> None:
@@ -2112,7 +2103,7 @@ class TestSpawnWithRetryAsync:
 
     @pytest.mark.asyncio
     @patch.object(SubprocessLauncher, "spawn_async")
-    @patch("zerg.launcher.asyncio.sleep")
+    @patch("zerg.launchers.base.asyncio.sleep")
     async def test_spawn_with_retry_async_retries_on_failure(
         self, mock_sleep: MagicMock, mock_spawn_async: MagicMock, tmp_path: Path
     ) -> None:
@@ -2143,7 +2134,7 @@ class TestSpawnWithRetryAsync:
 
     @pytest.mark.asyncio
     @patch.object(SubprocessLauncher, "spawn_async")
-    @patch("zerg.launcher.asyncio.sleep")
+    @patch("zerg.launchers.base.asyncio.sleep")
     async def test_spawn_with_retry_async_all_attempts_fail(
         self, mock_sleep: MagicMock, mock_spawn_async: MagicMock, tmp_path: Path
     ) -> None:
@@ -2169,7 +2160,7 @@ class TestContainerLauncherSpawnWithRetry:
     """Tests for spawn_with_retry in ContainerLauncher."""
 
     @patch.object(ContainerLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_container_spawn_with_retry_success(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:
@@ -2197,7 +2188,7 @@ class TestContainerLauncherSpawnWithRetry:
         mock_spawn.assert_called_once()
 
     @patch.object(ContainerLauncher, "spawn")
-    @patch("zerg.launcher.time.sleep")
+    @patch("zerg.launchers.base.time.sleep")
     def test_container_spawn_with_retry_recovers_from_docker_error(
         self, mock_sleep: MagicMock, mock_spawn: MagicMock, tmp_path: Path
     ) -> None:

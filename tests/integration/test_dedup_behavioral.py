@@ -24,7 +24,7 @@ import pytest
 
 from tests.mocks import MockContainerLauncher
 from zerg.constants import TaskStatus, WorkerStatus
-from zerg.launcher import SpawnResult
+from zerg.launcher_types import SpawnResult
 from zerg.orchestrator import Orchestrator
 
 # =============================================================================
@@ -351,7 +351,7 @@ class TestWorkerProtocolClaimIntegration:
 
     def test_claim_next_task_sync_delegates_to_async(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Sync claim_next_task must delegate to async version via asyncio.run."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         # WorkerProtocol reads worktree_path and branch from env
         monkeypatch.setenv("ZERG_WORKTREE", "/tmp/worktree")
@@ -359,13 +359,13 @@ class TestWorkerProtocolClaimIntegration:
 
         # Create protocol with mocked dependencies
         with (
-            patch("zerg.worker_protocol.StateManager") as state_cls,
-            patch("zerg.worker_protocol.TaskParser") as parser_cls,
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.SpecLoader"),
-            patch("zerg.worker_protocol.DependencyChecker") as dep_cls,
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=None),
+            patch("zerg.protocol_state.StateManager") as state_cls,
+            patch("zerg.protocol_state.TaskParser") as parser_cls,
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.SpecLoader"),
+            patch("zerg.protocol_state.DependencyChecker") as dep_cls,
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.setup_structured_logging", return_value=None),
         ):
             state_mock = MagicMock()
             state_mock.load.return_value = {}
@@ -402,19 +402,19 @@ class TestWorkerProtocolClaimIntegration:
 
     def test_wait_for_ready_sync_delegates_to_async(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Sync wait_for_ready must delegate to async version."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         monkeypatch.setenv("ZERG_WORKTREE", "/tmp/worktree")
         monkeypatch.setenv("ZERG_BRANCH", "test-branch")
 
         with (
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.TaskParser"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.SpecLoader"),
-            patch("zerg.worker_protocol.DependencyChecker"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=None),
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.TaskParser"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.SpecLoader"),
+            patch("zerg.protocol_state.DependencyChecker"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.setup_structured_logging", return_value=None),
         ):
             protocol = WorkerProtocol(
                 worker_id=0,
@@ -430,19 +430,19 @@ class TestWorkerProtocolClaimIntegration:
 
     def test_wait_for_ready_sync_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Sync wait_for_ready returns False on timeout."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         monkeypatch.setenv("ZERG_WORKTREE", "/tmp/worktree")
         monkeypatch.setenv("ZERG_BRANCH", "test-branch")
 
         with (
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.TaskParser"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.SpecLoader"),
-            patch("zerg.worker_protocol.DependencyChecker"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=None),
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.TaskParser"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.SpecLoader"),
+            patch("zerg.protocol_state.DependencyChecker"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.setup_structured_logging", return_value=None),
         ):
             protocol = WorkerProtocol(
                 worker_id=0,
@@ -669,7 +669,12 @@ class TestMainLoopLevelTransitions:
     def test_main_loop_calls_poll_workers_with_all_features(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """_poll_workers within _main_loop includes escalation, progress, and stall detection."""
+        """_poll_workers within _main_loop includes escalation, progress, and stall detection.
+
+        After the god-class refactor, _check_escalations and _aggregate_progress were
+        inlined into _poll_workers. We now verify _poll_workers and _check_stale_tasks
+        are called (stale task check remains a separate method).
+        """
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg" / "state").mkdir(parents=True)
         (tmp_path / ".zerg" / "logs").mkdir(parents=True)
@@ -702,9 +707,7 @@ class TestMainLoopLevelTransitions:
             orch._running = True
             orch._worker_manager.running = True
 
-            # Patch the methods to track calls
-            orch._check_escalations = MagicMock()
-            orch._aggregate_progress = MagicMock()
+            # _check_stale_tasks is still a separate method; patch to track calls
             orch._check_stale_tasks = MagicMock()
 
             # Add a running worker so the auto-respawn logic doesn't trigger
@@ -721,10 +724,11 @@ class TestMainLoopLevelTransitions:
 
             orch._main_loop(sleep_fn=counting_sleep)
 
-            # All three features should have been called from _poll_workers
-            orch._check_escalations.assert_called()
-            orch._aggregate_progress.assert_called()
+            # _check_stale_tasks should have been called from _poll_workers
             orch._check_stale_tasks.assert_called()
+            # Escalation and progress logic are now inline in _poll_workers;
+            # verify state was loaded (proves _poll_workers ran)
+            state_mock.load.assert_called()
 
 
 # =============================================================================
@@ -942,7 +946,7 @@ class TestNoRegressions:
             orch = Orchestrator("test-feature")
 
             # Simulate worker crash with a task
-            orch._handle_worker_crash("TASK-001", worker_id=0)
+            orch._handle_worker_crash("TASK-001", wid=0)
 
             # Should have marked failed first, then pending
             set_calls = state_mock.set_task_status.call_args_list

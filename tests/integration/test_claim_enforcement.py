@@ -195,7 +195,7 @@ class TestWorkerProtocolIntegration:
 
     def test_worker_protocol_creates_dependency_checker(self, tmp_path: Path, monkeypatch) -> None:
         """WorkerProtocol should create DependencyChecker when task parser exists."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         # Create a minimal task graph
         task_graph = {

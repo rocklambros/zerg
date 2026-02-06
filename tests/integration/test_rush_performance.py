@@ -195,7 +195,7 @@ class TestMonitoringOptimizations:
 
     def test_container_launcher_has_monitor_cooldown_constant(self) -> None:
         """Test that ContainerLauncher has MONITOR_COOLDOWN_SECONDS (FR-1)."""
-        from zerg.launcher import ContainerLauncher
+        from zerg.launchers import ContainerLauncher
 
         launcher = ContainerLauncher()
         assert hasattr(launcher, "MONITOR_COOLDOWN_SECONDS")
@@ -203,7 +203,7 @@ class TestMonitoringOptimizations:
 
     def test_subprocess_launcher_has_heartbeat_monitor_property(self) -> None:
         """Test that SubprocessLauncher has heartbeat_monitor singleton (FR-4)."""
-        from zerg.launcher import SubprocessLauncher
+        from zerg.launchers import SubprocessLauncher
 
         # Verify the property exists
         assert hasattr(SubprocessLauncher, "heartbeat_monitor")
@@ -219,7 +219,7 @@ class TestMonitoringOptimizations:
 
     def test_worker_handle_has_health_check_at_field(self) -> None:
         """Test that WorkerHandle has health_check_at field (FR-1)."""
-        from zerg.launcher import WorkerHandle
+        from zerg.launcher_types import WorkerHandle
 
         handle = WorkerHandle(worker_id=0)
 

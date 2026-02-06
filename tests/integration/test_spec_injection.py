@@ -8,8 +8,8 @@ from unittest.mock import patch
 import pytest
 
 from zerg.config import ZergConfig
+from zerg.protocol_state import WorkerProtocol
 from zerg.spec_loader import SpecLoader
-from zerg.worker_protocol import WorkerProtocol
 
 
 class TestSpecInjection:
@@ -148,7 +148,7 @@ class TestSpecInjection:
                 "files": {"create": ["src/auth.py"]},
             }
 
-            prompt = protocol._build_task_prompt(task)
+            prompt = protocol._handler._build_task_prompt(task)
 
             # Verify spec context appears before task
             spec_pos = prompt.find("# Feature Context:")
@@ -198,7 +198,7 @@ class TestSpecInjection:
 
             # Build a task prompt
             task = {"id": "L0-001", "title": "Test task"}
-            prompt = protocol._build_task_prompt(task)
+            prompt = protocol._handler._build_task_prompt(task)
 
             # Prompt should start directly with task
             assert prompt.strip().startswith("# Task:")
@@ -296,7 +296,7 @@ class TestLauncherSpecDirEnv:
 
     def test_subprocess_launcher_sets_spec_dir(self) -> None:
         """Verify SubprocessLauncher includes ZERG_SPEC_DIR in env."""
-        from zerg.launcher import ALLOWED_ENV_VARS
+        from zerg.env_validator import ALLOWED_ENV_VARS
 
         assert "ZERG_SPEC_DIR" in ALLOWED_ENV_VARS
 

@@ -7,8 +7,9 @@ import pytest
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import ContainerLauncher, LauncherType, SubprocessLauncher
 from zerg.launcher_configurator import LauncherConfigurator
+from zerg.launcher_types import LauncherType
+from zerg.launchers import ContainerLauncher, SubprocessLauncher
 from zerg.plugins import PluginRegistry
 from zerg.types import WorkerState
 

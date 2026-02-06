@@ -13,10 +13,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import (
-    ContainerLauncher,
-    WorkerHandle,
-)
+from zerg.launcher_types import WorkerHandle
+from zerg.launchers import ContainerLauncher
 
 
 class TestDockerDaemonNotRunning:
@@ -320,7 +318,7 @@ class TestContainerStartFailureCleanup:
 
     @patch.object(ContainerLauncher, "_cleanup_failed_container")
     @patch.object(ContainerLauncher, "_verify_worker_process")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_run_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_spawn_cleans_up_on_verify_failure(
@@ -624,21 +622,21 @@ class TestVerifyWorkerProcessErrors:
 
 
 class TestExecWorkerEntryErrors:
-    """Tests for _exec_worker_entry error handling."""
+    """Tests for _run_worker_entry error handling."""
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_timeout(self, mock_run: MagicMock) -> None:
-        """Test _exec_worker_entry handles command timeout."""
+    def test_run_worker_entry_timeout(self, mock_run: MagicMock) -> None:
+        """Test _run_worker_entry handles command timeout."""
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="docker exec", timeout=30)
 
         launcher = ContainerLauncher()
-        result = launcher._exec_worker_entry("container-abc123")
+        result = launcher._run_worker_entry("container-abc123")
 
         assert result is False
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_container_not_running(self, mock_run: MagicMock) -> None:
-        """Test _exec_worker_entry fails when container stopped."""
+    def test_run_worker_entry_container_not_running(self, mock_run: MagicMock) -> None:
+        """Test _run_worker_entry fails when container stopped."""
         mock_run.return_value = MagicMock(
             returncode=1,
             stdout="",
@@ -646,13 +644,13 @@ class TestExecWorkerEntryErrors:
         )
 
         launcher = ContainerLauncher()
-        result = launcher._exec_worker_entry("container-abc123")
+        result = launcher._run_worker_entry("container-abc123")
 
         assert result is False
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_script_not_found(self, mock_run: MagicMock) -> None:
-        """Test _exec_worker_entry fails when entry script missing."""
+    def test_run_worker_entry_script_not_found(self, mock_run: MagicMock) -> None:
+        """Test _run_worker_entry fails when entry script missing."""
         mock_run.return_value = MagicMock(
             returncode=126,
             stdout="",
@@ -660,13 +658,13 @@ class TestExecWorkerEntryErrors:
         )
 
         launcher = ContainerLauncher()
-        result = launcher._exec_worker_entry("container-abc123")
+        result = launcher._run_worker_entry("container-abc123")
 
         assert result is False
 
     @patch("subprocess.run")
-    def test_exec_worker_entry_permission_denied(self, mock_run: MagicMock) -> None:
-        """Test _exec_worker_entry fails when script not executable."""
+    def test_run_worker_entry_permission_denied(self, mock_run: MagicMock) -> None:
+        """Test _run_worker_entry fails when script not executable."""
         mock_run.return_value = MagicMock(
             returncode=126,
             stdout="",
@@ -674,7 +672,7 @@ class TestExecWorkerEntryErrors:
         )
 
         launcher = ContainerLauncher()
-        result = launcher._exec_worker_entry("container-abc123")
+        result = launcher._run_worker_entry("container-abc123")
 
         assert result is False
 

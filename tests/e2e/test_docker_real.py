@@ -11,7 +11,7 @@ import pytest
 
 from zerg.constants import WorkerStatus
 from zerg.containers import ContainerManager
-from zerg.launcher import ContainerLauncher
+from zerg.launchers import ContainerLauncher
 
 pytestmark = pytest.mark.docker
 

@@ -12,7 +12,8 @@ from zerg.devcontainer_features import (
     get_post_create_commands,
     should_use_single_image,
 )
-from zerg.launcher import ContainerLauncher, LauncherConfig, LauncherType
+from zerg.launcher_types import LauncherConfig, LauncherType
+from zerg.launchers import ContainerLauncher
 
 
 class TestDevcontainerFeatures:
@@ -242,7 +243,7 @@ class TestContainerLauncher:
     def test_monitor_running(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test monitoring running container."""
         # Setup container - use real WorkerHandle to avoid MagicMock comparison issues
-        from zerg.launcher import WorkerHandle
+        from zerg.launcher_types import WorkerHandle
 
         launcher = ContainerLauncher()
         launcher._workers[0] = WorkerHandle(worker_id=0, container_id="abc123")
@@ -261,7 +262,7 @@ class TestContainerLauncher:
     def test_monitor_exited(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test monitoring exited container."""
         # Setup container
-        from zerg.launcher import WorkerHandle
+        from zerg.launcher_types import WorkerHandle
 
         launcher = ContainerLauncher()
         launcher._workers[0] = WorkerHandle(worker_id=0, container_id="abc123")
@@ -279,7 +280,7 @@ class TestContainerLauncher:
     @patch("subprocess.run")
     def test_terminate(self, mock_run: MagicMock) -> None:
         """Test container termination."""
-        from zerg.launcher import WorkerHandle
+        from zerg.launcher_types import WorkerHandle
 
         launcher = ContainerLauncher()
         launcher._workers[0] = WorkerHandle(worker_id=0, container_id="abc123")
@@ -367,8 +368,8 @@ class TestAutoDetectLauncherMode:
         from unittest.mock import MagicMock
 
         from zerg.config import ZergConfig
-        from zerg.launcher import LauncherType
         from zerg.launcher_configurator import LauncherConfigurator
+        from zerg.launcher_types import LauncherType
         from zerg.plugins import PluginRegistry
 
         # Even with devcontainer present, auto-detect returns SUBPROCESS

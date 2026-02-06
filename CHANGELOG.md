@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Split `launcher.py` (2,010L) into `launchers/` subpackage: `base.py`, `subprocess_launcher.py`, `container_launcher.py`, plus `launcher_types.py` and `env_validator.py` (#132)
+- Split `worker_protocol.py` (1,143L) into flat modules: `protocol_handler.py`, `protocol_state.py`, `protocol_types.py` (#132)
+- Slimmed `orchestrator.py` from 1,344 to 614 lines by inlining thin wrappers and removing delegation boilerplate (#132)
 - Deduplicated sync/async method pairs in launcher, orchestrator, and worker_protocol using callable injection and async-first patterns (~445 lines removed) (#136)
 
 ### Fixed

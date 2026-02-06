@@ -21,8 +21,8 @@ import pytest
 
 from zerg.config import ResourcesConfig, ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import ContainerLauncher
 from zerg.launcher_configurator import LauncherConfigurator
+from zerg.launchers import ContainerLauncher
 from zerg.plugins import PluginRegistry
 
 # ---------------------------------------------------------------------------
@@ -386,7 +386,7 @@ class TestCheckContainerHealth:
 
     def test_skips_when_not_container_launcher(self) -> None:
         """Should do nothing when launcher is not ContainerLauncher."""
-        from zerg.launcher import SubprocessLauncher
+        from zerg.launchers import SubprocessLauncher
         from zerg.types import WorkerState
 
         orch = self._make_orchestrator()

@@ -65,7 +65,7 @@ from zerg.constants import (
     TaskStatus,
     WorkerStatus,
 )
-from zerg.launcher import LauncherConfig, LauncherType, SpawnResult, WorkerHandle
+from zerg.launcher_types import LauncherConfig, LauncherType, SpawnResult, WorkerHandle
 from zerg.merge import MergeFlowResult
 from zerg.types import GateRunResult, WorkerState
 

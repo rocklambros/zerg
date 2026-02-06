@@ -12,11 +12,8 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from zerg.launcher import (
-    ContainerLauncher,
-    LauncherConfig,
-    WorkerHandle,
-)
+from zerg.launcher_types import LauncherConfig, WorkerHandle
+from zerg.launchers import ContainerLauncher
 
 # =============================================================================
 # Network Configuration Tests
@@ -134,7 +131,7 @@ class TestContainerLauncherCleanupOnFailure:
 
     @patch.object(ContainerLauncher, "_cleanup_failed_container")
     @patch.object(ContainerLauncher, "_verify_worker_process")
-    @patch.object(ContainerLauncher, "_exec_worker_entry")
+    @patch.object(ContainerLauncher, "_run_worker_entry")
     @patch.object(ContainerLauncher, "_wait_ready")
     @patch.object(ContainerLauncher, "_start_container")
     def test_cleanup_called_on_verify_failure(

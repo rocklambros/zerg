@@ -196,7 +196,7 @@ def main() -> int:
     # Import and run worker protocol
     # Deferred import to allow dry-run without full dependencies
     try:
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         # Resolve task graph path: explicit arg > env > auto-detect from spec dir
         task_graph_path = args.task_graph

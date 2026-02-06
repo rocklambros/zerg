@@ -5,13 +5,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import (
-    LauncherConfig,
-    LauncherType,
-    SpawnResult,
-    SubprocessLauncher,
-    WorkerHandle,
-)
+from zerg.launcher_types import LauncherConfig, LauncherType, SpawnResult, WorkerHandle
+from zerg.launchers import SubprocessLauncher
 
 
 class TestLauncherConfig:

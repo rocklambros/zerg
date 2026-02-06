@@ -7,11 +7,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.constants import TaskStatus
-from zerg.worker_protocol import (
-    ClaudeInvocationResult,
-    WorkerContext,
-    WorkerProtocol,
-)
+from zerg.protocol_state import WorkerProtocol
+from zerg.protocol_types import ClaudeInvocationResult, WorkerContext
 
 
 class TestWorkerContext:
@@ -68,9 +65,9 @@ class TestWorkerProtocol:
         # Create minimal config
         (tmp_path / ".zerg").mkdir()
 
-        with patch("zerg.worker_protocol.StateManager", return_value=mock_state_manager):
-            with patch("zerg.worker_protocol.GitOps", return_value=mock_git_ops):
-                with patch("zerg.worker_protocol.VerificationExecutor"):
+        with patch("zerg.protocol_state.StateManager", return_value=mock_state_manager):
+            with patch("zerg.protocol_state.GitOps", return_value=mock_git_ops):
+                with patch("zerg.protocol_state.VerificationExecutor"):
                     protocol = WorkerProtocol(
                         worker_id=0,
                         feature="test-feature",
@@ -133,10 +130,12 @@ class TestWorkerProtocol:
         }
 
         # Mock verification to succeed
-        protocol.verifier = MagicMock()
-        protocol.verifier.verify.return_value = MagicMock(success=True)
+        mock_verifier = MagicMock()
+        mock_verifier.verify.return_value = MagicMock(success=True)
+        protocol.verifier = mock_verifier
+        protocol._handler.verifier = mock_verifier
 
-        protocol.execute_task(task)
+        protocol._handler.execute_task(task)
 
         # Verify task was tracked
         usage = protocol.context_tracker.get_usage()
@@ -210,9 +209,9 @@ class TestWorkerProtocolContextIntegration:
 
         (tmp_path / ".zerg").mkdir()
 
-        with patch("zerg.worker_protocol.StateManager"):
-            with patch("zerg.worker_protocol.GitOps"):
-                with patch("zerg.worker_protocol.VerificationExecutor"):
+        with patch("zerg.protocol_state.StateManager"):
+            with patch("zerg.protocol_state.GitOps"):
+                with patch("zerg.protocol_state.VerificationExecutor"):
                     protocol = WorkerProtocol(
                         worker_id=0,
                         feature="test-feature",
@@ -280,9 +279,9 @@ class TestWorkerReady:
 
         (tmp_path / ".zerg").mkdir()
 
-        with patch("zerg.worker_protocol.StateManager") as state_mock:
-            with patch("zerg.worker_protocol.GitOps"):
-                with patch("zerg.worker_protocol.VerificationExecutor"):
+        with patch("zerg.protocol_state.StateManager") as state_mock:
+            with patch("zerg.protocol_state.GitOps"):
+                with patch("zerg.protocol_state.VerificationExecutor"):
                     state = MagicMock()
                     state.load.return_value = {}
                     state_mock.return_value = state
@@ -362,9 +361,9 @@ class TestTaskLoading:
 
         (tmp_path / ".zerg").mkdir()
 
-        with patch("zerg.worker_protocol.StateManager"):
-            with patch("zerg.worker_protocol.GitOps"):
-                with patch("zerg.worker_protocol.VerificationExecutor"):
+        with patch("zerg.protocol_state.StateManager"):
+            with patch("zerg.protocol_state.GitOps"):
+                with patch("zerg.protocol_state.VerificationExecutor"):
                     protocol = WorkerProtocol(
                         worker_id=0,
                         feature="test-feature",
@@ -388,9 +387,9 @@ class TestTaskLoading:
 
         (tmp_path / ".zerg").mkdir()
 
-        with patch("zerg.worker_protocol.StateManager"):
-            with patch("zerg.worker_protocol.GitOps"):
-                with patch("zerg.worker_protocol.VerificationExecutor"):
+        with patch("zerg.protocol_state.StateManager"):
+            with patch("zerg.protocol_state.GitOps"):
+                with patch("zerg.protocol_state.VerificationExecutor"):
                     protocol = WorkerProtocol(
                         worker_id=0,
                         feature="test-feature",
@@ -416,9 +415,9 @@ class TestClaudeCodeInvocation:
 
         (tmp_path / ".zerg").mkdir()
 
-        with patch("zerg.worker_protocol.StateManager") as state_mock:
-            with patch("zerg.worker_protocol.GitOps"):
-                with patch("zerg.worker_protocol.VerificationExecutor"):
+        with patch("zerg.protocol_state.StateManager") as state_mock:
+            with patch("zerg.protocol_state.GitOps"):
+                with patch("zerg.protocol_state.VerificationExecutor"):
                     state = MagicMock()
                     state.load.return_value = {}
                     state_mock.return_value = state
@@ -437,7 +436,7 @@ class TestClaudeCodeInvocation:
             "title": "Test Task",
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "# Task: Test Task" in prompt
         assert "## Instructions" in prompt
@@ -450,7 +449,7 @@ class TestClaudeCodeInvocation:
             "description": "This is a detailed description",
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "## Description" in prompt
         assert "This is a detailed description" in prompt
@@ -467,7 +466,7 @@ class TestClaudeCodeInvocation:
             },
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "## Files" in prompt
         assert "Create: new.py" in prompt
@@ -478,14 +477,14 @@ class TestClaudeCodeInvocation:
         """Test successful Claude Code invocation."""
         task = {"id": "TASK-001", "title": "Test"}
 
-        with patch("zerg.worker_protocol.subprocess.run") as run_mock:
+        with patch("zerg.protocol_handler.subprocess.run") as run_mock:
             run_mock.return_value = MagicMock(
                 returncode=0,
                 stdout="Success output",
                 stderr="",
             )
 
-            result = protocol.invoke_claude_code(task)
+            result = protocol._handler.invoke_claude_code(task)
 
             assert result.success is True
             assert result.exit_code == 0
@@ -496,14 +495,14 @@ class TestClaudeCodeInvocation:
         """Test failed Claude Code invocation."""
         task = {"id": "TASK-001", "title": "Test"}
 
-        with patch("zerg.worker_protocol.subprocess.run") as run_mock:
+        with patch("zerg.protocol_handler.subprocess.run") as run_mock:
             run_mock.return_value = MagicMock(
                 returncode=1,
                 stdout="",
                 stderr="Error output",
             )
 
-            result = protocol.invoke_claude_code(task)
+            result = protocol._handler.invoke_claude_code(task)
 
             assert result.success is False
             assert result.exit_code == 1
@@ -514,10 +513,10 @@ class TestClaudeCodeInvocation:
 
         task = {"id": "TASK-001", "title": "Test"}
 
-        with patch("zerg.worker_protocol.subprocess.run") as run_mock:
+        with patch("zerg.protocol_handler.subprocess.run") as run_mock:
             run_mock.side_effect = subprocess.TimeoutExpired(cmd="claude", timeout=30)
 
-            result = protocol.invoke_claude_code(task, timeout=30)
+            result = protocol._handler.invoke_claude_code(task, timeout=30)
 
             assert result.success is False
             assert "timed out" in result.stderr
@@ -526,10 +525,10 @@ class TestClaudeCodeInvocation:
         """Test Claude CLI not found handling."""
         task = {"id": "TASK-001", "title": "Test"}
 
-        with patch("zerg.worker_protocol.subprocess.run") as run_mock:
+        with patch("zerg.protocol_handler.subprocess.run") as run_mock:
             run_mock.side_effect = FileNotFoundError()
 
-            result = protocol.invoke_claude_code(task)
+            result = protocol._handler.invoke_claude_code(task)
 
             assert result.success is False
             assert "not found" in result.stderr
@@ -558,9 +557,9 @@ class TestVerificationFlow:
 
         verifier = MagicMock()
 
-        with patch("zerg.worker_protocol.StateManager", return_value=state):
-            with patch("zerg.worker_protocol.GitOps", return_value=git):
-                with patch("zerg.worker_protocol.VerificationExecutor", return_value=verifier):
+        with patch("zerg.protocol_state.StateManager", return_value=state):
+            with patch("zerg.protocol_state.GitOps", return_value=git):
+                with patch("zerg.protocol_state.VerificationExecutor", return_value=verifier):
                     protocol = WorkerProtocol(
                         worker_id=0,
                         feature="test-feature",
@@ -582,7 +581,7 @@ class TestVerificationFlow:
         result.duration_ms = 1000
         protocol.verifier.verify_with_retry.return_value = result
 
-        success = protocol.run_verification(task)
+        success = protocol._handler.run_verification(task)
 
         assert success is True
         protocol.state.append_event.assert_called()
@@ -600,7 +599,7 @@ class TestVerificationFlow:
         result.stderr = "Test failed"
         protocol.verifier.verify_with_retry.return_value = result
 
-        success = protocol.run_verification(task)
+        success = protocol._handler.run_verification(task)
 
         assert success is False
 
@@ -608,7 +607,7 @@ class TestVerificationFlow:
         """Test verification auto-passes when no spec."""
         task = {"id": "TASK-001"}
 
-        success = protocol.run_verification(task)
+        success = protocol._handler.run_verification(task)
 
         assert success is True
 
@@ -616,7 +615,7 @@ class TestVerificationFlow:
         """Test successful commit."""
         task = {"id": "TASK-001", "title": "Test Task"}
 
-        success = protocol.commit_task_changes(task)
+        success = protocol._handler.commit_task_changes(task)
 
         assert success is True
         protocol.git.commit.assert_called_once()
@@ -627,7 +626,7 @@ class TestVerificationFlow:
         task = {"id": "TASK-001", "title": "Test Task"}
         protocol.git.has_changes.return_value = False
 
-        success = protocol.commit_task_changes(task)
+        success = protocol._handler.commit_task_changes(task)
 
         assert success is True
         protocol.git.commit.assert_not_called()
@@ -637,7 +636,7 @@ class TestVerificationFlow:
         task = {"id": "TASK-001", "title": "Test Task"}
         protocol.git.commit.side_effect = Exception("Git error")
 
-        success = protocol.commit_task_changes(task)
+        success = protocol._handler.commit_task_changes(task)
 
         assert success is False
         protocol.state.append_event.assert_called()
@@ -651,7 +650,7 @@ class TestVerificationFlow:
         }
 
         # Mock Claude Code success
-        with patch.object(protocol, "invoke_claude_code") as claude_mock:
+        with patch.object(protocol._handler, "invoke_claude_code") as claude_mock:
             claude_mock.return_value = ClaudeInvocationResult(
                 success=True,
                 exit_code=0,
@@ -667,7 +666,7 @@ class TestVerificationFlow:
             verify_result.duration_ms = 500
             protocol.verifier.verify_with_retry.return_value = verify_result
 
-            success = protocol.execute_task(task)
+            success = protocol._handler.execute_task(task)
 
             assert success is True
             claude_mock.assert_called_once()
@@ -677,7 +676,7 @@ class TestVerificationFlow:
         """Test task execution when Claude Code fails."""
         task = {"id": "TASK-001", "title": "Test Task"}
 
-        with patch.object(protocol, "invoke_claude_code") as claude_mock:
+        with patch.object(protocol._handler, "invoke_claude_code") as claude_mock:
             claude_mock.return_value = ClaudeInvocationResult(
                 success=False,
                 exit_code=1,
@@ -687,7 +686,7 @@ class TestVerificationFlow:
                 task_id="TASK-001",
             )
 
-            success = protocol.execute_task(task)
+            success = protocol._handler.execute_task(task)
 
             assert success is False
             protocol.git.commit.assert_not_called()
