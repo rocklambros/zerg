@@ -27,7 +27,13 @@ if ! grep -q "Status.*APPROVED" "$SPEC_DIR/requirements.md" 2>/dev/null; then
 fi
 ```
 
+## Flags
+
+- `--skip-validation`: Skip Phase 0 pre-execution validation checks
+
 ## Phase 0: Pre-Execution Validation
+
+If `--skip-validation` was specified, skip this phase entirely and continue to Load Context.
 
 Before proceeding, validate this design is still needed:
 
@@ -713,6 +719,7 @@ When `--help` is passed in `$ARGUMENTS`, display usage and exit:
 /zerg:design — Generate technical architecture and prepare for parallel execution.
 
 Flags:
-  --help              Show this help message
+  --skip-validation     Skip pre-execution validation checks
+  --help                Show this help message
 ```
 

@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--skip-validation` flag for `/z:plan` and `/z:design` to bypass Phase 0 pre-execution validation checks
+
+### Fixed
+
+- Fix 5 CI test failures: update stale mock targets in `test_orchestrator.py` (4) and `test_orchestrator_container_mode.py` (1) after WorkerRegistry refactor
+- Delete 2 broken coverage-padding files: `test_near_complete_coverage.py` (14 failures), `test_orchestrator_coverage.py` (2 failures)
+
 ### Changed
+
+- Consolidate all root-level test files into `tests/unit/`: delete 8 pure duplicates, relocate 10 orphans
 
 - Consolidate 3 CI workflows (`pytest.yml`, `changelog-check.yml`, `command-validation.yml`) into single `ci.yml` with 4 jobs: `quality`, `test` (2 shards), `audit`
 - Reduce test shards from 4 to 2 using `pytest-split` duration-based balancing

@@ -17,6 +17,7 @@ After Phase 5.5 completes, the command STOPS. The user must manually run `/z:des
 
 - `--socratic` or `-s`: Use structured 3-round discovery mode (see details file)
 - `--rounds N`: Number of rounds (default: 3, max: 5)
+- `--skip-validation`: Skip Phase 0 pre-execution validation checks
 
 ## Pre-Flight
 
@@ -43,6 +44,8 @@ echo "$(date -Iseconds)" > ".gsd/specs/$FEATURE/.started"
 ```
 
 ## Phase 0: Pre-Execution Validation
+
+If `--skip-validation` is in $ARGUMENTS, skip this phase entirely and continue to Enter Plan Mode.
 
 Before proceeding, validate this plan hasn't been superseded:
 
@@ -205,5 +208,6 @@ When `--help` is passed in `$ARGUMENTS`, display usage and exit:
 Flags:
   -s, --socratic        Use structured 3-round discovery mode
   --rounds N            Number of rounds (default: 3, max: 5)
+  --skip-validation     Skip pre-execution validation checks
   --help                Show this help message
 ```
