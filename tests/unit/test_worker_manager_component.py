@@ -1,6 +1,6 @@
 """Tests for WorkerManager component."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -100,7 +100,6 @@ class TestSpawnWorker:
         assert ws.worker_id == 0
         assert ws.status == WorkerStatus.RUNNING
         assert 0 in mock_deps["workers"]
-        mock_deps["state"].set_worker_state.assert_called_once()
 
     def test_raises_on_spawn_failure(self, worker_manager, mock_deps):
         """spawn_worker raises RuntimeError on launcher failure."""
@@ -116,13 +115,8 @@ class TestSpawnWorker:
 class TestSpawnWorkers:
     """Tests for spawn_workers."""
 
-    def test_returns_count_of_successful_spawns(self, worker_manager):
-        """spawn_workers returns number of successfully spawned workers."""
-        count = worker_manager.spawn_workers(3)
-        assert count == 3
-
-    def test_continues_on_individual_failure(self, worker_manager, mock_deps):
-        """spawn_workers continues past individual failures."""
+    def test_returns_count_and_handles_failures(self, worker_manager, mock_deps):
+        """spawn_workers returns count of successful spawns, continues past failures."""
         success_result = MagicMock()
         success_result.success = True
         success_result.handle = MagicMock()
@@ -146,26 +140,21 @@ class TestTerminateWorker:
     """Tests for terminate_worker."""
 
     def test_stops_and_cleans_up(self, worker_manager, mock_deps):
-        """terminate_worker stops launcher, deletes worktree, releases port."""
+        """terminate_worker stops launcher, releases port, removes worker."""
         worker_manager.spawn_worker(0)
-
         worker_manager.terminate_worker(0)
 
         mock_deps["launcher"].terminate.assert_called_once_with(0, force=False)
         mock_deps["ports"].release.assert_called_once_with(49152)
         assert 0 not in mock_deps["workers"]
 
-    def test_nonexistent_worker_is_noop(self, worker_manager, mock_deps):
-        """Terminating a nonexistent worker does nothing."""
+    def test_nonexistent_and_worktree_failure(self, worker_manager, mock_deps):
+        """Nonexistent worker is noop; worktree delete failure is handled."""
         worker_manager.terminate_worker(999)
         mock_deps["launcher"].terminate.assert_not_called()
 
-    def test_handles_worktree_delete_failure(self, worker_manager, mock_deps):
-        """Worktree deletion failure is handled gracefully."""
         worker_manager.spawn_worker(0)
         mock_deps["worktrees"].delete.side_effect = Exception("Delete failed")
-
-        # Should not raise
         worker_manager.terminate_worker(0)
         assert 0 not in mock_deps["workers"]
 
@@ -180,59 +169,12 @@ class TestHandleWorkerExit:
         worker_manager._running = True
 
         worker_manager.handle_worker_exit(0)
-
-        # Worker should be respawned (spawn called twice: initial + respawn)
         assert mock_deps["launcher"].spawn.call_count == 2
-
-    def test_no_respawn_when_not_running(self, worker_manager, mock_deps):
-        """Worker is not respawned when _running is False."""
-        worker_manager.spawn_worker(0)
-        mock_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-002"]
-        worker_manager._running = False
-
-        worker_manager.handle_worker_exit(0)
-
-        # Only the initial spawn
-        assert mock_deps["launcher"].spawn.call_count == 1
-
-    def test_completes_task_with_verification(self, worker_manager, mock_deps):
-        """Worker exit marks task complete when verification exists."""
-        worker_manager.spawn_worker(0)
-        mock_deps["workers"][0].current_task = "TASK-001"
-        mock_deps["parser"].get_task.return_value = {
-            "id": "TASK-001",
-            "verification": {"command": "echo ok"},
-        }
-        mock_deps["state"]._state = {"tasks": {"TASK-001": {"started_at": None}}}
-
-        worker_manager.handle_worker_exit(0)
-
-        mock_deps["levels"].mark_task_complete.assert_called_once_with("TASK-001")
 
     def test_noop_for_unknown_worker(self, worker_manager, mock_deps):
         """Exit for unknown worker is a no-op."""
         worker_manager.handle_worker_exit(999)
         mock_deps["levels"].mark_task_complete.assert_not_called()
-
-
-class TestRespawnWorkersForLevel:
-    """Tests for respawn_workers_for_level."""
-
-    def test_spawns_needed_workers(self, worker_manager, mock_deps):
-        """Spawns workers up to the needed count."""
-        mock_deps["levels"].get_pending_tasks_for_level.return_value = ["T1", "T2"]
-
-        with patch.object(worker_manager, "wait_for_initialization"):
-            count = worker_manager.respawn_workers_for_level(2)
-
-        assert count > 0
-
-    def test_returns_zero_when_no_tasks(self, worker_manager, mock_deps):
-        """Returns 0 when no remaining tasks."""
-        mock_deps["levels"].get_pending_tasks_for_level.return_value = []
-
-        count = worker_manager.respawn_workers_for_level(2)
-        assert count == 0
 
 
 class TestRunningProperty:

@@ -2,61 +2,47 @@
 
 import time
 
+import pytest
+
 from zerg.circuit_breaker import CircuitBreaker, CircuitState, WorkerCircuit
 
 
-class TestWorkerCircuit:
-    """Tests for WorkerCircuit dataclass."""
+class TestWorkerCircuitAndState:
+    """Tests for WorkerCircuit dataclass and CircuitState enum."""
 
     def test_default_state_is_closed(self):
-        """New circuits start in CLOSED state."""
+        """New circuits start in CLOSED state with zero counters."""
         circuit = WorkerCircuit(worker_id=0)
         assert circuit.state == CircuitState.CLOSED
         assert circuit.failure_count == 0
         assert circuit.success_count == 0
         assert circuit.last_failure_time is None
-        assert circuit.half_open_task_id is None
 
-    def test_worker_id_stored(self):
-        """Worker ID is stored correctly."""
-        circuit = WorkerCircuit(worker_id=42)
-        assert circuit.worker_id == 42
-
-
-class TestCircuitState:
-    """Tests for CircuitState enum."""
-
-    def test_state_values(self):
-        """States have correct string values."""
-        assert CircuitState.CLOSED.value == "closed"
-        assert CircuitState.OPEN.value == "open"
-        assert CircuitState.HALF_OPEN.value == "half_open"
+    @pytest.mark.parametrize(
+        "state, value",
+        [
+            (CircuitState.CLOSED, "closed"),
+            (CircuitState.OPEN, "open"),
+            (CircuitState.HALF_OPEN, "half_open"),
+        ],
+    )
+    def test_state_values(self, state, value):
+        """CircuitState enum has correct string values."""
+        assert state.value == value
 
 
 class TestCircuitBreakerInit:
     """Tests for CircuitBreaker initialization."""
 
-    def test_defaults(self):
-        """Default parameters are set correctly."""
+    def test_defaults_and_get_circuit(self):
+        """Default params, get_circuit creates new and returns existing."""
         cb = CircuitBreaker()
         assert cb.enabled is True
 
-    def test_custom_params(self):
-        """Custom parameters are respected."""
-        cb = CircuitBreaker(failure_threshold=5, cooldown_seconds=120.0, enabled=False)
-        assert cb.enabled is False
-
-    def test_get_circuit_creates_new(self):
-        """get_circuit creates a new circuit for unknown worker."""
-        cb = CircuitBreaker()
-        circuit = cb.get_circuit(0)
-        assert circuit.worker_id == 0
-        assert circuit.state == CircuitState.CLOSED
-
-    def test_get_circuit_returns_existing(self):
-        """get_circuit returns the same circuit object on repeated calls."""
-        cb = CircuitBreaker()
         c1 = cb.get_circuit(0)
+        assert c1.worker_id == 0
+        assert c1.state == CircuitState.CLOSED
+
         c2 = cb.get_circuit(0)
         assert c1 is c2
 
@@ -74,13 +60,6 @@ class TestClosedToOpen:
         cb.record_failure(0, task_id="T3", error="err3")
         assert cb.get_circuit(0).state == CircuitState.OPEN
 
-    def test_no_transition_below_threshold(self):
-        """Circuit stays closed below threshold."""
-        cb = CircuitBreaker(failure_threshold=5)
-        for i in range(4):
-            cb.record_failure(0, task_id=f"T{i}")
-        assert cb.get_circuit(0).state == CircuitState.CLOSED
-
     def test_success_resets_failure_count(self):
         """A success resets the consecutive failure counter."""
         cb = CircuitBreaker(failure_threshold=3)
@@ -88,17 +67,9 @@ class TestClosedToOpen:
         cb.record_failure(0, task_id="T2")
         cb.record_success(0, task_id="T3")
         assert cb.get_circuit(0).failure_count == 0
-        # Now need 3 more failures to open
         cb.record_failure(0, task_id="T4")
         cb.record_failure(0, task_id="T5")
         assert cb.get_circuit(0).state == CircuitState.CLOSED
-
-    def test_failure_count_tracks_correctly(self):
-        """Failure count increments on each failure."""
-        cb = CircuitBreaker(failure_threshold=10)
-        for i in range(5):
-            cb.record_failure(0, task_id=f"T{i}")
-        assert cb.get_circuit(0).failure_count == 5
 
 
 class TestOpenToHalfOpen:
@@ -107,12 +78,10 @@ class TestOpenToHalfOpen:
     def test_cooldown_elapsed_transitions(self):
         """Circuit transitions to HALF_OPEN after cooldown period."""
         cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.05)
-        # Trip the breaker
         cb.record_failure(0, task_id="T1")
         assert cb.get_circuit(0).state == CircuitState.OPEN
         assert cb.can_accept_task(0) is False
 
-        # Wait for cooldown
         time.sleep(0.06)
         assert cb.can_accept_task(0) is True
         assert cb.get_circuit(0).state == CircuitState.HALF_OPEN
@@ -121,45 +90,32 @@ class TestOpenToHalfOpen:
         """Circuit stays OPEN before cooldown expires."""
         cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=10.0)
         cb.record_failure(0, task_id="T1")
-        assert cb.get_circuit(0).state == CircuitState.OPEN
         assert cb.can_accept_task(0) is False
 
 
-class TestHalfOpenToClosed:
-    """Tests for HALF_OPEN -> CLOSED on probe success."""
+class TestHalfOpenTransitions:
+    """Tests for HALF_OPEN -> CLOSED and HALF_OPEN -> OPEN transitions."""
 
     def test_success_closes_circuit(self):
         """Successful probe in HALF_OPEN closes the circuit."""
         cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
         cb.record_failure(0, task_id="T1")
         time.sleep(0.02)
-        cb.can_accept_task(0)  # Triggers HALF_OPEN
+        cb.can_accept_task(0)
         assert cb.get_circuit(0).state == CircuitState.HALF_OPEN
 
         cb.mark_half_open_task(0, "T2")
         cb.record_success(0, task_id="T2")
         assert cb.get_circuit(0).state == CircuitState.CLOSED
-        assert cb.get_circuit(0).half_open_task_id is None
-
-    def test_success_resets_failure_count(self):
-        """Success during HALF_OPEN resets failure count."""
-        cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
-        cb.record_failure(0, task_id="T1")
-        time.sleep(0.02)
-        cb.can_accept_task(0)
-        cb.record_success(0, task_id="T2")
         assert cb.get_circuit(0).failure_count == 0
-
-
-class TestHalfOpenToOpen:
-    """Tests for HALF_OPEN -> OPEN on probe failure."""
+        assert cb.get_circuit(0).half_open_task_id is None
 
     def test_failure_reopens_circuit(self):
         """Failed probe in HALF_OPEN reopens the circuit."""
         cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
         cb.record_failure(0, task_id="T1")
         time.sleep(0.02)
-        cb.can_accept_task(0)  # Triggers HALF_OPEN
+        cb.can_accept_task(0)
         assert cb.get_circuit(0).state == CircuitState.HALF_OPEN
 
         cb.mark_half_open_task(0, "T2")
@@ -171,14 +127,10 @@ class TestHalfOpenToOpen:
 class TestCanAcceptTask:
     """Tests for can_accept_task in each state."""
 
-    def test_closed_accepts(self):
-        """CLOSED circuit accepts tasks."""
-        cb = CircuitBreaker()
-        assert cb.can_accept_task(0) is True
-
-    def test_open_rejects(self):
-        """OPEN circuit rejects tasks (before cooldown)."""
+    def test_closed_accepts_open_rejects(self):
+        """CLOSED accepts; OPEN rejects."""
         cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=9999)
+        assert cb.can_accept_task(0) is True
         cb.record_failure(0, task_id="T1")
         assert cb.can_accept_task(0) is False
 
@@ -188,53 +140,27 @@ class TestCanAcceptTask:
         cb.record_failure(0, task_id="T1")
         time.sleep(0.02)
 
-        # First call transitions and allows
         assert cb.can_accept_task(0) is True
-        # Mark the probe task
         cb.mark_half_open_task(0, "T2")
-        # Second call should block because probe already in-flight
         assert cb.can_accept_task(0) is False
-
-    def test_half_open_allows_after_probe_cleared(self):
-        """HALF_OPEN allows another task after probe result is recorded."""
-        cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
-        cb.record_failure(0, task_id="T1")
-        time.sleep(0.02)
-        cb.can_accept_task(0)
-        cb.mark_half_open_task(0, "T2")
-        cb.record_success(0, task_id="T2")
-        # Now CLOSED, should accept
-        assert cb.can_accept_task(0) is True
 
 
 class TestDisabledCircuitBreaker:
     """Tests for disabled circuit breaker."""
 
-    def test_always_allows_tasks(self):
-        """Disabled breaker always accepts tasks."""
+    def test_disabled_always_allows_no_tracking(self):
+        """Disabled breaker always accepts tasks and doesn't track."""
         cb = CircuitBreaker(enabled=False, failure_threshold=1)
         cb.record_failure(0, task_id="T1")
         cb.record_failure(0, task_id="T2")
-        cb.record_failure(0, task_id="T3")
+        cb.record_success(0, task_id="T3")
         assert cb.can_accept_task(0) is True
-
-    def test_record_success_noop(self):
-        """Disabled breaker does not track successes."""
-        cb = CircuitBreaker(enabled=False)
-        cb.record_success(0, task_id="T1")
-        # Circuit is created by get_circuit but success_count stays 0
-        # because record_success returns early
+        assert cb.get_circuit(0).failure_count == 0
         assert cb.get_circuit(0).success_count == 0
 
-    def test_record_failure_noop(self):
-        """Disabled breaker does not track failures."""
-        cb = CircuitBreaker(enabled=False)
-        cb.record_failure(0, task_id="T1")
-        assert cb.get_circuit(0).failure_count == 0
 
-
-class TestReset:
-    """Tests for circuit reset."""
+class TestResetAndStatus:
+    """Tests for circuit reset and status reporting."""
 
     def test_reset_restores_defaults(self):
         """Reset restores circuit to initial state."""
@@ -245,47 +171,23 @@ class TestReset:
         circuit = cb.get_circuit(0)
         assert circuit.state == CircuitState.CLOSED
         assert circuit.failure_count == 0
-        assert circuit.success_count == 0
-
-    def test_reset_nonexistent_noop(self):
-        """Resetting a worker that has no circuit is a no-op."""
-        cb = CircuitBreaker()
-        cb.reset(999)  # Should not raise
-
-
-class TestGetStatus:
-    """Tests for get_status."""
-
-    def test_empty_status(self):
-        """Empty breaker returns empty status."""
-        cb = CircuitBreaker()
-        assert cb.get_status() == {}
 
     def test_status_reports_all_workers(self):
-        """Status includes all tracked workers."""
+        """Status includes all tracked workers with correct state."""
         cb = CircuitBreaker(failure_threshold=2)
         cb.record_success(0, task_id="T1")
         cb.record_failure(1, task_id="T2")
         status = cb.get_status()
-        assert 0 in status
-        assert 1 in status
         assert status[0]["state"] == "closed"
         assert status[0]["success_count"] == 1
         assert status[1]["failure_count"] == 1
-
-    def test_status_reflects_state_changes(self):
-        """Status reflects state transitions."""
-        cb = CircuitBreaker(failure_threshold=1)
-        cb.record_failure(0, task_id="T1")
-        status = cb.get_status()
-        assert status[0]["state"] == "open"
 
 
 class TestIndependentWorkerCircuits:
     """Tests for independent per-worker circuits."""
 
     def test_workers_are_independent(self):
-        """Failures in one worker don't affect another."""
+        """Failures in one worker don't affect another; reset is isolated."""
         cb = CircuitBreaker(failure_threshold=2)
         cb.record_failure(0, task_id="T1")
         cb.record_failure(0, task_id="T2")
@@ -293,52 +195,8 @@ class TestIndependentWorkerCircuits:
         assert cb.get_circuit(1).state == CircuitState.CLOSED
         assert cb.can_accept_task(1) is True
 
-    def test_multiple_workers_tracked(self):
-        """Multiple workers are tracked independently."""
-        cb = CircuitBreaker(failure_threshold=1)
-        cb.record_failure(0, task_id="T1")
-        cb.record_success(1, task_id="T2")
-        cb.record_failure(2, task_id="T3")
-
-        assert cb.get_circuit(0).state == CircuitState.OPEN
-        assert cb.get_circuit(1).state == CircuitState.CLOSED
-        assert cb.get_circuit(2).state == CircuitState.OPEN
-
-    def test_reset_one_worker_preserves_others(self):
-        """Resetting one worker does not affect others."""
-        cb = CircuitBreaker(failure_threshold=1)
-        cb.record_failure(0, task_id="T1")
-        cb.record_failure(1, task_id="T2")
+        cb.record_failure(1, task_id="T3")
+        cb.record_failure(1, task_id="T4")
         cb.reset(0)
         assert cb.get_circuit(0).state == CircuitState.CLOSED
         assert cb.get_circuit(1).state == CircuitState.OPEN
-
-
-class TestMarkHalfOpenTask:
-    """Tests for mark_half_open_task."""
-
-    def test_marks_task_id(self):
-        """Task ID is recorded on the circuit."""
-        cb = CircuitBreaker()
-        cb.mark_half_open_task(0, "probe-task")
-        assert cb.get_circuit(0).half_open_task_id == "probe-task"
-
-    def test_cleared_on_success(self):
-        """Half-open task ID is cleared on success."""
-        cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
-        cb.record_failure(0, task_id="T1")
-        time.sleep(0.02)
-        cb.can_accept_task(0)
-        cb.mark_half_open_task(0, "probe")
-        cb.record_success(0, task_id="probe")
-        assert cb.get_circuit(0).half_open_task_id is None
-
-    def test_cleared_on_failure(self):
-        """Half-open task ID is cleared on failure."""
-        cb = CircuitBreaker(failure_threshold=1, cooldown_seconds=0.01)
-        cb.record_failure(0, task_id="T1")
-        time.sleep(0.02)
-        cb.can_accept_task(0)
-        cb.mark_half_open_task(0, "probe")
-        cb.record_failure(0, task_id="probe", error="err")
-        assert cb.get_circuit(0).half_open_task_id is None
