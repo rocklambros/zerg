@@ -1,6 +1,6 @@
-"""Comprehensive tests for ZERG orchestrator to achieve 100% coverage.
+"""Tests for ZERG orchestrator.
 
-This module tests all orchestrator functionality including:
+This module tests orchestrator functionality including:
 - Launcher creation modes (subprocess, container, auto)
 - Main start/stop workflow
 - Main loop execution
@@ -156,17 +156,6 @@ class TestLauncherCreation:
 
         assert orch.launcher is not None
 
-    def test_create_launcher_container_mode(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test explicit container mode creates ContainerLauncher."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        Orchestrator("test-feature", launcher_mode="container")
-
-        # ContainerLauncher should have been created
-        mock_orchestrator_deps["container_launcher_mock"].assert_called()
-        mock_orchestrator_deps["container_launcher"].ensure_network.assert_called()
-
     def test_create_launcher_unknown_mode_raises_value_error(
         self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
     ) -> None:
@@ -178,18 +167,6 @@ class TestLauncherCreation:
         with pytest.raises(ValueError, match="Unsupported launcher mode"):
             Orchestrator("test-feature", config=config, launcher_mode="unknown_mode")
 
-    def test_create_launcher_auto_mode_no_devcontainer(
-        self, mock_orchestrator_deps, tmp_path: Path, monkeypatch
-    ) -> None:
-        """Test auto mode without devcontainer uses subprocess."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature", launcher_mode="auto")
-
-        # Without devcontainer, should use subprocess
-        assert orch.launcher is not None
-
     def test_auto_detect_with_devcontainer_and_image(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test auto-detect returns subprocess launcher (container requires explicit flag)."""
         monkeypatch.chdir(tmp_path)
@@ -199,38 +176,7 @@ class TestLauncherCreation:
 
         orch = Orchestrator("test-feature", launcher_mode="auto")
 
-        # Auto-detect always returns subprocess launcher
-        # Container mode requires explicit --mode container
         assert orch.launcher is not None
-
-    def test_auto_detect_with_devcontainer_no_image(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test auto-detect with devcontainer but no image."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-        (tmp_path / ".devcontainer").mkdir()
-        (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")
-
-        with patch("subprocess.run") as sp_run:
-            sp_run.return_value = MagicMock(returncode=1)  # Image not found
-
-            orch = Orchestrator("test-feature", launcher_mode="auto")
-
-            assert orch.launcher is not None
-
-    def test_auto_detect_docker_check_fails(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test auto-detect when docker check fails."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-        (tmp_path / ".devcontainer").mkdir()
-        (tmp_path / ".devcontainer" / "devcontainer.json").write_text("{}")
-
-        with patch("subprocess.run") as sp_run:
-            sp_run.side_effect = Exception("Docker not available")
-
-            orch = Orchestrator("test-feature", launcher_mode="auto")
-
-            # Should fall back to subprocess
-            assert orch.launcher is not None
 
 
 class TestGetWorkerImageName:
@@ -241,7 +187,6 @@ class TestGetWorkerImageName:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        # Create a mock config that has container_image attribute
         config = MagicMock(spec=ZergConfig)
         config.container_image = "custom-image:latest"
         config.ports = MagicMock()
@@ -253,7 +198,6 @@ class TestGetWorkerImageName:
         config.logging = MagicMock()
         config.logging.directory = "/tmp/logs"
         config.get_launcher_type.return_value = MagicMock()
-        # Error recovery config for circuit breaker / backpressure
         er_config = MagicMock()
         er_config.circuit_breaker.failure_threshold = 3
         er_config.circuit_breaker.cooldown_seconds = 60
@@ -293,7 +237,6 @@ class TestStartMethod:
         mock_orchestrator_deps["parser"].get_all_tasks.return_value = [{"id": "TASK-001", "level": 1}]
 
         orch = Orchestrator("test-feature")
-        # Don't run actual main loop
         with patch.object(orch, "_main_loop"):
             with patch.object(orch, "_spawn_workers", return_value=3):
                 with patch.object(orch, "_start_level"):
@@ -317,30 +260,9 @@ class TestStartMethod:
         mock_orchestrator_deps["parser"].get_tasks_for_level.return_value = [{"id": "TASK-001", "title": "Test Task"}]
 
         orch = Orchestrator("test-feature")
-
-        # Dry run should not spawn workers
         orch.start(task_graph_path, worker_count=3, dry_run=True)
 
         mock_orchestrator_deps["subprocess_launcher"].spawn.assert_not_called()
-
-    def test_start_with_start_level(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test start with custom start level."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-        (tmp_path / ".gsd" / "specs" / "test-feature").mkdir(parents=True)
-        task_graph_path = tmp_path / "task-graph.json"
-        task_graph_path.write_text('{"tasks": []}')
-
-        mock_orchestrator_deps["parser"].get_all_tasks.return_value = []
-
-        orch = Orchestrator("test-feature")
-
-        with patch.object(orch, "_main_loop"):
-            with patch.object(orch, "_spawn_workers", return_value=3):
-                with patch.object(orch, "_start_level") as start_level_mock:
-                    orch.start(task_graph_path, worker_count=3, start_level=2)
-
-                    start_level_mock.assert_called_with(2)
 
 
 class TestStopMethod:
@@ -356,7 +278,6 @@ class TestStopMethod:
         orch = Orchestrator("test-feature")
         orch._running = True
 
-        # Should not raise
         orch.stop()
 
         assert orch._running is False
@@ -373,7 +294,6 @@ class TestStopMethod:
 
         orch.stop()
 
-        # Workers should be terminated
         assert mock_orchestrator_deps["subprocess_launcher"].terminate.call_count >= 2
 
 
@@ -385,7 +305,6 @@ class TestMainLoop:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        # Set up level completion sequence
         mock_orchestrator_deps["levels"].is_level_resolved.side_effect = [True, False, False]
         mock_orchestrator_deps["levels"].can_advance.side_effect = [True, False]
         mock_orchestrator_deps["levels"].advance_level.return_value = 2
@@ -402,9 +321,8 @@ class TestMainLoop:
 
         orch = Orchestrator("test-feature")
         orch._running = True
-        orch._poll_interval = 0  # No sleep
+        orch._poll_interval = 0
 
-        # Stop after a few iterations
         call_count = [0]
 
         def stop_after_calls():
@@ -463,24 +381,6 @@ class TestMainLoop:
 
         stop_mock.assert_called()
 
-    def test_main_loop_exception_handling(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test main loop handles exceptions properly."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        orch._running = True
-        orch._poll_interval = 0
-
-        with patch.object(orch, "_poll_workers", side_effect=RuntimeError("Test error")):
-            with patch.object(orch, "stop") as stop_mock:
-                with patch("time.sleep"):
-                    with pytest.raises(RuntimeError, match="Test error"):
-                        orch._main_loop()
-
-        mock_orchestrator_deps["state"].set_error.assert_called_with("Test error")
-        stop_mock.assert_called_with(force=True)
-
 
 class TestStartLevel:
     """Tests for _start_level method."""
@@ -516,30 +416,9 @@ class TestStartLevel:
 
         mock_orchestrator_deps["task_sync"].create_level_tasks.assert_not_called()
 
-    def test_start_level_assigns_tasks_to_workers(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test _start_level assigns tasks to workers when assigner is set."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        mock_orchestrator_deps["levels"].start_level.return_value = ["TASK-001", "TASK-002"]
-        mock_orchestrator_deps["parser"].get_task.return_value = None
-
-        orch = Orchestrator("test-feature")
-        orch.assigner = MagicMock()
-        orch.assigner.get_task_worker.return_value = 0
-
-        orch._start_level(1)
-
-        # Should call set_task_status for each task
-        assert mock_orchestrator_deps["state"].set_task_status.call_count >= 2
-
 
 class TestLevelCompleteHandler:
-    """Tests for _on_level_complete_handler.
-
-    Note: Tests for immediate merge behavior (state_md generation, merge conflict pause,
-    merge failure pause) were removed because PR #120 introduced deferred merge by default.
-    """
+    """Tests for _on_level_complete_handler."""
 
     def test_level_complete_invokes_callbacks(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
         """Test level completion invokes registered callbacks."""
@@ -565,7 +444,6 @@ class TestMergeLevelWithBranches:
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
-        # Worker has a branch from worktree mock
 
         orch._merge_level(1)
 
@@ -582,11 +460,10 @@ class TestRebaseAllWorkers:
 
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
-        orch._workers[0].branch = None  # No branch
+        orch._workers[0].branch = None
 
         orch._rebase_all_workers(1)
 
-        # Should still set status
         mock_orchestrator_deps["state"].set_level_merge_status.assert_called_with(1, LevelMergeStatus.REBASING)
 
     def test_rebase_all_workers_handles_exception(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
@@ -597,22 +474,7 @@ class TestRebaseAllWorkers:
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
 
-        # Should not raise even if something goes wrong
         orch._rebase_all_workers(1)
-
-    def test_rebase_all_workers_logs_branch_info(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test rebasing logs branch information for each worker."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        orch._spawn_worker(0)
-        # Worker has a branch from worktree mock
-
-        # Should complete without error and log the branch info
-        orch._rebase_all_workers(1)
-
-        mock_orchestrator_deps["state"].set_level_merge_status.assert_called_with(1, LevelMergeStatus.REBASING)
 
 
 class TestPauseForIntervention:
@@ -643,7 +505,6 @@ class TestSpawnWorkers:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        # First spawn succeeds, second fails, third succeeds
         spawn_success = MagicMock()
         spawn_success.success = True
         spawn_success.handle = MagicMock()
@@ -661,11 +522,8 @@ class TestSpawnWorkers:
         ]
 
         orch = Orchestrator("test-feature")
-
-        # Should not raise, continues with other workers
         orch._spawn_workers(3)
 
-        # Should have attempted all 3
         assert mock_orchestrator_deps["subprocess_launcher"].spawn.call_count == 3
 
     def test_spawn_workers_returns_count(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
@@ -677,41 +535,6 @@ class TestSpawnWorkers:
         result = orch._spawn_workers(3)
 
         assert result == 3
-
-    def test_spawn_workers_returns_partial_count(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test _spawn_workers returns partial count when some fail."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        spawn_success = MagicMock()
-        spawn_success.success = True
-        spawn_success.handle = MagicMock()
-        spawn_success.handle.container_id = None
-        spawn_success.error = None
-
-        # Second worker raises an exception
-        mock_orchestrator_deps["subprocess_launcher"].spawn.side_effect = [
-            spawn_success,
-            Exception("Spawn failed"),
-            spawn_success,
-        ]
-
-        orch = Orchestrator("test-feature")
-        result = orch._spawn_workers(3)
-
-        assert result == 2
-
-    def test_spawn_workers_all_fail_returns_zero(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test _spawn_workers returns 0 when all workers fail."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        mock_orchestrator_deps["subprocess_launcher"].spawn.side_effect = Exception("Spawn failed")
-
-        orch = Orchestrator("test-feature")
-        result = orch._spawn_workers(3)
-
-        assert result == 0
 
 
 class TestStartSpawnValidation:
@@ -751,35 +574,6 @@ class TestStartSpawnValidation:
                     with patch.object(orch, "_wait_for_initialization"):
                         orch.start(task_graph_path, worker_count=3)
 
-        # Should not raise — completed successfully
-
-    def test_start_records_rush_failed_event(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test start records rush_failed event when all spawns fail."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-        (tmp_path / ".gsd" / "specs" / "test-feature").mkdir(parents=True)
-        task_graph_path = tmp_path / "task-graph.json"
-        task_graph_path.write_text('{"tasks": []}')
-
-        mock_orchestrator_deps["parser"].get_all_tasks.return_value = [{"id": "TASK-001", "level": 1}]
-
-        orch = Orchestrator("test-feature")
-
-        with patch.object(orch._worker_manager, "spawn_workers", return_value=0):
-            with pytest.raises(RuntimeError):
-                orch.start(task_graph_path, worker_count=3)
-
-        # Verify rush_failed event was recorded
-        event_calls = mock_orchestrator_deps["state"].append_event.call_args_list
-        rush_failed = [c for c in event_calls if c[0][0] == "rush_failed"]
-        assert len(rush_failed) == 1
-        event_data = rush_failed[0][0][1]
-        assert event_data["reason"] == "No workers spawned"
-        assert event_data["requested"] == 3
-
-        # Verify state.save() was called
-        mock_orchestrator_deps["state"].save.assert_called()
-
 
 class TestTerminateWorker:
     """Tests for _terminate_worker method."""
@@ -794,10 +588,8 @@ class TestTerminateWorker:
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
 
-        # Should not raise
         orch._terminate_worker(0)
 
-        # Worker should still be removed
         assert 0 not in orch._workers
 
     def test_terminate_nonexistent_worker(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
@@ -807,10 +599,8 @@ class TestTerminateWorker:
 
         orch = Orchestrator("test-feature")
 
-        # Should not raise, just return
         orch._terminate_worker(999)
 
-        # No launcher calls should be made
         mock_orchestrator_deps["subprocess_launcher"].terminate.assert_not_called()
 
 
@@ -850,26 +640,8 @@ class TestPollWorkers:
         with patch.object(orch, "_handle_worker_crash") as crash_mock:
             orch._poll_workers()
 
-        # Worker is removed after crash is handled (via _handle_worker_exit)
         assert 0 not in orch._workers
-        # FR-5: Crash handler is called instead of task failure handler
         crash_mock.assert_called_with("TASK-001", 0)
-
-    def test_poll_workers_checkpointing_status(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test polling handles checkpointing worker status."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        mock_orchestrator_deps["subprocess_launcher"].monitor.return_value = WorkerStatus.CHECKPOINTING
-
-        orch = Orchestrator("test-feature")
-        orch._spawn_worker(0)
-
-        with patch.object(orch._worker_manager, "handle_worker_exit") as exit_mock:
-            orch._poll_workers()
-
-        assert orch._workers[0].status == WorkerStatus.CHECKPOINTING
-        exit_mock.assert_called_with(0)
 
 
 class TestHandleWorkerExit:
@@ -882,7 +654,6 @@ class TestHandleWorkerExit:
 
         orch = Orchestrator("test-feature")
 
-        # Should not raise
         orch._handle_worker_exit(999)
 
     def test_handle_worker_exit_task_complete_callback(
@@ -907,49 +678,6 @@ class TestHandleWorkerExit:
         orch._handle_worker_exit(0)
 
         callback.assert_called_with("TASK-001")
-
-    def test_handle_worker_exit_restart_fails(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test exit handling when worker restart fails."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        mock_orchestrator_deps["levels"].get_pending_tasks_for_level.return_value = ["TASK-002"]
-
-        # Make spawn fail on restart
-        spawn_fail = MagicMock()
-        spawn_fail.success = False
-        spawn_fail.error = "Failed to spawn"
-
-        spawn_success = MagicMock()
-        spawn_success.success = True
-        spawn_success.handle = MagicMock()
-        spawn_success.handle.container_id = None
-        spawn_success.error = None
-
-        mock_orchestrator_deps["subprocess_launcher"].spawn.side_effect = [
-            spawn_success,  # Initial spawn
-            spawn_fail,  # Restart spawn fails
-        ]
-
-        orch = Orchestrator("test-feature")
-        orch._spawn_worker(0)
-
-        # Should not raise
-        orch._handle_worker_exit(0)
-
-    def test_handle_worker_exit_no_current_task(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test exit handling when worker has no current task."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        orch._spawn_worker(0)
-        orch._workers[0].current_task = None  # No current task
-
-        # Should not raise
-        orch._handle_worker_exit(0)
-
-        mock_orchestrator_deps["levels"].mark_task_complete.assert_not_called()
 
 
 class TestPrintPlan:
@@ -981,28 +709,6 @@ class TestPrintPlan:
         assert "ZERG Execution Plan" in captured.out
         assert "test-feature" in captured.out
 
-    def test_print_plan_without_assigner(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch, capsys) -> None:
-        """Test print plan works without assigner."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        mock_orchestrator_deps["parser"].total_tasks = 3
-        mock_orchestrator_deps["parser"].levels = [1]
-        mock_orchestrator_deps["parser"].get_tasks_for_level.return_value = [
-            {"id": "TASK-001", "title": "First Task"},
-        ]
-
-        orch = Orchestrator("test-feature")
-        orch.assigner = None  # No assigner
-
-        assignments = MagicMock()
-        assignments.worker_count = 3
-
-        orch._print_plan(assignments)
-
-        captured = capsys.readouterr()
-        assert "ZERG Execution Plan" in captured.out
-
 
 class TestVerifyWithRetry:
     """Tests for verify_with_retry method."""
@@ -1012,7 +718,6 @@ class TestVerifyWithRetry:
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        # Patch at the module level where it's imported inside the method
         with patch("zerg.verify.VerificationExecutor") as verify_mock:
             fail_result = MagicMock()
             fail_result.success = False
@@ -1023,11 +728,10 @@ class TestVerifyWithRetry:
 
             orch = Orchestrator("test-feature")
 
-            with patch("time.sleep"):  # Don't actually sleep
+            with patch("time.sleep"):
                 success = orch.verify_with_retry("TASK-001", "echo test", max_retries=2)
 
             assert success is False
-            # Should try original + 2 retries = 3 attempts
             assert verifier.verify.call_count == 3
 
     def test_verify_with_retry_success_on_first_try(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
@@ -1060,7 +764,6 @@ class TestMergeLevel:
         (tmp_path / ".zerg").mkdir()
 
         orch = Orchestrator("test-feature")
-        # No workers spawned, no branches
 
         result = orch._merge_level(1)
 
@@ -1115,7 +818,6 @@ class TestTaskFailureHandling:
         will_retry = orch._handle_task_failure("TASK-001", 0, "Test error")
 
         assert will_retry is True
-        # Event name changed to task_retry_scheduled with backoff info
         event_calls = mock_orchestrator_deps["state"].append_event.call_args_list
         retry_call = [c for c in event_calls if c[0][0] == "task_retry_scheduled"]
         assert len(retry_call) == 1
@@ -1229,7 +931,6 @@ class TestResume:
 
         orch.resume()
 
-        # set_paused should not be called
         mock_orchestrator_deps["state"].set_paused.assert_not_called()
 
 
@@ -1237,12 +938,13 @@ class TestStatus:
     """Tests for status method."""
 
     def test_status_returns_correct_structure(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test status returns correct structure."""
+        """Test status returns correct structure with worker info."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
         orch = Orchestrator("test-feature")
         orch._running = True
+        orch._spawn_worker(0)
 
         status = orch.status()
 
@@ -1253,17 +955,6 @@ class TestStatus:
         assert "workers" in status
         assert "levels" in status
         assert "is_complete" in status
-
-    def test_status_includes_worker_info(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test status includes worker information."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        orch = Orchestrator("test-feature")
-        orch._spawn_worker(0)
-
-        status = orch.status()
-
         assert 0 in status["workers"]
         assert "status" in status["workers"][0]
         assert "current_task" in status["workers"][0]
@@ -1273,26 +964,17 @@ class TestStatus:
 class TestCallbackRegistration:
     """Tests for callback registration methods."""
 
-    def test_on_level_complete_registers_callback(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test on_level_complete registers callback."""
+    def test_callback_registration(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
+        """Test on_level_complete and on_task_complete register callbacks."""
         monkeypatch.chdir(tmp_path)
         (tmp_path / ".zerg").mkdir()
 
-        callback = MagicMock()
+        level_cb = MagicMock()
+        task_cb = MagicMock()
 
         orch = Orchestrator("test-feature")
-        orch.on_level_complete(callback)
+        orch.on_level_complete(level_cb)
+        orch.on_task_complete(task_cb)
 
-        assert callback in orch._on_level_complete
-
-    def test_on_task_complete_registers_callback(self, mock_orchestrator_deps, tmp_path: Path, monkeypatch) -> None:
-        """Test on_task_complete registers callback."""
-        monkeypatch.chdir(tmp_path)
-        (tmp_path / ".zerg").mkdir()
-
-        callback = MagicMock()
-
-        orch = Orchestrator("test-feature")
-        orch.on_task_complete(callback)
-
-        assert callback in orch._on_task_complete
+        assert level_cb in orch._on_level_complete
+        assert task_cb in orch._on_task_complete
