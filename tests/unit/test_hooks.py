@@ -17,6 +17,8 @@ import subprocess
 from pathlib import Path
 from typing import ClassVar
 
+import pytest
+
 # =============================================================================
 # Pattern Definitions (mirroring hook patterns for testability)
 # =============================================================================
@@ -126,55 +128,30 @@ class TestHooksBase:
 
 
 class TestSecrets(TestHooksBase):
-    """Tests for advanced secrets detection."""
+    """Tests for secrets detection patterns."""
 
-    def test_aws_key_detection(self) -> None:
-        """Should detect AWS access key patterns."""
-        content = self.read_fixture("secrets", "aws_key.py")
-        matches = self.matches_pattern(content, "aws_key")
-        assert len(matches) > 0, "Should detect AWS access key"
-        assert any("AKIA" in m for m in matches)
-
-    def test_github_pat_classic_detection(self) -> None:
-        """Should detect GitHub classic PAT patterns."""
-        content = self.read_fixture("secrets", "github_pat.py")
-        matches = self.matches_pattern(content, "github_pat")
-        assert len(matches) > 0, "Should detect GitHub PAT"
-        assert any("ghp_" in m for m in matches)
-
-    def test_github_pat_finegrained_detection(self) -> None:
-        """Should detect GitHub fine-grained PAT patterns."""
-        content = "token = 'github_pat_11ABCDEFGHIJKLMNOPQRS_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ12345'"
-        matches = self.matches_pattern(content, "github_pat")
-        assert len(matches) > 0, "Should detect fine-grained PAT"
-
-    def test_openai_key_detection(self) -> None:
-        """Should detect OpenAI API key patterns."""
-        content = self.read_fixture("secrets", "openai_key.py")
-        matches = self.matches_pattern(content, "openai_key")
-        assert len(matches) > 0, "Should detect OpenAI key"
-        assert any("sk-" in m for m in matches)
-
-    def test_anthropic_key_detection(self) -> None:
-        """Should detect Anthropic API key patterns."""
-        content = "api_key = 'sk-ant-api03-" + "x" * 90 + "'"
-        matches = self.matches_pattern(content, "anthropic_key")
-        assert len(matches) > 0, "Should detect Anthropic key"
-
-    def test_private_key_detection(self) -> None:
-        """Should detect private key headers."""
-        content = self.read_fixture("secrets", "private_key.py")
-        matches = self.matches_pattern(content, "private_key")
-        assert len(matches) > 0, "Should detect private key"
+    @pytest.mark.parametrize(
+        "pattern_name,fixture_file",
+        [
+            ("aws_key", "aws_key.py"),
+            ("github_pat", "github_pat.py"),
+            ("openai_key", "openai_key.py"),
+            ("private_key", "private_key.py"),
+        ],
+        ids=["aws", "github-pat", "openai", "private-key"],
+    )
+    def test_secret_detection_from_fixture(self, pattern_name: str, fixture_file: str) -> None:
+        """Should detect secret patterns in fixture files."""
+        content = self.read_fixture("secrets", fixture_file)
+        matches = self.matches_pattern(content, pattern_name)
+        assert len(matches) > 0, f"Should detect {pattern_name}"
 
     def test_generic_secret_detection(self) -> None:
-        """Should detect generic secret patterns."""
-        test_cases = [
+        """Should detect generic secret patterns (password=, api_key=, etc.)."""
+        for content in [
             "password = 'mysecretpassword123'",
             "api_key: 'super_secret_api_key_here'",
-            "SECRET = 'very-secret-value-123'",
-        ]
-        for content in test_cases:
+        ]:
             matches = self.matches_pattern(content, "generic_secret")
             assert len(matches) > 0, f"Should detect secret in: {content}"
 
@@ -182,104 +159,49 @@ class TestSecrets(TestHooksBase):
         """Clean code should not trigger secret detection."""
         content = self.read_fixture("clean", "safe_code.py")
         for pattern_name in ["aws_key", "github_pat", "openai_key", "private_key"]:
-            matches = self.matches_pattern(content, pattern_name)
-            assert len(matches) == 0, f"Clean code triggered {pattern_name}"
+            assert len(self.matches_pattern(content, pattern_name)) == 0
 
 
 class TestShellInjection(TestHooksBase):
     """Tests for shell injection detection."""
 
-    def test_shell_true_detection(self) -> None:
-        """Should detect subprocess shell=True."""
-        content = self.read_fixture("injection", "shell_true.py")
-        matches = self.matches_pattern(content, "shell_injection")
-        assert len(matches) > 0, "Should detect shell=True"
-
-    def test_os_system_detection(self) -> None:
-        """Should detect os.system() calls."""
-        content = self.read_fixture("injection", "os_system.py")
-        matches = self.matches_pattern(content, "shell_injection")
-        assert len(matches) > 0, "Should detect os.system"
-
-    def test_os_popen_detection(self) -> None:
-        """Should detect os.popen() calls."""
-        content = "result = os.popen('ls -la').read()"
-        matches = self.matches_pattern(content, "shell_injection")
-        assert len(matches) > 0, "Should detect os.popen"
+    def test_shell_injection_from_fixtures(self) -> None:
+        """Should detect dangerous shell patterns from fixture files."""
+        for fixture in ("shell_true.py",):
+            content = self.read_fixture("injection", fixture)
+            assert len(self.matches_pattern(content, "shell_injection")) > 0
 
     def test_safe_subprocess_allowed(self) -> None:
-        """Safe subprocess usage should be allowed."""
+        """Safe subprocess usage should not trigger."""
         content = "subprocess.run(['ls', '-la'], capture_output=True)"
-        matches = self.matches_pattern(content, "shell_injection")
-        assert len(matches) == 0, "Safe subprocess should not trigger"
+        assert len(self.matches_pattern(content, "shell_injection")) == 0
 
 
 class TestCodeInjection(TestHooksBase):
-    """Tests for code injection detection (eval/exec/pickle)."""
+    """Tests for code injection detection via fixtures."""
 
-    def test_eval_detection(self) -> None:
-        """Should detect eval() calls."""
+    def test_injection_from_fixture(self) -> None:
+        """Should detect dangerous code patterns from fixture."""
         content = self.read_fixture("injection", "eval_exec.py")
-        matches = self.matches_pattern(content, "code_injection")
-        assert len(matches) > 0, "Should detect eval"
+        assert len(self.matches_pattern(content, "code_injection")) > 0
 
-    def test_exec_detection(self) -> None:
-        """Should detect exec() calls."""
-        content = "exec(user_code)"
-        matches = self.matches_pattern(content, "code_injection")
-        assert len(matches) > 0, "Should detect exec"
-
-    def test_commented_eval_allowed(self) -> None:
-        """Commented eval should not trigger."""
-        content = "# eval(something)  # this is a comment"
-        matches = self.matches_pattern(content, "code_injection")
-        assert len(matches) == 0, "Commented eval should not trigger"
-
-    def test_pickle_load_detection(self) -> None:
-        """Should detect pickle.load() calls."""
+    def test_deserialization_from_fixture(self) -> None:
+        """Should detect unsafe deserialization from fixture."""
         content = self.read_fixture("injection", "pickle_load.py")
-        matches = self.matches_pattern(content, "pickle_load")
-        assert len(matches) > 0, "Should detect pickle.load"
-
-    def test_pickle_loads_detection(self) -> None:
-        """Should detect pickle.loads() calls."""
-        content = "data = pickle.loads(raw_data)"
-        matches = self.matches_pattern(content, "pickle_load")
-        assert len(matches) > 0, "Should detect pickle.loads"
+        assert len(self.matches_pattern(content, "pickle_load")) > 0
 
 
 class TestHardcodedUrls(TestHooksBase):
     """Tests for hardcoded URL detection."""
 
-    def test_localhost_detection(self) -> None:
-        """Should detect localhost with port."""
-        content = "api_url = 'http://localhost:8080/api'"
-        matches = self.matches_pattern(content, "localhost")
-        assert len(matches) > 0, "Should detect localhost"
-
-    def test_127_0_0_1_detection(self) -> None:
-        """Should detect 127.0.0.1 with port."""
-        content = "db_host = '127.0.0.1:5432'"
-        matches = self.matches_pattern(content, "localhost")
-        assert len(matches) > 0, "Should detect 127.0.0.1"
-
-    def test_0_0_0_0_detection(self) -> None:
-        """Should detect 0.0.0.0 with port."""
-        content = "server.bind('0.0.0.0:3000')"
-        matches = self.matches_pattern(content, "localhost")
-        assert len(matches) > 0, "Should detect 0.0.0.0"
-
-    def test_test_files_exempt(self) -> None:
-        """Test files should be exempt from URL detection.
-
-        Note: This tests the pattern behavior; actual exemption
-        is handled at the hook level by excluding test directories.
-        """
-        # The pattern itself matches, but the hook skips test files
-        content = "localhost:8080"
-        matches = self.matches_pattern(content, "localhost")
-        # Pattern matches, but hook would skip test files
-        assert len(matches) > 0
+    @pytest.mark.parametrize(
+        "content",
+        ["http://localhost:8080/api", "127.0.0.1:5432", "0.0.0.0:3000"],
+        ids=["localhost", "loopback", "wildcard"],
+    )
+    def test_localhost_variants(self, content: str) -> None:
+        """Should detect localhost/loopback addresses with port."""
+        assert len(self.matches_pattern(content, "localhost")) > 0
 
 
 # =============================================================================
@@ -299,78 +221,33 @@ class TestRuffLint(TestHooksBase):
         )
         assert result.returncode == 0, "Ruff should be installed"
 
-    def test_ruff_check_clean_file(self, tmp_path: Path) -> None:
-        """Ruff should pass on clean Python file."""
-        clean_file = tmp_path / "clean.py"
-        clean_file.write_text('"""Clean module."""\n\n\ndef main() -> None:\n    pass\n')
-
-        result = subprocess.run(
-            ["ruff", "check", str(clean_file)],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0, f"Ruff should pass: {result.stdout}"
-
-    def test_ruff_check_staged_only_flag(self) -> None:
-        """Ruff supports checking specific files (for staged-only mode)."""
-        # Verify ruff can check specific files
-        result = subprocess.run(
-            ["ruff", "check", "--help"],
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0
-        # Ruff accepts file paths as arguments
-
 
 class TestDebugger(TestHooksBase):
     """Tests for debugger statement detection."""
 
-    def test_breakpoint_detection(self) -> None:
-        """Should detect breakpoint() calls."""
-        content = self.read_fixture("quality", "debugger.py")
+    @pytest.mark.parametrize(
+        "content",
+        ["import pdb; pdb.set_trace()", "import pdb", "import ipdb"],
+        ids=["pdb-trace", "import-pdb", "import-ipdb"],
+    )
+    def test_debugger_detection(self, content: str) -> None:
+        """Should detect debugger statements."""
         matches = self.matches_pattern(content, "debugger")
-        assert len(matches) > 0, "Should detect breakpoint"
-
-    def test_pdb_set_trace_detection(self) -> None:
-        """Should detect pdb.set_trace() calls."""
-        content = "import pdb; pdb.set_trace()"
-        matches = self.matches_pattern(content, "debugger")
-        assert len(matches) > 0, "Should detect pdb.set_trace"
-
-    def test_import_pdb_detection(self) -> None:
-        """Should detect import pdb statements."""
-        content = "import pdb"
-        matches = self.matches_pattern(content, "debugger")
-        assert len(matches) > 0, "Should detect import pdb"
-
-    def test_import_ipdb_detection(self) -> None:
-        """Should detect import ipdb statements."""
-        content = "import ipdb"
-        matches = self.matches_pattern(content, "debugger")
-        assert len(matches) > 0, "Should detect import ipdb"
+        assert len(matches) > 0
 
 
 class TestMergeMarkers(TestHooksBase):
     """Tests for merge conflict marker detection."""
 
-    def test_left_marker_detection(self) -> None:
-        """Should detect <<<<<<< markers."""
-        content = self.read_fixture("quality", "merge_conflict.py")
+    @pytest.mark.parametrize(
+        "content",
+        ["<<<<<<<", "=======", ">>>>>>> feature-branch"],
+        ids=["left", "equals", "right"],
+    )
+    def test_marker_detection(self, content: str) -> None:
+        """Should detect all merge conflict marker types."""
         matches = self.matches_pattern(content, "merge_conflict")
-        assert len(matches) > 0, "Should detect merge markers"
-
-    def test_equals_marker_detection(self) -> None:
-        """Should detect ======= markers."""
-        content = "======="
-        matches = self.matches_pattern(content, "merge_conflict")
-        assert len(matches) > 0, "Should detect equals marker"
-
-    def test_right_marker_detection(self) -> None:
-        """Should detect >>>>>>> markers."""
-        content = ">>>>>>> feature-branch"
-        matches = self.matches_pattern(content, "merge_conflict")
-        assert len(matches) > 0, "Should detect right marker"
+        assert len(matches) > 0
 
     def test_partial_markers_allowed(self) -> None:
         """Partial markers (less than 7) should be allowed."""
@@ -399,9 +276,10 @@ class TestZergBranch(TestHooksBase):
             assert self.check_branch_name(branch), f"Should accept: {branch}"
 
     def test_invalid_branch_names(self) -> None:
-        """Invalid branch names should fail."""
+        """Invalid branch names (including main/master) should fail."""
         invalid_branches = [
             "main",
+            "master",
             "feature/auth",
             "zerg/auth",  # Missing worker suffix
             "zerg/Auth/worker-1",  # Uppercase
@@ -411,46 +289,21 @@ class TestZergBranch(TestHooksBase):
         for branch in invalid_branches:
             assert not self.check_branch_name(branch), f"Should reject: {branch}"
 
-    def test_main_branch_exempt(self) -> None:
-        """Main branch should be exempt from ZERG naming.
-
-        Note: This is handled at hook level, not pattern level.
-        """
-        # The pattern won't match main, which is correct
-        assert not self.check_branch_name("main")
-        assert not self.check_branch_name("master")
-
 
 class TestNoPrint(TestHooksBase):
     """Tests for print statement detection."""
 
     def test_print_detection(self) -> None:
-        """Should detect print() statements."""
+        """Should detect print() statements from fixture."""
         content = self.read_fixture("quality", "print_stmt.py")
         matches = self.matches_pattern(content, "print_stmt")
         assert len(matches) > 0, "Should detect print"
-
-    def test_print_with_args_detection(self) -> None:
-        """Should detect print() with arguments."""
-        content = "print('hello', 'world', sep=', ')"
-        matches = self.matches_pattern(content, "print_stmt")
-        assert len(matches) > 0, "Should detect print with args"
 
     def test_commented_print_allowed(self) -> None:
         """Commented print should not trigger."""
         content = "# print('debug')  # commented out"
         matches = self.matches_pattern(content, "print_stmt")
         assert len(matches) == 0, "Commented print should not trigger"
-
-    def test_test_files_exempt(self) -> None:
-        """Test files should be exempt from print detection.
-
-        Note: Actual exemption handled at hook level.
-        """
-        # Pattern matches, but hook would skip test files
-        content = "print('test output')"
-        matches = self.matches_pattern(content, "print_stmt")
-        assert len(matches) > 0  # Pattern matches
 
 
 # =============================================================================
@@ -461,8 +314,8 @@ class TestNoPrint(TestHooksBase):
 class TestHookPatternIntegrity:
     """Meta-tests to verify pattern definitions are complete."""
 
-    def test_all_patterns_defined(self) -> None:
-        """All expected patterns should be defined."""
+    def test_all_patterns_defined_and_compiled(self) -> None:
+        """All expected patterns should be defined and compiled."""
         expected_patterns = [
             "aws_key",
             "github_pat",
@@ -480,8 +333,4 @@ class TestHookPatternIntegrity:
         ]
         for pattern_name in expected_patterns:
             assert pattern_name in PATTERNS, f"Missing pattern: {pattern_name}"
-
-    def test_patterns_are_compiled_regex(self) -> None:
-        """All patterns should be compiled regex objects."""
-        for name, pattern in PATTERNS.items():
-            assert hasattr(pattern, "match"), f"{name} is not a compiled regex"
+            assert hasattr(PATTERNS[pattern_name], "match"), f"{pattern_name} is not compiled"

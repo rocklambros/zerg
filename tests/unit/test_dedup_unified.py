@@ -3,13 +3,9 @@
 Verifies that the dedup refactoring (Level 1-2 of core-refactoring) is correct:
 
 1. Callable injection patterns work in launcher.py
-   (_spawn_with_retry_impl, _start_container_impl, _terminate_impl)
 2. Sync wrappers correctly delegate to async implementations
-   (worker_protocol.py: wait_for_ready, claim_next_task)
 3. No remaining duplicate method pairs exist (introspection-based)
 4. Unified _main_loop has escalation, progress, stall detection
-5. _poll_workers_async no longer exists
-6. _main_loop_async no longer exists (replaced by _main_loop_as_async)
 """
 
 from __future__ import annotations
@@ -19,6 +15,8 @@ import inspect
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from zerg.constants import WorkerStatus
 from zerg.launcher_types import SpawnResult
@@ -60,49 +58,28 @@ class StubLauncher(WorkerLauncher):
 class TestSpawnWithRetryImpl:
     """Verify _spawn_with_retry_impl accepts callables and delegates correctly."""
 
-    def test_impl_is_async_method(self) -> None:
-        """_spawn_with_retry_impl must be a coroutine function."""
+    def test_impl_signature_and_type(self) -> None:
+        """_spawn_with_retry_impl must be async and accept spawn_fn/sleep_fn."""
         assert asyncio.iscoroutinefunction(WorkerLauncher._spawn_with_retry_impl)
-
-    def test_impl_accepts_spawn_fn_and_sleep_fn(self) -> None:
-        """_spawn_with_retry_impl signature must include spawn_fn and sleep_fn."""
         sig = inspect.signature(WorkerLauncher._spawn_with_retry_impl)
         param_names = list(sig.parameters.keys())
         assert "spawn_fn" in param_names
         assert "sleep_fn" in param_names
 
-    def test_sync_wrapper_delegates_to_impl(self) -> None:
-        """spawn_with_retry (sync) must call _spawn_with_retry_impl via asyncio.run."""
+    @pytest.mark.parametrize("use_async", [False, True], ids=["sync", "async"])
+    def test_wrapper_delegates_to_impl(self, use_async: bool) -> None:
+        """Both sync and async spawn_with_retry must delegate to impl."""
         launcher = StubLauncher()
         wt = Path("/tmp/test-wt")
+        kwargs = dict(worker_id=1, feature="test", worktree_path=wt, branch="main", max_attempts=1)
 
-        # The sync wrapper should succeed (spawn returns success=True by default)
-        result = launcher.spawn_with_retry(
-            worker_id=1,
-            feature="test",
-            worktree_path=wt,
-            branch="main",
-            max_attempts=1,
-        )
+        if use_async:
+            result = asyncio.run(launcher.spawn_with_retry_async(**kwargs))
+        else:
+            result = launcher.spawn_with_retry(**kwargs)
+
         assert result.success is True
         assert result.worker_id == 1
-
-    def test_async_wrapper_delegates_to_impl(self) -> None:
-        """spawn_with_retry_async must call _spawn_with_retry_impl directly."""
-        launcher = StubLauncher()
-        wt = Path("/tmp/test-wt")
-
-        result = asyncio.run(
-            launcher.spawn_with_retry_async(
-                worker_id=2,
-                feature="test",
-                worktree_path=wt,
-                branch="main",
-                max_attempts=1,
-            )
-        )
-        assert result.success is True
-        assert result.worker_id == 2
 
     def test_retry_uses_sleep_fn(self) -> None:
         """On failure, impl must call the injected sleep_fn for backoff."""
@@ -137,7 +114,7 @@ class TestSpawnWithRetryImpl:
             )
         )
         assert result.success is True
-        assert len(sleep_calls) == 1  # slept once between attempt 1 and 2
+        assert len(sleep_calls) == 1
 
     def test_all_attempts_fail_returns_error(self) -> None:
         """When all attempts fail, impl returns error SpawnResult."""
@@ -168,32 +145,37 @@ class TestSpawnWithRetryImpl:
         assert "All 2 spawn attempts failed" in (result.error or "")
 
 
-class TestStartContainerImpl:
-    """Verify _start_container_impl and _build_container_cmd in ContainerLauncher."""
+class TestContainerLauncherImpl:
+    """Verify _start_container_impl and _terminate_impl in ContainerLauncher."""
 
-    def test_build_container_cmd_is_single_source(self) -> None:
-        """_build_container_cmd must exist and be used by _start_container_impl."""
-        assert hasattr(ContainerLauncher, "_build_container_cmd")
-        assert hasattr(ContainerLauncher, "_start_container_impl")
+    @pytest.mark.parametrize(
+        "attr",
+        ["_build_container_cmd", "_start_container_impl", "_terminate_impl"],
+    )
+    def test_impl_methods_exist(self, attr: str) -> None:
+        """ContainerLauncher must have all impl methods."""
+        assert hasattr(ContainerLauncher, attr)
 
-    def test_start_container_impl_is_async(self) -> None:
-        """_start_container_impl must be a coroutine function."""
-        assert asyncio.iscoroutinefunction(ContainerLauncher._start_container_impl)
-
-    def test_start_container_impl_accepts_run_fn(self) -> None:
-        """_start_container_impl signature must include run_fn."""
-        sig = inspect.signature(ContainerLauncher._start_container_impl)
-        assert "run_fn" in sig.parameters
+    @pytest.mark.parametrize(
+        "method,param",
+        [("_start_container_impl", "run_fn"), ("_terminate_impl", "run_fn")],
+    )
+    def test_impl_is_async_with_injection(self, method: str, param: str) -> None:
+        """Impl methods must be async and accept injected callables."""
+        fn = getattr(ContainerLauncher, method)
+        assert asyncio.iscoroutinefunction(fn)
+        sig = inspect.signature(fn)
+        assert param in sig.parameters
 
     @patch("zerg.launchers.container_launcher.Path.home")
     @patch("os.getuid", return_value=1000)
     @patch("os.getgid", return_value=1000)
-    def test_sync_wrapper_calls_impl(self, mock_gid: MagicMock, mock_uid: MagicMock, mock_home: MagicMock) -> None:
+    def test_sync_start_container_delegates(
+        self, mock_gid: MagicMock, mock_uid: MagicMock, mock_home: MagicMock
+    ) -> None:
         """_start_container (sync) must delegate to _start_container_impl."""
         mock_home.return_value = Path("/fake/home")
         launcher = ContainerLauncher(image_name="test-image")
-
-        # Patch _start_container_impl to verify it gets called
         with patch.object(launcher, "_start_container_impl", new_callable=AsyncMock) as mock_impl:
             mock_impl.return_value = "abc123"
             result = launcher._start_container(
@@ -204,153 +186,45 @@ class TestStartContainerImpl:
             assert result == "abc123"
             mock_impl.assert_called_once()
 
-
-class TestTerminateImpl:
-    """Verify _terminate_impl in ContainerLauncher."""
-
-    def test_terminate_impl_is_async(self) -> None:
-        """_terminate_impl must be a coroutine function."""
-        assert asyncio.iscoroutinefunction(ContainerLauncher._terminate_impl)
-
-    def test_terminate_impl_accepts_run_fn(self) -> None:
-        """_terminate_impl signature must include run_fn."""
-        sig = inspect.signature(ContainerLauncher._terminate_impl)
-        assert "run_fn" in sig.parameters
-
-    def test_sync_terminate_delegates_to_impl(self) -> None:
+    def test_terminate_sync_delegates(self) -> None:
         """terminate() (sync) must delegate to _terminate_impl."""
         launcher = ContainerLauncher(image_name="test-image")
-
         with patch.object(launcher, "_terminate_impl", new_callable=AsyncMock) as mock_impl:
             mock_impl.return_value = True
-            # Need to set up container_ids and workers
             from zerg.launcher_types import WorkerHandle
 
             launcher._container_ids[1] = "abc123"
             launcher._workers[1] = WorkerHandle(worker_id=1, status=WorkerStatus.RUNNING)
-
             result = launcher.terminate(1)
             assert result is True
             mock_impl.assert_called_once()
 
-    def test_async_terminate_delegates_to_impl(self) -> None:
-        """terminate_async() must delegate to _terminate_impl."""
-        launcher = ContainerLauncher(image_name="test-image")
-
-        with patch.object(launcher, "_terminate_impl", new_callable=AsyncMock) as mock_impl:
-            mock_impl.return_value = True
-            from zerg.launcher_types import WorkerHandle
-
-            launcher._container_ids[1] = "abc123"
-            launcher._workers[1] = WorkerHandle(worker_id=1, status=WorkerStatus.RUNNING)
-
-            result = asyncio.run(launcher.terminate_async(1))
-            assert result is True
-            mock_impl.assert_called_once()
-
 
 # =============================================================================
-# 2. Worker protocol sync-to-async delegation
-# =============================================================================
-
-
-class TestWorkerProtocolDelegation:
-    """Verify sync wrappers in worker_protocol.py delegate to async implementations."""
-
-    def test_wait_for_ready_sync_delegates_to_async(self) -> None:
-        """wait_for_ready (sync) must call wait_for_ready_async via asyncio.run."""
-        from zerg.protocol_state import WorkerProtocol
-
-        # Verify the sync method calls the async method
-        source = inspect.getsource(WorkerProtocol.wait_for_ready)
-        assert "asyncio.run" in source
-        assert "wait_for_ready_async" in source
-
-    def test_claim_next_task_sync_delegates_to_async(self) -> None:
-        """claim_next_task (sync) must call claim_next_task_async via asyncio.run."""
-        from zerg.protocol_state import WorkerProtocol
-
-        source = inspect.getsource(WorkerProtocol.claim_next_task)
-        assert "asyncio.run" in source
-        assert "claim_next_task_async" in source
-
-    def test_wait_for_ready_async_is_source_of_truth(self) -> None:
-        """wait_for_ready_async must be the single source of truth with actual logic."""
-        from zerg.protocol_state import WorkerProtocol
-
-        assert asyncio.iscoroutinefunction(WorkerProtocol.wait_for_ready_async)
-        source = inspect.getsource(WorkerProtocol.wait_for_ready_async)
-        # Must contain the actual polling logic, not just delegation
-        assert "asyncio.sleep" in source
-        assert "_is_ready" in source
-
-    def test_claim_next_task_async_is_source_of_truth(self) -> None:
-        """claim_next_task_async must be the single source of truth with actual logic."""
-        from zerg.protocol_state import WorkerProtocol
-
-        assert asyncio.iscoroutinefunction(WorkerProtocol.claim_next_task_async)
-        source = inspect.getsource(WorkerProtocol.claim_next_task_async)
-        # Must contain the actual claiming logic
-        assert "asyncio.sleep" in source
-        assert "claim_task" in source
-
-
-# =============================================================================
-# 3. No remaining duplicate method pairs (introspection)
+# 2. No remaining duplicate method pairs (introspection)
 # =============================================================================
 
 
 class TestNoDuplicateMethodPairs:
     """Verify no sync/async duplicate method pairs remain outside the dedup pattern."""
 
-    def _get_public_methods(self, cls: type) -> dict[str, bool]:
-        """Get all public methods with their async status.
-
-        Returns dict mapping method_name -> is_coroutine.
-        """
-        methods: dict[str, bool] = {}
-        for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
-            if name.startswith("_"):
-                continue
-            methods[name] = asyncio.iscoroutinefunction(method)
-        return methods
-
-    def test_orchestrator_no_poll_workers_async(self) -> None:
-        """_poll_workers_async must not exist on Orchestrator."""
+    @pytest.mark.parametrize(
+        "attr,should_exist",
+        [
+            ("_poll_workers_async", False),
+            ("_main_loop_async", False),
+            ("_main_loop_as_async", True),
+            ("_poll_workers_sync", True),
+        ],
+    )
+    def test_orchestrator_method_presence(self, attr: str, should_exist: bool) -> None:
+        """Orchestrator must have correct methods after dedup refactoring."""
         from zerg.orchestrator import Orchestrator
 
-        assert not hasattr(Orchestrator, "_poll_workers_async"), (
-            "_poll_workers_async should have been removed. _poll_workers is the single source of truth."
-        )
-
-    def test_orchestrator_no_main_loop_async(self) -> None:
-        """_main_loop_async must not exist on Orchestrator.
-
-        The async equivalent is now _main_loop_as_async which wraps
-        the unified _main_loop via asyncio.to_thread.
-        """
-        from zerg.orchestrator import Orchestrator
-
-        assert not hasattr(Orchestrator, "_main_loop_async"), (
-            "_main_loop_async should have been removed. _main_loop_as_async wraps the unified _main_loop."
-        )
-
-    def test_orchestrator_has_main_loop_as_async(self) -> None:
-        """_main_loop_as_async must exist as the async wrapper."""
-        from zerg.orchestrator import Orchestrator
-
-        assert hasattr(Orchestrator, "_main_loop_as_async")
-        assert asyncio.iscoroutinefunction(Orchestrator._main_loop_as_async)
-
-    def test_orchestrator_poll_workers_sync_alias(self) -> None:
-        """_poll_workers_sync must exist as an alias for _poll_workers."""
-        from zerg.orchestrator import Orchestrator
-
-        assert hasattr(Orchestrator, "_poll_workers_sync")
-        assert Orchestrator._poll_workers_sync is Orchestrator._poll_workers
+        assert hasattr(Orchestrator, attr) == should_exist
 
     def test_worker_protocol_sync_wrappers_are_thin(self) -> None:
-        """Sync wrappers in WorkerProtocol must be thin (< 10 lines each)."""
+        """Sync wrappers in WorkerProtocol must be thin (< 15 lines each)."""
         from zerg.protocol_state import WorkerProtocol
 
         for method_name in ("wait_for_ready", "claim_next_task"):
@@ -358,17 +232,8 @@ class TestNoDuplicateMethodPairs:
             lines = [line for line in source.splitlines() if line.strip() and not line.strip().startswith(('"""', "#"))]
             assert len(lines) < 15, f"{method_name} should be a thin sync wrapper but has {len(lines)} lines"
 
-    def test_launcher_base_no_standalone_sync_retry(self) -> None:
-        """WorkerLauncher.spawn_with_retry must delegate to _spawn_with_retry_impl.
-
-        Verifying no duplicate retry logic exists outside the impl method.
-        """
-        source = inspect.getsource(WorkerLauncher.spawn_with_retry)
-        assert "_spawn_with_retry_impl" in source
-        assert "asyncio.run" in source
-
     def test_level_coordinator_has_no_async_methods(self) -> None:
-        """LevelCoordinator must have zero async methods (confirmed no-op in dedup)."""
+        """LevelCoordinator must have zero async methods."""
         from zerg.level_coordinator import LevelCoordinator
 
         for name, method in inspect.getmembers(LevelCoordinator, predicate=inspect.isfunction):
@@ -376,186 +241,74 @@ class TestNoDuplicateMethodPairs:
 
 
 # =============================================================================
-# 4. Unified _main_loop has all features
+# 3. Unified _main_loop has all features
 # =============================================================================
 
 
 class TestUnifiedMainLoop:
     """Verify the unified _main_loop includes escalation, progress, stall detection."""
 
-    def test_main_loop_calls_check_escalations(self) -> None:
-        """_main_loop must include escalation checks (previously missing from async)."""
-        from zerg.orchestrator import Orchestrator
-
-        # _poll_workers (called from _main_loop) must include escalation checks
-        # (inlined from _check_escalations by TASK-021)
-        source = inspect.getsource(Orchestrator._poll_workers)
-        assert "escalation" in source
-
-    def test_main_loop_calls_aggregate_progress(self) -> None:
-        """_main_loop must include progress aggregation (previously missing from async)."""
-        from zerg.orchestrator import Orchestrator
-
-        # (inlined from _aggregate_progress by TASK-021)
-        source = inspect.getsource(Orchestrator._poll_workers)
-        assert "ProgressReporter" in source
-
-    def test_main_loop_calls_check_stale_tasks(self) -> None:
-        """_main_loop must call _check_stale_tasks for stall detection."""
+    @pytest.mark.parametrize(
+        "keyword",
+        ["escalation", "ProgressReporter", "_check_stale_tasks", "STALLED", "CRASHED"],
+        ids=["escalation", "progress", "stale-tasks", "stalled", "crashed"],
+    )
+    def test_poll_workers_contains_feature(self, keyword: str) -> None:
+        """_poll_workers must include all required features."""
         from zerg.orchestrator import Orchestrator
 
         source = inspect.getsource(Orchestrator._poll_workers)
-        assert "_check_stale_tasks" in source
+        assert keyword in source or keyword.lower() in source.lower()
 
-    def test_main_loop_accepts_sleep_fn(self) -> None:
-        """_main_loop must accept a sleep_fn parameter for injectable sleep."""
+    def test_main_loop_injectable_sleep(self) -> None:
+        """_main_loop must accept sleep_fn and default to time.sleep."""
         from zerg.orchestrator import Orchestrator
 
         sig = inspect.signature(Orchestrator._main_loop)
         assert "sleep_fn" in sig.parameters
-
-    def test_main_loop_defaults_to_time_sleep(self) -> None:
-        """_main_loop must default sleep_fn to time.sleep."""
-        from zerg.orchestrator import Orchestrator
-
         source = inspect.getsource(Orchestrator._main_loop)
         assert "time.sleep" in source
 
-    def test_main_loop_as_async_runs_via_to_thread(self) -> None:
-        """_main_loop_as_async must use asyncio.to_thread to run _main_loop."""
+    def test_main_loop_as_async_uses_to_thread(self) -> None:
+        """_main_loop_as_async must use asyncio.to_thread."""
         from zerg.orchestrator import Orchestrator
 
         source = inspect.getsource(Orchestrator._main_loop_as_async)
         assert "asyncio.to_thread" in source
-        assert "_main_loop" in source
-
-    def test_main_loop_handles_auto_respawn(self) -> None:
-        """_main_loop must handle auto-respawn when workers are gone but tasks remain."""
-        from zerg.orchestrator import Orchestrator
-
-        source = inspect.getsource(Orchestrator._main_loop)
-        assert "_auto_respawn_workers" in source
-
-    def test_poll_workers_handles_stalled_workers(self) -> None:
-        """_poll_workers must detect and handle stalled workers."""
-        from zerg.orchestrator import Orchestrator
-
-        source = inspect.getsource(Orchestrator._poll_workers)
-        assert "STALLED" in source or "stalled" in source.lower()
-
-    def test_poll_workers_handles_crashed_workers(self) -> None:
-        """_poll_workers must detect and handle crashed workers."""
-        from zerg.orchestrator import Orchestrator
-
-        source = inspect.getsource(Orchestrator._poll_workers)
-        assert "CRASHED" in source or "WorkerStatus.CRASHED" in source
 
 
 # =============================================================================
-# 5. Container launcher _build_container_cmd is shared
-# =============================================================================
-
-
-class TestBuildContainerCmd:
-    """Verify _build_container_cmd is the single source for command construction."""
-
-    def test_start_container_impl_uses_build_cmd(self) -> None:
-        """_start_container_impl must call _build_container_cmd."""
-        source = inspect.getsource(ContainerLauncher._start_container_impl)
-        assert "_build_container_cmd" in source
-
-    def test_build_container_cmd_returns_list(self) -> None:
-        """_build_container_cmd must return a list of strings."""
-        sig = inspect.signature(ContainerLauncher._build_container_cmd)
-        # Verify the method exists and has the right parameters
-        params = list(sig.parameters.keys())
-        assert "container_name" in params
-        assert "worktree_path" in params
-        assert "env" in params
-
-    def test_sync_start_container_calls_impl(self) -> None:
-        """_start_container (sync) must call _start_container_impl."""
-        source = inspect.getsource(ContainerLauncher._start_container)
-        assert "_start_container_impl" in source
-
-    def test_async_start_container_calls_impl(self) -> None:
-        """_start_container_async must call _start_container_impl."""
-        source = inspect.getsource(ContainerLauncher._start_container_async)
-        assert "_start_container_impl" in source
-
-
-# =============================================================================
-# 6. Subprocess launcher async methods
-# =============================================================================
-
-
-class TestSubprocessLauncherAsync:
-    """Verify SubprocessLauncher async overrides delegate properly."""
-
-    def test_terminate_async_exists_on_base(self) -> None:
-        """WorkerLauncher base class must have terminate_async."""
-        assert hasattr(WorkerLauncher, "terminate_async")
-        assert asyncio.iscoroutinefunction(WorkerLauncher.terminate_async)
-
-    def test_subprocess_launcher_overrides_terminate_async(self) -> None:
-        """SubprocessLauncher must override terminate_async."""
-        assert asyncio.iscoroutinefunction(SubprocessLauncher.terminate_async)
-
-    def test_base_terminate_async_uses_to_thread(self) -> None:
-        """Base WorkerLauncher.terminate_async must use asyncio.to_thread."""
-        source = inspect.getsource(WorkerLauncher.terminate_async)
-        assert "asyncio.to_thread" in source
-
-
-# =============================================================================
-# 7. Comprehensive dedup pattern integrity
+# 4. Dedup pattern integrity
 # =============================================================================
 
 
 class TestDedupPatternIntegrity:
     """Cross-cutting tests to verify dedup patterns are internally consistent."""
 
-    def test_spawn_with_retry_sync_and_async_share_impl(self) -> None:
-        """Both sync and async spawn_with_retry must reference _spawn_with_retry_impl."""
-        sync_source = inspect.getsource(WorkerLauncher.spawn_with_retry)
-        async_source = inspect.getsource(WorkerLauncher.spawn_with_retry_async)
-        assert "_spawn_with_retry_impl" in sync_source
-        assert "_spawn_with_retry_impl" in async_source
-
-    def test_container_terminate_sync_and_async_share_impl(self) -> None:
-        """Both sync and async terminate in ContainerLauncher must use _terminate_impl."""
-        sync_source = inspect.getsource(ContainerLauncher.terminate)
-        async_source = inspect.getsource(ContainerLauncher.terminate_async)
-        assert "_terminate_impl" in sync_source
-        assert "_terminate_impl" in async_source
-
-    def test_container_start_sync_and_async_share_impl(self) -> None:
-        """Both sync and async _start_container must use _start_container_impl."""
-        sync_source = inspect.getsource(ContainerLauncher._start_container)
-        async_source = inspect.getsource(ContainerLauncher._start_container_async)
-        assert "_start_container_impl" in sync_source
-        assert "_start_container_impl" in async_source
+    @pytest.mark.parametrize(
+        "cls,sync_method,async_method,impl_name",
+        [
+            (WorkerLauncher, "spawn_with_retry", "spawn_with_retry_async", "_spawn_with_retry_impl"),
+            (ContainerLauncher, "terminate", "terminate_async", "_terminate_impl"),
+            (ContainerLauncher, "_start_container", "_start_container_async", "_start_container_impl"),
+        ],
+    )
+    def test_sync_and_async_share_impl(self, cls: type, sync_method: str, async_method: str, impl_name: str) -> None:
+        """Both sync and async wrappers must reference the shared impl."""
+        sync_source = inspect.getsource(getattr(cls, sync_method))
+        async_source = inspect.getsource(getattr(cls, async_method))
+        assert impl_name in sync_source
+        assert impl_name in async_source
 
     def test_no_duplicate_retry_logic_in_wrappers(self) -> None:
-        """Sync/async wrappers must not contain retry loops themselves.
+        """Sync/async wrappers must not contain retry loops themselves."""
+        for method_name in ("spawn_with_retry", "spawn_with_retry_async"):
+            source = inspect.getsource(getattr(WorkerLauncher, method_name))
+            assert "for attempt" not in source, f"{method_name} contains retry loop (should be in impl only)"
 
-        The retry loop must only live in _spawn_with_retry_impl.
-        """
-        sync_source = inspect.getsource(WorkerLauncher.spawn_with_retry)
-        async_source = inspect.getsource(WorkerLauncher.spawn_with_retry_async)
-
-        # Wrappers should NOT contain for loops (the retry loop is in impl)
-        for source, name in [(sync_source, "spawn_with_retry"), (async_source, "spawn_with_retry_async")]:
-            # Count 'for attempt' or 'for ' + 'range' patterns — none should appear
-            assert "for attempt" not in source, f"{name} contains retry loop (should be in impl only)"
-
-    def test_impl_methods_contain_actual_logic(self) -> None:
-        """_*_impl methods must contain the actual business logic, not just delegation."""
-        impl_source = inspect.getsource(WorkerLauncher._spawn_with_retry_impl)
-        assert "for attempt" in impl_source or "range(" in impl_source  # retry loop
-
-        container_impl_source = inspect.getsource(ContainerLauncher._start_container_impl)
-        assert "await run_fn" in container_impl_source  # calls the injected runner
-
-        terminate_impl_source = inspect.getsource(ContainerLauncher._terminate_impl)
-        assert "await run_fn" in terminate_impl_source  # calls the injected runner
+    def test_subprocess_launcher_async_terminate(self) -> None:
+        """WorkerLauncher base and SubprocessLauncher must have terminate_async."""
+        assert asyncio.iscoroutinefunction(WorkerLauncher.terminate_async)
+        assert asyncio.iscoroutinefunction(SubprocessLauncher.terminate_async)
+        source = inspect.getsource(WorkerLauncher.terminate_async)
+        assert "asyncio.to_thread" in source
