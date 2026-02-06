@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `--skip-validation` flag for `/z:plan` and `/z:design` to bypass Phase 0 pre-execution validation checks
 - Smoke CI job in `ci.yml` gating test shards for fast-fail feedback (~10s)
-- `@pytest.mark.smoke` markers on ~25 critical-path unit tests covering orchestrator, state, config, CLI, launcher, and worker protocol
+- `@pytest.mark.smoke` markers on 28 critical-path unit tests covering config, types, exceptions, graph validation, state, CLI, launcher, parser, and constants
 
 ### Fixed
 
