@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Deduplicated sync/async method pairs in launcher, orchestrator, and worker_protocol using callable injection and async-first patterns (~445 lines removed) (#136)
+
 ### Fixed
 
 - **Security**: Remove dangerous command prefixes (`python -c`, `python3 -c`, `npx`) from CommandExecutor allowlist (#135)
