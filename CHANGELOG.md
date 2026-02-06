@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Delete 14 gap-filling test files (_coverage, _extended, _full), removing ~649 redundant tests
+- Delete 4 doc engine test files and thin test_doc_engine.py from 89 to 32 tests
+- Merge 8 test_cmd_* files into test_*_cmd counterparts and delete sources
+- Thin 18 command test files from ~1,399 to ~400 tests using systematic reduction rules
 - Consolidate all root-level test files into `tests/unit/`: delete 8 pure duplicates, relocate 10 orphans
 - Consolidate 8 launcher test files into 4, removing ~75 duplicate tests and ~1,500 lines
 - Consolidate 3 CI workflows (`pytest.yml`, `changelog-check.yml`, `command-validation.yml`) into single `ci.yml` with 4 jobs: `quality`, `test` (2 shards), `audit`
