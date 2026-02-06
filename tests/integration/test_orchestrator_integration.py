@@ -184,7 +184,7 @@ class TestOrchestratorWorkerCrashRecovery:
             # Spawn a worker
             worker_state = orch._spawn_worker(0)
             worker_state.current_task = "TASK-001"
-            orch._workers[0] = worker_state
+            orch.registry.register(0, worker_state)
 
             # Poll should detect crash
             orch._poll_workers()
@@ -275,7 +275,7 @@ class TestOrchestratorWorkerCrashRecovery:
             # Spawn initial worker
             worker_state = orch._spawn_worker(0)
             worker_state.current_task = None  # No current task
-            orch._workers[0] = worker_state
+            orch.registry.register(0, worker_state)
 
             # Poll should detect crash and handle exit
             orch._poll_workers()

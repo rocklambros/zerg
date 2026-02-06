@@ -262,8 +262,8 @@ class TestReassignStrandedTasks:
             }
 
             # Also add in-memory workers
-            orch._workers[3] = WorkerState(worker_id=3, status=WorkerStatus.RUNNING)
-            orch._workers[4] = WorkerState(worker_id=4, status=WorkerStatus.CRASHED)
+            orch.registry.register(3, WorkerState(worker_id=3, status=WorkerStatus.RUNNING))
+            orch.registry.register(4, WorkerState(worker_id=4, status=WorkerStatus.CRASHED))
 
             # Mock _state_sync so we can verify the active_ids parameter
             mock_sync = MagicMock()
@@ -447,7 +447,7 @@ class TestMainLoopRespawnOnAllWorkersExited:
             levels.get_pending_tasks_for_level.return_value = ["T1", "T2"]
 
             # All workers are stopped
-            orch._workers[0] = WorkerState(worker_id=0, status=WorkerStatus.STOPPED)
+            orch.registry.register(0, WorkerState(worker_id=0, status=WorkerStatus.STOPPED))
 
             # The code now calls _auto_respawn_workers instead of _respawn_workers_for_level
             respawn_mock = MagicMock()
@@ -481,8 +481,8 @@ class TestPollWorkersSkipStoppedCrashed:
     def test_poll_workers_skips_stopped(self, tmp_path):
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
-            orch._workers[0] = WorkerState(worker_id=0, status=WorkerStatus.STOPPED)
-            orch._workers[1] = WorkerState(worker_id=1, status=WorkerStatus.CRASHED)
+            orch.registry.register(0, WorkerState(worker_id=0, status=WorkerStatus.STOPPED))
+            orch.registry.register(1, WorkerState(worker_id=1, status=WorkerStatus.CRASHED))
 
             launcher = MagicMock()
             launcher.sync_state.return_value = None
@@ -650,8 +650,8 @@ class TestStopAsync:
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             orch._running = True
-            orch._workers[0] = WorkerState(worker_id=0, status=WorkerStatus.RUNNING)
-            orch._terminate_worker = MagicMock()
+            orch.registry.register(0, WorkerState(worker_id=0, status=WorkerStatus.RUNNING))
+            orch._worker_manager.terminate_worker = MagicMock()
 
             sm = mocks["state_cls"].return_value
             sm.save_async = AsyncMock()
@@ -659,7 +659,7 @@ class TestStopAsync:
             asyncio.run(orch.stop_async(force=False))
 
             assert orch._running is False
-            orch._terminate_worker.assert_called_once_with(0, force=False)
+            orch._worker_manager.terminate_worker.assert_called_once_with(0, force=False)
             sm.save_async.assert_awaited_once()
         finally:
             _stop_patches(patches)
@@ -732,7 +732,7 @@ class TestMainLoopAsync:
             orch._on_level_complete_handler = on_complete
 
             # All workers stopped
-            orch._workers[0] = WorkerState(worker_id=0, status=WorkerStatus.STOPPED)
+            orch.registry.register(0, WorkerState(worker_id=0, status=WorkerStatus.STOPPED))
 
             iteration = 0
 
@@ -769,7 +769,7 @@ class TestMainLoopAsync:
             orch._respawn_workers_for_level = MagicMock()
 
             # Add a running worker so the "all workers exited" branch is not hit
-            orch._workers[0] = WorkerState(worker_id=0, status=WorkerStatus.RUNNING)
+            orch.registry.register(0, WorkerState(worker_id=0, status=WorkerStatus.RUNNING))
 
             iteration = 0
 
@@ -799,7 +799,7 @@ class TestMainLoopAsync:
             levels.is_level_resolved.return_value = False
             levels.get_pending_tasks_for_level.return_value = ["T1"]
 
-            orch._workers[0] = WorkerState(worker_id=0, status=WorkerStatus.STOPPED)
+            orch.registry.register(0, WorkerState(worker_id=0, status=WorkerStatus.STOPPED))
             orch._auto_respawn_workers = MagicMock()
 
             iteration = 0
@@ -862,7 +862,7 @@ class TestPollWorkersAsync:
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             worker = WorkerState(worker_id=0, status=WorkerStatus.RUNNING, current_task="T1")
-            orch._workers[0] = worker
+            orch.registry.register(0, worker)
 
             sm = mocks["state_cls"].return_value
             sm.load_async = AsyncMock()
@@ -878,7 +878,7 @@ class TestPollWorkersAsync:
             orch.task_sync = MagicMock()
             # The code now calls _handle_worker_crash to reassign instead of failing
             orch._handle_worker_crash = MagicMock()
-            orch._handle_worker_exit = MagicMock()
+            orch._worker_manager.handle_worker_exit = MagicMock()
 
             orch._poll_workers()
 
@@ -886,7 +886,7 @@ class TestPollWorkersAsync:
             sm.set_worker_state.assert_called()
             # When worker crashes with a task, _handle_worker_crash is called to reassign
             orch._handle_worker_crash.assert_called_once_with("T1", 0)
-            orch._handle_worker_exit.assert_called_once_with(0)
+            orch._worker_manager.handle_worker_exit.assert_called_once_with(0)
         finally:
             _stop_patches(patches)
 
@@ -895,7 +895,7 @@ class TestPollWorkersAsync:
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             worker = WorkerState(worker_id=0, status=WorkerStatus.RUNNING, current_task=None)
-            orch._workers[0] = worker
+            orch.registry.register(0, worker)
 
             sm = mocks["state_cls"].return_value
             sm.load_async = AsyncMock()
@@ -910,14 +910,14 @@ class TestPollWorkersAsync:
             orch._check_container_health = MagicMock()
             orch.task_sync = MagicMock()
             orch._handle_task_failure = MagicMock()
-            orch._handle_worker_exit = MagicMock()
+            orch._worker_manager.handle_worker_exit = MagicMock()
 
             orch._poll_workers()
 
             assert worker.status == WorkerStatus.CRASHED
             # _handle_task_failure should NOT be called when no current_task
             orch._handle_task_failure.assert_not_called()
-            orch._handle_worker_exit.assert_called_once_with(0)
+            orch._worker_manager.handle_worker_exit.assert_called_once_with(0)
         finally:
             _stop_patches(patches)
 
@@ -926,7 +926,7 @@ class TestPollWorkersAsync:
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             worker = WorkerState(worker_id=0, status=WorkerStatus.RUNNING)
-            orch._workers[0] = worker
+            orch.registry.register(0, worker)
 
             sm = mocks["state_cls"].return_value
             sm.load_async = AsyncMock()
@@ -940,12 +940,12 @@ class TestPollWorkersAsync:
             orch._reassign_stranded_tasks = MagicMock()
             orch._check_container_health = MagicMock()
             orch.task_sync = MagicMock()
-            orch._handle_worker_exit = MagicMock()
+            orch._worker_manager.handle_worker_exit = MagicMock()
 
             orch._poll_workers()
 
             assert worker.status == WorkerStatus.CHECKPOINTING
-            orch._handle_worker_exit.assert_called_once_with(0)
+            orch._worker_manager.handle_worker_exit.assert_called_once_with(0)
         finally:
             _stop_patches(patches)
 
@@ -954,7 +954,7 @@ class TestPollWorkersAsync:
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             worker = WorkerState(worker_id=0, status=WorkerStatus.RUNNING)
-            orch._workers[0] = worker
+            orch.registry.register(0, worker)
 
             sm = mocks["state_cls"].return_value
             sm.load_async = AsyncMock()
@@ -968,12 +968,12 @@ class TestPollWorkersAsync:
             orch._reassign_stranded_tasks = MagicMock()
             orch._check_container_health = MagicMock()
             orch.task_sync = MagicMock()
-            orch._handle_worker_exit = MagicMock()
+            orch._worker_manager.handle_worker_exit = MagicMock()
 
             orch._poll_workers()
 
             assert worker.status == WorkerStatus.STOPPED
-            orch._handle_worker_exit.assert_called_once_with(0)
+            orch._worker_manager.handle_worker_exit.assert_called_once_with(0)
         finally:
             _stop_patches(patches)
 
@@ -982,7 +982,7 @@ class TestPollWorkersAsync:
         orch, mocks, patches = _build_orchestrator(tmp_path)
         try:
             worker = WorkerState(worker_id=0, status=WorkerStatus.STOPPED)
-            orch._workers[0] = worker
+            orch.registry.register(0, worker)
 
             sm = mocks["state_cls"].return_value
             sm.load_async = AsyncMock()

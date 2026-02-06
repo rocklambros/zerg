@@ -711,8 +711,9 @@ class TestMainLoopLevelTransitions:
             orch._check_stale_tasks = MagicMock()
 
             # Add a running worker so the auto-respawn logic doesn't trigger
-            orch._workers[0] = MagicMock()
-            orch._workers[0].status = WorkerStatus.RUNNING
+            mock_worker = MagicMock()
+            mock_worker.status = WorkerStatus.RUNNING
+            orch.registry.register(0, mock_worker)
 
             call_count = 0
 
