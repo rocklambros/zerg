@@ -3,7 +3,9 @@
 .zerg/worktrees/
 .zerg/logs/
 .zerg/*.pid
+.zerg/.current-feature
 .zerg/schemas/archived/
+.gsd/specs/test-feat/worker-assignments.json
 .factory/temp/
 
 # Environment

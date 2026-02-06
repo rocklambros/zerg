@@ -1,0 +1,130 @@
+{
+  "feature": "ci-streamline",
+  "version": "2.0",
+  "generated": "2026-02-05T00:00:00Z",
+  "total_tasks": 4,
+  "estimated_duration_minutes": 20,
+  "max_parallelization": 2,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Generate .test_durations file",
+      "description": "Run pytest --store-durations to generate the .test_durations file at repo root. This file contains per-test timing data that pytest-split uses for optimal shard balancing. Run: pytest tests/ -m 'not slow' --store-durations --durations-path .test_durations -q --timeout=60. Commit the resulting JSON file.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".test_durations"],
+        "modify": [],
+        "read": ["pyproject.toml"]
+      },
+      "verification": {
+        "command": "python -c \"import json; d=json.load(open('.test_durations')); assert len(d) > 0, 'empty durations'\"",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["pytest"],
+      "consumers": ["TASK-002"],
+      "integration_test": null,
+      "context": "## Spec Context\nGenerate .test_durations for pytest-split optimization. File must be committed to repo root. pytest-split auto-detects it. Run all tests (unit+integration) excluding slow/docker/e2e markers.\n\n## Dependencies\nNone — this is a foundation task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Create ci.yml unified workflow",
+      "description": "Create .github/workflows/ci.yml that replaces pytest.yml, changelog-check.yml, and command-validation.yml. Contains 4 jobs: quality (lint + validate_commands + changelog check), test (2 shards via pytest-split matrix), and audit (pip-audit). Delete .github/workflows/pytest.yml after creating ci.yml. Triggers: push [main], pull_request [opened, synchronize, reopened, labeled, unlabeled]. Quality job needs fetch-depth: 0 for changelog diff. Changelog check conditional: only on PRs, skip if skip-changelog label present. Test job needs: quality, uses pytest-split with --splits 2 --group N. Audit has no needs (parallel).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".github/workflows/ci.yml"],
+        "modify": [],
+        "read": [
+          ".github/workflows/pytest.yml",
+          ".github/workflows/changelog-check.yml",
+          ".github/workflows/command-validation.yml"
+        ]
+      },
+      "verification": {
+        "command": "python -c \"import yaml; y=yaml.safe_load(open('.github/workflows/ci.yml')); jobs=list(y['jobs'].keys()); assert 'quality' in jobs; assert 'test' in jobs; assert 'audit' in jobs; assert len(jobs)==3, f'expected 3 jobs, got {jobs}'\"",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["github-actions", "yaml"],
+      "consumers": ["TASK-003"],
+      "integration_test": null,
+      "context": "## Spec Context\nCreate single ci.yml replacing 3 workflows. Jobs: quality (lint+validate+changelog), test (2 shards, needs: quality), audit (no deps). Triggers must include labeled/unlabeled for skip-changelog detection. Quality job: fetch-depth 0, ruff check + format, validate_commands, inline changelog diff. Test job: pytest tests/ -m 'not slow' --splits 2 --group N with git config. Audit: pip-audit --desc.\n\n## Current Workflows (to absorb)\n- pytest.yml: smoke→lint→test(4 shards)+integration+audit\n- changelog-check.yml: git diff for CHANGELOG.md, skip-changelog label\n- command-validation.yml: python -m zerg.validate_commands\n\n## Dependencies\nNone — foundation task. TASK-003 depends on this."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Delete old workflow files",
+      "description": "Delete .github/workflows/changelog-check.yml and .github/workflows/command-validation.yml. Also delete .github/workflows/pytest.yml (replaced by ci.yml from TASK-002). Verify release.yml is untouched.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": [".github/workflows/release.yml"]
+      },
+      "verification": {
+        "command": "test ! -f .github/workflows/changelog-check.yml && test ! -f .github/workflows/command-validation.yml && test ! -f .github/workflows/pytest.yml && test -f .github/workflows/release.yml && test -f .github/workflows/ci.yml",
+        "timeout_seconds": 5
+      },
+      "estimate_minutes": 2,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nDelete 3 workflow files absorbed by ci.yml. Verify release.yml unchanged.\n\n## Dependencies\nTASK-002 must complete first (ci.yml must exist before deleting pytest.yml)."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Remove smoke markers from test files",
+      "description": "Remove 'pytestmark = pytest.mark.smoke' line from 5 test files: tests/unit/test_validation.py, tests/unit/test_constants.py, tests/unit/test_ast_analyzer.py, tests/unit/test_state.py, tests/unit/test_config.py. The smoke marker is no longer used since the smoke job is removed. Tests still run normally without the marker.",
+      "phase": "cleanup",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_validation.py",
+          "tests/unit/test_constants.py",
+          "tests/unit/test_ast_analyzer.py",
+          "tests/unit/test_state.py",
+          "tests/unit/test_config.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -r 'pytest.mark.smoke' tests/unit/test_validation.py tests/unit/test_constants.py tests/unit/test_ast_analyzer.py tests/unit/test_state.py tests/unit/test_config.py",
+        "timeout_seconds": 5
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nCleanup task. Remove pytestmark = pytest.mark.smoke from 5 files. The smoke CI job is being removed, so these markers are dead code. Tests still run without the marker — it was only used for CI filtering.\n\n## Dependencies\nNone — independent cleanup. Can run parallel with TASK-003."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 10
+    },
+    "2": {
+      "name": "core + cleanup",
+      "tasks": ["TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 5,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No file conflicts — all tasks own exclusive files",
+    "conflicts": []
+  }
+}
