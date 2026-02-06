@@ -10,12 +10,15 @@ Targets 100% coverage for zerg/state.py including:
 import json
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
 from zerg.constants import LevelMergeStatus, TaskStatus, WorkerStatus
 from zerg.exceptions import StateError
+from zerg.levels import LevelController
 from zerg.state import StateManager
+from zerg.state_sync_service import StateSyncService
 from zerg.types import WorkerState
 
 
@@ -961,3 +964,167 @@ class TestStateMdGeneration:
         # Next line should not be about commit
         if level_line_idx + 1 < len(lines):
             assert "Commit:" not in lines[level_line_idx + 1]
+
+
+# ============================================================================
+# Merged from test_state_workers.py — unique worker state code paths
+# ============================================================================
+
+
+class TestGetWorkerStateEdgeCases:
+    """Tests for get_worker_state edge cases (merged from test_state_workers.py)."""
+
+    def test_get_worker_state_non_existent_returns_none(self, tmp_path: Path) -> None:
+        """get_worker_state returns None for non-existent worker ID."""
+        manager = StateManager("test-feature", state_dir=tmp_path)
+        manager.load()
+
+        result = manager.get_worker_state(worker_id=999)
+
+        assert result is None
+
+    def test_get_worker_state_string_key_conversion(self, tmp_path: Path) -> None:
+        """get_worker_state handles string-to-int key conversion correctly."""
+        manager = StateManager("test-feature", state_dir=tmp_path)
+        manager.load()
+        manager._state["workers"] = {
+            "1": {
+                "worker_id": 1,
+                "status": WorkerStatus.READY.value,
+                "current_task": None,
+                "port": 8080,
+                "container_id": None,
+                "worktree_path": None,
+                "branch": None,
+                "health_check_at": None,
+                "started_at": None,
+                "ready_at": None,
+                "last_task_completed_at": None,
+                "tasks_completed": 0,
+                "context_usage": 0.0,
+            }
+        }
+        manager.save()
+
+        result = manager.get_worker_state(worker_id=1)
+        assert result is not None
+        assert result.worker_id == 1
+
+        result_missing = manager.get_worker_state(worker_id=2)
+        assert result_missing is None
+
+    def test_set_worker_state_with_all_none_optional_fields(self, tmp_path: Path) -> None:
+        """set_worker_state handles WorkerState with None optional fields."""
+        manager = StateManager("test-feature", state_dir=tmp_path)
+        manager.load()
+
+        worker_state = WorkerState(
+            worker_id=1,
+            status=WorkerStatus.INITIALIZING,
+            current_task=None,
+            port=None,
+            container_id=None,
+            worktree_path=None,
+            branch=None,
+        )
+        manager.set_worker_state(worker_state)
+
+        retrieved = manager.get_worker_state(worker_id=1)
+        assert retrieved is not None
+        assert retrieved.status == WorkerStatus.INITIALIZING
+        assert retrieved.current_task is None
+        assert retrieved.port is None
+
+    def test_set_worker_state_overwrites_completely(self, tmp_path: Path) -> None:
+        """set_worker_state does full replacement, not merge."""
+        manager = StateManager("test-feature", state_dir=tmp_path)
+        manager.load()
+
+        initial = WorkerState(
+            worker_id=1,
+            status=WorkerStatus.RUNNING,
+            current_task="TASK-001",
+            port=8080,
+            container_id="container-xyz",
+            tasks_completed=10,
+        )
+        manager.set_worker_state(initial)
+
+        replacement = WorkerState(
+            worker_id=1,
+            status=WorkerStatus.IDLE,
+            current_task=None,
+            port=None,
+            container_id=None,
+            tasks_completed=0,
+        )
+        manager.set_worker_state(replacement)
+
+        retrieved = manager.get_worker_state(worker_id=1)
+        assert retrieved is not None
+        assert retrieved.status == WorkerStatus.IDLE
+        assert retrieved.current_task is None
+        assert retrieved.port is None
+        assert retrieved.tasks_completed == 0
+
+    def test_get_all_workers_returns_correct_states(self, tmp_path: Path) -> None:
+        """get_all_workers returns all registered workers with int keys."""
+        manager = StateManager("test-feature", state_dir=tmp_path)
+        manager.load()
+
+        for i in range(3):
+            worker_state = WorkerState(
+                worker_id=i,
+                status=WorkerStatus.READY,
+                port=8080 + i,
+            )
+            manager.set_worker_state(worker_state)
+
+        result = manager.get_all_workers()
+
+        assert len(result) == 3
+        assert all(isinstance(k, int) for k in result.keys())
+        assert result[0].port == 8080
+        assert result[1].port == 8081
+        assert result[2].port == 8082
+
+
+# ============================================================================
+# Merged from test_state_sync_service.py — unique StateSyncService code paths
+# ============================================================================
+
+
+class TestStateSyncServiceEssentials:
+    """Essential StateSyncService tests (merged from test_state_sync_service.py)."""
+
+    def test_sync_from_disk_syncs_completed_tasks(self) -> None:
+        """sync_from_disk propagates completed task status to LevelController."""
+        mock_state = MagicMock(spec=StateManager)
+        mock_state._state = {
+            "tasks": {
+                "TASK-001": {"status": TaskStatus.COMPLETE.value},
+            }
+        }
+        mock_levels = MagicMock(spec=LevelController)
+        mock_levels.get_task_status.return_value = TaskStatus.PENDING.value
+
+        service = StateSyncService(state=mock_state, levels=mock_levels)
+        service.sync_from_disk()
+
+        mock_levels.mark_task_complete.assert_called_once_with("TASK-001")
+
+    def test_reassign_stranded_tasks_clears_dead_worker(self) -> None:
+        """reassign_stranded_tasks unassigns tasks on dead workers."""
+        mock_state = MagicMock(spec=StateManager)
+        mock_state._state = {
+            "tasks": {
+                "TASK-001": {"status": "pending", "worker_id": 5},
+            }
+        }
+        mock_levels = MagicMock(spec=LevelController)
+
+        service = StateSyncService(state=mock_state, levels=mock_levels)
+        service.reassign_stranded_tasks({1, 2, 3})  # Worker 5 is dead
+
+        assert mock_state._state["tasks"]["TASK-001"]["worker_id"] is None
+        mock_state.save.assert_called_once()
