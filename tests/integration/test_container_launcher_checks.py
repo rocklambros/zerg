@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from zerg.launcher import ContainerLauncher
+from zerg.launchers import ContainerLauncher
 
 
 def docker_cli_available() -> bool:

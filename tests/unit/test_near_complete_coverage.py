@@ -306,13 +306,13 @@ class TestWorkerProtocolPluginInit:
         },
         clear=False,
     )
-    @patch("zerg.worker_protocol.ZergConfig")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.setup_structured_logging", side_effect=Exception("fail"))
+    @patch("zerg.protocol_state.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.setup_structured_logging", side_effect=Exception("fail"))
     def test_plugin_init_failure(self, *mocks):
         """Lines 193-195: plugin registry init fails gracefully."""
         config = MagicMock()
@@ -322,10 +322,10 @@ class TestWorkerProtocolPluginInit:
         config.plugins.enabled = True
         config.plugins.hooks = []
 
-        with patch("zerg.worker_protocol.ZergConfig.load", return_value=config):
-            with patch("zerg.worker_protocol.PluginRegistry") as pr_cls:
+        with patch("zerg.protocol_state.ZergConfig.load", return_value=config):
+            with patch("zerg.protocol_state.PluginRegistry") as pr_cls:
                 pr_cls.side_effect = Exception("plugin init fail")
-                from zerg.worker_protocol import WorkerProtocol
+                from zerg.protocol_state import WorkerProtocol
 
                 wp = WorkerProtocol(worker_id=1, feature="test", config=config)
                 assert wp._plugin_registry is None
@@ -336,7 +336,7 @@ class TestWorkerProtocolAsyncClaimTask:
 
     def test_claim_next_task_async_claims_immediately(self):
         """Lines 407-425: async claim succeeds on first poll."""
-        with patch("zerg.worker_protocol.ZergConfig") as cfg_cls:
+        with patch("zerg.protocol_state.ZergConfig") as cfg_cls:
             cfg = MagicMock()
             cfg.context_threshold = 0.7
             cfg.logging.level = "info"
@@ -345,12 +345,12 @@ class TestWorkerProtocolAsyncClaimTask:
             cfg_cls.load.return_value = cfg
 
             with (
-                patch("zerg.worker_protocol.StateManager") as sm_cls,
-                patch("zerg.worker_protocol.VerificationExecutor"),
-                patch("zerg.worker_protocol.GitOps"),
-                patch("zerg.worker_protocol.ContextTracker"),
-                patch("zerg.worker_protocol.SpecLoader") as sl_cls,
-                patch("zerg.worker_protocol.setup_structured_logging", return_value=MagicMock()),
+                patch("zerg.protocol_state.StateManager") as sm_cls,
+                patch("zerg.protocol_state.VerificationExecutor"),
+                patch("zerg.protocol_state.GitOps"),
+                patch("zerg.protocol_state.ContextTracker"),
+                patch("zerg.protocol_state.SpecLoader") as sl_cls,
+                patch("zerg.protocol_state.setup_structured_logging", return_value=MagicMock()),
             ):
                 sl_instance = MagicMock()
                 sl_instance.specs_exist.return_value = False
@@ -361,7 +361,7 @@ class TestWorkerProtocolAsyncClaimTask:
                 sm_instance.claim_task.return_value = True
                 sm_cls.return_value = sm_instance
 
-                from zerg.worker_protocol import WorkerProtocol
+                from zerg.protocol_state import WorkerProtocol
 
                 wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
                 wp.task_parser = MagicMock()
@@ -380,13 +380,13 @@ class TestWorkerProtocolAsyncWaitReady:
     def test_wait_for_ready_async_already_ready(self):
         """Lines 321-325: already ready returns immediately."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as cfg_cls,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.ContextTracker"),
-            patch("zerg.worker_protocol.SpecLoader") as sl_cls,
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=MagicMock()),
+            patch("zerg.protocol_state.ZergConfig") as cfg_cls,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.ContextTracker"),
+            patch("zerg.protocol_state.SpecLoader") as sl_cls,
+            patch("zerg.protocol_state.setup_structured_logging", return_value=MagicMock()),
         ):
             cfg = MagicMock()
             cfg.context_threshold = 0.7
@@ -396,7 +396,7 @@ class TestWorkerProtocolAsyncWaitReady:
             cfg_cls.load.return_value = cfg
             sl_cls.return_value.specs_exist.return_value = False
 
-            from zerg.worker_protocol import WorkerProtocol
+            from zerg.protocol_state import WorkerProtocol
 
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             wp._is_ready = True
@@ -407,13 +407,13 @@ class TestWorkerProtocolAsyncWaitReady:
     def test_wait_for_ready_async_timeout(self):
         """Line 326: timeout returns False."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as cfg_cls,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.ContextTracker"),
-            patch("zerg.worker_protocol.SpecLoader") as sl_cls,
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=MagicMock()),
+            patch("zerg.protocol_state.ZergConfig") as cfg_cls,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.ContextTracker"),
+            patch("zerg.protocol_state.SpecLoader") as sl_cls,
+            patch("zerg.protocol_state.setup_structured_logging", return_value=MagicMock()),
         ):
             cfg = MagicMock()
             cfg.context_threshold = 0.7
@@ -423,7 +423,7 @@ class TestWorkerProtocolAsyncWaitReady:
             cfg_cls.load.return_value = cfg
             sl_cls.return_value.specs_exist.return_value = False
 
-            from zerg.worker_protocol import WorkerProtocol
+            from zerg.protocol_state import WorkerProtocol
 
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             wp._is_ready = False
@@ -437,13 +437,13 @@ class TestWorkerProtocolVerificationArtifact:
 
     def _make_protocol(self):
         with (
-            patch("zerg.worker_protocol.ZergConfig") as cfg_cls,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.ContextTracker"),
-            patch("zerg.worker_protocol.SpecLoader") as sl_cls,
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=MagicMock()),
+            patch("zerg.protocol_state.ZergConfig") as cfg_cls,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.ContextTracker"),
+            patch("zerg.protocol_state.SpecLoader") as sl_cls,
+            patch("zerg.protocol_state.setup_structured_logging", return_value=MagicMock()),
         ):
             cfg = MagicMock()
             cfg.context_threshold = 0.7
@@ -453,7 +453,7 @@ class TestWorkerProtocolVerificationArtifact:
             cfg_cls.load.return_value = cfg
             sl_cls.return_value.specs_exist.return_value = False
 
-            from zerg.worker_protocol import WorkerProtocol
+            from zerg.protocol_state import WorkerProtocol
 
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             return wp
@@ -487,13 +487,13 @@ class TestWorkerProtocolCommitHeadUnchanged:
 
     def _make_protocol(self):
         with (
-            patch("zerg.worker_protocol.ZergConfig") as cfg_cls,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.ContextTracker"),
-            patch("zerg.worker_protocol.SpecLoader") as sl_cls,
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=MagicMock()),
+            patch("zerg.protocol_state.ZergConfig") as cfg_cls,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.ContextTracker"),
+            patch("zerg.protocol_state.SpecLoader") as sl_cls,
+            patch("zerg.protocol_state.setup_structured_logging", return_value=MagicMock()),
         ):
             cfg = MagicMock()
             cfg.context_threshold = 0.7
@@ -503,7 +503,7 @@ class TestWorkerProtocolCommitHeadUnchanged:
             cfg_cls.load.return_value = cfg
             sl_cls.return_value.specs_exist.return_value = False
 
-            from zerg.worker_protocol import WorkerProtocol
+            from zerg.protocol_state import WorkerProtocol
 
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             return wp
@@ -523,11 +523,11 @@ class TestWorkerProtocolCommitHeadUnchanged:
 class TestWorkerProtocolRunWorker:
     """Cover line 1062: run_worker entry point."""
 
-    @patch("zerg.worker_protocol.WorkerProtocol")
+    @patch("zerg.protocol_state.WorkerProtocol")
     def test_run_worker_failure(self, mock_wp_cls):
         """Line 1062: run_worker catches exception and exits."""
         mock_wp_cls.side_effect = Exception("init fail")
-        from zerg.worker_protocol import run_worker
+        from zerg.protocol_state import run_worker
 
         with pytest.raises(SystemExit):
             run_worker()
@@ -538,13 +538,13 @@ class TestWorkerProtocolExecuteTaskFailedClaude:
 
     def _make_protocol(self):
         with (
-            patch("zerg.worker_protocol.ZergConfig") as cfg_cls,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.ContextTracker"),
-            patch("zerg.worker_protocol.SpecLoader") as sl_cls,
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=MagicMock()),
+            patch("zerg.protocol_state.ZergConfig") as cfg_cls,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.ContextTracker"),
+            patch("zerg.protocol_state.SpecLoader") as sl_cls,
+            patch("zerg.protocol_state.setup_structured_logging", return_value=MagicMock()),
         ):
             cfg = MagicMock()
             cfg.context_threshold = 0.7
@@ -555,7 +555,8 @@ class TestWorkerProtocolExecuteTaskFailedClaude:
             cfg_cls.load.return_value = cfg
             sl_cls.return_value.specs_exist.return_value = False
 
-            from zerg.worker_protocol import ClaudeInvocationResult, WorkerProtocol
+            from zerg.protocol_state import WorkerProtocol
+            from zerg.protocol_types import ClaudeInvocationResult
 
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             return wp, ClaudeInvocationResult
@@ -615,13 +616,13 @@ class TestWorkerProtocolBuildPromptContext:
 
     def _make_protocol(self):
         with (
-            patch("zerg.worker_protocol.ZergConfig") as cfg_cls,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.ContextTracker"),
-            patch("zerg.worker_protocol.SpecLoader") as sl_cls,
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=MagicMock()),
+            patch("zerg.protocol_state.ZergConfig") as cfg_cls,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.ContextTracker"),
+            patch("zerg.protocol_state.SpecLoader") as sl_cls,
+            patch("zerg.protocol_state.setup_structured_logging", return_value=MagicMock()),
         ):
             cfg = MagicMock()
             cfg.context_threshold = 0.7
@@ -631,7 +632,7 @@ class TestWorkerProtocolBuildPromptContext:
             cfg_cls.load.return_value = cfg
             sl_cls.return_value.specs_exist.return_value = False
 
-            from zerg.worker_protocol import WorkerProtocol
+            from zerg.protocol_state import WorkerProtocol
 
             wp = WorkerProtocol(worker_id=0, feature="test", config=cfg)
             return wp

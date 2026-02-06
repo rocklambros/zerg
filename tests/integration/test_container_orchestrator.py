@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from zerg.config import ZergConfig
-from zerg.launcher import SubprocessLauncher
+from zerg.launchers import SubprocessLauncher
 from zerg.orchestrator import Orchestrator
 
 

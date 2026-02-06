@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import SubprocessLauncher
+from zerg.launchers import SubprocessLauncher
 from zerg.validation import (
     validate_dependencies,
     validate_file_ownership,

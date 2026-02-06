@@ -382,7 +382,7 @@ class TestMainFunction:
             ),
             patch.dict(
                 "sys.modules",
-                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+                {"zerg.protocol_state": MagicMock(WorkerProtocol=mock_protocol_class)},
             ),
         ):
             result = main()
@@ -417,7 +417,7 @@ class TestMainFunction:
             ),
             patch.dict(
                 "sys.modules",
-                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+                {"zerg.protocol_state": MagicMock(WorkerProtocol=mock_protocol_class)},
             ),
         ):
             result = main()
@@ -453,7 +453,7 @@ class TestMainFunction:
             ),
             patch.dict(
                 "sys.modules",
-                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+                {"zerg.protocol_state": MagicMock(WorkerProtocol=mock_protocol_class)},
             ),
         ):
             result = main()
@@ -505,7 +505,7 @@ class TestMainFunction:
             ),
             patch.dict(
                 "sys.modules",
-                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+                {"zerg.protocol_state": MagicMock(WorkerProtocol=mock_protocol_class)},
             ),
         ):
             result = main()
@@ -651,7 +651,7 @@ class TestEdgeCases:
         # Create a module that raises ImportError when WorkerProtocol is accessed
         import types
 
-        types.ModuleType("zerg.worker_protocol")
+        types.ModuleType("zerg.protocol_state")
 
         def raise_import_error(*args, **kwargs):
             raise ImportError("Cannot import WorkerProtocol")
@@ -704,7 +704,7 @@ class TestEdgeCases:
             ),
             patch.dict(
                 "sys.modules",
-                {"zerg.worker_protocol": MagicMock(WorkerProtocol=mock_protocol_class)},
+                {"zerg.protocol_state": MagicMock(WorkerProtocol=mock_protocol_class)},
             ),
         ):
             result = main()

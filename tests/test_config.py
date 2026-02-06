@@ -154,7 +154,7 @@ mcp_servers: []
 
     def test_get_launcher_type(self) -> None:
         """Test get_launcher_type method."""
-        from zerg.launcher import LauncherType
+        from zerg.launcher_types import LauncherType
 
         config = ZergConfig()
         launcher_type = config.get_launcher_type()

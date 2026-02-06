@@ -9,7 +9,7 @@ from pathlib import Path
 
 from tests.mocks.mock_launcher import MockContainerLauncher
 from zerg.constants import WorkerStatus
-from zerg.launcher import LauncherConfig, WorkerHandle
+from zerg.launcher_types import LauncherConfig, WorkerHandle
 
 
 class TestSpawnToTerminateLifecycle:

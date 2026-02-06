@@ -16,7 +16,7 @@ from zerg.config import (
     WorkersConfig,
     ZergConfig,
 )
-from zerg.launcher import LauncherType
+from zerg.launcher_types import LauncherType
 
 pytestmark = pytest.mark.smoke
 

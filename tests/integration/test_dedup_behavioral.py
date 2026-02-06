@@ -24,7 +24,7 @@ import pytest
 
 from tests.mocks import MockContainerLauncher
 from zerg.constants import TaskStatus, WorkerStatus
-from zerg.launcher import SpawnResult
+from zerg.launcher_types import SpawnResult
 from zerg.orchestrator import Orchestrator
 
 # =============================================================================
@@ -351,7 +351,7 @@ class TestWorkerProtocolClaimIntegration:
 
     def test_claim_next_task_sync_delegates_to_async(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Sync claim_next_task must delegate to async version via asyncio.run."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         # WorkerProtocol reads worktree_path and branch from env
         monkeypatch.setenv("ZERG_WORKTREE", "/tmp/worktree")
@@ -359,13 +359,13 @@ class TestWorkerProtocolClaimIntegration:
 
         # Create protocol with mocked dependencies
         with (
-            patch("zerg.worker_protocol.StateManager") as state_cls,
-            patch("zerg.worker_protocol.TaskParser") as parser_cls,
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.SpecLoader"),
-            patch("zerg.worker_protocol.DependencyChecker") as dep_cls,
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=None),
+            patch("zerg.protocol_state.StateManager") as state_cls,
+            patch("zerg.protocol_state.TaskParser") as parser_cls,
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.SpecLoader"),
+            patch("zerg.protocol_state.DependencyChecker") as dep_cls,
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.setup_structured_logging", return_value=None),
         ):
             state_mock = MagicMock()
             state_mock.load.return_value = {}
@@ -402,19 +402,19 @@ class TestWorkerProtocolClaimIntegration:
 
     def test_wait_for_ready_sync_delegates_to_async(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Sync wait_for_ready must delegate to async version."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         monkeypatch.setenv("ZERG_WORKTREE", "/tmp/worktree")
         monkeypatch.setenv("ZERG_BRANCH", "test-branch")
 
         with (
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.TaskParser"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.SpecLoader"),
-            patch("zerg.worker_protocol.DependencyChecker"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=None),
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.TaskParser"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.SpecLoader"),
+            patch("zerg.protocol_state.DependencyChecker"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.setup_structured_logging", return_value=None),
         ):
             protocol = WorkerProtocol(
                 worker_id=0,
@@ -430,19 +430,19 @@ class TestWorkerProtocolClaimIntegration:
 
     def test_wait_for_ready_sync_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Sync wait_for_ready returns False on timeout."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         monkeypatch.setenv("ZERG_WORKTREE", "/tmp/worktree")
         monkeypatch.setenv("ZERG_BRANCH", "test-branch")
 
         with (
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.TaskParser"),
-            patch("zerg.worker_protocol.GitOps"),
-            patch("zerg.worker_protocol.SpecLoader"),
-            patch("zerg.worker_protocol.DependencyChecker"),
-            patch("zerg.worker_protocol.VerificationExecutor"),
-            patch("zerg.worker_protocol.setup_structured_logging", return_value=None),
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.TaskParser"),
+            patch("zerg.protocol_state.GitOps"),
+            patch("zerg.protocol_state.SpecLoader"),
+            patch("zerg.protocol_state.DependencyChecker"),
+            patch("zerg.protocol_state.VerificationExecutor"),
+            patch("zerg.protocol_state.setup_structured_logging", return_value=None),
         ):
             protocol = WorkerProtocol(
                 worker_id=0,

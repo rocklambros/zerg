@@ -15,13 +15,8 @@ import pytest
 
 from tests.mocks.mock_launcher import MockContainerLauncher
 from zerg.constants import WorkerStatus
-from zerg.launcher import (
-    ContainerLauncher,
-    LauncherConfig,
-    SubprocessLauncher,
-    WorkerHandle,
-    WorkerLauncher,
-)
+from zerg.launcher_types import LauncherConfig, WorkerHandle
+from zerg.launchers import ContainerLauncher, SubprocessLauncher, WorkerLauncher
 
 
 # ---------------------------------------------------------------------------

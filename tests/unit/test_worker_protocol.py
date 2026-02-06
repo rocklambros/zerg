@@ -11,13 +11,12 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from zerg.constants import DEFAULT_CONTEXT_THRESHOLD, ExitCode, TaskStatus
-from zerg.worker_protocol import (
+from zerg.protocol_state import WorkerProtocol, run_worker
+from zerg.protocol_types import (
     CLAUDE_CLI_COMMAND,
     CLAUDE_CLI_DEFAULT_TIMEOUT,
     ClaudeInvocationResult,
     WorkerContext,
-    WorkerProtocol,
-    run_worker,
 )
 
 
@@ -147,12 +146,12 @@ class TestWorkerContext:
 class TestWorkerProtocolInit:
     """Tests for WorkerProtocol initialization."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_init_with_explicit_args(
         self,
         mock_config_cls,
@@ -191,12 +190,12 @@ class TestWorkerProtocolInit:
         },
         clear=False,
     )
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_init_from_environment(
         self,
         mock_config_cls,
@@ -226,12 +225,12 @@ class TestWorkerProtocolInit:
         assert protocol.worktree_path == Path("/tmp/test-worktree").resolve()
 
     @patch.dict(os.environ, {}, clear=True)
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_init_defaults_when_no_env(
         self,
         mock_config_cls,
@@ -263,13 +262,13 @@ class TestWorkerProtocolInit:
         {"ZERG_TASK_GRAPH": "/tmp/task-graph.json"},
         clear=False,
     )
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
-    @patch("zerg.worker_protocol.TaskParser")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
+    @patch("zerg.protocol_state.TaskParser")
     def test_init_with_task_graph_env(
         self,
         mock_parser_cls,
@@ -302,13 +301,13 @@ class TestWorkerProtocolInit:
 
         assert protocol.task_graph_path == Path(str(task_graph_path))
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
-    @patch("zerg.worker_protocol.TaskParser")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
+    @patch("zerg.protocol_state.TaskParser")
     def test_init_with_task_graph_arg(
         self,
         mock_parser_cls,
@@ -345,13 +344,13 @@ class TestWorkerProtocolInit:
         assert protocol.task_graph_path == task_graph_path
         mock_parser_cls.assert_called_once()
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
-    @patch("zerg.worker_protocol.TaskParser")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
+    @patch("zerg.protocol_state.TaskParser")
     def test_init_task_parser_error_handled(
         self,
         mock_parser_cls,
@@ -394,12 +393,12 @@ class TestWorkerProtocolInit:
         assert protocol.task_parser is None
 
     @patch.dict(os.environ, {"ZERG_SPEC_DIR": "/tmp/specs/myfeature"}, clear=False)
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_init_with_spec_dir_env(
         self,
         mock_config_cls,
@@ -432,12 +431,12 @@ class TestWorkerProtocolInit:
 class TestWorkerProtocolSignalReady:
     """Tests for signal_ready method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_signal_ready(
         self,
         mock_config_cls,
@@ -473,12 +472,12 @@ class TestWorkerProtocolSignalReady:
 class TestWorkerProtocolWaitForReady:
     """Tests for wait_for_ready method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_wait_for_ready_already_ready(
         self,
         mock_config_cls,
@@ -507,12 +506,12 @@ class TestWorkerProtocolWaitForReady:
 
         assert result is True
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_wait_for_ready_timeout(
         self,
         mock_config_cls,
@@ -541,12 +540,12 @@ class TestWorkerProtocolWaitForReady:
 
         assert result is False
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_is_ready_property(
         self,
         mock_config_cls,
@@ -578,12 +577,12 @@ class TestWorkerProtocolWaitForReady:
 class TestWorkerProtocolClaimTask:
     """Tests for claim_next_task method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_claim_next_task_success(
         self,
         mock_config_cls,
@@ -617,12 +616,12 @@ class TestWorkerProtocolClaimTask:
         assert task["id"] == "TASK-001"
         mock_state.claim_task.assert_called_with("TASK-001", 1, dependency_checker=None)
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_claim_next_task_no_pending(
         self,
         mock_config_cls,
@@ -653,12 +652,12 @@ class TestWorkerProtocolClaimTask:
 
         assert task is None
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_claim_next_task_claim_fails(
         self,
         mock_config_cls,
@@ -694,12 +693,12 @@ class TestWorkerProtocolClaimTask:
 class TestWorkerProtocolLoadTaskDetails:
     """Tests for _load_task_details method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_load_task_details_from_parser(
         self,
         mock_config_cls,
@@ -739,12 +738,12 @@ class TestWorkerProtocolLoadTaskDetails:
         assert task["title"] == "Test Task"
         mock_parser.get_task.assert_called_with("TASK-001")
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_load_task_details_fallback_stub(
         self,
         mock_config_cls,
@@ -779,12 +778,12 @@ class TestWorkerProtocolLoadTaskDetails:
         assert task["title"] == "Task TASK-999"
         assert task["level"] == 1
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_load_task_details_no_parser(
         self,
         mock_config_cls,
@@ -818,12 +817,12 @@ class TestWorkerProtocolLoadTaskDetails:
 class TestWorkerProtocolBuildTaskPrompt:
     """Tests for _build_task_prompt method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_build_task_prompt_basic(
         self,
         mock_config_cls,
@@ -853,17 +852,17 @@ class TestWorkerProtocolBuildTaskPrompt:
             "level": 1,
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "# Task: Test Task" in prompt
         assert "Do NOT commit" in prompt
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_build_task_prompt_with_description(
         self,
         mock_config_cls,
@@ -894,17 +893,17 @@ class TestWorkerProtocolBuildTaskPrompt:
             "description": "This is the task description",
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "## Description" in prompt
         assert "This is the task description" in prompt
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_build_task_prompt_with_files(
         self,
         mock_config_cls,
@@ -939,19 +938,19 @@ class TestWorkerProtocolBuildTaskPrompt:
             },
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "## Files" in prompt
         assert "Create: new_file.py" in prompt
         assert "Modify: existing.py" in prompt
         assert "Reference: reference.py" in prompt
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_build_task_prompt_with_verification(
         self,
         mock_config_cls,
@@ -984,17 +983,17 @@ class TestWorkerProtocolBuildTaskPrompt:
             },
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "## Verification" in prompt
         assert "pytest tests/" in prompt
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_build_task_prompt_with_spec_context(
         self,
         mock_config_cls,
@@ -1017,7 +1016,7 @@ class TestWorkerProtocolBuildTaskPrompt:
         mock_spec_loader_cls.return_value = mock_spec_loader
 
         protocol = WorkerProtocol(worker_id=1, feature="test")
-        protocol._spec_context = "# Feature Context: test\n\nRequirements..."
+        protocol._handler._spec_context = "# Feature Context: test\n\nRequirements..."
 
         task = {
             "id": "TASK-001",
@@ -1025,16 +1024,16 @@ class TestWorkerProtocolBuildTaskPrompt:
             "level": 1,
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert prompt.startswith("# Feature Context: test")
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_build_task_prompt_uses_id_when_no_title(
         self,
         mock_config_cls,
@@ -1063,7 +1062,7 @@ class TestWorkerProtocolBuildTaskPrompt:
             "level": 1,
         }
 
-        prompt = protocol._build_task_prompt(task)
+        prompt = protocol._handler._build_task_prompt(task)
 
         assert "# Task: TASK-001" in prompt
 
@@ -1071,13 +1070,13 @@ class TestWorkerProtocolBuildTaskPrompt:
 class TestWorkerProtocolInvokeClaudeCode:
     """Tests for invoke_claude_code method."""
 
-    @patch("zerg.worker_protocol.subprocess.run")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_handler.subprocess.run")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_invoke_claude_code_success(
         self,
         mock_config_cls,
@@ -1109,20 +1108,20 @@ class TestWorkerProtocolInvokeClaudeCode:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.invoke_claude_code(task)
+        result = protocol._handler.invoke_claude_code(task)
 
         assert result.success is True
         assert result.exit_code == 0
         assert result.stdout == "Task completed"
         assert result.task_id == "TASK-001"
 
-    @patch("zerg.worker_protocol.subprocess.run")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_handler.subprocess.run")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_invoke_claude_code_failure(
         self,
         mock_config_cls,
@@ -1154,19 +1153,19 @@ class TestWorkerProtocolInvokeClaudeCode:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.invoke_claude_code(task)
+        result = protocol._handler.invoke_claude_code(task)
 
         assert result.success is False
         assert result.exit_code == 1
         assert "Error" in result.stderr
 
-    @patch("zerg.worker_protocol.subprocess.run")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_handler.subprocess.run")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_invoke_claude_code_timeout(
         self,
         mock_config_cls,
@@ -1194,19 +1193,19 @@ class TestWorkerProtocolInvokeClaudeCode:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.invoke_claude_code(task, timeout=30)
+        result = protocol._handler.invoke_claude_code(task, timeout=30)
 
         assert result.success is False
         assert result.exit_code == -1
         assert "timed out" in result.stderr
 
-    @patch("zerg.worker_protocol.subprocess.run")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_handler.subprocess.run")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_invoke_claude_code_not_found(
         self,
         mock_config_cls,
@@ -1234,19 +1233,19 @@ class TestWorkerProtocolInvokeClaudeCode:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.invoke_claude_code(task)
+        result = protocol._handler.invoke_claude_code(task)
 
         assert result.success is False
         assert result.exit_code == -1
         assert "not found" in result.stderr
 
-    @patch("zerg.worker_protocol.subprocess.run")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_handler.subprocess.run")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_invoke_claude_code_generic_exception(
         self,
         mock_config_cls,
@@ -1274,19 +1273,19 @@ class TestWorkerProtocolInvokeClaudeCode:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.invoke_claude_code(task)
+        result = protocol._handler.invoke_claude_code(task)
 
         assert result.success is False
         assert result.exit_code == -1
         assert "Unknown error" in result.stderr
 
-    @patch("zerg.worker_protocol.subprocess.run")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_handler.subprocess.run")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_invoke_claude_code_custom_timeout(
         self,
         mock_config_cls,
@@ -1318,7 +1317,7 @@ class TestWorkerProtocolInvokeClaudeCode:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        protocol.invoke_claude_code(task, timeout=600)
+        protocol._handler.invoke_claude_code(task, timeout=600)
 
         # Verify timeout was passed
         call_kwargs = mock_subprocess_run.call_args[1]
@@ -1328,12 +1327,12 @@ class TestWorkerProtocolInvokeClaudeCode:
 class TestWorkerProtocolRunVerification:
     """Tests for run_verification method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_run_verification_success(
         self,
         mock_config_cls,
@@ -1372,17 +1371,17 @@ class TestWorkerProtocolRunVerification:
             },
         }
 
-        result = protocol.run_verification(task)
+        result = protocol._handler.run_verification(task)
 
         assert result is True
         mock_verifier.verify_with_retry.assert_called_once()
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_run_verification_failure(
         self,
         mock_config_cls,
@@ -1422,17 +1421,17 @@ class TestWorkerProtocolRunVerification:
             "verification": {"command": "pytest tests/"},
         }
 
-        result = protocol.run_verification(task)
+        result = protocol._handler.run_verification(task)
 
         assert result is False
         mock_state.append_event.assert_called()
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_run_verification_no_verification_spec(
         self,
         mock_config_cls,
@@ -1458,16 +1457,16 @@ class TestWorkerProtocolRunVerification:
 
         task = {"id": "TASK-001", "title": "Test"}
 
-        result = protocol.run_verification(task)
+        result = protocol._handler.run_verification(task)
 
         assert result is True
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_run_verification_empty_command(
         self,
         mock_config_cls,
@@ -1496,7 +1495,7 @@ class TestWorkerProtocolRunVerification:
             "verification": {"command": ""},
         }
 
-        result = protocol.run_verification(task)
+        result = protocol._handler.run_verification(task)
 
         assert result is True
 
@@ -1504,12 +1503,12 @@ class TestWorkerProtocolRunVerification:
 class TestWorkerProtocolCommitTaskChanges:
     """Tests for commit_task_changes method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_commit_task_changes_success(
         self,
         mock_config_cls,
@@ -1543,7 +1542,7 @@ class TestWorkerProtocolCommitTaskChanges:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test Task"}
-        result = protocol.commit_task_changes(task)
+        result = protocol._handler.commit_task_changes(task)
 
         assert result is True
         mock_git.commit.assert_called_once()
@@ -1551,12 +1550,12 @@ class TestWorkerProtocolCommitTaskChanges:
         assert "TASK-001" in call_args[0][0]
         assert call_args[1]["add_all"] is True
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_commit_task_changes_no_changes(
         self,
         mock_config_cls,
@@ -1585,17 +1584,17 @@ class TestWorkerProtocolCommitTaskChanges:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test Task"}
-        result = protocol.commit_task_changes(task)
+        result = protocol._handler.commit_task_changes(task)
 
         assert result is True
         mock_git.commit.assert_not_called()
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_commit_task_changes_exception(
         self,
         mock_config_cls,
@@ -1628,7 +1627,7 @@ class TestWorkerProtocolCommitTaskChanges:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         task = {"id": "TASK-001", "title": "Test Task"}
-        result = protocol.commit_task_changes(task)
+        result = protocol._handler.commit_task_changes(task)
 
         assert result is False
         mock_state.append_event.assert_called()
@@ -1637,12 +1636,12 @@ class TestWorkerProtocolCommitTaskChanges:
 class TestWorkerProtocolExecuteTask:
     """Tests for execute_task method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_execute_task_success(
         self,
         mock_config_cls,
@@ -1677,7 +1676,7 @@ class TestWorkerProtocolExecuteTask:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         # Mock the internal methods
-        protocol.invoke_claude_code = MagicMock(
+        protocol._handler.invoke_claude_code = MagicMock(
             return_value=ClaudeInvocationResult(
                 success=True,
                 exit_code=0,
@@ -1687,22 +1686,22 @@ class TestWorkerProtocolExecuteTask:
                 task_id="TASK-001",
             )
         )
-        protocol.run_verification = MagicMock(return_value=True)
-        protocol.commit_task_changes = MagicMock(return_value=True)
+        protocol._handler.run_verification = MagicMock(return_value=True)
+        protocol._handler.commit_task_changes = MagicMock(return_value=True)
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.execute_task(task)
+        result = protocol._handler.execute_task(task)
 
         assert result is True
         mock_state.set_task_status.assert_called()
         mock_context.track_task_execution.assert_called_with("TASK-001")
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_execute_task_claude_failure(
         self,
         mock_config_cls,
@@ -1729,7 +1728,7 @@ class TestWorkerProtocolExecuteTask:
 
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
-        protocol.invoke_claude_code = MagicMock(
+        protocol._handler.invoke_claude_code = MagicMock(
             return_value=ClaudeInvocationResult(
                 success=False,
                 exit_code=1,
@@ -1741,17 +1740,17 @@ class TestWorkerProtocolExecuteTask:
         )
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.execute_task(task)
+        result = protocol._handler.execute_task(task)
 
         assert result is False
         mock_state.append_event.assert_called()
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_execute_task_verification_failure(
         self,
         mock_config_cls,
@@ -1775,7 +1774,7 @@ class TestWorkerProtocolExecuteTask:
 
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
-        protocol.invoke_claude_code = MagicMock(
+        protocol._handler.invoke_claude_code = MagicMock(
             return_value=ClaudeInvocationResult(
                 success=True,
                 exit_code=0,
@@ -1785,7 +1784,7 @@ class TestWorkerProtocolExecuteTask:
                 task_id="TASK-001",
             )
         )
-        protocol.run_verification = MagicMock(return_value=False)
+        protocol._handler.run_verification = MagicMock(return_value=False)
 
         task = {
             "id": "TASK-001",
@@ -1793,16 +1792,16 @@ class TestWorkerProtocolExecuteTask:
             "level": 1,
             "verification": {"command": "pytest"},
         }
-        result = protocol.execute_task(task)
+        result = protocol._handler.execute_task(task)
 
         assert result is False
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_execute_task_commit_failure(
         self,
         mock_config_cls,
@@ -1826,7 +1825,7 @@ class TestWorkerProtocolExecuteTask:
 
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
-        protocol.invoke_claude_code = MagicMock(
+        protocol._handler.invoke_claude_code = MagicMock(
             return_value=ClaudeInvocationResult(
                 success=True,
                 exit_code=0,
@@ -1836,20 +1835,20 @@ class TestWorkerProtocolExecuteTask:
                 task_id="TASK-001",
             )
         )
-        protocol.run_verification = MagicMock(return_value=True)
-        protocol.commit_task_changes = MagicMock(return_value=False)
+        protocol._handler.run_verification = MagicMock(return_value=True)
+        protocol._handler.commit_task_changes = MagicMock(return_value=False)
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.execute_task(task)
+        result = protocol._handler.execute_task(task)
 
         assert result is False
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_execute_task_exception(
         self,
         mock_config_cls,
@@ -1876,10 +1875,10 @@ class TestWorkerProtocolExecuteTask:
 
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
-        protocol.invoke_claude_code = MagicMock(side_effect=Exception("Boom"))
+        protocol._handler.invoke_claude_code = MagicMock(side_effect=Exception("Boom"))
 
         task = {"id": "TASK-001", "title": "Test", "level": 1}
-        result = protocol.execute_task(task)
+        result = protocol._handler.execute_task(task)
 
         assert result is False
         mock_state.append_event.assert_called()
@@ -1888,12 +1887,12 @@ class TestWorkerProtocolExecuteTask:
 class TestWorkerProtocolReporting:
     """Tests for report_complete and report_failed methods."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_report_complete(
         self,
         mock_config_cls,
@@ -1928,12 +1927,12 @@ class TestWorkerProtocolReporting:
         mock_state.set_task_status.assert_called_with("TASK-001", TaskStatus.COMPLETE, worker_id=1)
         mock_state.append_event.assert_called()
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_report_failed(
         self,
         mock_config_cls,
@@ -1972,12 +1971,12 @@ class TestWorkerProtocolReporting:
 class TestWorkerProtocolContextTracking:
     """Tests for context tracking methods."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_check_context_usage(
         self,
         mock_config_cls,
@@ -2010,12 +2009,12 @@ class TestWorkerProtocolContextTracking:
 
         assert usage == 0.65
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_should_checkpoint(
         self,
         mock_config_cls,
@@ -2047,12 +2046,12 @@ class TestWorkerProtocolContextTracking:
         assert result is True
         mock_context.should_checkpoint.assert_called_once()
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_track_file_read(
         self,
         mock_config_cls,
@@ -2082,12 +2081,12 @@ class TestWorkerProtocolContextTracking:
 
         mock_context.track_file_read.assert_called_with("/path/to/file.py", 1000)
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_track_tool_call(
         self,
         mock_config_cls,
@@ -2121,13 +2120,13 @@ class TestWorkerProtocolContextTracking:
 class TestWorkerProtocolCheckpointAndExit:
     """Tests for checkpoint_and_exit method."""
 
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_checkpoint_and_exit_with_changes(
         self,
         mock_config_cls,
@@ -2169,13 +2168,13 @@ class TestWorkerProtocolCheckpointAndExit:
         mock_state.append_event.assert_called()
         mock_exit.assert_called_with(ExitCode.CHECKPOINT)
 
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_checkpoint_and_exit_no_changes(
         self,
         mock_config_cls,
@@ -2213,13 +2212,13 @@ class TestWorkerProtocolCheckpointAndExit:
         mock_git.commit.assert_not_called()
         mock_exit.assert_called_with(ExitCode.CHECKPOINT)
 
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_checkpoint_and_exit_no_current_task(
         self,
         mock_config_cls,
@@ -2261,12 +2260,12 @@ class TestWorkerProtocolCheckpointAndExit:
 class TestWorkerProtocolGetStatus:
     """Tests for get_status method."""
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_get_status(
         self,
         mock_config_cls,
@@ -2308,12 +2307,12 @@ class TestWorkerProtocolGetStatus:
         assert status["context_usage"] == 0.5
         assert status["started_at"] == "2024-01-01T12:00:00"
 
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_get_status_no_current_task(
         self,
         mock_config_cls,
@@ -2354,14 +2353,14 @@ class TestWorkerProtocolGetStatus:
 class TestWorkerProtocolStart:
     """Tests for start method (main execution loop)."""
 
-    @patch("zerg.worker_protocol.time")
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.time")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_start_no_tasks(
         self,
         mock_config_cls,
@@ -2409,14 +2408,14 @@ class TestWorkerProtocolStart:
 
         mock_exit.assert_called_with(ExitCode.SUCCESS)
 
-    @patch("zerg.worker_protocol.time")
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.time")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_start_executes_tasks(
         self,
         mock_config_cls,
@@ -2471,21 +2470,21 @@ class TestWorkerProtocolStart:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         # Mock execute_task to succeed
-        protocol.execute_task = MagicMock(return_value=True)
+        protocol._handler.execute_task = MagicMock(return_value=True)
 
         protocol.start()
 
-        protocol.execute_task.assert_called_once()
+        protocol._handler.execute_task.assert_called_once()
         mock_exit.assert_called_with(ExitCode.SUCCESS)
 
-    @patch("zerg.worker_protocol.time")
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.time")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_start_task_execution_failure(
         self,
         mock_config_cls,
@@ -2540,25 +2539,25 @@ class TestWorkerProtocolStart:
         protocol = WorkerProtocol(worker_id=1, feature="test")
 
         # Mock execute_task to FAIL - this triggers line 183
-        protocol.execute_task = MagicMock(return_value=False)
+        protocol._handler.execute_task = MagicMock(return_value=False)
         # Mock report_failed to verify it gets called
         protocol.report_failed = MagicMock()
 
         protocol.start()
 
         # Verify execute_task was called
-        protocol.execute_task.assert_called_once()
+        protocol._handler.execute_task.assert_called_once()
         # Verify report_failed was called with the task ID and error message
         protocol.report_failed.assert_called_once_with("TASK-001", "Task execution failed")
         mock_exit.assert_called_with(ExitCode.SUCCESS)
 
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.StateManager")
-    @patch("zerg.worker_protocol.VerificationExecutor")
-    @patch("zerg.worker_protocol.GitOps")
-    @patch("zerg.worker_protocol.ContextTracker")
-    @patch("zerg.worker_protocol.SpecLoader")
-    @patch("zerg.worker_protocol.ZergConfig")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.StateManager")
+    @patch("zerg.protocol_state.VerificationExecutor")
+    @patch("zerg.protocol_state.GitOps")
+    @patch("zerg.protocol_state.ContextTracker")
+    @patch("zerg.protocol_state.SpecLoader")
+    @patch("zerg.protocol_state.ZergConfig")
     def test_start_checkpoints_on_high_context(
         self,
         mock_config_cls,
@@ -2601,8 +2600,8 @@ class TestWorkerProtocolStart:
 class TestRunWorker:
     """Tests for run_worker function."""
 
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.WorkerProtocol")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.WorkerProtocol")
     def test_run_worker_success(self, mock_protocol_cls, mock_exit) -> None:
         """Test run_worker entry point."""
         mock_protocol = MagicMock()
@@ -2613,8 +2612,8 @@ class TestRunWorker:
         mock_protocol_cls.assert_called_once()
         mock_protocol.start.assert_called_once()
 
-    @patch("zerg.worker_protocol.sys.exit")
-    @patch("zerg.worker_protocol.WorkerProtocol")
+    @patch("zerg.protocol_state.sys.exit")
+    @patch("zerg.protocol_state.WorkerProtocol")
     def test_run_worker_exception(self, mock_protocol_cls, mock_exit) -> None:
         """Test run_worker handles exceptions."""
         mock_protocol_cls.side_effect = Exception("Init failed")

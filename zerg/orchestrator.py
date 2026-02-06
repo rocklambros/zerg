@@ -103,8 +103,12 @@ class Orchestrator:
         self.task_sync = TaskSyncBridge(feature, self.state, task_list_id=tl_id)
         self._launcher_config = LauncherConfigurator(self.config, self.repo_path, self._plugin_registry)
         self.launcher: WorkerLauncher = self._create_launcher(mode=launcher_mode)
-        if isinstance(self.launcher, ContainerLauncher):
-            with contextlib.suppress(TypeError):
+        try:
+            is_container = isinstance(self.launcher, ContainerLauncher)
+        except TypeError:
+            is_container = False
+        if is_container:
+            with contextlib.suppress(Exception):
                 self._launcher_config._cleanup_orphan_containers()
 
         self._structured_writer: StructuredLogWriter | None = None

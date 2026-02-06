@@ -12,7 +12,8 @@ from datetime import datetime
 from pathlib import Path
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import LauncherConfig, SpawnResult, WorkerHandle, WorkerLauncher
+from zerg.launcher_types import LauncherConfig, SpawnResult, WorkerHandle
+from zerg.launchers import WorkerLauncher
 
 
 @dataclass
@@ -186,7 +187,7 @@ class MockContainerLauncher(WorkerLauncher):
         self._process_running[container_id] = False  # Not yet running
 
         # Execute worker entry
-        exec_success = self._exec_worker_entry(container_id)
+        exec_success = self._run_worker_entry(container_id)
         attempt.exec_success = exec_success
 
         if not exec_success:
@@ -234,7 +235,7 @@ class MockContainerLauncher(WorkerLauncher):
             handle=handle,
         )
 
-    def _exec_worker_entry(self, container_id: str) -> bool:
+    def _run_worker_entry(self, container_id: str) -> bool:
         """Execute the worker entry script in mock container.
 
         Args:

@@ -1,6 +1,6 @@
 """Unit tests for ContainerLauncher exec and process verification.
 
-Tests the _exec_worker_entry, _verify_worker_process, and _cleanup_failed_container
+Tests the _run_worker_entry, _verify_worker_process, and _cleanup_failed_container
 methods of ContainerLauncher using mocks for Docker subprocess calls.
 """
 
@@ -9,17 +9,18 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import ContainerLauncher, WorkerHandle
+from zerg.launcher_types import WorkerHandle
+from zerg.launchers import ContainerLauncher
 
 # =============================================================================
-# _exec_worker_entry Tests
+# _run_worker_entry Tests
 # =============================================================================
 
 
 class TestExecWorkerEntrySuccess:
-    """Tests for _exec_worker_entry success path."""
+    """Tests for _run_worker_entry success path."""
 
-    def test_exec_worker_entry_success_returns_true(self) -> None:
+    def test_run_worker_entry_success_returns_true(self) -> None:
         """Successful exec command should return True."""
         launcher = ContainerLauncher()
         container_id = "test-container-abc123"
@@ -27,19 +28,19 @@ class TestExecWorkerEntrySuccess:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
-            result = launcher._exec_worker_entry(container_id)
+            result = launcher._run_worker_entry(container_id)
 
             assert result is True
 
-    def test_exec_worker_entry_calls_docker_exec(self) -> None:
-        """_exec_worker_entry should call docker exec with correct arguments."""
+    def test_run_worker_entry_calls_docker_exec(self) -> None:
+        """_run_worker_entry should call docker exec with correct arguments."""
         launcher = ContainerLauncher()
         container_id = "test-container-abc123"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
 
-            launcher._exec_worker_entry(container_id)
+            launcher._run_worker_entry(container_id)
 
             mock_run.assert_called_once()
             call_args = mock_run.call_args
@@ -53,15 +54,15 @@ class TestExecWorkerEntrySuccess:
             assert "/bin/bash" in cmd
             assert f"/workspace/{launcher.WORKER_ENTRY_SCRIPT}" in cmd
 
-    def test_exec_worker_entry_sets_working_directory(self) -> None:
-        """_exec_worker_entry should set working directory to /workspace."""
+    def test_run_worker_entry_sets_working_directory(self) -> None:
+        """_run_worker_entry should set working directory to /workspace."""
         launcher = ContainerLauncher()
         container_id = "test-container-abc123"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
 
-            launcher._exec_worker_entry(container_id)
+            launcher._run_worker_entry(container_id)
 
             call_args = mock_run.call_args
             cmd = call_args[0][0]
@@ -71,22 +72,22 @@ class TestExecWorkerEntrySuccess:
             w_index = cmd.index("-w")
             assert cmd[w_index + 1] == "/workspace"
 
-    def test_exec_worker_entry_uses_timeout(self) -> None:
-        """_exec_worker_entry should use 30 second timeout."""
+    def test_run_worker_entry_uses_timeout(self) -> None:
+        """_run_worker_entry should use 30 second timeout."""
         launcher = ContainerLauncher()
         container_id = "test-container-abc123"
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
 
-            launcher._exec_worker_entry(container_id)
+            launcher._run_worker_entry(container_id)
 
             call_kwargs = mock_run.call_args[1]
             assert call_kwargs.get("timeout") == 30
 
 
 class TestExecWorkerEntryFailure:
-    """Tests for _exec_worker_entry with exec failure."""
+    """Tests for _run_worker_entry with exec failure."""
 
     def test_exec_failure_returns_false(self) -> None:
         """Failed exec command should return False."""
@@ -100,7 +101,7 @@ class TestExecWorkerEntryFailure:
                 stderr="exec failed: container not found",
             )
 
-            result = launcher._exec_worker_entry(container_id)
+            result = launcher._run_worker_entry(container_id)
 
             assert result is False
 
@@ -112,7 +113,7 @@ class TestExecWorkerEntryFailure:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=125)  # Docker error code
 
-            result = launcher._exec_worker_entry(container_id)
+            result = launcher._run_worker_entry(container_id)
 
             assert result is False
 
@@ -124,7 +125,7 @@ class TestExecWorkerEntryFailure:
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired(cmd="docker exec", timeout=30)
 
-            result = launcher._exec_worker_entry(container_id)
+            result = launcher._run_worker_entry(container_id)
 
             assert result is False
 
@@ -136,7 +137,7 @@ class TestExecWorkerEntryFailure:
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = OSError("Docker not available")
 
-            result = launcher._exec_worker_entry(container_id)
+            result = launcher._run_worker_entry(container_id)
 
             assert result is False
 
@@ -148,7 +149,7 @@ class TestExecWorkerEntryFailure:
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError("docker command not found")
 
-            result = launcher._exec_worker_entry(container_id)
+            result = launcher._run_worker_entry(container_id)
 
             assert result is False
 
@@ -545,7 +546,7 @@ class TestSpawnFlowWithExecVerification:
         with (
             patch.object(launcher, "_start_container", return_value="container-123"),
             patch.object(launcher, "_wait_ready", return_value=True),
-            patch.object(launcher, "_exec_worker_entry", return_value=True),
+            patch.object(launcher, "_run_worker_entry", return_value=True),
             patch.object(launcher, "_verify_worker_process", return_value=False),
             patch.object(launcher, "_cleanup_failed_container") as mock_cleanup,
         ):
@@ -567,7 +568,7 @@ class TestSpawnFlowWithExecVerification:
         with (
             patch.object(launcher, "_start_container", return_value="container-123"),
             patch.object(launcher, "_wait_ready", return_value=True),
-            patch.object(launcher, "_exec_worker_entry", return_value=True),
+            patch.object(launcher, "_run_worker_entry", return_value=True),
             patch.object(launcher, "_verify_worker_process", return_value=True),
         ):
             result = launcher.spawn(

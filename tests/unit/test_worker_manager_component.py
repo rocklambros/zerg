@@ -6,7 +6,7 @@ import pytest
 
 from zerg.config import ZergConfig
 from zerg.constants import WorkerStatus
-from zerg.launcher import WorkerLauncher
+from zerg.launchers import WorkerLauncher
 from zerg.levels import LevelController
 from zerg.parser import TaskParser
 from zerg.plugins import PluginRegistry

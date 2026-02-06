@@ -7,13 +7,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import (
-    ContainerLauncher,
-    LauncherConfig,
-    LauncherType,
-    WorkerHandle,
-    validate_env_vars,
-)
+from zerg.env_validator import validate_env_vars
+from zerg.launcher_types import LauncherConfig, LauncherType, WorkerHandle
+from zerg.launchers import ContainerLauncher
 
 
 class TestEnvVarValidation:

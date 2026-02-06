@@ -225,7 +225,7 @@ def _plugin_task_graph() -> list[dict]:
                 "read": ["zerg/worker_protocol.py", "zerg/plugins.py"],
             },
             "verification": {
-                "command": "python -c 'import zerg.worker_protocol'",
+                "command": "python -c 'import zerg.protocol_state'",
                 "timeout_seconds": 30,
             },
         },
@@ -259,7 +259,7 @@ def _plugin_task_graph() -> list[dict]:
                 "read": ["zerg/launcher.py", "zerg/plugins.py"],
             },
             "verification": {
-                "command": "python -c 'import zerg.launcher'",
+                "command": "python -c 'import zerg.launchers'",
                 "timeout_seconds": 30,
             },
         },

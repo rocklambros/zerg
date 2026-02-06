@@ -10,11 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.constants import TaskStatus
-from zerg.worker_protocol import (
-    ClaudeInvocationResult,
-    WorkerContext,
-    WorkerProtocol,
-)
+from zerg.protocol_state import WorkerProtocol
+from zerg.protocol_types import ClaudeInvocationResult, WorkerContext
 
 
 @pytest.fixture
@@ -154,7 +151,7 @@ class TestWorkerProtocolInit:
 
     def test_init_from_environment(self, worker_env: Path) -> None:
         """Test initialization from environment variables."""
-        with patch("zerg.worker_protocol.ZergConfig") as config_mock:
+        with patch("zerg.protocol_state.ZergConfig") as config_mock:
             config = MagicMock()
             config.context_threshold = 0.7
             config_mock.load.return_value = config
@@ -167,7 +164,7 @@ class TestWorkerProtocolInit:
 
     def test_init_with_explicit_values(self, worker_env: Path) -> None:
         """Test initialization with explicit values."""
-        with patch("zerg.worker_protocol.ZergConfig") as config_mock:
+        with patch("zerg.protocol_state.ZergConfig") as config_mock:
             config = MagicMock()
             config.context_threshold = 0.7
             config_mock.load.return_value = config
@@ -187,8 +184,8 @@ class TestWorkerReadiness:
     def test_signal_ready(self, worker_env: Path) -> None:
         """Test signaling ready state."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -206,8 +203,8 @@ class TestWorkerReadiness:
     def test_ready_event_logged(self, worker_env: Path) -> None:
         """Test ready event is logged."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -223,7 +220,7 @@ class TestWorkerReadiness:
 
     def test_wait_for_ready(self, worker_env: Path) -> None:
         """Test waiting for ready state."""
-        with patch("zerg.worker_protocol.ZergConfig") as config_mock, patch("zerg.worker_protocol.StateManager"):
+        with patch("zerg.protocol_state.ZergConfig") as config_mock, patch("zerg.protocol_state.StateManager"):
             config = MagicMock()
             config.context_threshold = 0.7
             config_mock.load.return_value = config
@@ -242,8 +239,8 @@ class TestTaskClaiming:
     def test_claim_next_task(self, worker_env: Path) -> None:
         """Test claiming next available task."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -263,8 +260,8 @@ class TestTaskClaiming:
     def test_claim_returns_none_when_no_tasks(self, worker_env: Path) -> None:
         """Test claim returns None when no tasks available."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -282,8 +279,8 @@ class TestTaskClaiming:
     def test_claim_tries_multiple_tasks(self, worker_env: Path) -> None:
         """Test claiming tries multiple tasks if first fails."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -308,10 +305,8 @@ class TestTaskExecution:
     def test_execute_task_updates_status(self, worker_env: Path) -> None:
         """Test task execution updates status."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
-            patch.object(WorkerProtocol, "invoke_claude_code") as invoke_mock,
-            patch.object(WorkerProtocol, "run_verification") as verify_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -323,23 +318,21 @@ class TestTaskExecution:
             invoke_result = ClaudeInvocationResult(
                 success=True, exit_code=0, stdout="", stderr="", duration_ms=1000, task_id="TASK-001"
             )
-            invoke_mock.return_value = invoke_result
-            verify_mock.return_value = True
 
             protocol = WorkerProtocol()
+            protocol._handler.invoke_claude_code = MagicMock(return_value=invoke_result)
+            protocol._handler.run_verification = MagicMock(return_value=True)
             task = {"id": "TASK-001", "title": "Test", "verification": "true"}
 
-            protocol.execute_task(task)
+            protocol._handler.execute_task(task)
 
             state.set_task_status.assert_called()
 
     def test_execute_task_runs_verification(self, worker_env: Path) -> None:
         """Test task execution runs verification."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
-            patch.object(WorkerProtocol, "invoke_claude_code") as invoke_mock,
-            patch.object(WorkerProtocol, "run_verification") as verify_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -351,13 +344,14 @@ class TestTaskExecution:
             invoke_result = ClaudeInvocationResult(
                 success=True, exit_code=0, stdout="", stderr="", duration_ms=1000, task_id="TASK-001"
             )
-            invoke_mock.return_value = invoke_result
-            verify_mock.return_value = True
 
             protocol = WorkerProtocol()
+            protocol._handler.invoke_claude_code = MagicMock(return_value=invoke_result)
+            verify_mock = MagicMock(return_value=True)
+            protocol._handler.run_verification = verify_mock
             task = {"id": "TASK-001", "title": "Test", "verification": "pytest"}
 
-            protocol.execute_task(task)
+            protocol._handler.execute_task(task)
 
             verify_mock.assert_called_once()
             call_args = verify_mock.call_args
@@ -370,8 +364,8 @@ class TestCompletionReporting:
     def test_report_complete(self, worker_env: Path) -> None:
         """Test reporting task completion."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -391,8 +385,8 @@ class TestCompletionReporting:
     def test_report_failed(self, worker_env: Path) -> None:
         """Test reporting task failure."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -413,8 +407,8 @@ class TestCompletionReporting:
     def test_multiple_completions_tracked(self, worker_env: Path) -> None:
         """Test multiple task completions are tracked."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager") as state_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager") as state_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -438,8 +432,8 @@ class TestClaudeInvocation:
     def test_invoke_returns_result(self, worker_env: Path) -> None:
         """Test invoke returns ClaudeInvocationResult."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager"),
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager"),
             patch("subprocess.run") as run_mock,
         ):
             config = MagicMock()
@@ -455,15 +449,15 @@ class TestClaudeInvocation:
             protocol = WorkerProtocol()
             task = {"id": "TASK-001", "title": "Test"}
 
-            result = protocol.invoke_claude_code(task)
+            result = protocol._handler.invoke_claude_code(task)
 
             assert isinstance(result, ClaudeInvocationResult)
 
     def test_invoke_failure_recorded(self, worker_env: Path) -> None:
         """Test invocation failure is recorded."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager"),
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager"),
             patch("subprocess.run") as run_mock,
         ):
             config = MagicMock()
@@ -479,7 +473,7 @@ class TestClaudeInvocation:
             protocol = WorkerProtocol()
             task = {"id": "TASK-001", "title": "Test"}
 
-            result = protocol.invoke_claude_code(task)
+            result = protocol._handler.invoke_claude_code(task)
 
             assert result.success is False
             assert result.exit_code == 1
@@ -491,9 +485,9 @@ class TestVerification:
     def test_run_verification_success(self, worker_env: Path) -> None:
         """Test successful verification."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor") as verify_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor") as verify_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -510,16 +504,16 @@ class TestVerification:
             # Verification should be a dict with "command" key
             task = {"id": "TASK-001", "verification": {"command": "pytest"}}
 
-            success = protocol.run_verification(task)
+            success = protocol._handler.run_verification(task)
 
             assert success is True
 
     def test_run_verification_failure(self, worker_env: Path) -> None:
         """Test verification failure."""
         with (
-            patch("zerg.worker_protocol.ZergConfig") as config_mock,
-            patch("zerg.worker_protocol.StateManager"),
-            patch("zerg.worker_protocol.VerificationExecutor") as verify_mock,
+            patch("zerg.protocol_state.ZergConfig") as config_mock,
+            patch("zerg.protocol_state.StateManager"),
+            patch("zerg.protocol_state.VerificationExecutor") as verify_mock,
         ):
             config = MagicMock()
             config.context_threshold = 0.7
@@ -537,13 +531,13 @@ class TestVerification:
             # Verification should be a dict with "command" key
             task = {"id": "TASK-001", "verification": {"command": "pytest"}}
 
-            success = protocol.run_verification(task)
+            success = protocol._handler.run_verification(task)
 
             assert success is False
 
     def test_run_verification_no_command_passes(self, worker_env: Path) -> None:
         """Test verification with no command auto-passes."""
-        with patch("zerg.worker_protocol.ZergConfig") as config_mock, patch("zerg.worker_protocol.StateManager"):
+        with patch("zerg.protocol_state.ZergConfig") as config_mock, patch("zerg.protocol_state.StateManager"):
             config = MagicMock()
             config.context_threshold = 0.7
             config_mock.load.return_value = config
@@ -552,13 +546,13 @@ class TestVerification:
             # No verification field
             task = {"id": "TASK-001"}
 
-            success = protocol.run_verification(task)
+            success = protocol._handler.run_verification(task)
 
             assert success is True
 
     def test_run_verification_empty_command_passes(self, worker_env: Path) -> None:
         """Test verification with empty command auto-passes."""
-        with patch("zerg.worker_protocol.ZergConfig") as config_mock, patch("zerg.worker_protocol.StateManager"):
+        with patch("zerg.protocol_state.ZergConfig") as config_mock, patch("zerg.protocol_state.StateManager"):
             config = MagicMock()
             config.context_threshold = 0.7
             config_mock.load.return_value = config
@@ -567,6 +561,6 @@ class TestVerification:
             # Empty command
             task = {"id": "TASK-001", "verification": {"command": ""}}
 
-            success = protocol.run_verification(task)
+            success = protocol._handler.run_verification(task)
 
             assert success is True

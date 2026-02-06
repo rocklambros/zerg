@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.config import ErrorRecoveryConfig, LoggingConfig, PortsConfig, ResourcesConfig, WorkersConfig, ZergConfig
-from zerg.launcher import ContainerLauncher, LauncherConfig, LauncherType, SubprocessLauncher
+from zerg.launcher_types import LauncherConfig, LauncherType
+from zerg.launchers import ContainerLauncher, SubprocessLauncher
 from zerg.orchestrator import Orchestrator
 
 

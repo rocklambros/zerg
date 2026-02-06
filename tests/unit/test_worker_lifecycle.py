@@ -11,8 +11,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from zerg.constants import ExitCode, WorkerStatus
-from zerg.launcher import SpawnResult, SubprocessLauncher, WorkerHandle
-from zerg.worker_protocol import WorkerProtocol
+from zerg.launcher_types import SpawnResult, WorkerHandle
+from zerg.launchers import SubprocessLauncher
+from zerg.protocol_state import WorkerProtocol
 
 
 class TestWorkerSpawn:
@@ -387,9 +388,9 @@ class TestWorkerProtocolStateWrites:
         (tmp_path / ".zerg").mkdir()
 
         with (
-            patch("zerg.worker_protocol.StateManager", return_value=mock_state_manager),
-            patch("zerg.worker_protocol.GitOps", return_value=mock_git_ops),
-            patch("zerg.worker_protocol.VerificationExecutor"),
+            patch("zerg.protocol_state.StateManager", return_value=mock_state_manager),
+            patch("zerg.protocol_state.GitOps", return_value=mock_git_ops),
+            patch("zerg.protocol_state.VerificationExecutor"),
         ):
             p = WorkerProtocol(worker_id=0, feature="test-feature")
             p._started_at = datetime.now()
@@ -428,10 +429,10 @@ class TestWorkerProtocolStateWrites:
         task = {"id": "TASK-001", "title": "Test task"}
 
         # Mock Claude CLI to succeed
-        with patch.object(protocol, "invoke_claude_code") as mock_invoke:
+        with patch.object(protocol._handler, "invoke_claude_code") as mock_invoke:
             mock_invoke.return_value = MagicMock(success=True)
-            with patch.object(protocol, "commit_task_changes", return_value=True):
-                protocol.execute_task(task)
+            with patch.object(protocol._handler, "commit_task_changes", return_value=True):
+                protocol._handler.execute_task(task, update_worker_state=protocol._update_worker_state)
 
         # Find the call that sets current_task to TASK-001
         calls = mock_state_manager.set_worker_state.call_args_list
@@ -479,11 +480,11 @@ class TestWorkerProtocolStateWrites:
         """execute_task records duration_ms via state.record_task_duration."""
         task = {"id": "TASK-001", "title": "Test task"}
 
-        with patch("zerg.worker_protocol.TaskArtifactCapture"):
-            with patch.object(protocol, "invoke_claude_code") as mock_invoke:
+        with patch("zerg.protocol_handler.TaskArtifactCapture"):
+            with patch.object(protocol._handler, "invoke_claude_code") as mock_invoke:
                 mock_invoke.return_value = MagicMock(success=True, stdout="", stderr="")
-                with patch.object(protocol, "commit_task_changes", return_value=True):
-                    result = protocol.execute_task(task)
+                with patch.object(protocol._handler, "commit_task_changes", return_value=True):
+                    result = protocol._handler.execute_task(task)
 
         assert result is True
         mock_state_manager.record_task_duration.assert_called_once()

@@ -21,12 +21,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from zerg.constants import WorkerStatus
-from zerg.launcher import (
-    ContainerLauncher,
-    SpawnResult,
-    SubprocessLauncher,
-    WorkerLauncher,
-)
+from zerg.launcher_types import SpawnResult
+from zerg.launchers import ContainerLauncher, SubprocessLauncher, WorkerLauncher
 
 # =============================================================================
 # Helper: Concrete WorkerLauncher for testing base-class dedup patterns
@@ -189,7 +185,7 @@ class TestStartContainerImpl:
         sig = inspect.signature(ContainerLauncher._start_container_impl)
         assert "run_fn" in sig.parameters
 
-    @patch("zerg.launcher.Path.home")
+    @patch("zerg.launchers.container_launcher.Path.home")
     @patch("os.getuid", return_value=1000)
     @patch("os.getgid", return_value=1000)
     def test_sync_wrapper_calls_impl(self, mock_gid: MagicMock, mock_uid: MagicMock, mock_home: MagicMock) -> None:
@@ -228,7 +224,7 @@ class TestTerminateImpl:
         with patch.object(launcher, "_terminate_impl", new_callable=AsyncMock) as mock_impl:
             mock_impl.return_value = True
             # Need to set up container_ids and workers
-            from zerg.launcher import WorkerHandle
+            from zerg.launcher_types import WorkerHandle
 
             launcher._container_ids[1] = "abc123"
             launcher._workers[1] = WorkerHandle(worker_id=1, status=WorkerStatus.RUNNING)
@@ -243,7 +239,7 @@ class TestTerminateImpl:
 
         with patch.object(launcher, "_terminate_impl", new_callable=AsyncMock) as mock_impl:
             mock_impl.return_value = True
-            from zerg.launcher import WorkerHandle
+            from zerg.launcher_types import WorkerHandle
 
             launcher._container_ids[1] = "abc123"
             launcher._workers[1] = WorkerHandle(worker_id=1, status=WorkerStatus.RUNNING)
@@ -263,7 +259,7 @@ class TestWorkerProtocolDelegation:
 
     def test_wait_for_ready_sync_delegates_to_async(self) -> None:
         """wait_for_ready (sync) must call wait_for_ready_async via asyncio.run."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         # Verify the sync method calls the async method
         source = inspect.getsource(WorkerProtocol.wait_for_ready)
@@ -272,7 +268,7 @@ class TestWorkerProtocolDelegation:
 
     def test_claim_next_task_sync_delegates_to_async(self) -> None:
         """claim_next_task (sync) must call claim_next_task_async via asyncio.run."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         source = inspect.getsource(WorkerProtocol.claim_next_task)
         assert "asyncio.run" in source
@@ -280,7 +276,7 @@ class TestWorkerProtocolDelegation:
 
     def test_wait_for_ready_async_is_source_of_truth(self) -> None:
         """wait_for_ready_async must be the single source of truth with actual logic."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         assert asyncio.iscoroutinefunction(WorkerProtocol.wait_for_ready_async)
         source = inspect.getsource(WorkerProtocol.wait_for_ready_async)
@@ -290,7 +286,7 @@ class TestWorkerProtocolDelegation:
 
     def test_claim_next_task_async_is_source_of_truth(self) -> None:
         """claim_next_task_async must be the single source of truth with actual logic."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         assert asyncio.iscoroutinefunction(WorkerProtocol.claim_next_task_async)
         source = inspect.getsource(WorkerProtocol.claim_next_task_async)
@@ -355,7 +351,7 @@ class TestNoDuplicateMethodPairs:
 
     def test_worker_protocol_sync_wrappers_are_thin(self) -> None:
         """Sync wrappers in WorkerProtocol must be thin (< 10 lines each)."""
-        from zerg.worker_protocol import WorkerProtocol
+        from zerg.protocol_state import WorkerProtocol
 
         for method_name in ("wait_for_ready", "claim_next_task"):
             source = inspect.getsource(getattr(WorkerProtocol, method_name))
