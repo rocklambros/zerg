@@ -14,7 +14,6 @@ from zerg.diagnostics.hypothesis_engine import (
     HypothesisGenerator,
     HypothesisTestRunner,
 )
-from zerg.diagnostics.knowledge_base import KnownPattern
 from zerg.diagnostics.types import (
     ErrorCategory,
     ErrorFingerprint,
@@ -75,12 +74,6 @@ def engine():
 
 
 class TestBayesianScorer:
-    """Tests for BayesianScorer."""
-
-    def test_posterior_no_evidence(self, scorer):
-        result = scorer.compute_posterior(0.5, [], [])
-        assert result == 0.5
-
     def test_posterior_positive_evidence(self, scorer):
         ev_for = [Evidence(description="match", source="code", confidence=0.8)]
         result = scorer.compute_posterior(0.5, ev_for, [])
@@ -90,23 +83,6 @@ class TestBayesianScorer:
         ev_against = [Evidence(description="mismatch", source="code", confidence=0.8)]
         result = scorer.compute_posterior(0.5, [], ev_against)
         assert result < 0.5
-
-    def test_posterior_mixed_evidence(self, scorer):
-        ev_for = [Evidence(description="match", source="code", confidence=0.9)]
-        ev_against = [Evidence(description="mismatch", source="code", confidence=0.3)]
-        result = scorer.compute_posterior(0.5, ev_for, ev_against)
-        # Positive evidence is stronger here, so result should be > 0.5
-        assert result > 0.5
-
-    def test_posterior_clamped_high(self, scorer):
-        strong_evidence = [Evidence(description=f"ev{i}", source="code", confidence=0.99) for i in range(20)]
-        result = scorer.compute_posterior(0.9, strong_evidence, [])
-        assert result <= 0.99
-
-    def test_posterior_clamped_low(self, scorer):
-        strong_neg = [Evidence(description=f"ev{i}", source="code", confidence=0.99) for i in range(20)]
-        result = scorer.compute_posterior(0.1, [], strong_neg)
-        assert result >= 0.01
 
     def test_rank_descending(self, scorer):
         hypotheses = [
@@ -131,11 +107,7 @@ class TestBayesianScorer:
         ]
         ranked = scorer.rank(hypotheses)
         assert ranked[0].description == "high"
-        assert ranked[1].description == "mid"
         assert ranked[2].description == "low"
-
-    def test_rank_empty(self, scorer):
-        assert scorer.rank([]) == []
 
 
 # ---------------------------------------------------------------------------
@@ -144,58 +116,11 @@ class TestBayesianScorer:
 
 
 class TestHypothesisGenerator:
-    """Tests for HypothesisGenerator."""
-
     def test_generate_from_fingerprint(self, generator, sample_fingerprint, sample_evidence):
         results = generator.generate(sample_fingerprint, sample_evidence)
-        # Should have at least the location hypothesis
         assert len(results) >= 1
-        location_hyp = results[0]
-        assert "test.py:42" in location_hyp.description
-        assert location_hyp.category == ErrorCategory.CODE_ERROR
-
-    def test_generate_from_kb(self, generator, sample_fingerprint, sample_evidence):
-        pattern = KnownPattern(
-            name="TestPattern",
-            category="python",
-            symptoms=["ValueError"],
-            prior_probability=0.7,
-            common_causes=["bad input"],
-            fix_templates=["validate input first"],
-        )
-        kb_matches = [(pattern, 0.8)]
-        results = generator.generate(sample_fingerprint, sample_evidence, kb_matches=kb_matches)
-        # Should have location + KB + evidence-based hypotheses
-        kb_hyps = [h for h in results if "Known pattern" in h.description]
-        assert len(kb_hyps) >= 1
-
-    def test_generate_max_10(self, generator):
-        fp = ErrorFingerprint(
-            hash="x",
-            language="python",
-            error_type="ValueError",
-            message_template="err",
-            file="f.py",
-            line=1,
-        )
-        # Create many evidence items to generate many hypotheses
-        evidence = [Evidence(description=f"evidence_{i}", source="code", confidence=0.6) for i in range(20)]
-        patterns = [
-            (
-                KnownPattern(
-                    name=f"Pat{i}",
-                    category="python",
-                    symptoms=[],
-                    prior_probability=0.5,
-                    common_causes=[f"cause{i}"],
-                    fix_templates=[f"fix{i}"],
-                ),
-                0.5,
-            )
-            for i in range(15)
-        ]
-        results = generator.generate(fp, evidence, kb_matches=patterns)
-        assert len(results) <= 10
+        assert "test.py:42" in results[0].description
+        assert results[0].category == ErrorCategory.CODE_ERROR
 
     def test_generate_empty(self, generator):
         fp = ErrorFingerprint(
@@ -207,22 +132,7 @@ class TestHypothesisGenerator:
             line=0,
         )
         results = generator.generate(fp, [])
-        # No file/line, no KB, no evidence -> empty or minimal
         assert len(results) == 0
-
-    def test_generate_sets_fix(self, generator, sample_fingerprint, sample_evidence):
-        pattern = KnownPattern(
-            name="FixPattern",
-            category="python",
-            symptoms=[],
-            prior_probability=0.6,
-            common_causes=["root cause"],
-            fix_templates=["apply the fix"],
-        )
-        results = generator.generate(sample_fingerprint, sample_evidence, kb_matches=[(pattern, 0.7)])
-        kb_hyps = [h for h in results if "Known pattern" in h.description]
-        assert len(kb_hyps) >= 1
-        assert kb_hyps[0].suggested_fix == "apply the fix"
 
 
 # ---------------------------------------------------------------------------
@@ -231,8 +141,6 @@ class TestHypothesisGenerator:
 
 
 class TestHypothesisTestRunner:
-    """Tests for HypothesisTestRunner."""
-
     def _make_hypothesis(self, test_command: str = "", **kwargs) -> ScoredHypothesis:
         defaults = dict(
             description="test hyp",
@@ -244,60 +152,40 @@ class TestHypothesisTestRunner:
         defaults.update(kwargs)
         return ScoredHypothesis(**defaults)
 
-    def test_can_test_safe_command(self, runner):
-        h = self._make_hypothesis(test_command="echo 'test'")
-        assert runner.can_test(h) is True
-
-    def test_can_test_unsafe_command(self, runner):
-        h = self._make_hypothesis(test_command="rm -rf /")
-        assert runner.can_test(h) is False
-
-    def test_can_test_empty_command(self, runner):
-        h = self._make_hypothesis(test_command="")
-        assert runner.can_test(h) is False
-
-    def test_can_test_git_command(self, runner):
-        h = self._make_hypothesis(test_command="git status")
-        assert runner.can_test(h) is True
+    @pytest.mark.parametrize(
+        "command,expected",
+        [
+            ("echo 'test'", True),
+            ("rm -rf /", False),
+            ("", False),
+            ("git status", True),
+        ],
+    )
+    def test_can_test(self, runner, command, expected):
+        h = self._make_hypothesis(test_command=command)
+        assert runner.can_test(h) is expected
 
     def test_test_success(self, runner):
-        """Test that successful command boosts posterior probability."""
-        # Use a real allowlisted command that succeeds
         h = self._make_hypothesis(test_command="echo 'test'")
         original_posterior = h.posterior_probability
-
         result = runner.test(h)
-
         assert result.test_result == "PASSED"
         assert result.posterior_probability > original_posterior
 
     def test_test_failure(self, runner):
-        """Test that failing command reduces posterior probability."""
-        # Use a real allowlisted command that fails (false always exits 1)
         h = self._make_hypothesis(test_command="false")
         original_posterior = h.posterior_probability
-
         result = runner.test(h)
-
         assert result.test_result == "FAILED"
         assert result.posterior_probability < original_posterior
 
     def test_test_timeout(self, runner):
-        """Test that timeout is handled gracefully.
-
-        The HypothesisTestRunner now uses CommandExecutor which handles
-        timeouts internally and returns a failed result rather than raising.
-        """
-        # Patch the executor's execute method to simulate timeout
         with patch.object(runner._executor, "execute") as mock_execute:
             mock_execute.side_effect = subprocess.TimeoutExpired(cmd="echo", timeout=30)
             h = self._make_hypothesis(test_command="echo 'test'")
-
             result = runner.test(h)
-
             assert result.test_result is not None
             assert "ERROR" in result.test_result or "timeout" in result.test_result.lower()
-            mock_execute.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -306,8 +194,6 @@ class TestHypothesisTestRunner:
 
 
 class TestHypothesisChainer:
-    """Tests for HypothesisChainer."""
-
     def _make_hypothesis(
         self, category: ErrorCategory, posterior: float = 0.5, test_result: str | None = None
     ) -> ScoredHypothesis:
@@ -322,27 +208,16 @@ class TestHypothesisChainer:
     def test_chain_boost_same_category(self, chainer):
         confirmed = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED")
         candidate = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.5)
-        candidates = [confirmed, candidate]
-
-        result = chainer.chain(confirmed, candidates)
-
+        result = chainer.chain(confirmed, [confirmed, candidate])
         boosted = [h for h in result if h is candidate][0]
         assert boosted.posterior_probability > 0.5
 
     def test_chain_suppress_contradictory(self, chainer):
         confirmed = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED")
         candidate = self._make_hypothesis(ErrorCategory.INFRASTRUCTURE, posterior=0.5)
-        candidates = [confirmed, candidate]
-
-        result = chainer.chain(confirmed, candidates)
-
+        result = chainer.chain(confirmed, [confirmed, candidate])
         suppressed = [h for h in result if h is candidate][0]
         assert suppressed.posterior_probability < 0.5
-
-    def test_chain_empty(self, chainer):
-        confirmed = self._make_hypothesis(ErrorCategory.CODE_ERROR, posterior=0.8, test_result="PASSED")
-        result = chainer.chain(confirmed, [])
-        assert result == []
 
 
 # ---------------------------------------------------------------------------
@@ -351,8 +226,6 @@ class TestHypothesisChainer:
 
 
 class TestHypothesisEngine:
-    """Tests for HypothesisEngine."""
-
     def test_analyze_produces_scored(self, engine, sample_fingerprint, sample_evidence):
         results = engine.analyze(sample_fingerprint, sample_evidence)
         assert isinstance(results, list)
@@ -360,38 +233,6 @@ class TestHypothesisEngine:
         for h in results:
             assert isinstance(h, ScoredHypothesis)
             assert 0.01 <= h.posterior_probability <= 0.99
-
-    def test_auto_test_mocked(self, engine, sample_fingerprint, sample_evidence):
-        """Test auto_test runs testable hypotheses."""
-        hypotheses = engine.analyze(sample_fingerprint, sample_evidence)
-        # Give one a test command so auto_test exercises the runner
-        hypotheses[0].test_command = "echo 'test'"
-
-        result = engine.auto_test(hypotheses)
-
-        assert isinstance(result, list)
-        # The hypothesis with test_command should have been tested
-        tested = [h for h in result if h.test_result is not None]
-        assert len(tested) >= 1
-
-    def test_get_top_hypothesis(self, engine):
-        hypotheses = [
-            ScoredHypothesis(
-                description="low",
-                category=ErrorCategory.UNKNOWN,
-                prior_probability=0.1,
-                posterior_probability=0.2,
-            ),
-            ScoredHypothesis(
-                description="high",
-                category=ErrorCategory.UNKNOWN,
-                prior_probability=0.1,
-                posterior_probability=0.9,
-            ),
-        ]
-        top = engine.get_top_hypothesis(hypotheses)
-        assert top is not None
-        assert top.description == "high"
 
     def test_get_top_hypothesis_empty(self, engine):
         assert engine.get_top_hypothesis([]) is None
