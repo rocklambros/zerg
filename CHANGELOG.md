@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidate 3 CI workflows (`pytest.yml`, `changelog-check.yml`, `command-validation.yml`) into single `ci.yml` with 4 jobs: `quality`, `test` (2 shards), `audit`
+- Reduce test shards from 4 to 2 using `pytest-split` duration-based balancing
+- Remove `pytestmark = pytest.mark.smoke` from 5 test files (smoke job removed)
+
 ### Added
 
 - `WorkerRegistry` (thread-safe, `RLock`-backed) replacing raw shared `_workers` dict across orchestrator, worker_manager, level_coordinator, launcher_configurator, and state_sync_service (#138)

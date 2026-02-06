@@ -21,8 +21,6 @@ from zerg.ast_analyzer import (
 )
 from zerg.ast_cache import ASTCache
 
-pytestmark = pytest.mark.smoke
-
 
 class TestImportPattern:
     """Tests for ImportPattern dataclass."""

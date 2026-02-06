@@ -1,7 +1,5 @@
 """Unit tests for ZERG constants module."""
 
-import pytest
-
 from zerg.constants import (
     DEFAULT_CONTEXT_THRESHOLD,
     DEFAULT_PORT_RANGE_END,
@@ -23,8 +21,6 @@ from zerg.constants import (
     TaskStatus,
     WorkerStatus,
 )
-
-pytestmark = pytest.mark.smoke
 
 
 class TestLevel:

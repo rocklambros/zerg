@@ -18,8 +18,6 @@ from zerg.exceptions import StateError
 from zerg.state import StateManager
 from zerg.types import WorkerState
 
-pytestmark = pytest.mark.smoke
-
 
 class TestStateManagerInit:
     """Tests for StateManager initialization."""

@@ -18,8 +18,6 @@ from zerg.config import (
 )
 from zerg.launcher_types import LauncherType
 
-pytestmark = pytest.mark.smoke
-
 
 class TestProjectConfig:
     """Tests for ProjectConfig model."""

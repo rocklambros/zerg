@@ -23,8 +23,6 @@ from zerg.validation import (
     validate_task_id,
 )
 
-pytestmark = pytest.mark.smoke
-
 
 class TestTaskIdPatterns:
     """Tests for task ID regex patterns."""
