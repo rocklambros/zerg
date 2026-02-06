@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Phase 4A: Delete 3 state test files (39 tests), merge 7 essentials into test_state.py, thin 5 state files (215→87 tests)
+- Phase 4B: Delete 9 merge+orchestrator test files (177 tests), thin 2 files (99→64 tests)
+- Phase 4C: Delete 6 diagnostics test files (99 tests), thin 5 files (125→60 tests)
+- Phase 5A: Thin 10 worker+resilience files (407→166 tests)
+- Phase 5B: Thin 12 git+validation files (417→158 tests)
+- Phase 5C: Thin 5 launcher+cross-cutting files (406→169 tests)
+- Phase 5D: Thin 7 performance+security+token files (196→84 tests)
+- Phase 5E: Thin 6 misc infrastructure files (354→138 tests)
+- Phase 5F: Thin 7 misc build/hooks files (303→179 tests)
+- Phase 5G: Thin 7 misc analysis/cmd files (294→132 tests)
 - Delete 14 gap-filling test files (_coverage, _extended, _full), removing ~649 redundant tests
 - Delete 4 doc engine test files and thin test_doc_engine.py from 89 to 32 tests
 - Merge 8 test_cmd_* files into test_*_cmd counterparts and delete sources

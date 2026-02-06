@@ -1,0 +1,546 @@
+{
+  "feature": "test-suite-reduction-phase45",
+  "version": "2.0",
+  "generated": "2026-02-06T15:00:00-07:00",
+  "total_tasks": 14,
+  "estimated_duration_minutes": 47,
+  "max_parallelization": 7,
+
+  "tasks": [
+    {
+      "id": "TSR45-L1-001",
+      "title": "Phase 4A: Delete 3 state test files, merge essentials into test_state.py",
+      "description": "Read test_state_sync.py, test_state_sync_service.py, test_state_workers.py. Identify 5-8 essential tests (unique code paths not covered by test_state.py). Add those to test_state.py. Then delete the 3 source files.",
+      "phase": "deletion",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_state.py"],
+        "delete": [
+          "tests/unit/test_state_sync.py",
+          "tests/unit/test_state_sync_service.py",
+          "tests/unit/test_state_workers.py"
+        ],
+        "read": [
+          "tests/unit/test_state_sync.py",
+          "tests/unit/test_state_sync_service.py",
+          "tests/unit/test_state_workers.py",
+          "tests/unit/test_state.py"
+        ]
+      },
+      "acceptance_criteria": [
+        "All 3 files deleted",
+        "5-8 essential tests merged into test_state.py",
+        "pytest passes on test_state.py"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_state_sync.py && test ! -f tests/unit/test_state_sync_service.py && test ! -f tests/unit/test_state_workers.py && echo '3 state files deleted' && python -m pytest tests/unit/test_state.py -q --timeout=30 2>&1 | tail -3",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5,
+      "consumers": ["TSR45-L2-001"],
+      "integration_test": null,
+      "context": "## Task Context\nDelete 3 state test files after merging essential tests into test_state.py.\n\n### Files to delete (after merging essentials):\n| File | Tests | Essential to merge |\n|------|------:|-------------------|\n| test_state_sync.py | 16 | 2-3 sync-specific code paths |\n| test_state_sync_service.py | 7 | 2 service-layer tests |\n| test_state_workers.py | 16 | 2-3 worker state transitions |\n\n### Process:\n1. Read ALL 3 source files and test_state.py fully\n2. Identify tests in sources covering code paths NOT tested in test_state.py\n3. Add 5-8 essential tests to test_state.py (at end of file)\n4. Run pytest on test_state.py to confirm\n5. Delete 3 source files with git rm\n\n### Key rules:\n- Do NOT blindly copy all tests. Most are duplicates.\n- Keep tests covering UNIQUE code paths only.\n- Preserve @pytest.mark.smoke tests if any."
+    },
+    {
+      "id": "TSR45-L1-002",
+      "title": "Phase 4B: Delete 9 merge+orchestrator test files",
+      "description": "Delete test_merge_full_flow.py, test_merge_gates.py, test_merge_execute.py, test_merge_coordinator_init.py, test_orchestrator_workers.py, test_orchestrator_recovery.py, test_orchestrator_merge.py, test_orchestrator_levels.py, test_orchestrator_container_mode.py. These are redundant with test_merge_flow.py and test_orchestrator.py.",
+      "phase": "deletion",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "delete": [
+          "tests/unit/test_merge_full_flow.py",
+          "tests/unit/test_merge_gates.py",
+          "tests/unit/test_merge_execute.py",
+          "tests/unit/test_merge_coordinator_init.py",
+          "tests/unit/test_orchestrator_workers.py",
+          "tests/unit/test_orchestrator_recovery.py",
+          "tests/unit/test_orchestrator_merge.py",
+          "tests/unit/test_orchestrator_levels.py",
+          "tests/unit/test_orchestrator_container_mode.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "All 9 files deleted",
+        "pytest passes on test_merge_flow.py and test_orchestrator.py",
+        "No import errors in remaining tests"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_merge_full_flow.py && test ! -f tests/unit/test_merge_gates.py && test ! -f tests/unit/test_merge_execute.py && test ! -f tests/unit/test_merge_coordinator_init.py && test ! -f tests/unit/test_orchestrator_workers.py && test ! -f tests/unit/test_orchestrator_recovery.py && test ! -f tests/unit/test_orchestrator_merge.py && test ! -f tests/unit/test_orchestrator_levels.py && test ! -f tests/unit/test_orchestrator_container_mode.py && echo '9 merge+orch files deleted' && python -m pytest tests/unit/test_merge_flow.py tests/unit/test_orchestrator.py -q --timeout=30 2>&1 | tail -3",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 3,
+      "consumers": ["TSR45-L2-002"],
+      "integration_test": null,
+      "context": "## Task Context\nDelete 9 merge and orchestrator test files. These are module-specific test files whose coverage overlaps with the consolidated test_merge_flow.py and test_orchestrator.py.\n\n### Files to delete:\n| File | Tests |\n|------|------:|\n| test_merge_full_flow.py | 26 |\n| test_merge_gates.py | 27 |\n| test_merge_execute.py | 20 |\n| test_merge_coordinator_init.py | 11 |\n| test_orchestrator_workers.py | 24 |\n| test_orchestrator_recovery.py | 24 |\n| test_orchestrator_merge.py | 16 |\n| test_orchestrator_levels.py | 15 |\n| test_orchestrator_container_mode.py | 14 |\n| **Total** | **177** |\n\n### Process:\n1. Delete all 9 files with git rm\n2. Spot-check that test_merge_flow.py and test_orchestrator.py still pass\n\nThese are pure deletions — no merge needed. The base files already cover the essential paths."
+    },
+    {
+      "id": "TSR45-L1-003",
+      "title": "Phase 4C: Delete 6 diagnostics test files",
+      "description": "Delete test_diagnostics/test_types.py, test_diagnostics/test_knowledge_base.py, test_diagnostics/test_log_correlator.py, test_diagnostics/test_env_diagnostics.py, test_diagnostics/test_system_diagnostics.py, test_diagnostics/test_code_fixer.py. IMPORTANT: test_diagnostics/test_types.py is NOT test_types.py.",
+      "phase": "deletion",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "delete": [
+          "tests/unit/test_diagnostics/test_types.py",
+          "tests/unit/test_diagnostics/test_knowledge_base.py",
+          "tests/unit/test_diagnostics/test_log_correlator.py",
+          "tests/unit/test_diagnostics/test_env_diagnostics.py",
+          "tests/unit/test_diagnostics/test_system_diagnostics.py",
+          "tests/unit/test_diagnostics/test_code_fixer.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "All 6 files in test_diagnostics/ deleted",
+        "test_types.py (root) is NOT deleted",
+        "pytest passes on remaining diagnostics tests"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_diagnostics/test_types.py && test ! -f tests/unit/test_diagnostics/test_knowledge_base.py && test ! -f tests/unit/test_diagnostics/test_log_correlator.py && test ! -f tests/unit/test_diagnostics/test_env_diagnostics.py && test ! -f tests/unit/test_diagnostics/test_system_diagnostics.py && test ! -f tests/unit/test_diagnostics/test_code_fixer.py && test -f tests/unit/test_types.py && echo '6 diagnostics files deleted, test_types.py preserved' && python -m pytest tests/unit/test_diagnostics/ -q --timeout=30 2>&1 | tail -3",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 3,
+      "consumers": ["TSR45-L2-003"],
+      "integration_test": null,
+      "context": "## Task Context\nDelete 6 diagnostics test files from tests/unit/test_diagnostics/ subdirectory.\n\n### CRITICAL DISAMBIGUATION\n- DELETE: tests/unit/test_diagnostics/test_types.py (20 tests)\n- DO NOT DELETE: tests/unit/test_types.py (different file entirely!)\n\n### Files to delete:\n| File | Tests |\n|------|------:|\n| test_diagnostics/test_types.py | 20 |\n| test_diagnostics/test_knowledge_base.py | 12 |\n| test_diagnostics/test_log_correlator.py | 21 |\n| test_diagnostics/test_env_diagnostics.py | 14 |\n| test_diagnostics/test_system_diagnostics.py | 17 |\n| test_diagnostics/test_code_fixer.py | 15 |\n| **Total** | **99** |\n\n### Process:\n1. Delete all 6 files with git rm\n2. Verify test_types.py (root) still exists\n3. Spot-check remaining diagnostics tests pass"
+    },
+    {
+      "id": "TSR45-L2-001",
+      "title": "Phase 4A: Thin 5 state test files",
+      "description": "Thin test_state.py 78→35 (accounting for merged tests from L1), test_state_levels.py 38→15, test_state_persistence.py 26→10, test_state_reconciler.py 36→12, test_state_tasks.py 30→10.",
+      "phase": "thinning-phase4",
+      "level": 2,
+      "dependencies": ["TSR45-L1-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_state.py",
+          "tests/unit/test_state_levels.py",
+          "tests/unit/test_state_persistence.py",
+          "tests/unit/test_state_reconciler.py",
+          "tests/unit/test_state_tasks.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "test_state.py thinned to 30-40 tests",
+        "test_state_levels.py thinned to 12-20 tests",
+        "test_state_persistence.py thinned to 8-15 tests",
+        "test_state_reconciler.py thinned to 10-17 tests",
+        "test_state_tasks.py thinned to 8-15 tests",
+        "pytest passes on all 5 files"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_state.py tests/unit/test_state_levels.py tests/unit/test_state_persistence.py tests/unit/test_state_reconciler.py tests/unit/test_state_tasks.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 12,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 5 state module test files.\n\nNOTE: test_state.py was modified at L1 (essential tests merged in from 3 deleted files). Read it fresh before thinning.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_state.py | ~83 (78 + ~5 merged) | 35 |\n| test_state_levels.py | 38 | 15 |\n| test_state_persistence.py | 26 | 10 |\n| test_state_reconciler.py | 36 | 12 |\n| test_state_tasks.py | 30 | 10 |\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path\n\n### Process per file:\n1. Read the full file\n2. Identify test classes and methods\n3. Apply thinning rules\n4. Delete redundant tests\n5. Clean up unused imports\n6. Run pytest on the file"
+    },
+    {
+      "id": "TSR45-L2-002",
+      "title": "Phase 4B: Thin 2 merge+orchestrator test files",
+      "description": "Thin test_merge_flow.py 39→20, test_orchestrator.py 60→40.",
+      "phase": "thinning-phase4",
+      "level": 2,
+      "dependencies": ["TSR45-L1-002"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_merge_flow.py",
+          "tests/unit/test_orchestrator.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "test_merge_flow.py thinned to 17-25 tests",
+        "test_orchestrator.py thinned to 35-45 tests",
+        "pytest passes on both files"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_merge_flow.py tests/unit/test_orchestrator.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 8,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 2 merge/orchestrator test files.\n\nNOTE: 9 companion files were deleted at L1. These 2 files are the consolidated survivors.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_merge_flow.py | 39 | 20 |\n| test_orchestrator.py | 60 | 40 |\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path\n\n### Special note for test_orchestrator.py:\nThis is a large file (60 tests). Target is 40 — a lighter reduction since this is the ONLY remaining orchestrator test file. Be conservative: keep more tests covering critical orchestration paths."
+    },
+    {
+      "id": "TSR45-L2-003",
+      "title": "Phase 4C: Thin 5 diagnostics test files",
+      "description": "Thin test_error_intel.py 27→12, test_hypothesis_engine.py 27→12, test_log_analyzer.py 18→10, test_recovery.py 32→15, test_state_introspector.py 21→10.",
+      "phase": "thinning-phase4",
+      "level": 2,
+      "dependencies": ["TSR45-L1-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_diagnostics/test_error_intel.py",
+          "tests/unit/test_diagnostics/test_hypothesis_engine.py",
+          "tests/unit/test_diagnostics/test_log_analyzer.py",
+          "tests/unit/test_diagnostics/test_recovery.py",
+          "tests/unit/test_diagnostics/test_state_introspector.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "test_error_intel.py thinned to 10-15 tests",
+        "test_hypothesis_engine.py thinned to 10-15 tests",
+        "test_log_analyzer.py thinned to 8-12 tests",
+        "test_recovery.py thinned to 12-18 tests",
+        "test_state_introspector.py thinned to 8-12 tests",
+        "pytest passes on all 5 files"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_diagnostics/test_error_intel.py tests/unit/test_diagnostics/test_hypothesis_engine.py tests/unit/test_diagnostics/test_log_analyzer.py tests/unit/test_diagnostics/test_recovery.py tests/unit/test_diagnostics/test_state_introspector.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 5 diagnostics test files in tests/unit/test_diagnostics/.\n\nNOTE: 6 companion files were deleted at L1. These 5 files are the survivors.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_error_intel.py | 27 | 12 |\n| test_hypothesis_engine.py | 27 | 12 |\n| test_log_analyzer.py | 18 | 10 |\n| test_recovery.py | 32 | 15 |\n| test_state_introspector.py | 21 | 10 |\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path"
+    },
+    {
+      "id": "TSR45-L3-001",
+      "title": "Phase 5A: Thin 10 worker+resilience test files",
+      "description": "Thin test_worker_commit.py 19→10, test_worker_lifecycle.py 28→12, test_worker_main.py 40→20, test_worker_manager_component.py 14→8, test_worker_metrics.py 55→20, test_worker_protocol.py 67→25, test_worker_registry.py 48→20, test_resilience_config.py 65→20, test_circuit_breaker.py 34→15, test_backpressure.py 37→15.",
+      "phase": "thinning-phase5",
+      "level": 3,
+      "dependencies": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_worker_commit.py",
+          "tests/unit/test_worker_lifecycle.py",
+          "tests/unit/test_worker_main.py",
+          "tests/unit/test_worker_manager_component.py",
+          "tests/unit/test_worker_metrics.py",
+          "tests/unit/test_worker_protocol.py",
+          "tests/unit/test_worker_registry.py",
+          "tests/unit/test_resilience_config.py",
+          "tests/unit/test_circuit_breaker.py",
+          "tests/unit/test_backpressure.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 10 files",
+        "Happy-path and error-path coverage preserved"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_worker_commit.py tests/unit/test_worker_lifecycle.py tests/unit/test_worker_main.py tests/unit/test_worker_manager_component.py tests/unit/test_worker_metrics.py tests/unit/test_worker_protocol.py tests/unit/test_worker_registry.py tests/unit/test_resilience_config.py tests/unit/test_circuit_breaker.py tests/unit/test_backpressure.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 10 worker and resilience test files.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_worker_commit.py | 19 | 10 |\n| test_worker_lifecycle.py | 28 | 12 |\n| test_worker_main.py | 40 | 20 |\n| test_worker_manager_component.py | 14 | 8 |\n| test_worker_metrics.py | 55 | 20 |\n| test_worker_protocol.py | 67 | 25 |\n| test_worker_registry.py | 48 | 20 |\n| test_resilience_config.py | 65 | 20 |\n| test_circuit_breaker.py | 34 | 15 |\n| test_backpressure.py | 37 | 15 |\n| **Total** | **407** | **165** |\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path\n\n### Priority files (largest reductions):\n- test_worker_protocol.py: 67→25 (drop protocol permutation variants)\n- test_resilience_config.py: 65→20 (drop config combination tests)\n- test_worker_metrics.py: 55→20 (collapse metric type permutations)"
+    },
+    {
+      "id": "TSR45-L3-002",
+      "title": "Phase 5B: Thin 12 git+validation test files",
+      "description": "Thin test_validation.py 109→25, test_git_base.py 15→10, test_git_bisect_engine.py 35→15, test_git_commit_engine.py 32→15, test_git_config.py 20→10, test_git_history_engine.py 31→15, test_git_ops.py 55→20, test_git_pr_engine.py 26→12, test_git_prereview.py 20→10, test_git_release_engine.py 31→15, test_git_rescue.py 31→12, test_git_types.py 12→8.",
+      "phase": "thinning-phase5",
+      "level": 3,
+      "dependencies": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_validation.py",
+          "tests/unit/test_git_base.py",
+          "tests/unit/test_git_bisect_engine.py",
+          "tests/unit/test_git_commit_engine.py",
+          "tests/unit/test_git_config.py",
+          "tests/unit/test_git_history_engine.py",
+          "tests/unit/test_git_ops.py",
+          "tests/unit/test_git_pr_engine.py",
+          "tests/unit/test_git_prereview.py",
+          "tests/unit/test_git_release_engine.py",
+          "tests/unit/test_git_rescue.py",
+          "tests/unit/test_git_types.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 12 files",
+        "test_validation.py major reduction: 109→25"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_validation.py tests/unit/test_git_base.py tests/unit/test_git_bisect_engine.py tests/unit/test_git_commit_engine.py tests/unit/test_git_config.py tests/unit/test_git_history_engine.py tests/unit/test_git_ops.py tests/unit/test_git_pr_engine.py tests/unit/test_git_prereview.py tests/unit/test_git_release_engine.py tests/unit/test_git_rescue.py tests/unit/test_git_types.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 12 git and validation test files.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_validation.py | 109 | 25 |\n| test_git_base.py | 15 | 10 |\n| test_git_bisect_engine.py | 35 | 15 |\n| test_git_commit_engine.py | 32 | 15 |\n| test_git_config.py | 20 | 10 |\n| test_git_history_engine.py | 31 | 15 |\n| test_git_ops.py | 55 | 20 |\n| test_git_pr_engine.py | 26 | 12 |\n| test_git_prereview.py | 20 | 10 |\n| test_git_release_engine.py | 31 | 15 |\n| test_git_rescue.py | 31 | 12 |\n| test_git_types.py | 12 | 8 |\n| **Total** | **417** | **167** |\n\n### Priority file:\n- test_validation.py: 109→25 — largest single reduction. Collapse validation rule permutations into parametrized tests. Keep 1 per validation category.\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path"
+    },
+    {
+      "id": "TSR45-L3-003",
+      "title": "Phase 5C: Thin 5 launcher+cross-cutting test files",
+      "description": "Thin test_launcher.py 131→50, test_launcher_container_ops.py 103→40, test_tdd.py 59→20, test_modes.py 71→25, test_efficiency.py 42→15. KEEP test_launcher_configurator.py as-is (11 tests, already minimal).",
+      "phase": "thinning-phase5",
+      "level": 3,
+      "dependencies": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_launcher.py",
+          "tests/unit/test_launcher_container_ops.py",
+          "tests/unit/test_tdd.py",
+          "tests/unit/test_modes.py",
+          "tests/unit/test_efficiency.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "test_launcher.py thinned to 45-55 tests",
+        "test_launcher_container_ops.py thinned to 35-45 tests",
+        "test_tdd.py thinned to 17-25 tests",
+        "test_modes.py thinned to 22-30 tests",
+        "test_efficiency.py thinned to 12-18 tests",
+        "test_launcher_configurator.py UNTOUCHED",
+        "pytest passes on all files"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_launcher.py tests/unit/test_launcher_container_ops.py tests/unit/test_tdd.py tests/unit/test_modes.py tests/unit/test_efficiency.py tests/unit/test_launcher_configurator.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 18,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 5 launcher and cross-cutting test files.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_launcher.py | 131 | 50 |\n| test_launcher_container_ops.py | 103 | 40 |\n| test_tdd.py | 59 | 20 |\n| test_modes.py | 71 | 25 |\n| test_efficiency.py | 42 | 15 |\n| **Total** | **406** | **150** |\n\n### DO NOT TOUCH:\n- test_launcher_configurator.py (11 tests) — already minimal per requirements\n\n### Priority files:\n- test_launcher.py: 131→50 — largest file. Collapse launch config permutations.\n- test_launcher_container_ops.py: 103→40 — collapse container operation variants.\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path"
+    },
+    {
+      "id": "TSR45-L3-004",
+      "title": "Phase 5D: Thin 7 performance+security+token test files",
+      "description": "Thin test_performance_adapters.py 42→15, test_performance_formatters.py 14→8, test_performance_types.py 14→8, test_security.py 41→15, test_security_rules.py 39→15, test_context_tracker.py 35→15, test_token_counter.py 11→8.",
+      "phase": "thinning-phase5",
+      "level": 3,
+      "dependencies": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_performance_adapters.py",
+          "tests/unit/test_performance_formatters.py",
+          "tests/unit/test_performance_types.py",
+          "tests/unit/test_security.py",
+          "tests/unit/test_security_rules.py",
+          "tests/unit/test_context_tracker.py",
+          "tests/unit/test_token_counter.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 7 files",
+        "Security-relevant tests preserved (only remove redundant ones)"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_performance_adapters.py tests/unit/test_performance_formatters.py tests/unit/test_performance_types.py tests/unit/test_security.py tests/unit/test_security_rules.py tests/unit/test_context_tracker.py tests/unit/test_token_counter.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 12,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 7 performance, security, and token test files.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_performance_adapters.py | 42 | 15 |\n| test_performance_formatters.py | 14 | 8 |\n| test_performance_types.py | 14 | 8 |\n| test_security.py | 41 | 15 |\n| test_security_rules.py | 39 | 15 |\n| test_context_tracker.py | 35 | 15 |\n| test_token_counter.py | 11 | 8 |\n| **Total** | **196** | **84** |\n\n### SECURITY NOTE:\nFrom requirements: 'No security-related tests removed unless redundant.'\n- For test_security.py and test_security_rules.py, only remove tests that are truly redundant (same code path tested multiple times).\n- Preserve tests covering different security rule categories.\n- When in doubt, KEEP the security test.\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path"
+    },
+    {
+      "id": "TSR45-L3-005",
+      "title": "Phase 5E: Thin 6 misc infrastructure test files",
+      "description": "Thin test_mcp_router.py 73→25, test_containers.py 70→25, test_depth_tiers.py 55→20, test_worktree.py 53→20, test_config.py 53→25, test_step_generator.py 50→20.",
+      "phase": "thinning-phase5",
+      "level": 3,
+      "dependencies": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_mcp_router.py",
+          "tests/unit/test_containers.py",
+          "tests/unit/test_depth_tiers.py",
+          "tests/unit/test_worktree.py",
+          "tests/unit/test_config.py",
+          "tests/unit/test_step_generator.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 6 files"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_mcp_router.py tests/unit/test_containers.py tests/unit/test_depth_tiers.py tests/unit/test_worktree.py tests/unit/test_config.py tests/unit/test_step_generator.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 6 miscellaneous infrastructure test files.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_mcp_router.py | 73 | 25 |\n| test_containers.py | 70 | 25 |\n| test_depth_tiers.py | 55 | 20 |\n| test_worktree.py | 53 | 20 |\n| test_config.py | 53 | 25 |\n| test_step_generator.py | 50 | 20 |\n| **Total** | **354** | **135** |\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path"
+    },
+    {
+      "id": "TSR45-L3-006",
+      "title": "Phase 5F: Thin 7 misc build/hooks test files",
+      "description": "Thin test_dedup_unified.py 46→20, test_validate_commands.py 45→25, test_metrics.py 45→20, test_install_commands.py 44→20, test_verification_gates.py 41→20, test_hooks.py 41→20, test_command_executor.py 41→20.",
+      "phase": "thinning-phase5",
+      "level": 3,
+      "dependencies": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_dedup_unified.py",
+          "tests/unit/test_validate_commands.py",
+          "tests/unit/test_metrics.py",
+          "tests/unit/test_install_commands.py",
+          "tests/unit/test_verification_gates.py",
+          "tests/unit/test_hooks.py",
+          "tests/unit/test_command_executor.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 7 files"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_dedup_unified.py tests/unit/test_validate_commands.py tests/unit/test_metrics.py tests/unit/test_install_commands.py tests/unit/test_verification_gates.py tests/unit/test_hooks.py tests/unit/test_command_executor.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 7 build and hooks test files.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_dedup_unified.py | 46 | 20 |\n| test_validate_commands.py | 45 | 25 |\n| test_metrics.py | 45 | 20 |\n| test_install_commands.py | 44 | 20 |\n| test_verification_gates.py | 41 | 20 |\n| test_hooks.py | 41 | 20 |\n| test_command_executor.py | 41 | 20 |\n| **Total** | **303** | **145** |\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path"
+    },
+    {
+      "id": "TSR45-L3-007",
+      "title": "Phase 5G: Thin 7 misc analysis/cmd 2nd pass test files",
+      "description": "Thin test_debug_cmd.py 57→25, test_build_cmd.py 49→25, test_container_resources.py 38→15, test_analyze_new_checks.py 38→20, test_adaptive_detail.py 38→20, test_loops.py 37→20, test_assign.py 37→20.",
+      "phase": "thinning-phase5",
+      "level": 3,
+      "dependencies": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_debug_cmd.py",
+          "tests/unit/test_build_cmd.py",
+          "tests/unit/test_container_resources.py",
+          "tests/unit/test_analyze_new_checks.py",
+          "tests/unit/test_adaptive_detail.py",
+          "tests/unit/test_loops.py",
+          "tests/unit/test_assign.py"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 7 files"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_debug_cmd.py tests/unit/test_build_cmd.py tests/unit/test_container_resources.py tests/unit/test_analyze_new_checks.py tests/unit/test_adaptive_detail.py tests/unit/test_loops.py tests/unit/test_assign.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nThin 7 miscellaneous analysis and command 2nd pass test files.\n\n### Targets:\n| File | Current | Target |\n|------|--------:|-------:|\n| test_debug_cmd.py | 57 | 25 |\n| test_build_cmd.py | 49 | 25 |\n| test_container_resources.py | 38 | 15 |\n| test_analyze_new_checks.py | 38 | 20 |\n| test_adaptive_detail.py | 38 | 20 |\n| test_loops.py | 37 | 20 |\n| test_assign.py | 37 | 20 |\n| **Total** | **294** | **145** |\n\n### Thinning rules:\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path"
+    },
+    {
+      "id": "TSR45-L4-001",
+      "title": "Quality gate: CHANGELOG, .test_durations, full suite",
+      "description": "Update CHANGELOG.md under [Unreleased]. Regenerate .test_durations. Run full test suite. Run validate_commands. Run smoke tests. Verify total test count in 3,500-3,800 range.",
+      "phase": "quality",
+      "level": 4,
+      "dependencies": ["TSR45-L3-001", "TSR45-L3-002", "TSR45-L3-003", "TSR45-L3-004", "TSR45-L3-005", "TSR45-L3-006", "TSR45-L3-007"],
+      "files": {
+        "create": [],
+        "modify": [
+          "CHANGELOG.md",
+          ".test_durations"
+        ],
+        "read": [],
+        "delete": []
+      },
+      "acceptance_criteria": [
+        "CHANGELOG.md updated with Phase 4+5 entries",
+        ".test_durations regenerated",
+        "Full test suite passes",
+        "Smoke tests pass",
+        "validate_commands passes",
+        "Total test count in 3,500-3,800 range"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q 2>&1 | tail -5 && python -m zerg.validate_commands && python -m pytest -m smoke -x --timeout=5 -q 2>&1 | tail -3 && total=$(python -m pytest tests/unit tests/integration --collect-only -q 2>/dev/null | tail -1 | grep -oE '[0-9]+' | head -1) && test \"$total\" -ge 3500 && test \"$total\" -le 3800 && echo \"Total tests: $total — IN RANGE\" && grep -q 'module consolidation\\|secondary thinning\\|Phase 4\\|Phase 5' CHANGELOG.md && echo 'ALL CHECKS PASSED'",
+        "timeout_seconds": 600
+      },
+      "estimate_minutes": 10,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nFinal verification and documentation.\n\n### CHANGELOG entry (under [Unreleased]):\n#### Changed\n- Phase 4A: Delete 3 state test files (39 tests), merge essentials, thin 5 state files (208→82 tests)\n- Phase 4B: Delete 9 merge+orchestrator test files (177 tests), thin 2 files (99→60 tests)\n- Phase 4C: Delete 6 diagnostics test files (99 tests), thin 5 files (125→59 tests)\n- Phase 5A: Thin 10 worker+resilience files (407→165 tests)\n- Phase 5B: Thin 12 git+validation files (417→167 tests)\n- Phase 5C: Thin 5 launcher+cross-cutting files (406→150 tests)\n- Phase 5D: Thin 7 performance+security+token files (196→84 tests)\n- Phase 5E: Thin 6 misc infrastructure files (354→135 tests)\n- Phase 5F: Thin 7 misc build/hooks files (303→145 tests)\n- Phase 5G: Thin 7 misc analysis/cmd files (294→145 tests)\n\n### Commands:\n```bash\n# Regenerate durations\npython -m pytest tests/unit tests/integration --store-durations -q\n\n# Full suite\npython -m pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q\n\n# Validate wiring\npython -m zerg.validate_commands\n\n# Smoke check\npython -m pytest -m smoke -x --timeout=5 -q\n\n# Count check\npython -m pytest tests/unit tests/integration --collect-only -q | tail -1\n```"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "deletion",
+      "tasks": ["TSR45-L1-001", "TSR45-L1-002", "TSR45-L1-003"],
+      "parallel": true,
+      "estimated_minutes": 5,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "thinning-phase4",
+      "tasks": ["TSR45-L2-001", "TSR45-L2-002", "TSR45-L2-003"],
+      "parallel": true,
+      "estimated_minutes": 12,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "thinning-phase5",
+      "tasks": ["TSR45-L3-001", "TSR45-L3-002", "TSR45-L3-003", "TSR45-L3-004", "TSR45-L3-005", "TSR45-L3-006", "TSR45-L3-007"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "quality",
+      "tasks": ["TSR45-L4-001"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1, 2, 3]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TSR45-L1-001", "TSR45-L2-001"],
+        "reason": "Both touch test_state.py — resolved by level ordering (L1 before L2)",
+        "resolution": "dependency chain"
+      }
+    ]
+  }
+}

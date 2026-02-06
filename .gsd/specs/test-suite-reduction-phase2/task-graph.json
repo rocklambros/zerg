@@ -1,0 +1,310 @@
+{
+  "feature": "test-suite-reduction-phase2",
+  "version": "2.0",
+  "generated": "2026-02-06T14:30:00-07:00",
+  "total_tasks": 7,
+  "estimated_duration_minutes": 35,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TSR2-L1-001",
+      "title": "Delete 14 gap-filling test files",
+      "description": "Delete all _coverage, _extended, _full gap-filling test files. These are redundant with base test files.",
+      "phase": "deletion",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "delete": [
+          "tests/unit/test_cleanup_rush_coverage.py",
+          "tests/unit/test_containers_coverage.py",
+          "tests/unit/test_debug_coverage.py",
+          "tests/unit/test_launcher_coverage.py",
+          "tests/unit/test_perf_adapters_coverage.py",
+          "tests/unit/test_utils_coverage.py",
+          "tests/unit/test_levels_extended.py",
+          "tests/unit/test_logging_extended.py",
+          "tests/unit/test_logs_cmd_extended.py",
+          "tests/unit/test_ports_extended.py",
+          "tests/unit/test_state_extended.py",
+          "tests/unit/test_worktree_extended.py",
+          "tests/unit/test_charter_full.py",
+          "tests/unit/test_security_rules_full.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "All 14 files deleted",
+        "pytest passes on remaining unit tests with no import errors",
+        "No other files reference deleted files"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_cleanup_rush_coverage.py && test ! -f tests/unit/test_containers_coverage.py && test ! -f tests/unit/test_debug_coverage.py && test ! -f tests/unit/test_launcher_coverage.py && test ! -f tests/unit/test_perf_adapters_coverage.py && test ! -f tests/unit/test_utils_coverage.py && test ! -f tests/unit/test_levels_extended.py && test ! -f tests/unit/test_logging_extended.py && test ! -f tests/unit/test_logs_cmd_extended.py && test ! -f tests/unit/test_ports_extended.py && test ! -f tests/unit/test_state_extended.py && test ! -f tests/unit/test_worktree_extended.py && test ! -f tests/unit/test_charter_full.py && test ! -f tests/unit/test_security_rules_full.py && echo '14 files deleted' && python -m pytest tests/unit/test_cleanup_cmd.py tests/unit/test_state.py tests/unit/test_levels.py -q --timeout=30 2>&1 | tail -3",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 2,
+      "consumers": ["TSR2-L4-001"],
+      "integration_test": null,
+      "context": "## Task Context\nDelete 14 gap-filling test files. These are _coverage, _extended, and _full files that duplicate tests already present in base test files.\n\n### Files to delete (git rm):\n1. test_cleanup_rush_coverage.py (30 tests)\n2. test_containers_coverage.py (32 tests)\n3. test_debug_coverage.py (42 tests)\n4. test_launcher_coverage.py (49 tests)\n5. test_perf_adapters_coverage.py (76 tests)\n6. test_utils_coverage.py (69 tests)\n7. test_levels_extended.py (52 tests)\n8. test_logging_extended.py (6 tests)\n9. test_logs_cmd_extended.py (8 tests)\n10. test_ports_extended.py (26 tests)\n11. test_state_extended.py (34 tests)\n12. test_worktree_extended.py (29 tests)\n13. test_charter_full.py (41 tests)\n14. test_security_rules_full.py (121 tests)\n\nTotal: ~649 tests removed.\n\n### Verification\nAfter deletion, spot-check that base files still pass:\n- test_cleanup_cmd.py, test_state.py, test_levels.py"
+    },
+    {
+      "id": "TSR2-L1-002",
+      "title": "Delete 4 doc engine test files, thin test_doc_engine.py",
+      "description": "Delete test_doc_engine_crossref.py, test_doc_engine_extractor.py, test_doc_engine_renderer.py, and test_doc_engine_misc.py. Thin test_doc_engine.py from 89 to ~30 tests. Keep: instantiation, generate() happy path, missing file errors, basic rendering.",
+      "phase": "deletion",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_doc_engine.py"
+        ],
+        "delete": [
+          "tests/unit/test_doc_engine_crossref.py",
+          "tests/unit/test_doc_engine_extractor.py",
+          "tests/unit/test_doc_engine_renderer.py",
+          "tests/unit/test_doc_engine_misc.py"
+        ],
+        "read": [
+          "zerg/doc_engine.py"
+        ]
+      },
+      "acceptance_criteria": [
+        "4 doc engine test files deleted",
+        "test_doc_engine.py thinned to 25-35 tests",
+        "pytest passes on test_doc_engine.py",
+        "Kept: instantiation, generate() happy path, missing file errors, basic rendering"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_doc_engine_crossref.py && test ! -f tests/unit/test_doc_engine_extractor.py && test ! -f tests/unit/test_doc_engine_renderer.py && test ! -f tests/unit/test_doc_engine_misc.py && python -m pytest tests/unit/test_doc_engine.py -q --timeout=30 2>&1 | tail -3 && count=$(python -m pytest tests/unit/test_doc_engine.py --collect-only -q 2>/dev/null | tail -1 | grep -oE '[0-9]+' | head -1) && test \"$count\" -le 35 && echo \"Doc engine tests: $count\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5,
+      "consumers": ["TSR2-L4-001"],
+      "integration_test": null,
+      "context": "## Task Context\nDelete 4 doc engine test files and thin test_doc_engine.py from 89 to ~30 tests.\n\n### Files to delete:\n- test_doc_engine_crossref.py (113 tests) — cross-ref permutations\n- test_doc_engine_extractor.py (118 tests) — extraction edge cases\n- test_doc_engine_renderer.py (114 tests) — formatting variants\n- test_doc_engine_misc.py (68 tests) — miscellaneous coverage padding\n\n### Thinning test_doc_engine.py (89 → ~30):\nRead the file fully. Keep tests that cover:\n1. DocEngine instantiation / construction\n2. generate() happy path (produces output)\n3. Missing file / invalid input errors\n4. Basic rendering output format\n5. Configuration handling\n\nDelete tests covering:\n- Formatting variant permutations\n- Cross-reference edge cases\n- Extraction detail tests\n- Duplicate coverage of same code paths"
+    },
+    {
+      "id": "TSR2-L2-001",
+      "title": "Merge 8 test_cmd_* files into test_*_cmd counterparts",
+      "description": "For each test_cmd_*.py, read it fully, identify 2-3 unique tests not covered by the target test_*_cmd.py, add those to the target, then delete the source. Files: test_cmd_cleanup→test_cleanup_cmd, test_cmd_init→test_init_cmd, test_cmd_logs→test_logs_cmd, test_cmd_merge→test_merge_cmd, test_cmd_retry→test_retry_cmd, test_cmd_security_rules→test_security_rules_cmd, test_cmd_status→test_status_cmd, test_cmd_stop→test_stop_cmd.",
+      "phase": "cmd-merge",
+      "level": 2,
+      "dependencies": ["TSR2-L1-001", "TSR2-L1-002"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_cleanup_cmd.py",
+          "tests/unit/test_init_cmd.py",
+          "tests/unit/test_logs_cmd.py",
+          "tests/unit/test_merge_cmd.py",
+          "tests/unit/test_retry_cmd.py",
+          "tests/unit/test_security_rules_cmd.py",
+          "tests/unit/test_status_cmd.py",
+          "tests/unit/test_stop_cmd.py"
+        ],
+        "delete": [
+          "tests/unit/test_cmd_cleanup.py",
+          "tests/unit/test_cmd_init.py",
+          "tests/unit/test_cmd_logs.py",
+          "tests/unit/test_cmd_merge.py",
+          "tests/unit/test_cmd_retry.py",
+          "tests/unit/test_cmd_security_rules.py",
+          "tests/unit/test_cmd_status.py",
+          "tests/unit/test_cmd_stop.py"
+        ],
+        "read": [
+          "tests/unit/test_cmd_cleanup.py",
+          "tests/unit/test_cmd_init.py",
+          "tests/unit/test_cmd_logs.py",
+          "tests/unit/test_cmd_merge.py",
+          "tests/unit/test_cmd_retry.py",
+          "tests/unit/test_cmd_security_rules.py",
+          "tests/unit/test_cmd_status.py",
+          "tests/unit/test_cmd_stop.py"
+        ]
+      },
+      "acceptance_criteria": [
+        "All 8 test_cmd_*.py files deleted",
+        "2-3 unique tests from each merged into target",
+        "pytest passes on all 8 target files"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_cmd_cleanup.py && test ! -f tests/unit/test_cmd_init.py && test ! -f tests/unit/test_cmd_logs.py && test ! -f tests/unit/test_cmd_merge.py && test ! -f tests/unit/test_cmd_retry.py && test ! -f tests/unit/test_cmd_security_rules.py && test ! -f tests/unit/test_cmd_status.py && test ! -f tests/unit/test_cmd_stop.py && echo '8 cmd files deleted' && python -m pytest tests/unit/test_cleanup_cmd.py tests/unit/test_init_cmd.py tests/unit/test_logs_cmd.py tests/unit/test_merge_cmd.py tests/unit/test_retry_cmd.py tests/unit/test_security_rules_cmd.py tests/unit/test_status_cmd.py tests/unit/test_stop_cmd.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 8,
+      "consumers": ["TSR2-L3-001", "TSR2-L3-002", "TSR2-L3-003"],
+      "integration_test": null,
+      "context": "## Task Context\nMerge 8 test_cmd_*.py files into their test_*_cmd.py counterparts.\n\n### Merge pairs:\n| Source (delete after) | Target (add unique tests) | Source tests |\n|----------------------|--------------------------|-------------:|\n| test_cmd_cleanup.py (143 LOC, 9 tests) | test_cleanup_cmd.py | 9 |\n| test_cmd_init.py (104 LOC, 8 tests) | test_init_cmd.py | 8 |\n| test_cmd_logs.py (72 LOC, 7 tests) | test_logs_cmd.py | 7 |\n| test_cmd_merge.py (107 LOC, 9 tests) | test_merge_cmd.py | 9 |\n| test_cmd_retry.py (101 LOC, 9 tests) | test_retry_cmd.py | 9 |\n| test_cmd_security_rules.py (126 LOC, 11 tests) | test_security_rules_cmd.py | 11 |\n| test_cmd_status.py (134 LOC, 13 tests) | test_status_cmd.py | 13 |\n| test_cmd_stop.py (112 LOC, 9 tests) | test_stop_cmd.py | 9 |\n\n### Process for each pair:\n1. Read BOTH source and target files fully\n2. Compare test methods — identify tests in source that cover code paths NOT tested in target\n3. Add 2-3 unique tests from source into target (at the end of the file)\n4. Delete source file with git rm\n5. Run pytest on target to confirm it passes\n\n### Key rule:\nDo NOT blindly copy all tests. Most are duplicates. Only copy tests covering UNIQUE code paths."
+    },
+    {
+      "id": "TSR2-L3-001",
+      "title": "Thin command test files (batch A: 6 large files)",
+      "description": "Thin 6 command test files using systematic thinning rules. Files: test_debug_cmd.py (139→30), test_rush_cmd.py (59→25), test_status_cmd.py (82→25), test_review_cmd.py (90→25), test_git_cmd.py (101→30), test_test_cmd.py (109→25).",
+      "phase": "cmd-thinning",
+      "level": 3,
+      "dependencies": ["TSR2-L2-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_debug_cmd.py",
+          "tests/unit/test_rush_cmd.py",
+          "tests/unit/test_status_cmd.py",
+          "tests/unit/test_review_cmd.py",
+          "tests/unit/test_git_cmd.py",
+          "tests/unit/test_test_cmd.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 6 files",
+        "Happy-path and error-path coverage preserved"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_debug_cmd.py tests/unit/test_rush_cmd.py tests/unit/test_status_cmd.py tests/unit/test_review_cmd.py tests/unit/test_git_cmd.py tests/unit/test_test_cmd.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "consumers": ["TSR2-L4-001"],
+      "integration_test": null,
+      "context": "## Task Context\nThin 6 command test files using systematic rules.\n\n### Targets:\n| File | Current | Target | LOC |\n|------|--------:|-------:|----:|\n| test_debug_cmd.py | 139 | 30 | 1,788 |\n| test_rush_cmd.py | 59 | 25 | 1,547 |\n| test_status_cmd.py | 82 | 25 | 1,524 |\n| test_review_cmd.py | 90 | 25 | 1,365 |\n| test_git_cmd.py | 101 | 30 | 1,261 |\n| test_test_cmd.py | 109 | 25 | 1,257 |\n\n### Thinning rules (apply in order):\n1. **Enum tests**: Keep 1 test asserting all enum values. Delete per-value tests.\n2. **Detection tests**: Keep 1 per language/framework. Delete permutations.\n3. **Feature class tests**: Keep 1 happy-path + 1 error-path per class. Delete edge case variants.\n4. **CLI tests**: Keep 1 help + 1 basic execution. Delete arg permutations.\n5. **Parametrize**: Replace multiple similar tests with single @pytest.mark.parametrize.\n\n### Do NOT delete:\n- Tests covering unique code paths\n- Error handler tests (keep 1 per handler)\n- Security-relevant behavior tests\n\n### Process per file:\n1. Read the full file\n2. Identify test classes and methods\n3. Apply thinning rules\n4. Delete redundant tests (remove entire methods, or entire classes if all methods removed)\n5. Clean up imports if any become unused\n6. Run pytest on the file"
+    },
+    {
+      "id": "TSR2-L3-002",
+      "title": "Thin command test files (batch B: 6 medium files)",
+      "description": "Thin 6 command test files. Files: test_build_cmd.py (105→25), test_init_cmd.py (107→25), test_refactor_cmd.py (92→25), test_analyze_cmd.py (89→25), test_cleanup_cmd.py (52→20), test_logs_cmd.py (84→20).",
+      "phase": "cmd-thinning",
+      "level": 3,
+      "dependencies": ["TSR2-L2-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_build_cmd.py",
+          "tests/unit/test_init_cmd.py",
+          "tests/unit/test_refactor_cmd.py",
+          "tests/unit/test_analyze_cmd.py",
+          "tests/unit/test_cleanup_cmd.py",
+          "tests/unit/test_logs_cmd.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 6 files",
+        "Happy-path and error-path coverage preserved"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_build_cmd.py tests/unit/test_init_cmd.py tests/unit/test_refactor_cmd.py tests/unit/test_analyze_cmd.py tests/unit/test_cleanup_cmd.py tests/unit/test_logs_cmd.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "consumers": ["TSR2-L4-001"],
+      "integration_test": null,
+      "context": "## Task Context\nThin 6 command test files using systematic rules.\n\n### Targets:\n| File | Current | Target | LOC |\n|------|--------:|-------:|----:|\n| test_build_cmd.py | 105 | 25 | 1,285 |\n| test_init_cmd.py | 107 | 25 | 1,290 |\n| test_refactor_cmd.py | 92 | 25 | 1,275 |\n| test_analyze_cmd.py | 89 | 25 | 1,130 |\n| test_cleanup_cmd.py | 52 | 20 | 1,264 |\n| test_logs_cmd.py | 84 | 20 | 1,225 |\n\n### Thinning rules (apply in order):\n1. **Enum tests**: Keep 1 test asserting all enum values. Delete per-value tests.\n2. **Detection tests**: Keep 1 per language/framework. Delete permutations.\n3. **Feature class tests**: Keep 1 happy-path + 1 error-path per class. Delete edge case variants.\n4. **CLI tests**: Keep 1 help + 1 basic execution. Delete arg permutations.\n5. **Parametrize**: Replace multiple similar tests with single @pytest.mark.parametrize.\n\n### Do NOT delete:\n- Tests covering unique code paths\n- Error handler tests (keep 1 per handler)\n- Security-relevant behavior tests\n\n### Process per file:\n1. Read the full file\n2. Identify test classes and methods\n3. Apply thinning rules\n4. Delete redundant tests\n5. Clean up unused imports\n6. Run pytest on the file"
+    },
+    {
+      "id": "TSR2-L3-003",
+      "title": "Thin command test files (batch C: 6 smaller files)",
+      "description": "Thin 6 command test files. Files: test_plan_cmd.py (65→25), test_design_cmd.py (53→20), test_stop_cmd.py (40→15), test_retry_cmd.py (46→15), test_merge_cmd.py (36→15), test_security_rules_cmd.py (50→15).",
+      "phase": "cmd-thinning",
+      "level": 3,
+      "dependencies": ["TSR2-L2-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_plan_cmd.py",
+          "tests/unit/test_design_cmd.py",
+          "tests/unit/test_stop_cmd.py",
+          "tests/unit/test_retry_cmd.py",
+          "tests/unit/test_merge_cmd.py",
+          "tests/unit/test_security_rules_cmd.py"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Each file thinned to target count (±5)",
+        "pytest passes on all 6 files",
+        "Happy-path and error-path coverage preserved"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/unit/test_plan_cmd.py tests/unit/test_design_cmd.py tests/unit/test_stop_cmd.py tests/unit/test_retry_cmd.py tests/unit/test_merge_cmd.py tests/unit/test_security_rules_cmd.py -q --timeout=60 2>&1 | tail -3",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 12,
+      "consumers": ["TSR2-L4-001"],
+      "integration_test": null,
+      "context": "## Task Context\nThin 6 command test files using systematic rules.\n\n### Targets:\n| File | Current | Target | LOC |\n|------|--------:|-------:|----:|\n| test_plan_cmd.py | 65 | 25 | 997 |\n| test_design_cmd.py | 53 | 20 | 972 |\n| test_stop_cmd.py | 40 | 15 | 1,043 |\n| test_retry_cmd.py | 46 | 15 | 803 |\n| test_merge_cmd.py | 36 | 15 | 765 |\n| test_security_rules_cmd.py | 50 | 15 | 860 |\n\n### Thinning rules (apply in order):\n1. **Enum tests**: Keep 1 test asserting all enum values. Delete per-value tests.\n2. **Detection tests**: Keep 1 per language/framework. Delete permutations.\n3. **Feature class tests**: Keep 1 happy-path + 1 error-path per class. Delete edge case variants.\n4. **CLI tests**: Keep 1 help + 1 basic execution. Delete arg permutations.\n5. **Parametrize**: Replace multiple similar tests with single @pytest.mark.parametrize.\n\n### Do NOT delete:\n- Tests covering unique code paths\n- Error handler tests (keep 1 per handler)\n- Security-relevant behavior tests\n\n### Process per file:\n1. Read the full file\n2. Identify test classes and methods\n3. Apply thinning rules\n4. Delete redundant tests\n5. Clean up unused imports\n6. Run pytest on the file"
+    },
+    {
+      "id": "TSR2-L4-001",
+      "title": "Verification: CHANGELOG, .test_durations, full suite",
+      "description": "Update CHANGELOG.md under [Unreleased]. Regenerate .test_durations. Run full test suite. Run validate_commands. Verify coverage >= 80%.",
+      "phase": "quality",
+      "level": 4,
+      "dependencies": ["TSR2-L1-001", "TSR2-L1-002", "TSR2-L2-001", "TSR2-L3-001", "TSR2-L3-002", "TSR2-L3-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "CHANGELOG.md",
+          ".test_durations"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "CHANGELOG.md updated with reduction entries",
+        ".test_durations regenerated",
+        "Full test suite passes",
+        "validate_commands passes",
+        "Coverage >= 80%"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q 2>&1 | tail -5 && python -m zerg.validate_commands && python -m pytest -m smoke -x --timeout=5 -q 2>&1 | tail -3 && grep -q 'gap-filling\\|doc engine\\|command test' CHANGELOG.md && echo 'ALL CHECKS PASSED'",
+        "timeout_seconds": 600
+      },
+      "estimate_minutes": 8,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nFinal verification and documentation.\n\n### CHANGELOG entry (under [Unreleased]):\n#### Changed\n- Delete 14 gap-filling test files (_coverage, _extended, _full), removing ~649 redundant tests\n- Delete 4 doc engine test files and thin test_doc_engine.py from 89 to ~30 tests\n- Merge 8 test_cmd_* files into test_*_cmd counterparts and delete sources\n- Thin 18 command test files from ~1,399 to ~400 tests using systematic reduction rules\n\n### Commands:\n```bash\n# Regenerate durations\npython -m pytest tests/unit tests/integration --store-durations -q\n\n# Full suite\npython -m pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q\n\n# Validate wiring\npython -m zerg.validate_commands\n\n# Smoke check\npython -m pytest -m smoke -x --timeout=5 -q\n```"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "deletion",
+      "tasks": ["TSR2-L1-001", "TSR2-L1-002"],
+      "parallel": true,
+      "estimated_minutes": 5,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "cmd-merge",
+      "tasks": ["TSR2-L2-001"],
+      "parallel": false,
+      "estimated_minutes": 8,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "cmd-thinning",
+      "tasks": ["TSR2-L3-001", "TSR2-L3-002", "TSR2-L3-003"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "quality",
+      "tasks": ["TSR2-L4-001"],
+      "parallel": false,
+      "estimated_minutes": 8,
+      "depends_on_levels": [1, 2, 3]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}
