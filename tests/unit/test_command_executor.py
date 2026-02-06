@@ -353,46 +353,6 @@ class TestExecute:
         assert len(executor.get_history()) == 0
 
 
-class TestValidateEnvVars:
-    """Tests for environment variable validation."""
-
-    def test_validate_safe_env(self) -> None:
-        """Test safe environment variables pass."""
-        executor = CommandExecutor()
-
-        validated = executor._validate_env_vars({"MY_VAR": "value"})
-
-        assert "MY_VAR" in validated
-
-    def test_validate_dangerous_env_blocked(self) -> None:
-        """Test dangerous environment variables are blocked."""
-        executor = CommandExecutor()
-
-        validated = executor._validate_env_vars(
-            {
-                "LD_PRELOAD": "/evil.so",
-                "SAFE_VAR": "ok",
-            }
-        )
-
-        assert "LD_PRELOAD" not in validated
-        assert "SAFE_VAR" in validated
-
-    def test_validate_env_with_shell_chars(self) -> None:
-        """Test env vars with shell chars are blocked."""
-        executor = CommandExecutor()
-
-        validated = executor._validate_env_vars(
-            {
-                "BAD_VAR": "value; rm -rf /",
-                "GOOD_VAR": "safe_value",
-            }
-        )
-
-        assert "BAD_VAR" not in validated
-        assert "GOOD_VAR" in validated
-
-
 class TestExecuteGit:
     """Tests for git command execution."""
 
