@@ -236,7 +236,10 @@ class Orchestrator:
 
     def _handle_worker_crash(self, task_id: str, wid: int) -> None:
         self.state.set_task_status(task_id, TaskStatus.FAILED, worker_id=wid, error="Worker crashed")
-        self.state.append_event("task_crash_reassign", {"task_id": task_id, "worker_id": wid})
+        self.state.append_event(
+            "task_crash_reassign",
+            {"task_id": task_id, "worker_id": wid, "retry_count_incremented": False},
+        )
         self.levels.reset_task(task_id)
         self.state.set_task_status(task_id, TaskStatus.PENDING)
 

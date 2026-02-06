@@ -384,19 +384,21 @@ class TestUnifiedMainLoop:
     """Verify the unified _main_loop includes escalation, progress, stall detection."""
 
     def test_main_loop_calls_check_escalations(self) -> None:
-        """_main_loop must call _check_escalations (previously missing from async)."""
+        """_main_loop must include escalation checks (previously missing from async)."""
         from zerg.orchestrator import Orchestrator
 
         # _poll_workers (called from _main_loop) must include escalation checks
+        # (inlined from _check_escalations by TASK-021)
         source = inspect.getsource(Orchestrator._poll_workers)
-        assert "_check_escalations" in source
+        assert "escalation" in source
 
     def test_main_loop_calls_aggregate_progress(self) -> None:
-        """_main_loop must call _aggregate_progress (previously missing from async)."""
+        """_main_loop must include progress aggregation (previously missing from async)."""
         from zerg.orchestrator import Orchestrator
 
+        # (inlined from _aggregate_progress by TASK-021)
         source = inspect.getsource(Orchestrator._poll_workers)
-        assert "_aggregate_progress" in source
+        assert "ProgressReporter" in source
 
     def test_main_loop_calls_check_stale_tasks(self) -> None:
         """_main_loop must call _check_stale_tasks for stall detection."""
