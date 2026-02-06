@@ -729,7 +729,7 @@ class TestStartSpawnValidation:
 
         orch = Orchestrator("test-feature")
 
-        with patch.object(orch, "_spawn_workers", return_value=0):
+        with patch.object(orch._worker_manager, "spawn_workers", return_value=0):
             with pytest.raises(RuntimeError, match="All 3 workers failed to spawn"):
                 orch.start(task_graph_path, worker_count=3)
 
@@ -765,7 +765,7 @@ class TestStartSpawnValidation:
 
         orch = Orchestrator("test-feature")
 
-        with patch.object(orch, "_spawn_workers", return_value=0):
+        with patch.object(orch._worker_manager, "spawn_workers", return_value=0):
             with pytest.raises(RuntimeError):
                 orch.start(task_graph_path, worker_count=3)
 
@@ -827,7 +827,7 @@ class TestPollWorkers:
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
 
-        with patch.object(orch, "_handle_worker_exit") as exit_mock:
+        with patch.object(orch._worker_manager, "handle_worker_exit") as exit_mock:
             orch._poll_workers()
 
         exit_mock.assert_called_with(0)
@@ -865,7 +865,7 @@ class TestPollWorkers:
         orch = Orchestrator("test-feature")
         orch._spawn_worker(0)
 
-        with patch.object(orch, "_handle_worker_exit") as exit_mock:
+        with patch.object(orch._worker_manager, "handle_worker_exit") as exit_mock:
             orch._poll_workers()
 
         assert orch._workers[0].status == WorkerStatus.CHECKPOINTING

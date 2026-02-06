@@ -1,0 +1,155 @@
+{
+  "feature": "test-suite-cleanup",
+  "version": "2.0",
+  "generated": "2026-02-06T00:00:00Z",
+  "total_tasks": 4,
+  "estimated_duration_minutes": 12,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Delete broken coverage-padding test files",
+      "description": "Delete tests/unit/test_near_complete_coverage.py (1,740 lines, 14+ broken tests calling nonexistent methods) and tests/unit/test_orchestrator_coverage.py (1,034 lines, stale mock targets + asyncio collision). These are coverage-padding files whose passing tests duplicate primary unit test coverage.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "delete": [
+          "tests/unit/test_near_complete_coverage.py",
+          "tests/unit/test_orchestrator_coverage.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "test ! -f tests/unit/test_near_complete_coverage.py && test ! -f tests/unit/test_orchestrator_coverage.py && echo 'OK: both deleted'",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 2,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nDelete two coverage-padding files that have broken tests:\n1. tests/unit/test_near_complete_coverage.py — 14+ failures, calls nonexistent methods like run_verification\n2. tests/unit/test_orchestrator_coverage.py — 2 failures, stale mock targets (_respawn_workers_for_level)\nBoth files' passing tests duplicate coverage already provided by primary test files.\n\n## Commands\ngit rm tests/unit/test_near_complete_coverage.py\ngit rm tests/unit/test_orchestrator_coverage.py"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Fix stale mock targets in orchestrator tests",
+      "description": "Fix 4 failures in test_orchestrator.py (mock _spawn_workers → _worker_manager.spawn_workers, mock _handle_worker_exit → _worker_manager.handle_worker_exit) and 1 failure in test_orchestrator_container_mode.py (regex 'explicitly requested' → 'Container mode requested').",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_orchestrator.py",
+          "tests/unit/test_orchestrator_container_mode.py"
+        ],
+        "read": [
+          "zerg/orchestrator.py",
+          "zerg/worker_registry.py"
+        ]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_orchestrator.py tests/unit/test_orchestrator_container_mode.py -q --timeout=120",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nFix 5 test failures caused by stale mock targets after WorkerRegistry refactor.\n\n### test_orchestrator.py (4 failures)\n- test_start_raises_when_all_spawns_fail: mock target changed from _spawn_workers → _worker_manager.spawn_workers\n- test_start_records_rush_failed_event: same mock target change\n- test_poll_workers_stopped_status: mock _handle_worker_exit → _worker_manager.handle_worker_exit\n- test_poll_workers_checkpointing_status: same mock target change\n\n### test_orchestrator_container_mode.py (1 failure)\n- test_explicit_container_raises_on_network_failure: regex 'explicitly requested' does not match actual error 'Container mode requested but Docker network creation failed.' → change to 'Container mode requested'\n\n## Security Rules (Python)\n- Use subprocess safely with argument lists\n- Avoid dangerous deserialization"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Remove duplicate root tests and relocate orphans",
+      "description": "Delete 8 root-level test files that are pure subsets of tests/unit/ counterparts (0 unique tests each): test_config, test_context_tracker, test_git_ops, test_launcher, test_orchestrator, test_state, test_worker_protocol, test_worktree. Then git mv 10 orphan root-level test files into tests/unit/: test_claude_tasks_reader, test_config_caching, test_doc_engine, test_gates, test_levels, test_log_aggregator_caching, test_repo_map_caching, test_single_traversal, test_token_counter_memory, test_types.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "delete": [
+          "tests/test_config.py",
+          "tests/test_context_tracker.py",
+          "tests/test_git_ops.py",
+          "tests/test_launcher.py",
+          "tests/test_orchestrator.py",
+          "tests/test_state.py",
+          "tests/test_worker_protocol.py",
+          "tests/test_worktree.py"
+        ],
+        "move": [
+          {"from": "tests/test_claude_tasks_reader.py", "to": "tests/unit/test_claude_tasks_reader.py"},
+          {"from": "tests/test_config_caching.py", "to": "tests/unit/test_config_caching.py"},
+          {"from": "tests/test_doc_engine.py", "to": "tests/unit/test_doc_engine.py"},
+          {"from": "tests/test_gates.py", "to": "tests/unit/test_gates.py"},
+          {"from": "tests/test_levels.py", "to": "tests/unit/test_levels.py"},
+          {"from": "tests/test_log_aggregator_caching.py", "to": "tests/unit/test_log_aggregator_caching.py"},
+          {"from": "tests/test_repo_map_caching.py", "to": "tests/unit/test_repo_map_caching.py"},
+          {"from": "tests/test_single_traversal.py", "to": "tests/unit/test_single_traversal.py"},
+          {"from": "tests/test_token_counter_memory.py", "to": "tests/unit/test_token_counter_memory.py"},
+          {"from": "tests/test_types.py", "to": "tests/unit/test_types.py"}
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "test $(ls tests/test_*.py 2>/dev/null | wc -l) -eq 0 && test -f tests/unit/test_doc_engine.py && echo 'OK: root clean, moves done'",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["git"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nTwo operations:\n\n### Delete 8 duplicates (0 unique tests each)\ngit rm tests/test_config.py tests/test_context_tracker.py tests/test_git_ops.py tests/test_launcher.py tests/test_orchestrator.py tests/test_state.py tests/test_worker_protocol.py tests/test_worktree.py\n\n### Move 10 orphans\ngit mv tests/test_claude_tasks_reader.py tests/unit/\ngit mv tests/test_config_caching.py tests/unit/\ngit mv tests/test_doc_engine.py tests/unit/\ngit mv tests/test_gates.py tests/unit/\ngit mv tests/test_levels.py tests/unit/\ngit mv tests/test_log_aggregator_caching.py tests/unit/\ngit mv tests/test_repo_map_caching.py tests/unit/\ngit mv tests/test_single_traversal.py tests/unit/\ngit mv tests/test_token_counter_memory.py tests/unit/\ngit mv tests/test_types.py tests/unit/"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Regenerate .test_durations, update CHANGELOG, run full verification",
+      "description": "Regenerate .test_durations with correct paths after all file moves/deletes. Add CHANGELOG entry under [Unreleased]. Run full test suite verification: pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q. Run python -m zerg.validate_commands for structural checks.",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          ".test_durations",
+          "CHANGELOG.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q && python -m zerg.validate_commands",
+        "timeout_seconds": 600
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\n1. Regenerate .test_durations:\n   pytest tests/unit tests/integration --store-durations -q\n2. Add CHANGELOG entry under [Unreleased] > Fixed:\n   'Fix 25 CI test failures: delete broken coverage-padding files, fix stale mock targets'\n   And under Changed:\n   'Consolidate all root-level test files into tests/unit/'\n3. Full verification:\n   pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q\n4. Structural check:\n   python -m zerg.validate_commands"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 5
+    },
+    "2": {
+      "name": "quality-wiring",
+      "tasks": ["TASK-004"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

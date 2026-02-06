@@ -498,7 +498,7 @@ class TestContainerModeEnforcement:
         mock_container_launcher_class.return_value = mock_launcher_instance
 
         config = ZergConfig()
-        with pytest.raises(RuntimeError, match="explicitly requested"):
+        with pytest.raises(RuntimeError, match="Container mode requested"):
             Orchestrator(
                 feature="test-feature",
                 config=config,
