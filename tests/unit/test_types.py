@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+import pytest
+
 from zerg.constants import GateResult, Level, MergeStatus, WorkerStatus
 from zerg.types import (
     GateRunResult,
@@ -19,6 +21,7 @@ from zerg.types import (
 class TestTask:
     """Tests for Task TypedDict."""
 
+    @pytest.mark.smoke
     def test_required_fields(self, sample_task: Task) -> None:
         """Test that required fields are present."""
         assert "id" in sample_task
@@ -32,6 +35,7 @@ class TestTask:
         assert "files" in sample_task
         assert "verification" in sample_task
 
+    @pytest.mark.smoke
     def test_files_structure(self, sample_task: Task) -> None:
         """Test files structure."""
         files = sample_task.get("files", {})
@@ -50,12 +54,14 @@ class TestTask:
 class TestTaskGraph:
     """Tests for TaskGraph TypedDict."""
 
+    @pytest.mark.smoke
     def test_required_fields(self, sample_task_graph: TaskGraph) -> None:
         """Test that required fields are present."""
         assert "feature" in sample_task_graph
         assert "tasks" in sample_task_graph
         assert "levels" in sample_task_graph
 
+    @pytest.mark.smoke
     def test_tasks_list(self, sample_task_graph: TaskGraph) -> None:
         """Test tasks is a list."""
         tasks = sample_task_graph.get("tasks", [])

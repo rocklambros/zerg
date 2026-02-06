@@ -1,5 +1,6 @@
 """Unit tests for ZERG CLI module."""
 
+import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -8,6 +9,7 @@ from zerg.cli import cli
 class TestCliGroup:
     """Tests for main CLI group."""
 
+    @pytest.mark.smoke
     def test_cli_help(self) -> None:
         """Test CLI shows help with all commands."""
         runner = CliRunner()
@@ -17,6 +19,7 @@ class TestCliGroup:
         assert "ZERG" in result.output
         assert "Parallel Claude Code" in result.output
 
+    @pytest.mark.smoke
     def test_cli_version(self) -> None:
         """Test CLI shows version."""
         runner = CliRunner()

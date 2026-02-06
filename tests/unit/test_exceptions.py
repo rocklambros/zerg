@@ -29,6 +29,7 @@ from zerg.exceptions import (
 class TestZergError:
     """Tests for base ZergError."""
 
+    @pytest.mark.smoke
     def test_basic_error(self) -> None:
         """Test basic error creation."""
         error = ZergError("Test error")
@@ -36,12 +37,14 @@ class TestZergError:
         assert error.message == "Test error"
         assert error.details == {}
 
+    @pytest.mark.smoke
     def test_error_with_details(self) -> None:
         """Test error with details."""
         error = ZergError("Error", details={"key": "value"})
         assert error.details == {"key": "value"}
         assert "key" in str(error)
 
+    @pytest.mark.smoke
     def test_error_is_exception(self) -> None:
         """Test error is an exception."""
         error = ZergError("Test")

@@ -1,5 +1,7 @@
 """Unit tests for ZERG constants module."""
 
+import pytest
+
 from zerg.constants import (
     DEFAULT_CONTEXT_THRESHOLD,
     DEFAULT_PORT_RANGE_END,
@@ -26,6 +28,7 @@ from zerg.constants import (
 class TestLevel:
     """Tests for Level enumeration."""
 
+    @pytest.mark.smoke
     def test_level_values(self) -> None:
         """Test Level enum values."""
         assert Level.FOUNDATION == 1
@@ -49,6 +52,7 @@ class TestLevel:
 class TestTaskStatus:
     """Tests for TaskStatus enumeration."""
 
+    @pytest.mark.smoke
     def test_task_status_values(self) -> None:
         """Test TaskStatus enum values."""
         assert TaskStatus.TODO.value == "todo"
@@ -134,6 +138,7 @@ class TestExitCode:
 class TestDefaultValues:
     """Tests for default configuration values."""
 
+    @pytest.mark.smoke
     def test_default_workers(self) -> None:
         """Test default worker count."""
         assert DEFAULT_WORKERS == 5

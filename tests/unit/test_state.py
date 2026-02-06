@@ -22,6 +22,7 @@ from zerg.types import WorkerState
 class TestStateManagerInit:
     """Tests for StateManager initialization."""
 
+    @pytest.mark.smoke
     def test_init_with_default_state_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test initialization with default state directory."""
         # Monkeypatch the STATE_DIR constant
@@ -49,6 +50,7 @@ class TestStateManagerInit:
 
         assert manager.state_dir == custom_dir
 
+    @pytest.mark.smoke
     def test_init_creates_state_directory(self, tmp_path: Path) -> None:
         """Test that initialization creates state directory if needed."""
         custom_dir = tmp_path / "nested" / "state" / "dir"
@@ -61,6 +63,7 @@ class TestStateManagerInit:
 class TestStateLoading:
     """Tests for state loading and JSON parsing."""
 
+    @pytest.mark.smoke
     def test_load_creates_initial_state_when_no_file(self, tmp_path: Path) -> None:
         """Test loading when no state file exists creates initial state."""
         manager = StateManager("test-feature", state_dir=tmp_path)

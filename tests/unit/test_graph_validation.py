@@ -1,5 +1,7 @@
 """Unit tests for graph_validation module."""
 
+import pytest
+
 from zerg.graph_validation import validate_graph_properties
 
 
@@ -24,6 +26,7 @@ def _task(id, level=1, deps=None, consumers=None, integration_test=None, title="
 
 
 class TestDependencyReferences:
+    @pytest.mark.smoke
     def test_valid_deps(self):
         graph = _make_graph(
             [
@@ -34,6 +37,7 @@ class TestDependencyReferences:
         errors, warnings = validate_graph_properties(graph)
         assert not errors
 
+    @pytest.mark.smoke
     def test_invalid_dep_reference(self):
         graph = _make_graph(
             [
@@ -44,6 +48,7 @@ class TestDependencyReferences:
         errors, warnings = validate_graph_properties(graph)
         assert any("T999" in e for e in errors)
 
+    @pytest.mark.smoke
     def test_empty_graph(self):
         graph = _make_graph([])
         errors, warnings = validate_graph_properties(graph)

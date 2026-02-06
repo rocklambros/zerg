@@ -12,6 +12,7 @@ from zerg.parser import TaskParser
 class TestTaskParser:
     """Tests for TaskParser class."""
 
+    @pytest.mark.smoke
     def test_init(self) -> None:
         """Test parser initialization."""
         parser = TaskParser()
@@ -46,6 +47,7 @@ class TestTaskParser:
         assert result["feature"] == "test-feature"
         assert len(parser._tasks) == 1
 
+    @pytest.mark.smoke
     def test_parse_dict(self) -> None:
         """Test parsing from dictionary."""
         graph = {
@@ -402,6 +404,7 @@ class TestVerification:
 class TestProperties:
     """Tests for parser properties."""
 
+    @pytest.mark.smoke
     def test_feature_name(self) -> None:
         """Test feature_name property."""
         graph = {

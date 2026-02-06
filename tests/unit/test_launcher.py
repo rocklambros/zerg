@@ -136,10 +136,12 @@ class TestDangerousEnvVarsConstant:
 class TestLauncherType:
     """Tests for LauncherType enum."""
 
+    @pytest.mark.smoke
     def test_subprocess_value(self) -> None:
         """Test subprocess type value."""
         assert LauncherType.SUBPROCESS.value == "subprocess"
 
+    @pytest.mark.smoke
     def test_container_value(self) -> None:
         """Test container type value."""
         assert LauncherType.CONTAINER.value == "container"
@@ -153,6 +155,7 @@ class TestLauncherType:
 class TestLauncherConfig:
     """Tests for LauncherConfig dataclass."""
 
+    @pytest.mark.smoke
     def test_default_values(self) -> None:
         """Test default configuration values."""
         config = LauncherConfig()

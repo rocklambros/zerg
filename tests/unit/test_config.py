@@ -277,6 +277,7 @@ class TestSecurityConfig:
 class TestZergConfig:
     """Tests for ZergConfig model."""
 
+    @pytest.mark.smoke
     def test_default_values(self) -> None:
         """Test default ZergConfig values."""
         config = ZergConfig()
@@ -289,6 +290,7 @@ class TestZergConfig:
         assert config.logging.level == "info"
         assert config.security.level == "standard"
 
+    @pytest.mark.smoke
     def test_from_dict(self) -> None:
         """Test creating config from dictionary."""
         data = {
@@ -302,6 +304,7 @@ class TestZergConfig:
         assert len(config.quality_gates) == 1
         assert config.quality_gates[0].name == "lint"
 
+    @pytest.mark.smoke
     def test_to_dict(self) -> None:
         """Test converting config to dictionary."""
         config = ZergConfig()
@@ -313,6 +316,7 @@ class TestZergConfig:
         assert "quality_gates" in data
         assert data["project"]["name"] == "zerg"
 
+    @pytest.mark.smoke
     def test_context_threshold_property(self) -> None:
         """Test context_threshold property conversion."""
         config = ZergConfig()
