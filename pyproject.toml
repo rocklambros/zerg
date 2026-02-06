@@ -93,6 +93,7 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+timeout = 120
 filterwarnings = [
     "ignore:cannot collect test class.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
     "ignore:cannot collect 'test_cmd' because it is not a function:pytest.PytestCollectionWarning",

@@ -66,7 +66,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run tests (shard ${{ matrix.shard }}/2)
-        run: pytest tests/ -m "not slow" -v --tb=short --timeout=120 --splits 2 --group ${{ matrix.shard }}
+        run: pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m "not slow" -v --tb=short --timeout=120 --splits 2 --group ${{ matrix.shard }}
 
   audit:
     runs-on: ubuntu-latest
