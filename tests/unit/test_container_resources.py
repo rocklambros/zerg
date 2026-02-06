@@ -321,7 +321,9 @@ class TestCheckContainerHealth:
         orch.config = ZergConfig()
         orch.launcher = MagicMock(spec=ContainerLauncher)
         orch.state = MagicMock()
-        orch._workers = {}
+        from zerg.worker_registry import WorkerRegistry
+
+        orch.registry = WorkerRegistry()
         orch._plugin_registry = PluginRegistry()
         orch._launcher_config = LauncherConfigurator(orch.config, Path("."), orch._plugin_registry)
         return orch
@@ -338,7 +340,7 @@ class TestCheckContainerHealth:
             status=WorkerStatus.RUNNING,
             started_at=datetime.now() - timedelta(minutes=60),
         )
-        orch._workers[0] = worker
+        orch.registry.register(0, worker)
 
         orch._check_container_health()
 
@@ -358,7 +360,7 @@ class TestCheckContainerHealth:
             status=WorkerStatus.RUNNING,
             started_at=datetime.now() - timedelta(minutes=10),
         )
-        orch._workers[0] = worker
+        orch.registry.register(0, worker)
 
         orch._check_container_health()
 
@@ -377,7 +379,7 @@ class TestCheckContainerHealth:
             status=WorkerStatus.STOPPED,
             started_at=datetime.now() - timedelta(hours=2),
         )
-        orch._workers[0] = worker
+        orch.registry.register(0, worker)
 
         orch._check_container_health()
 
@@ -398,7 +400,7 @@ class TestCheckContainerHealth:
             status=WorkerStatus.RUNNING,
             started_at=datetime.now() - timedelta(hours=2),
         )
-        orch._workers[0] = worker
+        orch.registry.register(0, worker)
 
         orch._check_container_health()
 
@@ -417,7 +419,7 @@ class TestCheckContainerHealth:
             status=WorkerStatus.RUNNING,
             started_at=None,
         )
-        orch._workers[0] = worker
+        orch.registry.register(0, worker)
 
         orch._check_container_health()
 
