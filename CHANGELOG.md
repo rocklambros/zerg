@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `--skip-validation` flag for `/z:plan` and `/z:design` to bypass Phase 0 pre-execution validation checks
+- Smoke CI job in `ci.yml` gating test shards for fast-fail feedback (~10s)
+- `@pytest.mark.smoke` markers on ~25 critical-path unit tests covering orchestrator, state, config, CLI, launcher, and worker protocol
 
 ### Fixed
 
@@ -19,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Consolidate all root-level test files into `tests/unit/`: delete 8 pure duplicates, relocate 10 orphans
-
+- Consolidate 8 launcher test files into 4, removing ~75 duplicate tests and ~1,500 lines
 - Consolidate 3 CI workflows (`pytest.yml`, `changelog-check.yml`, `command-validation.yml`) into single `ci.yml` with 4 jobs: `quality`, `test` (2 shards), `audit`
 - Reduce test shards from 4 to 2 using `pytest-split` duration-based balancing
 - Remove `pytestmark = pytest.mark.smoke` from 5 test files (smoke job removed)

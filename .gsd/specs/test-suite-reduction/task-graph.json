@@ -1,0 +1,226 @@
+{
+  "feature": "test-suite-reduction",
+  "version": "2.0",
+  "generated": "2026-02-06T12:30:00-07:00",
+  "total_tasks": 5,
+  "estimated_duration_minutes": 25,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TSR-L1-001",
+      "title": "Mark ~25 smoke tests on critical-path modules",
+      "description": "Add @pytest.mark.smoke to 25-30 of the fastest critical-path unit tests. Target files: test_config.py, test_types.py, test_exceptions.py, test_graph_validation.py, test_state.py, test_cli.py, test_launcher.py, test_parser.py, test_constants.py. Use .test_durations to pick tests completing in <1s. Total smoke suite must finish in <30s.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_config.py",
+          "tests/unit/test_types.py",
+          "tests/unit/test_exceptions.py",
+          "tests/unit/test_graph_validation.py",
+          "tests/unit/test_state.py",
+          "tests/unit/test_cli.py",
+          "tests/unit/test_launcher.py",
+          "tests/unit/test_parser.py",
+          "tests/unit/test_constants.py"
+        ],
+        "read": [
+          "pyproject.toml",
+          ".zerg/config.yaml",
+          ".test_durations"
+        ]
+      },
+      "acceptance_criteria": [
+        "pytest -m smoke collects >= 20 tests",
+        "Smoke suite completes in < 30s",
+        "Only unit tests marked (no integration/e2e)"
+      ],
+      "verification": {
+        "command": "python -m pytest -m smoke -x --timeout=5 -q 2>&1 | tail -5 && count=$(python -m pytest -m smoke --collect-only -q 2>/dev/null | tail -1 | grep -oE '[0-9]+' | head -1) && test \"$count\" -ge 20 && echo \"Smoke tests: $count\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "consumers": ["TSR-L2-001"],
+      "integration_test": null,
+      "context": "## Task Context\nAdd @pytest.mark.smoke to fastest critical-path unit tests.\n\n### Selection criteria\n- Tests completing in <1s (check .test_durations)\n- Core modules: config, types, exceptions, graph_validation, state, CLI, parser, constants\n- Do NOT mark integration or slow tests\n- Total smoke suite target: <30s\n\n### Pattern\nAdd marker to individual test methods or entire classes:\n```python\n@pytest.mark.smoke\nclass TestZergConfig:\n```\nOr per-method:\n```python\n@pytest.mark.smoke\ndef test_default_values(self):\n```\n\n### Target selections (~25-30 tests):\n1. test_config.py: TestZergConfig basic creation/defaults (3-4 tests)\n2. test_types.py: TestTask, TestTaskGraph basic creation (3-4 tests)\n3. test_exceptions.py: TestZergError basic tests (2-3 tests)\n4. test_graph_validation.py: TestValidateDependencies valid/invalid/empty (3-4 tests)\n5. test_state.py: TestStateManager init/load/save (3-4 tests)\n6. test_cli.py: test_version, test_help (2 tests)\n7. test_launcher.py: TestLauncherType, TestLauncherConfig basics (2-3 tests)\n8. test_parser.py: Basic parsing tests (3-4 tests)\n9. test_constants.py: Basic constant validation (2-3 tests)\n\n### Infrastructure already in place\n- Marker registered in pyproject.toml: `smoke: Critical path tests (< 30s total)`\n- Quality gate in .zerg/config.yaml: `pytest -m smoke -x --timeout=5 -q`"
+    },
+    {
+      "id": "TSR-L1-002",
+      "title": "Consolidate launcher type/env tests: merge extended into launcher",
+      "description": "Merge test_launcher_extended.py into test_launcher.py. The extended file contains 7 duplicate classes (TestValidateEnvVars, TestLauncherConfig, TestSpawnResult, TestWorkerHandle, TestLauncherType, TestLauncherStatusSummary, TestTerminateAll). For each duplicate, keep the version with more assertions (generally test_launcher.py) and add any unique test methods from extended. Move TestLauncherStatusSummary and TestTerminateAll (unique to extended) into test_launcher.py. Delete test_launcher_extended.py. Also remove duplicate TestValidateEnvVars from test_command_executor.py.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_launcher.py",
+          "tests/unit/test_command_executor.py"
+        ],
+        "delete": [
+          "tests/unit/test_launcher_extended.py"
+        ],
+        "read": [
+          "tests/unit/test_launcher_extended.py",
+          "zerg/env_validator.py",
+          "zerg/launcher_types.py"
+        ]
+      },
+      "acceptance_criteria": [
+        "test_launcher_extended.py deleted",
+        "All unique test methods from extended preserved in test_launcher.py",
+        "TestValidateEnvVars removed from test_command_executor.py",
+        "pytest passes on test_launcher.py and test_command_executor.py"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_launcher_extended.py && python -m pytest tests/unit/test_launcher.py tests/unit/test_command_executor.py -q --timeout=120 2>&1 | tail -3",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 8,
+      "consumers": ["TSR-L3-001"],
+      "integration_test": null,
+      "context": "## Task Context\nMerge test_launcher_extended.py into test_launcher.py, eliminating 7 duplicate test classes.\n\n### Duplicated classes:\n1. TestValidateEnvVars: test_launcher.py + test_launcher_extended.py + test_command_executor.py -> keep in test_launcher.py only\n2. TestLauncherConfig: test_launcher.py + test_launcher_extended.py -> keep test_launcher.py version\n3. TestSpawnResult: test_launcher.py + test_launcher_extended.py -> keep test_launcher.py version\n4. TestWorkerHandle: test_launcher.py + test_launcher_extended.py -> keep test_launcher.py version (also in test_worker_lifecycle.py - leave that)\n5. TestLauncherType: test_launcher.py + test_launcher_extended.py -> keep test_launcher.py version\n6. TestLauncherStatusSummary: only in extended -> move to test_launcher.py\n7. TestTerminateAll: only in extended -> move to test_launcher.py\n\n### Steps:\n1. Read both files completely\n2. For each duplicate class, compare test methods line by line\n3. Add any unique test methods from extended into the launcher version\n4. Move TestLauncherStatusSummary and TestTerminateAll into test_launcher.py\n5. Delete test_launcher_extended.py\n6. Remove TestValidateEnvVars class from test_command_executor.py\n7. Run pytest on modified files"
+    },
+    {
+      "id": "TSR-L1-003",
+      "title": "Consolidate container launcher tests into single file",
+      "description": "Merge test_launcher_errors.py (863 LOC), test_launcher_process.py (653 LOC), test_launcher_network.py (500 LOC), and test_launcher_exec.py (336 LOC) into new test_launcher_container_ops.py. These all test ContainerLauncher methods. Deduplicate: TestCleanupFailedContainer (in process+network), TestExecWorkerEntry* (in process+errors), TestVerifyWorkerProcess* (in process+errors), TestSpawnFlow* (in process+exec). Organize by method under test.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [
+          "tests/unit/test_launcher_container_ops.py"
+        ],
+        "modify": [],
+        "delete": [
+          "tests/unit/test_launcher_process.py",
+          "tests/unit/test_launcher_network.py",
+          "tests/unit/test_launcher_exec.py",
+          "tests/unit/test_launcher_errors.py"
+        ],
+        "read": [
+          "tests/unit/test_launcher_process.py",
+          "tests/unit/test_launcher_network.py",
+          "tests/unit/test_launcher_exec.py",
+          "tests/unit/test_launcher_errors.py",
+          "zerg/launchers/container_launcher.py"
+        ]
+      },
+      "acceptance_criteria": [
+        "4 source files deleted",
+        "test_launcher_container_ops.py created",
+        "All unique assertions preserved",
+        "Duplicate classes consolidated (7+ classes deduplicated)",
+        "pytest passes on new file"
+      ],
+      "verification": {
+        "command": "test ! -f tests/unit/test_launcher_process.py && test ! -f tests/unit/test_launcher_network.py && test ! -f tests/unit/test_launcher_exec.py && test ! -f tests/unit/test_launcher_errors.py && test -f tests/unit/test_launcher_container_ops.py && python -m pytest tests/unit/test_launcher_container_ops.py -q --timeout=120 2>&1 | tail -3",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 12,
+      "consumers": ["TSR-L3-001"],
+      "integration_test": null,
+      "context": "## Task Context\nConsolidate 4 ContainerLauncher test files into 1 organized file.\n\n### Source files and duplicate classes:\n\n**test_launcher_process.py** (653 lines):\n- TestExecWorkerEntrySuccess, TestExecWorkerEntryFailure\n- TestVerifyWorkerProcessSuccess, TestVerifyWorkerProcessTimeout, TestVerifyWorkerProcessNotFound\n- TestCleanupFailedContainer [DUPLICATE - also in network]\n- TestSpawnFlowWithExecVerification\n\n**test_launcher_network.py** (500 lines):\n- TestContainerLauncherNetworkConfiguration\n- TestContainerLauncherCleanupOnFailure\n- TestCleanupFailedContainer [DUPLICATE - also in process]\n- TestContainerLauncherTerminateCleanup\n- TestNetworkAndCleanupIntegration\n\n**test_launcher_exec.py** (336 lines):\n- TestExecReturnValue, TestProcessVerification\n- TestSpawnFlowIntegration [SIMILAR to process.py]\n- TestMultipleWorkers, TestMonitorAfterSpawn, TestCleanupOnFailure\n\n**test_launcher_errors.py** (863 lines):\n- TestDockerDaemonNotRunning, TestImagePullFailure\n- TestHealthCheckTimeoutHandling, TestContainerStartFailureCleanup\n- TestResourceLimitErrors\n- TestVerifyWorkerProcessErrors [OVERLAPS with process.py]\n- TestExecWorkerEntryErrors [OVERLAPS with process.py]\n- TestStartContainerErrors, TestMonitorErrors, TestTerminateErrors\n\n### Organization for new file (by method):\n1. # --- Network Configuration ---\n2. # --- Exec Worker Entry (success + failure + error) ---\n3. # --- Verify Worker Process (success + timeout + notfound + error) ---\n4. # --- Cleanup (deduplicated from process + network + exec) ---\n5. # --- Docker Errors (daemon, image, health, resources) ---\n6. # --- Start/Monitor/Terminate Errors ---\n7. # --- Integration Flows (1 comprehensive version) ---\n\n### Deduplication targets:\n- TestCleanupFailedContainer: 2 copies -> 1\n- TestExecWorkerEntry*: 3 files -> 1 section\n- TestVerifyWorkerProcess*: 2 files -> 1 section\n- TestSpawnFlow*: 2 copies -> 1\n\nEstimated: ~2,352 lines input -> ~1,800 lines output"
+    },
+    {
+      "id": "TSR-L2-001",
+      "title": "Add smoke CI job gating test shards",
+      "description": "Add dedicated 'smoke' job to .github/workflows/ci.yml between quality and test jobs. Smoke runs pytest -m smoke -x --timeout=5 -q. Test shards change from needs: quality to needs: smoke. Audit remains needs: quality.",
+      "phase": "ci-integration",
+      "level": 2,
+      "dependencies": ["TSR-L1-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          ".github/workflows/ci.yml"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "smoke job defined in ci.yml",
+        "smoke job runs pytest -m smoke -x --timeout=5 -q",
+        "test job needs: [smoke] (not quality)",
+        "audit job unchanged"
+      ],
+      "verification": {
+        "command": "grep -q 'smoke:' .github/workflows/ci.yml && grep -A10 'smoke:' .github/workflows/ci.yml | grep -q 'pytest.*-m smoke' && grep -B2 -A2 'needs:.*smoke' .github/workflows/ci.yml | head -5",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "consumers": ["TSR-L3-001"],
+      "integration_test": null,
+      "context": "## Task Context\nAdd smoke CI job between quality and test.\n\n### Current pipeline:\nquality -> test (2 shards) + audit\n\n### Target pipeline:\nquality -> smoke -> test (2 shards)\n                  -> audit (still needs: quality only)\n\n### Smoke job:\n```yaml\n  smoke:\n    needs: quality\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.12'\n          cache: 'pip'\n      - name: Install dependencies\n        run: pip install -e '.[dev]'\n      - name: Run smoke tests\n        run: pytest -m smoke -x --timeout=5 -q\n```\n\n### Test job change:\nChange `needs: quality` to `needs: smoke`"
+    },
+    {
+      "id": "TSR-L3-001",
+      "title": "Verification: CHANGELOG, .test_durations, full suite",
+      "description": "Update CHANGELOG.md under [Unreleased]. Regenerate .test_durations. Run full test suite. Run validate_commands. Verify smoke suite works end-to-end.",
+      "phase": "quality",
+      "level": 3,
+      "dependencies": ["TSR-L1-001", "TSR-L1-002", "TSR-L1-003", "TSR-L2-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "CHANGELOG.md",
+          ".test_durations"
+        ],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "CHANGELOG.md updated with feature entries",
+        ".test_durations regenerated",
+        "Full test suite passes (no regressions)",
+        "validate_commands passes",
+        "Smoke suite runs < 30s"
+      ],
+      "verification": {
+        "command": "python -m pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q 2>&1 | tail -5 && python -m zerg.validate_commands && python -m pytest -m smoke -x --timeout=5 -q 2>&1 | tail -3 && grep -q 'smoke' CHANGELOG.md && echo 'ALL CHECKS PASSED'",
+        "timeout_seconds": 600
+      },
+      "estimate_minutes": 8,
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nFinal verification and documentation.\n\n### CHANGELOG entry (under [Unreleased]):\n#### Changed\n- Consolidate 8 launcher test files into 4, removing ~75 duplicate tests and ~1,500 lines\n- Add @pytest.mark.smoke to ~25 critical-path unit tests\n\n#### Added\n- Smoke CI job in ci.yml gating test shards for fast-fail feedback (~10s)\n\n### Commands:\n```bash\n# Regenerate durations\npython -m pytest tests/unit tests/integration --store-durations -q\n\n# Full suite\npython -m pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow' --timeout=120 -q\n\n# Validate wiring\npython -m zerg.validate_commands\n\n# Smoke check\npython -m pytest -m smoke -x --timeout=5 -q\n```"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TSR-L1-001", "TSR-L1-002", "TSR-L1-003"],
+      "parallel": true,
+      "estimated_minutes": 12,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "ci-integration",
+      "tasks": ["TSR-L2-001"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "quality",
+      "tasks": ["TSR-L3-001"],
+      "parallel": false,
+      "estimated_minutes": 8,
+      "depends_on_levels": [1, 2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TSR-L1-001", "TSR-L1-002"],
+        "file": "tests/unit/test_launcher.py",
+        "reason": "TSR-L1-001 adds @pytest.mark.smoke decorators to existing classes. TSR-L1-002 adds new classes merged from extended file. Non-overlapping sections.",
+        "severity": "low"
+      }
+    ]
+  }
+}

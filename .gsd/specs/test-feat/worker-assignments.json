@@ -1,6 +1,6 @@
 {
   "feature": "test-feat",
-  "worker_count": 5,
+  "worker_count": 3,
   "assignments": [
     {
       "task_id": "T1",
@@ -9,5 +9,5 @@
       "estimated_minutes": 15
     }
   ],
-  "generated_at": "2026-02-05T14:50:22.952255"
+  "generated_at": "2026-02-06T09:37:02.574889"
 }
