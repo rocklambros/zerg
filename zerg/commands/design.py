@@ -11,6 +11,9 @@ from rich.console import Console
 from rich.table import Table
 
 from zerg.backlog import generate_backlog_markdown
+from zerg.json_utils import dump as json_dump
+from zerg.json_utils import dumps as json_dumps
+from zerg.json_utils import load as json_load
 from zerg.logging import get_logger
 from zerg.step_generator import StepGenerator
 
@@ -129,7 +132,7 @@ def design(
             task_data = _load_task_graph(task_graph_path)
             manifest = _build_design_manifest(feature, task_data)
             manifest_path = spec_dir / "design-tasks-manifest.json"
-            manifest_path.write_text(json.dumps(manifest, indent=2))
+            manifest_path.write_text(json_dumps(manifest, indent=True))
             click.echo(f"  ✓ Created {manifest_path}")
             return
 
@@ -149,7 +152,7 @@ def design(
 
             manifest = _build_design_manifest(feature, task_data)
             manifest_path = spec_dir / "design-tasks-manifest.json"
-            manifest_path.write_text(json.dumps(manifest, indent=2))
+            manifest_path.write_text(json_dumps(manifest, indent=True))
             click.echo(f"  ✓ Created {manifest_path}")
             return
 
@@ -182,7 +185,7 @@ def design(
         task_data = _load_task_graph(task_graph_path)
         manifest = _build_design_manifest(feature, task_data)
         manifest_path = spec_dir / "design-tasks-manifest.json"
-        manifest_path.write_text(json.dumps(manifest, indent=2))
+        manifest_path.write_text(json_dumps(manifest, indent=True))
         click.echo(f"  ✓ Created {manifest_path}")
 
         # Show summary
@@ -593,7 +596,7 @@ def create_task_graph_template(
         console.print(f"  [dim]Generated {step_count} steps across {len(task_graph['tasks'])} tasks[/dim]")
 
     with open(path, "w") as f:
-        json.dump(task_graph, f, indent=2)
+        json_dump(task_graph, f, indent=True)
 
 
 def validate_task_graph(path: Path, detail_level: str = "standard") -> None:
@@ -608,7 +611,7 @@ def validate_task_graph(path: Path, detail_level: str = "standard") -> None:
 
     try:
         with open(path) as f:
-            data = json.load(f)
+            data = json_load(f)
     except json.JSONDecodeError as e:
         console.print(f"[red]Error:[/red] Invalid JSON: {e}")
         raise SystemExit(1) from e
@@ -772,10 +775,8 @@ def show_design_summary(spec_dir: Path, feature: str, detail_level: str = "stand
 
 def _load_task_graph(path: Path) -> dict[str, Any]:
     """Load task graph JSON data."""
-    import json
-
     with open(path) as f:
-        result: dict[str, Any] = json.load(f)
+        result: dict[str, Any] = json_load(f)
         return result
 
 

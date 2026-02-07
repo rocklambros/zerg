@@ -1,6 +1,5 @@
 """ZERG review command - two-stage code review workflow."""
 
-import json
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -11,6 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from zerg.json_utils import dumps as json_dumps
 from zerg.logging import get_logger
 
 console = Console()
@@ -264,7 +264,7 @@ class ReviewCommand:
                 content = path.read_text(encoding="utf-8")
                 file_items = self.analyzer.analyze(content, filepath)
                 items.extend(file_items)
-            except Exception as e:
+            except (OSError, ValueError, UnicodeDecodeError) as e:
                 logger.debug(f"File read failed: {e}")
 
         return items
@@ -308,7 +308,7 @@ class ReviewCommand:
                         )
                         total_issues += 1
 
-            except Exception as e:
+            except (OSError, UnicodeDecodeError) as e:
                 logger.debug(f"File read failed: {e}")
 
         details_lines.append(f"Files reviewed: {len(files)}")
@@ -325,7 +325,7 @@ class ReviewCommand:
     def format_result(self, result: ReviewResult, fmt: str = "text") -> str:
         """Format review result."""
         if fmt == "json":
-            return json.dumps(
+            return json_dumps(
                 {
                     "files_reviewed": result.files_reviewed,
                     "overall_passed": result.overall_passed,
@@ -336,7 +336,7 @@ class ReviewCommand:
                     "warning_count": result.warning_count,
                     "items": [i.to_dict() for i in result.items],
                 },
-                indent=2,
+                indent=True,
             )
 
         status = "PASSED" if result.overall_passed else "NEEDS ATTENTION"
@@ -386,7 +386,7 @@ def _collect_files(path: str | None, mode: str) -> list[str]:
             )
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip().split("\n")
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError) as e:
             logger.debug(f"Review check failed: {e}")
 
         path = "."

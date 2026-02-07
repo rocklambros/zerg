@@ -1,11 +1,11 @@
 """ZERG validation functions for task graphs and configurations."""
 
-import json
 import re
 from pathlib import Path
 from typing import Any
 
 from zerg.exceptions import ValidationError
+from zerg.json_utils import load as json_load
 
 # Task ID validation patterns
 # Strict pattern: TASK-001, GAP-L0-001, etc.
@@ -327,7 +327,7 @@ def load_and_validate_task_graph(path: str | Path) -> dict[str, Any]:
         raise ValidationError(f"Task graph file not found: {path}", field="path")
 
     with open(path) as f:
-        data = json.load(f)
+        data = json_load(f)
 
     # Run all validations
     is_valid, schema_errors = validate_task_graph(data)

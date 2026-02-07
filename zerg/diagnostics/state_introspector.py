@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from zerg.json_utils import loads as json_loads
 from zerg.logging import get_logger
 
 logger = get_logger("diagnostics.state")
@@ -83,7 +84,7 @@ class ZergStateIntrospector:
             )
 
         try:
-            state = json.loads(state_file.read_text(encoding="utf-8"))
+            state = json_loads(state_file.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as e:
             logger.warning(f"Failed to read state file: {e}")
             return ZergHealthReport(
@@ -196,7 +197,7 @@ class ZergStateIntrospector:
             return issues
 
         try:
-            state = json.loads(state_file.read_text(encoding="utf-8"))
+            state = json_loads(state_file.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as e:
             issues.append(f"Cannot parse state file: {e}")
             return issues
@@ -207,7 +208,7 @@ class ZergStateIntrospector:
         graph_file = Path(f".gsd/specs/{feature}/task-graph.json")
         if graph_file.exists():
             try:
-                graph = json.loads(graph_file.read_text(encoding="utf-8"))
+                graph = json_loads(graph_file.read_text(encoding="utf-8"))
                 graph_tasks = set()
                 for task in graph.get("tasks", []):
                     tid = task.get("id", "")

@@ -13,6 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from zerg.json_utils import loads as json_loads
+
 logger = logging.getLogger(__name__)
 
 
@@ -203,7 +205,7 @@ class LogAggregator:
                     if not line:
                         continue
                     try:
-                        entries.append(json.loads(line))
+                        entries.append(json_loads(line))
                     except json.JSONDecodeError:
                         continue
         except OSError:

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from zerg.constants import TaskStatus
+from zerg.json_utils import loads as json_loads
 from zerg.logging import get_logger
 
 logger = get_logger("claude_tasks_reader")
@@ -137,7 +138,7 @@ class ClaudeTasksReader:
 
         for json_path in json_files:
             try:
-                data = json.loads(json_path.read_text(encoding="utf-8"))
+                data = json_loads(json_path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError) as e:
                 logger.debug("Skipping %s: %s", json_path.name, e)
                 continue
@@ -222,7 +223,7 @@ class ClaudeTasksReader:
         # Sample up to 15 files to avoid scanning huge directories
         for json_path in json_files[:15]:
             try:
-                data = json.loads(json_path.read_text(encoding="utf-8"))
+                data = json_loads(json_path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
                 continue
 

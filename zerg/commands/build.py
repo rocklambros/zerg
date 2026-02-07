@@ -1,6 +1,5 @@
 """ZERG build command - build orchestration with error recovery."""
 
-import json
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -14,6 +13,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from zerg.command_executor import CommandExecutor, CommandValidationError
+from zerg.json_utils import dumps as json_dumps
 from zerg.logging import get_logger
 
 console = Console()
@@ -232,7 +232,7 @@ class BuildRunner:
                 artifacts=[],
                 errors=[f"Command validation failed: {e}"],
             )
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             return BuildResult(
                 success=False,
                 duration_seconds=time.time() - start,
@@ -303,7 +303,7 @@ class BuildCommand:
     def format_result(self, result: BuildResult, fmt: str = "text") -> str:
         """Format build result."""
         if fmt == "json":
-            return json.dumps(result.to_dict(), indent=2)
+            return json_dumps(result.to_dict(), indent=True)
 
         status = "✓ SUCCESS" if result.success else "✗ FAILED"
         lines = [
@@ -361,7 +361,7 @@ def _build_docker_image() -> None:
                 console.print(f"[green]Image built: zerg-worker ({size_mb:.0f} MB)[/green]")
             else:
                 console.print("[green]Image built: zerg-worker[/green]")
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError, ValueError) as e:
             logger.debug(f"Image size check failed: {e}")
             console.print("[green]Image built: zerg-worker[/green]")
     else:
@@ -515,7 +515,7 @@ def build(
 
         # Output
         if json_output:
-            console.print(json.dumps(result.to_dict(), indent=2))
+            console.print(json_dumps(result.to_dict(), indent=True))
         else:
             # Display result
             if result.success:

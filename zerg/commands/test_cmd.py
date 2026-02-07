@@ -1,6 +1,5 @@
 """ZERG test command - test execution with coverage analysis."""
 
-import json
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -13,6 +12,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from zerg.command_executor import CommandExecutor, CommandValidationError
+from zerg.json_utils import dumps as json_dumps
+from zerg.json_utils import loads as json_loads
 from zerg.logging import get_logger
 
 console = Console()
@@ -109,9 +110,7 @@ class FrameworkDetector:
         package_json = project_path / "package.json"
         if package_json.exists():
             try:
-                import json as json_module
-
-                pkg = json_module.loads(package_json.read_text())
+                pkg = json_loads(package_json.read_text())
                 deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
                 if "jest" in deps and Framework.JEST not in detected:
                     detected.append(Framework.JEST)
@@ -119,7 +118,7 @@ class FrameworkDetector:
                     detected.append(Framework.VITEST)
                 if "mocha" in deps and Framework.MOCHA not in detected:
                     detected.append(Framework.MOCHA)
-            except Exception as e:
+            except (OSError, ValueError, UnicodeDecodeError) as e:
                 logger.debug(f"Config loading failed: {e}")
 
         return detected
@@ -220,7 +219,7 @@ class Runner:
                 skipped=0,
                 errors=[f"Command validation failed: {e}"],
             )
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             return RunResult(
                 total=0,
                 passed=0,
@@ -406,7 +405,7 @@ class Command:
     def format_result(self, result: RunResult, fmt: str = "text") -> str:
         """Format test result."""
         if fmt == "json":
-            return json.dumps(
+            return json_dumps(
                 {
                     "total": result.total,
                     "passed": result.passed,
@@ -418,7 +417,7 @@ class Command:
                     "coverage_percentage": result.coverage_percentage,
                     "errors": result.errors,
                 },
-                indent=2,
+                indent=True,
             )
 
         lines = [

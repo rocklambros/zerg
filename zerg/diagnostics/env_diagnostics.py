@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from zerg.diagnostics.types import Evidence
+from zerg.json_utils import loads as json_loads
 from zerg.logging import get_logger
 from zerg.types import DiagnosticResultDict
 
@@ -67,7 +68,7 @@ class PythonEnvDiagnostics:
             return result
 
         try:
-            packages = json.loads(stdout)
+            packages = json_loads(stdout)
         except (json.JSONDecodeError, ValueError):
             logger.warning("Failed to parse pip list output")
             return result

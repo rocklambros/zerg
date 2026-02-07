@@ -1,6 +1,5 @@
 """ZERG refactor command - automated code improvement."""
 
-import json
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -13,6 +12,7 @@ from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
 
+from zerg.json_utils import dumps as json_dumps
 from zerg.logging import get_logger
 
 console = Console()
@@ -365,7 +365,7 @@ class RefactorCommand:
                 if modified and not dry_run:
                     path.write_text(new_content, encoding="utf-8")
 
-            except Exception as e:
+            except (OSError, ValueError, UnicodeDecodeError) as e:
                 errors.append(f"{filepath}: {e}")
 
         return RefactorResult(
@@ -378,7 +378,7 @@ class RefactorCommand:
     def format_result(self, result: RefactorResult, fmt: str = "text") -> str:
         """Format refactoring result."""
         if fmt == "json":
-            return json.dumps(
+            return json_dumps(
                 {
                     "files_analyzed": result.files_analyzed,
                     "total_suggestions": result.total_suggestions,
@@ -386,7 +386,7 @@ class RefactorCommand:
                     "suggestions": [s.to_dict() for s in result.suggestions],
                     "errors": result.errors,
                 },
-                indent=2,
+                indent=True,
             )
 
         lines = [

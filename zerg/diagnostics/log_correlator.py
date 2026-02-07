@@ -9,6 +9,7 @@ from typing import Any
 
 from zerg.diagnostics.log_analyzer import LogAnalyzer, LogPattern
 from zerg.diagnostics.types import Evidence, TimelineEvent
+from zerg.json_utils import loads as json_loads
 from zerg.logging import get_logger
 
 __all__ = [
@@ -141,7 +142,7 @@ class TimelineBuilder:
             if not stripped:
                 continue
             try:
-                record = json.loads(stripped)
+                record = json_loads(stripped)
             except json.JSONDecodeError:
                 continue
 

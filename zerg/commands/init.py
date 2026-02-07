@@ -1,6 +1,5 @@
 """ZERG init command - initialize ZERG for a project."""
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 from zerg.devcontainer_features import DynamicDevcontainerGenerator
+from zerg.json_utils import dump as json_dump
 from zerg.logging import get_logger
 from zerg.security_rules import ProjectStack, detect_project_stack, integrate_security_rules
 
@@ -197,7 +197,7 @@ def init(
                     f"  [green]✓[/green] Fetched {security_rules_result['rules_fetched']} "
                     f"security rules for detected stack"
                 )
-            except Exception as e:
+            except (OSError, ValueError, RuntimeError) as e:
                 console.print(f"  [yellow]⚠[/yellow] Could not fetch security rules: {e}")
 
         # Build devcontainer if requested
@@ -416,7 +416,7 @@ def save_config(config: dict[str, Any]) -> None:
         # Fallback to JSON if yaml not available
         config_path = Path(".zerg/config.json")
         with open(config_path, "w") as f:
-            json.dump(config, f, indent=2)
+            json_dump(config, f, indent=True)
 
     console.print(f"  [green]✓[/green] Created {config_path}")
 

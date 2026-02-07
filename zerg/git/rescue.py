@@ -15,6 +15,8 @@ from zerg.exceptions import GitError
 from zerg.git.base import GitRunner
 from zerg.git.config import GitConfig, GitRescueConfig
 from zerg.git.types import RescueSnapshot
+from zerg.json_utils import dumps as json_dumps
+from zerg.json_utils import loads as json_loads
 from zerg.logging import get_logger
 
 logger = get_logger("git.rescue")
@@ -103,7 +105,7 @@ class OperationLogger:
         }
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with self._path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
+            f.write(json_dumps(entry) + "\n")
         logger.debug(f"Logged operation: {operation} on {branch}")
 
     def get_recent(self, count: int = 20) -> list[dict]:
@@ -125,7 +127,7 @@ class OperationLogger:
                 if not line:
                     continue
                 try:
-                    entries.append(json.loads(line))
+                    entries.append(json_loads(line))
                 except json.JSONDecodeError:
                     logger.warning(f"Skipping malformed log line: {line[:80]}")
                     continue
