@@ -237,7 +237,7 @@ class TestContainerSpawn:
 
         # Find the docker run call (skip the docker rm -f call)
         docker_calls = [c for c in mock_run.call_args_list if "rm" not in str(c)]
-        assert len(docker_calls) > 0
+        assert docker_calls
         cmd = docker_calls[0][0][0]
         cmd_str = " ".join(cmd)
         assert "LD_PRELOAD" not in cmd_str

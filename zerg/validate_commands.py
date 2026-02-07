@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from zerg.command_splitter import MIN_LINES_TO_SPLIT, CommandSplitter
+from zerg.fs_utils import collect_files
 
 # Files exempt from wiring check
 WIRING_EXEMPT_NAMES: set[str] = {"__init__.py", "__main__.py", "conftest.py"}
@@ -498,7 +499,7 @@ def validate_module_wiring(
     tests_dir = tests_dir.resolve()
 
     # Collect all .py files in the package
-    all_py_files = sorted(package_dir.rglob("*.py"))
+    all_py_files = collect_files(package_dir, extensions={".py"}).get(".py", [])
 
     # Separate production files from test files
     production_files: list[Path] = []

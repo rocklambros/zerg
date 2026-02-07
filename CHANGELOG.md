@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MEDIUM exception handlers across 18 files: narrowed to specific types or annotated with BLE001 justification
 - 7 `type: ignore` comments resolved with proper type narrowing
 - Consolidated 7 rglob calls into `collect_files()` single-pass traversal
+- Migrated remaining 18 rglob calls across 15 files to `collect_files()` (Issue #134 fully resolved)
+- Extended `collect_files()` with `names` parameter for filename-based matching (Dockerfile discovery)
 
 ### Changed
 

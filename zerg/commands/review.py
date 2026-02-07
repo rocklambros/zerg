@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from zerg.fs_utils import collect_files
 from zerg.json_utils import dumps as json_dumps
 from zerg.logging import get_logger
 
@@ -395,9 +396,8 @@ def _collect_files(path: str | None, mode: str) -> list[str]:
     if target.is_file():
         return [str(target)]
     elif target.is_dir():
-        files: list[str] = []
-        for ext in ["*.py", "*.js", "*.ts", "*.go", "*.rs"]:
-            files.extend(str(f) for f in target.rglob(ext) if "__pycache__" not in str(f))
+        grouped = collect_files(target, extensions={".py", ".js", ".ts", ".go", ".rs"})
+        files = [str(f) for ext in grouped for f in grouped[ext]]
         return files[:50]
     return []
 

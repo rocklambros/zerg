@@ -85,11 +85,10 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob") as mock_rglob,
+            patch("zerg.commands.wiki.collect_files", return_value={".py": [zerg_dir / "foo.py"]}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
-            mock_rglob.return_value = [zerg_dir / "foo.py"]
             result = runner.invoke(
                 wiki,
                 ["--output", str(output_dir)],
@@ -113,7 +112,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -140,7 +139,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir") as mock_mkdir,
             patch("pathlib.Path.write_text") as mock_write,
         ):
@@ -174,7 +173,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[py_file]),
+            patch("zerg.commands.wiki.collect_files", return_value={".py": [py_file]}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -208,7 +207,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[init_file, normal_file]),
+            patch("zerg.commands.wiki.collect_files", return_value={".py": [init_file, normal_file]}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -248,7 +247,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[file_b, file_a]),
+            patch("zerg.commands.wiki.collect_files", return_value={".py": [file_b, file_a]}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -285,7 +284,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[py_file]),
+            patch("zerg.commands.wiki.collect_files", return_value={".py": [py_file]}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -314,7 +313,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir") as mock_mkdir,
             patch("pathlib.Path.write_text") as mock_write,
         ):
@@ -353,7 +352,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
             patch("zerg.doc_engine.publisher.WikiPublisher", mock_publisher),
             patch("subprocess.run", return_value=mock_subprocess_result),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -394,7 +393,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
             patch("zerg.doc_engine.publisher.WikiPublisher", mock_publisher),
             patch("subprocess.run", return_value=mock_subprocess_result),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -425,7 +424,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
             patch("subprocess.run", return_value=mock_subprocess_result),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -462,7 +461,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
             patch("zerg.doc_engine.publisher.WikiPublisher", mock_publisher),
             patch("subprocess.run", return_value=mock_subprocess_result),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -512,7 +511,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):
@@ -537,7 +536,7 @@ class TestWikiCommand:
             patch("zerg.doc_engine.mermaid.MermaidGenerator", mocks["MermaidGenerator"]),
             patch("zerg.doc_engine.renderer.DocRenderer", mocks["DocRenderer"]),
             patch("zerg.doc_engine.sidebar.SidebarGenerator", mocks["SidebarGenerator"]),
-            patch("pathlib.Path.rglob", return_value=[]),
+            patch("zerg.commands.wiki.collect_files", return_value={}),
             patch("pathlib.Path.mkdir"),
             patch("pathlib.Path.write_text"),
         ):

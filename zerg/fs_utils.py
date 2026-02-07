@@ -31,6 +31,7 @@ def collect_files(
     root: Path,
     extensions: set[str] | None = None,
     exclude_dirs: set[str] = _DEFAULT_EXCLUDES,
+    names: set[str] | None = None,
 ) -> dict[str, list[Path]]:
     """Single rglob('*') traversal, returns files grouped by extension.
 
@@ -44,10 +45,14 @@ def collect_files(
             (e.g. ``{".py", ".js"}``).  Extensions must include the
             leading dot and are compared case-insensitively.
         exclude_dirs: Directory names to skip during traversal.
+        names: If provided, files whose name contains any of these
+            strings are collected into a ``"_by_name"`` bucket regardless
+            of extension (e.g. ``{"Dockerfile"}``).
 
     Returns:
         Dict mapping extension (e.g. ``".py"``) to a **sorted** list of
-        :class:`~pathlib.Path` objects.
+        :class:`~pathlib.Path` objects.  When *names* is provided, matched
+        files also appear under the ``"_by_name"`` key.
     """
     # Normalise the requested extensions to lowercase for comparison
     if extensions is not None:
@@ -71,6 +76,10 @@ def collect_files(
             for part in rel_parts[:-1]  # check directory components only
         ):
             continue
+
+        # Name-based matching: collect into '_by_name' bucket
+        if names is not None and any(n in entry.name for n in names):
+            grouped.setdefault("_by_name", []).append(entry)
 
         suffix = entry.suffix.lower()
         if not suffix:

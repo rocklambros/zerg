@@ -13,6 +13,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from zerg.command_executor import CommandExecutor, CommandValidationError
+from zerg.fs_utils import collect_files
 from zerg.json_utils import dumps as json_dumps
 from zerg.logging import get_logger
 
@@ -376,8 +377,9 @@ def _watch_loop(builder: BuildCommand, system: BuildSystem | None, cwd: str) -> 
     def get_file_hashes(path: Path) -> dict[str, str]:
         """Get hashes of all source files."""
         hashes = {}
-        for ext in ["*.py", "*.js", "*.ts", "*.go", "*.rs", "*.java"]:
-            for f in path.rglob(ext):
+        grouped = collect_files(path, extensions={".py", ".js", ".ts", ".go", ".rs", ".java"})
+        for ext_files in grouped.values():
+            for f in ext_files:
                 try:
                     content = f.read_bytes()
                     hashes[str(f)] = hashlib.md5(content).hexdigest()

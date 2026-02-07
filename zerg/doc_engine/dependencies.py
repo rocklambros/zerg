@@ -7,6 +7,8 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from zerg.fs_utils import collect_files
+
 logger = logging.getLogger(__name__)
 
 
@@ -131,7 +133,7 @@ class DependencyMapper:
         graph = DependencyGraph()
 
         # Phase 1 -- discover modules and parse their imports.
-        py_files = sorted(root_dir.rglob("*.py"))
+        py_files = collect_files(root_dir, extensions={".py"}).get(".py", [])
         for py_file in py_files:
             module_name = _path_to_module(py_file, root_dir, package)
             if module_name is None:

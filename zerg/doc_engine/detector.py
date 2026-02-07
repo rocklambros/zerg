@@ -7,6 +7,8 @@ import logging
 from enum import Enum
 from pathlib import Path
 
+from zerg.fs_utils import _DEFAULT_EXCLUDES, collect_files
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,17 +78,37 @@ class ComponentDetector:
     def detect_all(self, directory: Path) -> dict[Path, ComponentType]:
         """Recursively scan *directory* and classify every file.
 
+        Uses :func:`~zerg.fs_utils.collect_files` for the main traversal
+        (shared exclusion logic), plus a targeted pass for suffix-less files
+        (e.g. ``Makefile``, ``Dockerfile``) that ``collect_files`` skips.
+
         Returns:
             Mapping from each file's ``Path`` to its detected ``ComponentType``.
         """
         directory = Path(directory)
         results: dict[Path, ComponentType] = {}
-        for child in sorted(directory.rglob("*")):
-            if child.is_dir():
+
+        # Collect all extension-bucketed files via shared traversal
+        grouped = collect_files(directory)
+        all_files: list[Path] = []
+        for paths in grouped.values():
+            all_files.extend(paths)
+
+        # collect_files() skips suffix-less files (Makefile, Dockerfile, etc.).
+        # The detector needs ALL files, so gather suffix-less ones separately
+        # using the same exclusion logic.
+        for entry in directory.rglob("*"):
+            if not entry.is_file() or entry.suffix:
                 continue
-            # Skip hidden files and __pycache__
-            if any(part.startswith(".") or part == "__pycache__" for part in child.parts):
+            try:
+                rel_parts = entry.relative_to(directory).parts
+            except ValueError:
                 continue
+            if any(part in _DEFAULT_EXCLUDES or part.startswith(".") for part in rel_parts[:-1]):
+                continue
+            all_files.append(entry)
+
+        for child in sorted(all_files):
             try:
                 results[child] = self.detect(child)
             except Exception:  # noqa: BLE001 — intentional: best-effort detection; defaults to MODULE on failure

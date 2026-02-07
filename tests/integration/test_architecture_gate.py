@@ -252,7 +252,7 @@ class TestCheckFiles:
 
         # Check only good file
         violations = check_files([good_file], root=tmp_path)
-        assert violations == []
+        assert not violations
 
         # Check bad file
         violations = check_files([bad_file], root=tmp_path)
@@ -270,7 +270,7 @@ class TestCheckFiles:
         file_path.write_text("import flask\n")
 
         violations = check_files([file_path], root=tmp_path)
-        assert violations == []
+        assert not violations
 
 
 class TestLayerIntegration:

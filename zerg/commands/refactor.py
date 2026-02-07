@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
 
+from zerg.fs_utils import collect_files
 from zerg.json_utils import dumps as json_dumps
 from zerg.logging import get_logger
 
@@ -420,12 +421,8 @@ def _collect_files(path: str | None) -> list[str]:
     if target.is_file():
         return [str(target)]
     elif target.is_dir():
-        files = []
-        for f in target.rglob("*.py"):
-            # Skip test files, __pycache__, etc.
-            if "__pycache__" in str(f) or ".git" in str(f):
-                continue
-            files.append(str(f))
+        grouped = collect_files(target, extensions={".py"})
+        files = [str(f) for f in grouped.get(".py", [])]
         return files[:50]  # Limit
     return []
 

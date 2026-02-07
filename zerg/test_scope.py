@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from zerg.fs_utils import collect_files
+
 if TYPE_CHECKING:
     from zerg.types import Task, TaskGraph
 
@@ -150,7 +152,8 @@ def find_affected_tests(
 
     affected_tests: list[str] = []
 
-    for test_file in tests_dir.rglob("*.py"):
+    py_files = collect_files(tests_dir, extensions={".py"}).get(".py", [])
+    for test_file in py_files:
         if test_file.name.startswith("_"):
             continue
 

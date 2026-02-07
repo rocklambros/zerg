@@ -10,6 +10,7 @@ from typing import Any
 
 from zerg.diagnostics.recovery import RecoveryStep
 from zerg.diagnostics.types import ErrorCategory, ErrorFingerprint, Evidence
+from zerg.fs_utils import collect_files
 from zerg.logging import get_logger
 
 logger = get_logger("diagnostics.code_fixer")
@@ -62,7 +63,7 @@ class DependencyAnalyzer:
         """
         importing_files: list[str] = []
         pattern = re.compile(rf"(?:from\s+{re.escape(module)}\s+import|import\s+{re.escape(module)})")
-        for py_file in project_root.rglob("*.py"):
+        for py_file in collect_files(project_root, extensions={".py"}).get(".py", []):
             try:
                 content = py_file.read_text(encoding="utf-8")
                 if pattern.search(content):

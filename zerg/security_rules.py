@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from zerg.fs_utils import collect_files
 from zerg.logging import get_logger
 
 logger = get_logger(__name__)
@@ -608,7 +609,7 @@ def generate_claude_md_section(
     # Claude Code auto-loads everything under .claude/rules/).
     rules_dir = Path(rules_dir)
     if rules_dir.exists():
-        for rule_file in sorted(rules_dir.rglob("*.md")):
+        for rule_file in collect_files(rules_dir, extensions={".md"}).get(".md", []):
             rel_path = rule_file.relative_to(rules_dir)
             lines.append(f"- `{rel_path}`")
 

@@ -72,7 +72,7 @@ class TestFullPipeline:
 
             # Verify content is not empty
             content = full_path.read_text()
-            assert len(content) > 0, f"File {filepath} is empty"
+            assert content, f"File {filepath} is empty"
 
     def test_mock_pipeline_merges_levels(
         self,

@@ -6,6 +6,7 @@ import logging
 import re
 from pathlib import Path
 
+from zerg.fs_utils import collect_files
 from zerg.performance.adapters.base import BaseToolAdapter
 from zerg.performance.types import DetectedStack, PerformanceFinding, Severity
 
@@ -56,8 +57,8 @@ class DiveAdapter(BaseToolAdapter):
     def _find_dockerfiles(project_path: str) -> list[Path]:
         """Return all Dockerfile-like files under *project_path*.
 
-        Uses a single rglob traversal instead of separate passes for
-        ``*.Dockerfile`` and ``Dockerfile.*`` patterns.
+        Uses :func:`~zerg.fs_utils.collect_files` with ``names={'Dockerfile'}``
+        instead of a raw ``rglob`` traversal.
         """
         root = Path(project_path)
         results: list[Path] = []
@@ -65,10 +66,10 @@ class DiveAdapter(BaseToolAdapter):
         default = root / "Dockerfile"
         if default.is_file():
             results.append(default)
-        # Single traversal — collect files whose name contains "Dockerfile"
-        for p in sorted(root.rglob("*")):
-            if not p.is_file():
-                continue
+        # Single traversal via collect_files — collect files whose name contains "Dockerfile"
+        grouped = collect_files(root, names={"Dockerfile"})
+        candidates = grouped.get("_by_name", [])
+        for p in candidates:
             name = p.name
             # Match *.Dockerfile (e.g. prod.Dockerfile) and Dockerfile.* (e.g. Dockerfile.dev)
             if name.endswith(".Dockerfile") or (name.startswith("Dockerfile.") and name != "Dockerfile"):

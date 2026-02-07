@@ -12,6 +12,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from zerg.command_executor import CommandExecutor, CommandValidationError
+from zerg.fs_utils import collect_files
 from zerg.json_utils import dumps as json_dumps
 from zerg.json_utils import loads as json_loads
 from zerg.logging import get_logger
@@ -454,10 +455,9 @@ def _watch_loop(tester: Command, framework: Framework | None, path: str) -> None
     def get_file_hashes(target: Path) -> dict[str, str]:
         """Get hashes of test-related files."""
         hashes = {}
-        for ext in ["*.py", "*.js", "*.ts", "*.go", "*.rs"]:
-            for f in target.rglob(ext):
-                if "__pycache__" in str(f):
-                    continue
+        grouped = collect_files(target, extensions={".py", ".js", ".ts", ".go", ".rs"})
+        for files in grouped.values():
+            for f in files:
                 try:
                     content = f.read_bytes()
                     hashes[str(f)] = hashlib.md5(content).hexdigest()
@@ -571,8 +571,9 @@ def test_cmd(
             # Find Python files without tests
             source_dir = Path(test_path)
             if source_dir.is_dir():
-                for py_file in source_dir.rglob("*.py"):
-                    if "test" in str(py_file) or "__pycache__" in str(py_file):
+                py_files = collect_files(source_dir, extensions={".py"}).get(".py", [])
+                for py_file in py_files:
+                    if "test" in str(py_file):
                         continue
 
                     # Check if test file exists

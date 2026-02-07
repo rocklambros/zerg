@@ -5,6 +5,7 @@ from pathlib import Path
 import click
 from rich.console import Console
 
+from zerg.fs_utils import collect_files
 from zerg.logging import get_logger
 
 console = Console()
@@ -96,7 +97,7 @@ def wiki(
         mapper.build(project_root / "zerg")
 
         # Find Python source files
-        py_files = sorted((project_root / "zerg").rglob("*.py"))
+        py_files = collect_files(project_root / "zerg", extensions={".py"}).get(".py", [])
         py_files = [f for f in py_files if not f.name.startswith("__")]
 
         pages: dict[str, str] = {}

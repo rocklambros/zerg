@@ -206,7 +206,7 @@ class TestOrphanCleanup:
                 timeout=10,
             )
             containers = find_result.stdout.strip().splitlines()
-            assert len(containers) > 0, "No containers found to clean up"
+            assert containers, "No containers found to clean up"
 
             for container in containers:
                 rm_result = _run(

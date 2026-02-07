@@ -17,6 +17,7 @@ from rich.table import Table
 
 from zerg.ast_cache import ASTCache, collect_exports, collect_imports
 from zerg.command_executor import CommandExecutor, CommandValidationError
+from zerg.fs_utils import collect_files
 from zerg.logging import get_logger
 
 console = Console()
@@ -567,7 +568,7 @@ class CrossFileChecker(BaseChecker):
         if not scope_path.is_dir():
             return AnalysisResult(check_type=CheckType.CROSS_FILE, passed=True, issues=[], score=100.0)
 
-        py_files = sorted(scope_path.rglob("*.py"))
+        py_files = collect_files(scope_path, extensions={".py"}).get(".py", [])
 
         # Phase 1: collect all exports per module
         exports_by_file: dict[str, list[str]] = {}
@@ -632,7 +633,7 @@ class ImportChainChecker(BaseChecker):
                 score=100.0,
             )
 
-        py_files = sorted(scope_path.rglob("*.py"))
+        py_files = collect_files(scope_path, extensions={".py"}).get(".py", [])
 
         # Map: module dotted name -> set of imported zerg module names
         graph: dict[str, set[str]] = {}
@@ -861,9 +862,8 @@ def _collect_files(path: str | None) -> list[str]:
     if target.is_file():
         return [str(target)]
     elif target.is_dir():
-        files: list[str] = []
-        for ext in ["*.py", "*.js", "*.ts", "*.go", "*.rs"]:
-            files.extend(str(f) for f in target.rglob(ext))
+        grouped = collect_files(target, extensions={".py", ".js", ".ts", ".go", ".rs"})
+        files = [str(f) for ext in grouped for f in grouped[ext]]
         return files[:100]  # Limit to prevent overwhelming
     return []
 
