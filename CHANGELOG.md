@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `zerg/state/` package: decompose 1010-line StateManager into 9 focused modules with facade pattern
+- `zerg/fs_utils.py`: single-pass file traversal utility replacing scattered rglob calls
+- `zerg/json_utils.py`: orjson/stdlib abstraction with optional `orjson` dependency for performance
+- `zerg/rendering/` package: extracted render logic from dryrun.py and status.py into dedicated renderers
+- 8 TypedDicts (`BacklogItemDict`, `DiagnosticResultDict`, `GraphNodeDict`, `StateDict`, `WorkerMetricsDict`, `TaskSyncDict`, `PRDataDict`, `HeartbeatDict`) replacing `dict[str, Any]`
+- `types-pyyaml` dev dependency for yaml type stubs
+- `warn_unused_ignores` and `show_error_codes` in mypy config
+
+### Fixed
+
+- **SECURITY**: SecurityChecker now fails closed on exceptions (was fail-open, returning PASS on crash)
+- 89 HIGH-severity silent exception handlers: added logging, narrowed types, or annotated as intentional
+- MEDIUM exception handlers across 18 files: narrowed to specific types or annotated with BLE001 justification
+- 7 `type: ignore` comments resolved with proper type narrowing
+- Consolidated 7 rglob calls into `collect_files()` single-pass traversal
+
+### Changed
+
+- Enable BLE001 ruff rule (bare-except detection) in pyproject.toml
+- Migrated 14 production files from `import json` to `zerg.json_utils`
 - `--skip-validation` flag for `/z:plan` and `/z:design` to bypass Phase 0 pre-execution validation checks
 - Smoke CI job in `ci.yml` gating test shards for fast-fail feedback (~10s)
 - `@pytest.mark.smoke` markers on 28 critical-path unit tests covering config, types, exceptions, graph validation, state, CLI, launcher, parser, and constants
