@@ -603,6 +603,7 @@ Five structured rounds of one question at a time, going deeper into problem spac
 |------|-------|------|---------|-------------|
 | `--socratic` | `-s` | boolean | false | Use structured discovery mode |
 | `--rounds` | | integer | 3 | Number of Socratic rounds (max: 5) |
+| `--from-issue` | | string | "" | Import requirements from GitHub issue URL |
 
 ---
 
@@ -726,6 +727,20 @@ Estimated cost: ~$2.50 API credits
 
 Each worker runs in its own Docker container with a separate git worktree. Complete isolation means no chance of workers interfering with each other.
 
+**Compare worker configurations:**
+```
+/zerg:rush --dry-run --what-if
+```
+
+Shows side-by-side comparison of different worker counts and execution modes to help you choose the optimal configuration.
+
+**Assess risk before launching:**
+```
+/zerg:rush --dry-run --risk
+```
+
+Displays a risk assessment for the task graph, highlighting potential issues like large files, complex dependencies, or tasks that historically fail.
+
 **Flags:**
 
 | Flag | Short | Type | Default | Description |
@@ -738,6 +753,10 @@ Each worker runs in its own Docker container with a separate git worktree. Compl
 | `--dry-run` | | boolean | false | Show execution plan |
 | `--resume` | | boolean | false | Continue from previous run |
 | `--timeout` | | integer | 3600 | Max execution time in seconds |
+| `--check-gates` | | boolean | false | Pre-run quality gates during dry-run |
+| `--what-if` | | boolean | false | Compare different worker counts and modes |
+| `--risk` | | boolean | false | Show risk assessment for task graph |
+| `--skip-tests` | | boolean | false | Skip test gates (lint-only mode) |
 
 ---
 
@@ -1123,6 +1142,7 @@ Cleans up staging branch and resets state.
 | `--dry-run` | | boolean | false | Show merge plan |
 | `--skip-gates` | | boolean | false | Skip quality gate checks |
 | `--no-rebase` | | boolean | false | Don't rebase after merge |
+| `--target` | `-t` | string | main | Target branch |
 
 ---
 
@@ -1248,6 +1268,7 @@ zerg retry --dry-run
 | `--timeout` | `-t` | integer | config | Override timeout |
 | `--reset` | | boolean | false | Reset retry counters |
 | `--dry-run` | | boolean | false | Show what would be retried |
+| `--worker` | `-w` | integer | — | Assign task to specific worker |
 
 ---
 
@@ -1603,6 +1624,7 @@ Summary: 2 errors require attention
 | `--format` | string | text | Output format: `text`, `json`, `sarif` |
 | `--threshold` | string | defaults | Custom thresholds |
 | `--files` | string | all | Restrict to specific files |
+| `--performance` | boolean | false | Comprehensive performance audit (140 factors) |
 
 ---
 
@@ -2761,6 +2783,14 @@ The depth levels let you choose how detailed you want the output - shallow for p
                               |
                               v
     +-----------------------------------------------------+
+    |      Step 1.5: SELECT TONE                          |
+    |  - educational (default): concept-first             |
+    |  - reference: terse API signatures                  |
+    |  - tutorial: step-by-step walkthrough               |
+    +-----------------------------------------------------+
+                              |
+                              v
+    +-----------------------------------------------------+
     |      Step 2: EXTRACT SYMBOLS (AST)                  |
     |  - Classes and methods                              |
     |  - Functions and parameters                         |
@@ -2853,6 +2883,39 @@ Preserves manual edits outside auto-generated sections.
 | `--depth` | string | standard | Depth: `shallow`, `standard`, `deep` |
 | `--update` | boolean | false | Update existing docs |
 | `--tone` | `educational\|reference\|tutorial` | `educational` | Documentation tone — controls output style |
+
+#### Tone Options
+
+The `--tone` flag controls the style and structure of generated documentation. Each tone is designed for a different audience and purpose.
+
+| Tone | Audience | Style |
+|------|----------|-------|
+| `educational` | New developers, onboarding | Concept-first with CONCEPT, NARRATIVE, DIAGRAM, and COMMAND sections. Explains *why* before *how*. |
+| `reference` | Experienced developers | Terse tables, API signatures, and type annotations for quick lookup. Minimal prose. |
+| `tutorial` | Hands-on learners | Step-by-step walkthrough with simulated terminal dialogues and expected output. |
+
+**Examples:**
+
+Generate educational documentation (default):
+```
+/zerg:document zerg/launcher.py --tone educational
+```
+
+Generate reference-style documentation:
+```
+/zerg:document zerg/launcher.py --tone reference
+```
+
+Generate tutorial-style documentation:
+```
+/zerg:document zerg/launcher.py --tone tutorial
+```
+
+**Configuration default:** Set your preferred tone in `.zerg/config.yaml`:
+```yaml
+documentation:
+  default_tone: educational  # Options: educational, reference, tutorial
+```
 
 ---
 

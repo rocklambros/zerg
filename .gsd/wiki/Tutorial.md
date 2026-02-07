@@ -849,16 +849,89 @@ Use `--dry-run` to preview what would be removed.
 
 ## Documentation Tones
 
-The `/zerg:document` command supports three documentation tones via the `--tone` flag:
+The `/zerg:document` command supports three documentation tones via the `--tone` flag. Each tone produces fundamentally different output — choose based on your audience.
 
-- **educational** (default): Concept-first documentation with CONCEPT, NARRATIVE, DIAGRAM, and COMMAND sections for every concept
-- **reference**: Terse tables and API signatures for quick lookup
-- **tutorial**: Step-by-step walkthrough with simulated terminal dialogues
+### When to Use Each Tone
 
-Example:
+| Tone | Best For | Output Style |
+|------|----------|-------------|
+| `educational` | Onboarding, learning | Explains concepts before showing usage |
+| `reference` | Day-to-day lookup | Compact tables and signatures |
+| `tutorial` | Following along | Step-by-step with terminal output |
+
+### Hands-On: Educational vs Reference
+
+Run the same file with different tones to see the difference:
+
+**Educational tone (default):**
+```
+/zerg:document zerg/launcher.py --tone educational
+```
+
+Output excerpt:
+```
+# zerg/launcher.py
+
+## What Is It?
+
+The launcher module manages how ZERG spawns worker processes. Think of it
+as a factory floor manager — it decides whether workers run as subprocesses,
+Docker containers, or Claude Code tasks based on your configuration.
+
+## Why It Exists
+
+Without a launcher, you would need to manually start each worker...
+```
+
+**Reference tone:**
 ```
 /zerg:document zerg/launcher.py --tone reference
 ```
+
+Output excerpt:
+```
+# zerg/launcher.py
+
+| Class | Methods | Description |
+|-------|---------|-------------|
+| WorkerLauncher | spawn_worker, spawn_all, stop_worker, stop_all | Worker lifecycle |
+| LauncherConfig | from_yaml, validate | Configuration loader |
+
+## WorkerLauncher.spawn_worker(id: int, feature: str) -> Worker
+Spawn a single worker for the given feature.
+```
+
+**Tutorial tone:**
+```
+/zerg:document zerg/launcher.py --tone tutorial
+```
+
+Output excerpt:
+```
+# Tutorial: Understanding the Launcher
+
+Let's walk through how ZERG spawns workers step by step.
+
+Step 1: Create a launcher instance
+>>> launcher = WorkerLauncher(config)
+
+Step 2: Spawn workers for your feature
+>>> launcher.spawn_all(5, "user-auth")
+Spawning worker 0... OK
+Spawning worker 1... OK
+...
+```
+
+### Setting a Default Tone
+
+If you always prefer reference-style docs, set the default in `.zerg/config.yaml`:
+
+```yaml
+documentation:
+  default_tone: reference  # Options: educational, reference, tutorial
+```
+
+You can still override per-invocation with `--tone`.
 
 ---
 

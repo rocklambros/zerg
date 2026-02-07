@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- docs: comprehensive documentation audit — sync all commands and flags across wiki, command references, and tutorials
 - `/z:plan` anti-implementation guards hardened at 4 locations with PLANNING COMPLETE terminal banner
 - Plan requirements template includes Section 11 "Documentation Impact Analysis"
 - `/z:design` mandates CHANGELOG and documentation update tasks in every task graph

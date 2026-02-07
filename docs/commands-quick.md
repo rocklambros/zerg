@@ -97,6 +97,7 @@ Capture requirements through interactive questioning.
 |------|------|---------|-------------|
 | `--socratic` / `-s` | bool | false | Structured 3-round discovery |
 | `--rounds` | int | 3 | Socratic rounds (max 5) |
+| `--from-issue` | string | "" | Import requirements from GitHub issue URL |
 
 ### /zerg:rush
 
@@ -112,6 +113,10 @@ Launch parallel workers to execute task graph.
 | `--dry-run` | bool | false | Show plan only |
 | `--resume` | bool | false | Continue previous run |
 | `--timeout` | int | 3600 | Max seconds |
+| `--check-gates` | bool | false | Pre-run quality gates during dry-run |
+| `--what-if` | bool | false | Compare different worker counts and modes |
+| `--risk` | bool | false | Show risk assessment for task graph |
+| `--skip-tests` | bool | false | Skip test gates (lint-only mode) |
 
 ---
 
@@ -162,6 +167,7 @@ Manually trigger level merge operations.
 | `--dry-run` | bool | false | Preview only |
 | `--skip-gates` | bool | false | Skip quality gates |
 | `--no-rebase` | bool | false | Don't rebase after merge |
+| `--target` / `-t` | string | main | Target branch |
 
 ### /zerg:retry
 
@@ -176,6 +182,7 @@ Retry failed or blocked tasks.
 | `--timeout` / `-t` | int | config | Override timeout |
 | `--reset` | bool | false | Reset retry counters |
 | `--dry-run` | bool | false | Preview only |
+| `--worker` / `-w` | int | — | Assign task to specific worker |
 
 ### /zerg:status
 
@@ -218,6 +225,7 @@ Static analysis, complexity metrics, and quality assessment.
 | `--format` | string | text | Output: `text`, `json`, `sarif` |
 | `--threshold` | string | defaults | Custom thresholds |
 | `--files` | string | all | Restrict to files |
+| `--performance` | bool | false | Run comprehensive performance audit (140 factors) |
 
 ### /zerg:build
 
