@@ -129,9 +129,9 @@ class VerificationExecutor:
                 command=command,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: boundary method converts exceptions to VerificationExecutionResult
             duration_ms = int((time.time() - start_time) * 1000)
-            logger.error(f"Task {task_id} verification error: {e}")
+            logger.exception(f"Task {task_id} verification error: {e}")
 
             exec_result = VerificationExecutionResult(
                 task_id=task_id,

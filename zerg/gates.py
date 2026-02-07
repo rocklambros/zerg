@@ -107,9 +107,9 @@ class GateRunner:
                 duration_ms=duration_ms,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: boundary method converts exceptions to GateRunResult
             duration_ms = int((time.time() - start_time) * 1000)
-            logger.error(f"Gate {gate.name} error: {e}")
+            logger.exception(f"Gate {gate.name} error: {e}")
 
             run_result = GateRunResult(
                 gate_name=gate.name,

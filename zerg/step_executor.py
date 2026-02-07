@@ -319,8 +319,9 @@ class StepExecutor:
                 error_message=f"Command validation failed: {e}",
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: boundary method converts exceptions to StepResult
             duration_ms = int((time.monotonic() - start_time) * 1000)
+            logger.exception(f"Step {step_number} execution error: {e}")
             return StepResult(
                 step_number=step_number,
                 action=action,
@@ -399,6 +400,5 @@ class StepExecutor:
                 total_steps=total_steps,
                 step_states=self._step_states.copy(),
             )
-        except Exception as e:
-            # Don't fail execution if heartbeat update fails
+        except Exception as e:  # noqa: BLE001 — intentional: heartbeat updates are best-effort, must not fail step execution
             logger.debug("Failed to update heartbeat: %s", e)

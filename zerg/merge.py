@@ -277,7 +277,7 @@ class MergeCoordinator:
                 # Detach HEAD to release staging branch lock
                 self.git._run("checkout", "--detach", "HEAD")
                 logger.debug(f"Detached HEAD from {staging_branch}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: HEAD detach is best-effort cleanup
             logger.debug(f"Could not detach HEAD (may already be detached): {e}")
 
         self.git.checkout(target_branch)
@@ -408,7 +408,8 @@ class MergeCoordinator:
                 error=f"Merge conflict: {e.conflicting_files}",
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: boundary method converts exceptions to result objects
+            logger.exception(f"Merge flow failed for level {level}: {e}")
             self.abort(staging_branch)
             return MergeFlowResult(
                 success=False,

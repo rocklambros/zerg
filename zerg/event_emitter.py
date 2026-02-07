@@ -78,7 +78,7 @@ class EventEmitter:
         for callback in self._subscribers:
             try:
                 callback(event_type, event.get("data", {}))
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: event emission is best-effort, subscriber errors must not break emitter
                 logger.warning(f"Subscriber callback error: {e}")
 
     def subscribe(self, callback: EventCallback) -> None:
