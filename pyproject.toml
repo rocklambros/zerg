@@ -41,7 +41,7 @@ dev = [
     "ruff>=0.14,<0.15",
     "pip-audit>=2.7.0",
     "pre-commit>=3.0",
-    "types-pyyaml>=2024.0.0",
+    "types-pyyaml>=6.0.12",
 ]
 metrics = ["anthropic>=0.40.0"]
 performance = ["orjson>=3.9.0"]
