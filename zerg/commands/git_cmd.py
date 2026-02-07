@@ -437,7 +437,7 @@ def action_bisect(
     return engine.run(symptom=symptom or "", test_cmd=test_cmd, good=good, bad="HEAD")
 
 
-def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_merge: bool) -> int:
+def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_merge: bool, admin: bool = False) -> int:
     """Ship: commit -> push -> PR -> merge -> cleanup in one shot."""
     import subprocess as _subprocess
 
@@ -522,21 +522,31 @@ def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_me
             )
             pr_number = pr_result.stdout.strip()
 
-            # Try regular merge first
-            merge_result = _subprocess.run(
-                ["gh", "pr", "merge", pr_number, "--squash", "--delete-branch"],
-                capture_output=True,
-                text=True,
-            )
-            if merge_result.returncode != 0:
-                # Fall back to admin merge
-                console.print("[dim]Regular merge blocked, trying with --admin...[/dim]")
+            if admin:
+                # Admin merge directly (repo owner/admin bypass)
+                console.print("[dim]Using --admin merge...[/dim]")
                 _subprocess.run(
                     ["gh", "pr", "merge", pr_number, "--squash", "--admin", "--delete-branch"],
                     capture_output=True,
                     text=True,
                     check=True,
                 )
+            else:
+                # Try regular merge first
+                merge_result = _subprocess.run(
+                    ["gh", "pr", "merge", pr_number, "--squash", "--delete-branch"],
+                    capture_output=True,
+                    text=True,
+                )
+                if merge_result.returncode != 0:
+                    # Fall back to admin merge
+                    console.print("[dim]Regular merge blocked, trying with --admin...[/dim]")
+                    _subprocess.run(
+                        ["gh", "pr", "merge", pr_number, "--squash", "--admin", "--delete-branch"],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
             console.print(f"[green]\u2713[/green] Merged PR #{pr_number}")
         except _subprocess.CalledProcessError as e:
             console.print(f"[red]Merge failed:[/red] {e.stderr or e}")
@@ -639,6 +649,7 @@ def _detect_zerg_feature(branch: str) -> str | None:
 @click.option("--test-cmd", "test_cmd", help="Test command for bisect")
 @click.option("--good", help="Known good commit/tag (for bisect)")
 @click.option("--no-merge", "no_merge", is_flag=True, help="Stop after PR creation (skip merge+cleanup)")
+@click.option("--admin", is_flag=True, help="Use admin merge (repo owner/admin, for ship)")
 @click.pass_context
 def git_cmd(
     ctx: click.Context,
@@ -664,6 +675,7 @@ def git_cmd(
     test_cmd: str | None,
     good: str | None,
     no_merge: bool,
+    admin: bool,
 ) -> None:
     """Git operations with intelligent commits, PR creation, releases, and more.
 
@@ -723,7 +735,7 @@ def git_cmd(
         elif action == "bisect":
             exit_code = action_bisect(git, symptom, test_cmd, good, base)
         elif action == "ship":
-            exit_code = action_ship(git, base, draft, reviewer, no_merge)
+            exit_code = action_ship(git, base, draft, reviewer, no_merge, admin)
         else:
             console.print(f"[red]Unknown action: {action}[/red]")
             exit_code = 1

@@ -325,6 +325,9 @@ Non-interactive by default. Uses `mode=auto` for commit generation.
 
 # Ship to a different base branch
 /zerg:git --action ship --base develop
+
+# Ship with admin merge (repo owner bypassing branch protection)
+/zerg:git --action ship --admin
 ```
 
 **Pipeline steps:**
@@ -342,7 +345,7 @@ Non-interactive by default. Uses `mode=auto` for commit generation.
    - If user picks "Continue without CHANGELOG", proceed to step 3
 3. **Push** — Push branch to remote with `--set-upstream`
 4. **Create PR** — Create pull request via `gh pr create` with full context
-5. **Merge** — Merge PR via `gh pr merge --squash` (falls back to `--admin` if blocked)
+5. **Merge** — Merge PR via `gh pr merge --squash` (falls back to `--admin` if blocked; with `--admin` flag, uses admin merge directly)
 6. **Cleanup** — Switch to base, pull latest, delete feature branch (local + remote)
 
 If `--no-merge` is set, stops after step 4. If any step fails, the pipeline stops and reports the failure point.
@@ -545,6 +548,7 @@ Flags:
   --restore TAG         Restore snapshot (rescue)
   --recover-branch NAME Recover branch (rescue)
   --no-merge            Stop after PR creation (skip merge+cleanup)
+  --admin               Use admin merge directly (repo owner/admin, for ship)
   --scan                Auto-detect issues from codebase (issue action)
   --title TEXT          Issue title (issue action, description mode)
   --no-docker           Skip Docker cleanup (cleanup action)

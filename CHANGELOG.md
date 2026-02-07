@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `--admin` flag for `/zerg:git --action ship`: use admin merge directly, bypassing branch protection rules (repo owner/admin)
 - `zerg/state/` package: decompose 1010-line StateManager into 9 focused modules with facade pattern
 - `zerg/fs_utils.py`: single-pass file traversal utility replacing scattered rglob calls
 - `zerg/json_utils.py`: orjson/stdlib abstraction with optional `orjson` dependency for performance

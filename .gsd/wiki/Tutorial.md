@@ -773,6 +773,12 @@ All Levels Complete
 /zerg:git --action ship
 ```
 
+**Ship with admin merge (bypass branch protection):**
+
+```
+/zerg:git --action ship --admin
+```
+
 **Full workflow (commit + PR + merge):**
 
 ```

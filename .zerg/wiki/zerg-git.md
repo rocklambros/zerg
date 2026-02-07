@@ -14,7 +14,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
           [--focus security|performance|quality|architecture]
           [--symptom TEXT] [--test-cmd CMD] [--good REF]
           [--list-ops] [--undo] [--restore TAG] [--recover-branch NAME]
-          [--no-merge]
+          [--no-merge] [--admin]
           [--scan] [--title TEXT] [--dry-run]
           [--no-docker] [--include-stashes]
           [--limit N] [--label LABEL] [--priority P0|P1|P2]
@@ -105,7 +105,7 @@ Which option?
 **ship** -- Full delivery pipeline: commit, push, create PR, merge, and cleanup in one shot. Non-interactive. Uses auto mode for commit generation. Tries regular merge first, falls back to admin merge if blocked by branch protection.
 
 ```
-/zerg:git --action ship [--base main] [--draft] [--reviewer USER] [--no-merge]
+/zerg:git --action ship [--base main] [--draft] [--reviewer USER] [--no-merge] [--admin]
 ```
 
 **cleanup** -- Repository hygiene: prune merged branches, stale remote refs, orphaned worktrees, and ZERG Docker resources. Auto-detects stopped containers. Use `--no-docker` to skip Docker cleanup, `--include-stashes` to clear stashes, `--dry-run` to preview.
@@ -160,6 +160,7 @@ Auto-generated commit messages follow the conventional commits specification:
 | `--restore` | -- | Restore repository state from a snapshot tag (for `rescue` action). |
 | `--recover-branch` | -- | Recover a deleted branch from the reflog (for `rescue` action). |
 | `--no-merge` | off | Stop after PR creation, skip merge and cleanup (for `ship` action). |
+| `--admin` | off | Use admin merge directly, bypassing branch protection (for `ship` action). |
 | `--scan` | on | Auto-detect issues from codebase analysis (default for `issue` action). |
 | `--title` | -- | Issue title; switches `issue` action to description mode. |
 | `--no-docker` | off | Skip Docker container/image cleanup (for `cleanup` action). |
@@ -312,6 +313,12 @@ Ship with draft PR for team review:
 
 ```
 /zerg:git --action ship --no-merge --draft --reviewer octocat
+```
+
+Ship with admin merge (repo owner bypassing branch protection):
+
+```
+/zerg:git --action ship --admin
 ```
 
 Cleanup merged branches, stale refs, and Docker resources:
