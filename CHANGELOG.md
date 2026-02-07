@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 5C: Thin 5 launcher+cross-cutting files (406→169 tests)
 - Phase 5D: Thin 7 performance+security+token files (196→84 tests)
 - Phase 5E: Thin 6 misc infrastructure files (354→138 tests)
-- Test suite reduction phases 6-8: marked 13 container test files with @pytest.mark.docker, deleted 14 redundant integration test files (~263 tests), thinned 9 integration test files (~133 tests), added CI docker exclusion and coverage floor (--cov-fail-under=75)
+- Test suite reduction phases 6-8: marked 13 container test files with @pytest.mark.docker, deleted 14 redundant integration test files (~263 tests), thinned 9 integration test files (~133 tests), added CI docker exclusion and coverage floor (--cov-fail-under=50)
 - Phase 5F: Thin 7 misc build/hooks files (303→179 tests)
 - Phase 5G: Thin 7 misc analysis/cmd files (294→132 tests)
 - Delete 14 gap-filling test files (_coverage, _extended, _full), removing ~649 redundant tests
