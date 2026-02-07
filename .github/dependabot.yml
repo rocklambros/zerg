@@ -8,3 +8,12 @@ updates:
       - "dependencies"
     reviewers:
       - "rocklambros"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci-cd"
+    reviewers:
+      - "rocklambros"
