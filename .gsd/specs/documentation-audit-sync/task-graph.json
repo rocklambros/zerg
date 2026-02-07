@@ -1,0 +1,149 @@
+{
+  "feature": "documentation-audit-sync",
+  "version": "2.0",
+  "generated": "2026-02-07T00:00:00Z",
+  "total_tasks": 5,
+  "estimated_duration_minutes": 25,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add 8 missing flags to commands-quick.md",
+      "description": "Add missing CLI flags to docs/commands-quick.md flag tables for 6 commands: rush (--check-gates, --what-if, --risk, --skip-tests), plan (--from-issue), merge (--target), retry (--worker), analyze (--performance). Debug flags --deep and --env are already present — verify and skip. Use Python click option help text as source of truth for descriptions.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["docs/commands-quick.md"],
+        "read": ["zerg/commands/rush.py", "zerg/commands/plan.py", "zerg/commands/merge_cmd.py", "zerg/commands/retry.py", "zerg/commands/analyze.py"]
+      },
+      "verification": {
+        "command": "grep -c 'check-gates\\|what-if\\|--risk\\|skip-tests\\|from-issue\\|--target\\|--worker.*specific\\|--performance' docs/commands-quick.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd 8 missing flags across 6 command sections in commands-quick.md.\n\nFlags to add:\n- /zerg:rush section: --check-gates (bool, false, Pre-run quality gates during dry-run), --what-if (bool, false, Compare different worker counts and modes), --risk (bool, false, Show risk assessment for task graph), --skip-tests (bool, false, Skip test gates until final level)\n- /zerg:plan section: --from-issue (string, \"\", Import requirements from GitHub issue URL)\n- /zerg:merge section: --target / -t (string, main, Target branch)\n- /zerg:retry section: --worker / -w (int, —, Assign task to specific worker)\n- /zerg:analyze section: --performance (bool, false, Run comprehensive performance audit)\n\nVerify --deep and --env already present in debug section before skipping.\n\nFollow existing table format: | Flag | Type | Default | Description |"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add missing flags + expand --tone in wiki Command-Reference.md",
+      "description": "1) Add 8 missing flags to .gsd/wiki/Command-Reference.md flag tables (same flags as TASK-001). 2) Expand the --tone stub row into a full 'Tone Options' subsection after the /zerg:document flags table: describe educational/reference/tutorial tones with 2-3 sentences each, add usage examples, mention config default (documentation.default_tone), update workflow diagram to show tone selection. 3) Add --what-if and --risk examples to rush 'Using It' section.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Command-Reference.md"],
+        "read": ["zerg/commands/rush.py", "zerg/commands/plan.py", "zerg/commands/merge_cmd.py", "zerg/commands/retry.py", "zerg/commands/analyze.py", "zerg/data/tones/educational.md", "zerg/data/tones/reference.md", "zerg/data/tones/tutorial.md"]
+      },
+      "verification": {
+        "command": "grep -c 'check-gates\\|what-if\\|from-issue\\|--target\\|--performance\\|Tone Options' .gsd/wiki/Command-Reference.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-004"],
+      "integration_test": null,
+      "context": "## Spec Context\nUpdate wiki Command-Reference.md with:\n\n1. Missing flags in flag tables:\n   - /zerg:rush: --check-gates, --what-if, --risk, --skip-tests\n   - /zerg:plan: --from-issue\n   - /zerg:merge: --target / -t\n   - /zerg:retry: --worker / -w\n   - /zerg:analyze: --performance\n\n2. Expand --tone from single table row to full subsection:\n   - Educational tone: concept-first, explains why before how, includes CONCEPT/NARRATIVE/DIAGRAM/COMMAND sections\n   - Reference tone: terse tables and API signatures for quick lookup\n   - Tutorial tone: step-by-step walkthrough with simulated terminal dialogues\n   - Config default: documentation.default_tone in .zerg/config.yaml\n\n3. Add --what-if and --risk examples in rush 'Using It' section.\n\nFollow existing wiki format: educational tone, What Is It / Why / How / Using It pattern."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Expand --tone in Tutorial.md + verify commands-deep.md flags",
+      "description": "1) Expand the 3-line --tone mention in .gsd/wiki/Tutorial.md into a proper hands-on subsection: show before/after output for educational vs reference tones, explain when to use each tone, mention config default. 2) Verify and update docs/commands-deep.md: add --check-gates/--what-if/--risk/--skip-tests examples to rush 'Using It' section, add --from-issue example to plan section, add --target mention to merge section, add --worker mention to retry section, add --performance example to analyze section. Follow existing narrative style (no formal flag tables).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Tutorial.md", "docs/commands-deep.md"],
+        "read": ["zerg/data/tones/educational.md", "zerg/data/tones/reference.md"]
+      },
+      "verification": {
+        "command": "test $(grep -c 'tone' .gsd/wiki/Tutorial.md) -gt 5 && grep -q 'check-gates\\|from-issue\\|performance' docs/commands-deep.md && echo PASS",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-004"],
+      "integration_test": null,
+      "context": "## Spec Context\n\n### Tutorial.md expansion\nCurrent state: 3 lines at end mentioning --tone flag.\nTarget: Proper 'Using Documentation Tones' subsection with:\n- Explanation of when to use each tone\n- Before/after output comparison (educational vs reference)\n- Config default mention\n\n### commands-deep.md verification\ncommands-deep.md uses narrative format (What/Why/How/Using It) without formal flag tables.\nAdd missing flags as inline examples in 'Using It' sections:\n- Rush: show --what-if, --risk, --check-gates, --skip-tests examples\n- Plan: show --from-issue example\n- Merge: mention --target flag\n- Retry: mention --worker flag\n- Analyze: show --performance example"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Push wiki changes to GitHub",
+      "description": "After wiki files are updated (TASK-002, TASK-003), push .gsd/wiki/ changes to the GitHub wiki repository so they appear at https://github.com/rocklambros/zerg/wiki/. Use gh or git to push wiki changes.",
+      "phase": "integration",
+      "level": 2,
+      "dependencies": ["TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": [".gsd/wiki/Command-Reference.md", ".gsd/wiki/Tutorial.md"]
+      },
+      "verification": {
+        "command": "echo 'Wiki push verified manually'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["git"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nPush updated wiki files to GitHub wiki repository.\nWiki files live in .gsd/wiki/ and are pushed to https://github.com/rocklambros/zerg/wiki/.\nUse gh CLI or git push to the wiki repo."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update CHANGELOG.md",
+      "description": "Add entry under [Unreleased] -> Changed: 'docs: comprehensive documentation audit — sync all commands and flags across wiki, command references, and tutorials'. This is the final quality task.",
+      "phase": "quality",
+      "level": 3,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'documentation audit' CHANGELOG.md && echo PASS",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd under [Unreleased] -> Changed section:\n- docs: comprehensive documentation audit — sync all commands and flags across wiki, command references, and tutorials"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 15
+    },
+    "2": {
+      "name": "integration",
+      "tasks": ["TASK-004"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "quality",
+      "tasks": ["TASK-005"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — each task modifies different files",
+    "conflicts": []
+  }
+}

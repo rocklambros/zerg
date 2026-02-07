@@ -400,6 +400,13 @@ Please review and reply APPROVED or REJECTED with feedback.
 
 Five structured rounds of one question at a time, going deeper into problem space, solution space, and implementation details.
 
+**Import from GitHub issue:**
+```
+/zerg:plan --from-issue https://github.com/org/repo/issues/42
+```
+
+Reads the issue title, body, labels, and comments to pre-populate requirements. You still review and approve before proceeding.
+
 ---
 
 ### /zerg:design
@@ -648,6 +655,34 @@ Estimated cost: ~$2.50 API credits
 ```
 
 Each worker runs in its own Docker container with a separate git worktree. Complete isolation means no chance of workers interfering with each other.
+
+**Compare worker configurations before launching:**
+```
+/zerg:rush --dry-run --what-if
+```
+
+Shows side-by-side comparison of different worker counts and modes so you can pick the optimal setup.
+
+**Assess risk in your task graph:**
+```
+/zerg:rush --dry-run --risk
+```
+
+Highlights risky tasks: large files, complex dependencies, or historically problematic patterns.
+
+**Pre-validate quality gates during dry-run:**
+```
+/zerg:rush --dry-run --check-gates
+```
+
+Runs lint, type check, and test gates against the current codebase before any workers start.
+
+**Skip test gates for faster iteration:**
+```
+/zerg:rush --skip-tests
+```
+
+Runs only lint gates between levels, deferring test execution to the final level. Useful during rapid prototyping.
 
 ---
 
@@ -1110,6 +1145,13 @@ zerg retry --dry-run
 
 Shows the list without actually retrying.
 
+**Assign retry to specific worker:**
+```
+zerg retry TASK-005 --worker 2
+```
+
+Forces TASK-005 to be retried by Worker 2 specifically, useful when a particular worker has the right context cached.
+
 ---
 
 ### /zerg:merge
@@ -1233,6 +1275,13 @@ zerg merge --abort
 ```
 
 Cleans up staging branch and resets state.
+
+**Merge to a specific branch:**
+```
+zerg merge --target develop
+```
+
+Merges level work into `develop` instead of the default `main` branch.
 
 ---
 
@@ -1437,6 +1486,13 @@ Summary: 2 errors require attention
 ```
 /zerg:analyze --check all --format sarif > results.sarif
 ```
+
+**Run comprehensive performance audit:**
+```
+/zerg:analyze --performance
+```
+
+Runs all 140 performance factors including bundle size, API latency, database query analysis, and memory profiling. Produces a detailed report with actionable recommendations.
 
 ---
 
