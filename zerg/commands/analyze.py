@@ -279,10 +279,21 @@ class SecurityChecker(BaseChecker):
                     issues=issues,
                     score=max(0.0, 100.0 - len(issues) * 10),
                 )
-        except CommandValidationError:
-            return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)
-        except Exception:
-            return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)
+        except CommandValidationError as e:
+            return AnalysisResult(
+                check_type=CheckType.SECURITY,
+                passed=True,
+                issues=[f"Security tool not installed ({e}) — skipped"],
+                score=0.0,
+            )
+        except Exception as e:
+            logger.exception("Security check failed")
+            return AnalysisResult(
+                check_type=CheckType.SECURITY,
+                passed=False,
+                issues=[f"Security check error: {e}"],
+                score=0.0,
+            )
 
 
 class PerformanceChecker(BaseChecker):
@@ -357,20 +368,20 @@ class DeadCodeChecker(BaseChecker):
                     issues=issues,
                     score=score,
                 )
-        except CommandValidationError:
+        except CommandValidationError as e:
             # vulture not installed or not on PATH
             return AnalysisResult(
                 check_type=CheckType.DEAD_CODE,
                 passed=True,
-                issues=["vulture not installed — skipping dead code analysis"],
-                score=100.0,
+                issues=[f"Dead code tool not installed ({e}) — skipped"],
+                score=0.0,
             )
         except FileNotFoundError:
             return AnalysisResult(
                 check_type=CheckType.DEAD_CODE,
                 passed=True,
                 issues=["vulture not installed — skipping dead code analysis"],
-                score=100.0,
+                score=0.0,
             )
         except Exception as e:
             return AnalysisResult(

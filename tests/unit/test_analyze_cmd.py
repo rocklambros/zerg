@@ -199,13 +199,24 @@ class TestSecurityChecker:
         assert len(result.issues) == 2
 
     def test_check_command_validation_error(self) -> None:
-        """Test check handles CommandValidationError gracefully."""
+        """Test check handles CommandValidationError as skip (tool not installed)."""
         checker = SecurityChecker()
         with patch.object(checker._executor, "execute", side_effect=CommandValidationError("Bad command")):
             with patch.object(checker._executor, "sanitize_paths", return_value=["file.py"]):
                 result = checker.check(["file.py"])
         assert result.passed is True
-        assert result.score == 100.0
+        assert result.score == 0.0
+        assert any("Security tool not installed" in i for i in result.issues)
+
+    def test_check_exception_fails_closed(self) -> None:
+        """Test check returns passed=False on unexpected Exception (fail-closed)."""
+        checker = SecurityChecker()
+        with patch.object(checker._executor, "execute", side_effect=RuntimeError("Unexpected")):
+            with patch.object(checker._executor, "sanitize_paths", return_value=["file.py"]):
+                result = checker.check(["file.py"])
+        assert result.passed is False
+        assert result.score == 0.0
+        assert any("Security check error" in i for i in result.issues)
 
 
 class TestAnalyzeCommandClass:
