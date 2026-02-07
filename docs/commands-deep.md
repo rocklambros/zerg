@@ -2559,6 +2559,11 @@ The depth levels let you control how much detail is included - shallow for quick
 - `standard` - Adds internal methods, imports, basic diagrams
 - `deep` - All methods, usage examples, full dependency graph
 
+**Tone options** (`--tone`):
+- `educational` (default) - Concept-first documentation that explains *why* before *how*. Includes context, analogies, and background. Best for onboarding and learning.
+- `reference` - Terse, scannable API reference. Minimal prose, maximum density. Focuses on signatures, parameters, return types, and examples. Best for experienced developers who need quick lookups.
+- `tutorial` - Step-by-step walkthrough with numbered instructions. Assumes minimal prior knowledge. Includes prerequisites, expected output, and troubleshooting tips. Best for guides and how-to content.
+
 #### Using It
 
 **Document a module:**
@@ -2596,6 +2601,13 @@ graph TD
     launcher --> subprocess
     launcher --> task_system
 ```
+```
+
+**With tone control:**
+```
+/zerg:document zerg/launcher.py --tone educational   # Concept-first docs (default)
+/zerg:document zerg/launcher.py --tone reference     # Terse API reference
+/zerg:document zerg/launcher.py --tone tutorial       # Step-by-step walkthrough
 ```
 
 **Deep documentation to file:**

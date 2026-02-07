@@ -487,7 +487,7 @@ Other git operations available:
 
 | Command | Purpose |
 |---------|---------|
-| `/zerg:document` | Generate component documentation |
+| `/zerg:document` | Generate component documentation (`--tone educational\|reference\|tutorial`) |
 | `/zerg:index` | Generate project documentation wiki |
 | `/zerg:estimate` | Effort estimation with PERT intervals |
 | `/zerg:explain` | Educational code explanations |

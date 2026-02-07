@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `--tone` flag for `/zerg:document` with `educational` (default), `reference`, and `tutorial` tones for documentation style control
+- 3 tone definition files at `zerg/data/tones/` (`educational.md`, `reference.md`, `tutorial.md`) for documentation style guidance
 - `--admin` flag for `/zerg:git --action ship`: use admin merge directly, bypassing branch protection rules (repo owner/admin)
 - `zerg/state/` package: decompose 1010-line StateManager into 9 focused modules with facade pattern
 - `zerg/fs_utils.py`: single-pass file traversal utility replacing scattered rglob calls
@@ -30,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `/z:plan` anti-implementation guards hardened at 4 locations with PLANNING COMPLETE terminal banner
+- Plan requirements template includes Section 11 "Documentation Impact Analysis"
+- `/z:design` mandates CHANGELOG and documentation update tasks in every task graph
 - Enable BLE001 ruff rule (bare-except detection) in pyproject.toml
 - Migrated 14 production files from `import json` to `zerg.json_utils`
 - `--skip-validation` flag for `/z:plan` and `/z:design` to bypass Phase 0 pre-execution validation checks

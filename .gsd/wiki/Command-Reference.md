@@ -2852,6 +2852,7 @@ Preserves manual edits outside auto-generated sections.
 | `--output` | string | stdout | Output path |
 | `--depth` | string | standard | Depth: `shallow`, `standard`, `deep` |
 | `--update` | boolean | false | Update existing docs |
+| `--tone` | `educational\|reference\|tutorial` | `educational` | Documentation tone — controls output style |
 
 ---
 

@@ -38,6 +38,12 @@ logger = get_logger("document")
     is_flag=True,
     help="Update existing documentation in-place",
 )
+@click.option(
+    "--tone",
+    type=click.Choice(["educational", "reference", "tutorial"]),
+    default="educational",
+    help="Documentation tone (default: educational)",
+)
 @click.pass_context
 def document(
     ctx: click.Context,
@@ -46,6 +52,7 @@ def document(
     output: str | None,
     depth: str,
     update: bool,
+    tone: str,
 ) -> None:
     """Generate documentation for a specific component, module, or command.
 
@@ -73,6 +80,7 @@ def document(
             raise SystemExit(1)
 
         console.print(f"\n[bold cyan]ZERG Document[/bold cyan] - {target}\n")
+        console.print(f"Tone: [cyan]{tone}[/cyan]")
 
         # 1. Detect component type
         detector = ComponentDetector()

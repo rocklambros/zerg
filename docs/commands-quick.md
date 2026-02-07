@@ -374,6 +374,7 @@ Generate documentation for a single component.
 | `--type` | string | auto | Type: `auto`, `module`, `command`, `config`, `api`, `types` |
 | `--output` | string | stdout | Output path |
 | `--depth` | string | standard | Depth: `shallow`, `standard`, `deep` |
+| `--tone` | string | `educational` | Documentation tone: `educational`, `reference`, `tutorial` |
 | `--update` | bool | false | Update in-place |
 
 ### /zerg:estimate
