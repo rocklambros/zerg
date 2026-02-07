@@ -43,7 +43,8 @@ dev = [
     "pre-commit>=3.0",
 ]
 metrics = ["anthropic>=0.40.0"]
-all = ["zerg[dev]", "zerg[metrics]"]
+performance = ["orjson>=3.9.0"]
+all = ["zerg[dev]", "zerg[metrics]", "zerg[performance]"]
 
 [project.scripts]
 zerg = "zerg.cli:cli"
