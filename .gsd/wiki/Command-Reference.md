@@ -2542,7 +2542,7 @@ Found culprit: ghi9012
 /zerg:git --action ship
 ```
 
-Runs commit, push, PR create, merge, and cleanup in one shot.
+Runs commit, push, PR create, merge, and cleanup in one shot. Use `--admin` to bypass branch protection rules directly.
 
 **Flags:**
 
@@ -2560,6 +2560,8 @@ Runs commit, push, PR create, merge, and cleanup in one shot.
 | `--test-cmd` | | string | "" | Test command (bisect) |
 | `--good` | | string | "" | Known good ref (bisect) |
 | `--dry-run` | | boolean | false | Preview without executing |
+| `--no-merge` | | boolean | false | Stop after PR creation |
+| `--admin` | | boolean | false | Use admin merge directly (repo owner/admin) |
 
 ---
 

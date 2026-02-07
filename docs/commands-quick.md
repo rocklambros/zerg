@@ -330,6 +330,7 @@ Git operations with intelligent commits, PRs, releases, and more.
 | `--restore` | string | "" | Restore snapshot |
 | `--recover-branch` | string | "" | Recover deleted branch |
 | `--no-merge` | bool | false | Stop after PR creation |
+| `--admin` | bool | false | Use admin merge directly (repo owner/admin, for ship) |
 | `--stale-days` | int | 30 | Branch age for cleanup |
 | `--title` | string | "" | Issue title |
 | `--label` | string | "" | Issue label |

@@ -24,7 +24,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 | review | Pre-review context assembly | --focus |
 | rescue | Undo/recovery operations | --list-ops, --undo, --restore, --recover-branch |
 | bisect | AI-powered bug bisection | --symptom, --test-cmd, --good |
-| ship | Commit, push, PR, merge, cleanup in one shot | --base, --draft, --reviewer, --no-merge |
+| ship | Commit, push, PR, merge, cleanup in one shot | --base, --draft, --reviewer, --no-merge, --admin |
 | cleanup | Repository hygiene: prune branches, refs, worktrees, Docker | --dry-run, --no-docker, --include-stashes |
 | issue | Create AI-optimized GitHub issues from scan or description | --scan, --title, --dry-run, --limit, --label, --priority |
 
@@ -53,6 +53,7 @@ Git operations with intelligent commits, PR creation, releases, rescue, review, 
 --restore TAG          Restore snapshot tag (rescue)
 --recover-branch NAME  Recover deleted branch (rescue)
 --no-merge             Stop after PR creation (skip merge+cleanup)
+--admin                Use admin merge directly (repo owner/admin, for ship)
 --scan                 Auto-detect issues from codebase analysis (default for issue action)
 --title TEXT           Issue title (for issue action, switches to description mode)
 --no-docker            Skip Docker container/image cleanup (for cleanup action)
@@ -128,6 +129,7 @@ Flags:
   --recover-branch NAME
                     Recover branch (rescue)
   --no-merge        Stop after PR creation (skip merge+cleanup)
+  --admin           Use admin merge directly (repo owner/admin, for ship)
   --scan            Auto-detect issues from codebase (issue action)
   --title TEXT      Issue title (issue action, description mode)
   --no-docker       Skip Docker cleanup (cleanup action)

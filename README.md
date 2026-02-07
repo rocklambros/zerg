@@ -435,7 +435,7 @@ Other git operations available:
 |--------|---------|---------|
 | Commit | `/zerg:git commit` | Commit current changes with generated message |
 | Create PR | `/zerg:git --action pr` | Open pull request for review |
-| Ship | `/zerg:git --action ship` | Merge to main after verification |
+| Ship | `/zerg:git --action ship` | Merge to main after verification (`--admin` to bypass branch protection) |
 | Full workflow | `/zerg:git --action finish` | PR → review → merge in one command |
 
 ---
