@@ -29,8 +29,8 @@ class TestLevelEnforcement:
         state.set_task_status("TASK-L2-001", TaskStatus.PENDING)
 
         # Manually set level info (set_task_status doesn't set level)
-        state._state["tasks"]["TASK-L1-001"]["level"] = 1
-        state._state["tasks"]["TASK-L2-001"]["level"] = 2
+        state._persistence._state["tasks"]["TASK-L1-001"]["level"] = 1
+        state._persistence._state["tasks"]["TASK-L2-001"]["level"] = 2
         state.save()
 
         # Reload to ensure file persistence
@@ -50,7 +50,7 @@ class TestLevelEnforcement:
         state.load()
 
         state.set_task_status("TASK-L2-001", TaskStatus.PENDING)
-        state._state["tasks"]["TASK-L2-001"]["level"] = 2
+        state._persistence._state["tasks"]["TASK-L2-001"]["level"] = 2
         state.save()
         state.load()
 
@@ -64,7 +64,7 @@ class TestLevelEnforcement:
         state.load()
 
         state.set_task_status("TASK-L3-001", TaskStatus.PENDING)
-        state._state["tasks"]["TASK-L3-001"]["level"] = 3
+        state._persistence._state["tasks"]["TASK-L3-001"]["level"] = 3
         state.save()
         state.load()
 
@@ -138,8 +138,8 @@ class TestCombinedEnforcement:
         # Set up: L1-001 complete, L2-001 depends on it
         state.set_task_status("TASK-L1-001", TaskStatus.COMPLETE)
         state.set_task_status("TASK-L2-001", TaskStatus.PENDING)
-        state._state["tasks"]["TASK-L1-001"]["level"] = 1
-        state._state["tasks"]["TASK-L2-001"]["level"] = 2
+        state._persistence._state["tasks"]["TASK-L1-001"]["level"] = 1
+        state._persistence._state["tasks"]["TASK-L2-001"]["level"] = 2
         state.save()
         state.load()
 
@@ -172,7 +172,7 @@ class TestCombinedEnforcement:
         state.load()
 
         state.set_task_status("TASK-002", TaskStatus.PENDING)
-        state._state["tasks"]["TASK-002"]["level"] = 2
+        state._persistence._state["tasks"]["TASK-002"]["level"] = 2
         state.save()
         state.load()
 

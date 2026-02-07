@@ -26,10 +26,10 @@ class TestStateManagerInit:
     @pytest.mark.smoke
     def test_init_with_default_state_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test initialization with default state directory."""
-        monkeypatch.setattr("zerg.state.STATE_DIR", str(tmp_path / "default_state"))
+        monkeypatch.setattr("zerg.state.persistence.STATE_DIR", str(tmp_path / "default_state"))
         manager = StateManager("test-feature")
         assert manager.feature == "test-feature"
-        assert manager._state_file == tmp_path / "default_state" / "test-feature.json"
+        assert manager._persistence._state_file == tmp_path / "default_state" / "test-feature.json"
 
     @pytest.mark.smoke
     def test_init_creates_nested_state_directory(self, tmp_path: Path) -> None:
@@ -92,8 +92,8 @@ class TestStateSaving:
         """Test saving persists state to file including datetime serialization."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        manager._state["current_level"] = 5
-        manager._state["custom_datetime"] = datetime.now()
+        manager._persistence._state["current_level"] = 5
+        manager._persistence._state["custom_datetime"] = datetime.now()
         manager.save()
         saved = json.loads((tmp_path / "test-feature.json").read_text())
         assert saved["current_level"] == 5
@@ -122,7 +122,7 @@ class TestTaskStatus:
         """Test set_task_status creates tasks dict if not present."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        del manager._state["tasks"]
+        del manager._persistence._state["tasks"]
         manager.set_task_status("TASK-001", TaskStatus.PENDING)
         assert manager.get_task_status("TASK-001") == "pending"
 
@@ -131,14 +131,14 @@ class TestTaskStatus:
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
         manager.set_task_status("TASK-001", TaskStatus.FAILED, worker_id=3, error="Test error")
-        task = manager._state["tasks"]["TASK-001"]
+        task = manager._persistence._state["tasks"]["TASK-001"]
         assert task["worker_id"] == 3
         assert task["error"] == "Test error"
         # Verify COMPLETE sets completed_at, IN_PROGRESS sets started_at
         manager.set_task_status("TASK-002", TaskStatus.COMPLETE)
-        assert "completed_at" in manager._state["tasks"]["TASK-002"]
+        assert "completed_at" in manager._persistence._state["tasks"]["TASK-002"]
         manager.set_task_status("TASK-003", TaskStatus.IN_PROGRESS)
-        assert "started_at" in manager._state["tasks"]["TASK-003"]
+        assert "started_at" in manager._persistence._state["tasks"]["TASK-003"]
 
 
 class TestWorkerState:
@@ -148,16 +148,16 @@ class TestWorkerState:
         """Test set_worker_state creates workers dict if not present."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        del manager._state["workers"]
+        del manager._persistence._state["workers"]
         manager.set_worker_state(WorkerState(worker_id=0, status=WorkerStatus.READY))
-        assert "0" in manager._state["workers"]
+        assert "0" in manager._persistence._state["workers"]
 
     def test_set_worker_ready_does_nothing_for_nonexistent_worker(self, tmp_path: Path) -> None:
         """Test set_worker_ready does nothing if worker doesn't exist."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
         manager.set_worker_ready(999)
-        assert "999" not in manager._state.get("workers", {})
+        assert "999" not in manager._persistence._state.get("workers", {})
 
 
 class TestTaskClaiming:
@@ -194,12 +194,12 @@ class TestEvents:
         """Test append_event creates execution_log if missing and stores event data."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        del manager._state["execution_log"]
+        del manager._persistence._state["execution_log"]
         manager.append_event("test_event", {"key": "value"})
-        assert len(manager._state["execution_log"]) == 1
+        assert len(manager._persistence._state["execution_log"]) == 1
         # Also test no-data path
         manager.append_event("no_data_event")
-        assert manager._state["execution_log"][1]["data"] == {}
+        assert manager._persistence._state["execution_log"][1]["data"] == {}
 
     def test_get_events_with_and_without_limit(self, tmp_path: Path) -> None:
         """Test get_events with and without limit."""
@@ -221,17 +221,17 @@ class TestLevelAndPausedErrorState:
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
         manager.set_current_level(3)
-        assert manager._state["current_level"] == 3
-        del manager._state["current_level"]
+        assert manager._persistence._state["current_level"] == 3
+        del manager._persistence._state["current_level"]
         assert manager.get_current_level() == 0
 
     def test_set_level_status_creates_levels_dict(self, tmp_path: Path) -> None:
         """Test set_level_status creates levels dict if missing."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        del manager._state["levels"]
+        del manager._persistence._state["levels"]
         manager.set_level_status(1, "running")
-        assert manager._state["levels"]["1"]["status"] == "running"
+        assert manager._persistence._state["levels"]["1"]["status"] == "running"
 
     def test_get_level_status_returns_none_for_missing(self, tmp_path: Path) -> None:
         """Test get_level_status returns None for nonexistent level."""
@@ -245,9 +245,9 @@ class TestLevelAndPausedErrorState:
         manager.load()
         # Paused
         manager.set_paused(True)
-        assert manager._state["paused"] is True
+        assert manager._persistence._state["paused"] is True
         manager.set_paused(False)
-        assert manager._state["paused"] is False
+        assert manager._persistence._state["paused"] is False
         # Error
         manager.set_error("Test error")
         assert manager.get_error() == "Test error"
@@ -299,15 +299,15 @@ class TestLevelMergeAndRetry:
         """Test set_level_merge_status creates levels dict if missing."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        del manager._state["levels"]
+        del manager._persistence._state["levels"]
         manager.set_level_merge_status(1, LevelMergeStatus.PENDING)
-        assert "levels" in manager._state
+        assert "levels" in manager._persistence._state
 
     def test_increment_retry_creates_tasks_dict(self, tmp_path: Path) -> None:
         """Test increment_task_retry creates tasks dict if missing."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        del manager._state["tasks"]
+        del manager._persistence._state["tasks"]
         assert manager.increment_task_retry("TASK-001") == 1
 
     def test_reset_retry_nonexistent_task(self, tmp_path: Path) -> None:
@@ -405,7 +405,7 @@ class TestGetWorkerStateEdgeCases:
         """get_worker_state handles string-to-int key conversion correctly."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        manager._state["workers"] = {
+        manager._persistence._state["workers"] = {
             "1": {
                 "worker_id": 1,
                 "status": WorkerStatus.READY.value,

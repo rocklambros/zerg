@@ -27,9 +27,9 @@ class TestMetricsPersistence:
 
         # Add some task data
         state.set_task_status("T-001", "complete", worker_id=0)
-        state._state["tasks"]["T-001"]["started_at"] = "2026-01-27T10:00:00"
-        state._state["tasks"]["T-001"]["completed_at"] = "2026-01-27T10:01:00"
-        state._state["tasks"]["T-001"]["duration_ms"] = 60000
+        state._persistence._state["tasks"]["T-001"]["started_at"] = "2026-01-27T10:00:00"
+        state._persistence._state["tasks"]["T-001"]["completed_at"] = "2026-01-27T10:01:00"
+        state._persistence._state["tasks"]["T-001"]["duration_ms"] = 60000
         state.save()
 
         # Compute and store metrics
@@ -88,7 +88,7 @@ class TestMetricsWithStateManager:
         state.record_task_claimed("T-001", worker_id=0)
 
         # Verify claimed_at is set
-        task_state = state._state.get("tasks", {}).get("T-001", {})
+        task_state = state._persistence._state.get("tasks", {}).get("T-001", {})
         assert "claimed_at" in task_state
         assert task_state["worker_id"] == 0
 
@@ -107,7 +107,7 @@ class TestMetricsWithStateManager:
         state.record_task_duration("T-001", 45000)
 
         # Verify duration is set
-        task_state = state._state.get("tasks", {}).get("T-001", {})
+        task_state = state._persistence._state.get("tasks", {}).get("T-001", {})
         assert task_state.get("duration_ms") == 45000
 
 
@@ -123,7 +123,7 @@ class TestStatusCommandMetrics:
         state = StateManager("test-json-metrics", state_dir=state_dir)
         state.load()
         state.set_task_status("T-001", TaskStatus.COMPLETE, worker_id=0)
-        state._state["tasks"]["T-001"]["duration_ms"] = 30000
+        state._persistence._state["tasks"]["T-001"]["duration_ms"] = 30000
         state.save()
 
         # Compute and store metrics
@@ -182,10 +182,10 @@ class TestMetricsAccuracy:
         state.load()
         for i, duration in enumerate(durations):
             task_id = f"T-{i:03d}"
-            state._state["tasks"][task_id]["level"] = 1
-            state._state["tasks"][task_id]["duration_ms"] = duration
+            state._persistence._state["tasks"][task_id]["level"] = 1
+            state._persistence._state["tasks"][task_id]["duration_ms"] = duration
 
-        state._state["levels"] = {"1": {"status": "complete"}}
+        state._persistence._state["levels"] = {"1": {"status": "complete"}}
         state.save()
 
         # Compute level metrics
@@ -208,7 +208,7 @@ class TestMetricsAccuracy:
 
         # Set worker with started_at in the past
         past = datetime.now() - timedelta(minutes=5)
-        state._state["workers"] = {
+        state._persistence._state["workers"] = {
             "0": {
                 "worker_id": 0,
                 "status": WorkerStatus.READY.value,
@@ -241,7 +241,7 @@ class TestMetricsAccuracy:
         started = datetime.now() - timedelta(minutes=10)
         ready = started + timedelta(seconds=5)  # 5 second init time = 5000ms
 
-        state._state["workers"] = {
+        state._persistence._state["workers"] = {
             "0": {
                 "worker_id": 0,
                 "status": WorkerStatus.READY.value,
@@ -335,7 +335,7 @@ class TestMetricsEdgeCases:
 
         state = StateManager("test-empty-level", state_dir=state_dir)
         state.load()
-        state._state["levels"] = {"1": {"status": "complete"}}
+        state._persistence._state["levels"] = {"1": {"status": "complete"}}
         state.save()
 
         collector = MetricsCollector(state)
@@ -354,7 +354,7 @@ class TestMetricsEdgeCases:
         state.load()
 
         # Create task without timestamps
-        state._state["tasks"] = {"T-001": {"status": TaskStatus.IN_PROGRESS.value, "worker_id": 0}}
+        state._persistence._state["tasks"] = {"T-001": {"status": TaskStatus.IN_PROGRESS.value, "worker_id": 0}}
         state.save()
 
         collector = MetricsCollector(state)
@@ -374,7 +374,7 @@ class TestMetricsEdgeCases:
 
         # Add worker
         past = datetime.now() - timedelta(minutes=1)
-        state._state["workers"] = {
+        state._persistence._state["workers"] = {
             "0": {
                 "worker_id": 0,
                 "status": WorkerStatus.READY.value,

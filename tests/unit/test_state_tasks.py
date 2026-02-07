@@ -20,7 +20,7 @@ class TestGetTaskStatusEdgeCases:
         assert manager.get_task_status("NONEXISTENT") is None
 
         # Task exists but no status key
-        manager._state["tasks"] = {"TASK-001": {"worker_id": 1}}
+        manager._persistence._state["tasks"] = {"TASK-001": {"worker_id": 1}}
         manager.save()
         assert manager.get_task_status("TASK-001") is None
 
@@ -66,23 +66,23 @@ class TestTaskTimestamps:
         manager.set_task_status("TASK-001", TaskStatus.PENDING)
         manager.claim_task("TASK-001", worker_id=0)
 
-        task = manager._state["tasks"]["TASK-001"]
+        task = manager._persistence._state["tasks"]["TASK-001"]
         assert "claimed_at" in task
         datetime.fromisoformat(task["claimed_at"])
 
         original_claimed = task["claimed_at"]
         manager.set_task_status("TASK-001", TaskStatus.IN_PROGRESS, worker_id=0)
-        assert manager._state["tasks"]["TASK-001"]["claimed_at"] == original_claimed
+        assert manager._persistence._state["tasks"]["TASK-001"]["claimed_at"] == original_claimed
 
     def test_in_progress_and_complete_set_timestamps(self, tmp_path: Path) -> None:
         """Test IN_PROGRESS sets started_at and COMPLETE sets completed_at."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
         manager.set_task_status("TASK-001", TaskStatus.IN_PROGRESS, worker_id=0)
-        assert "started_at" in manager._state["tasks"]["TASK-001"]
+        assert "started_at" in manager._persistence._state["tasks"]["TASK-001"]
 
         manager.set_task_status("TASK-002", TaskStatus.COMPLETE)
-        assert "completed_at" in manager._state["tasks"]["TASK-002"]
+        assert "completed_at" in manager._persistence._state["tasks"]["TASK-002"]
 
 
 class TestTaskDurationRecording:
@@ -94,17 +94,17 @@ class TestTaskDurationRecording:
         manager.load()
         manager.set_task_status("TASK-001", TaskStatus.PENDING)
         manager.record_task_duration("TASK-001", duration_ms=5432)
-        assert manager._state["tasks"]["TASK-001"]["duration_ms"] == 5432
+        assert manager._persistence._state["tasks"]["TASK-001"]["duration_ms"] == 5432
 
         manager.record_task_duration("TASK-001", duration_ms=2000)
-        assert manager._state["tasks"]["TASK-001"]["duration_ms"] == 2000
+        assert manager._persistence._state["tasks"]["TASK-001"]["duration_ms"] == 2000
 
     def test_record_task_duration_nonexistent_task_ignored(self, tmp_path: Path) -> None:
         """Test recording duration for non-existent task is silently ignored."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
         manager.record_task_duration("NONEXISTENT-TASK", duration_ms=1000)
-        assert "NONEXISTENT-TASK" not in manager._state.get("tasks", {})
+        assert "NONEXISTENT-TASK" not in manager._persistence._state.get("tasks", {})
 
 
 class TestGetTasksByStatus:

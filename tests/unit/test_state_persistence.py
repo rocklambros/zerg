@@ -87,7 +87,7 @@ class TestSaveEdgeCases:
 
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        manager._state["custom_datetime"] = datetime(2026, 1, 27, 12, 0, 0)
+        manager._persistence._state["custom_datetime"] = datetime(2026, 1, 27, 12, 0, 0)
         manager.save()
 
         state_file = tmp_path / "test-feature.json"
@@ -99,11 +99,11 @@ class TestSaveEdgeCases:
         """Test original file preserved if write to temp file fails."""
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        manager._state["current_level"] = 1
+        manager._persistence._state["current_level"] = 1
         manager.save()
 
         original_content = (tmp_path / "test-feature.json").read_text()
-        manager._state["current_level"] = 999
+        manager._persistence._state["current_level"] = 999
 
         with patch("json.dump", side_effect=OSError("Simulated write failure")):
             with pytest.raises(OSError):
@@ -119,7 +119,7 @@ class TestSaveEdgeCases:
 
         manager = StateManager("test-feature", state_dir=tmp_path)
         manager.load()
-        manager._state = {"feature": "test-feature", "small": True}
+        manager._persistence._state = {"feature": "test-feature", "small": True}
         manager.save()
 
         assert state_file.stat().st_size < initial_size
@@ -140,11 +140,11 @@ class TestConcurrentAccess:
         def worker(worker_id: int) -> None:
             try:
                 for i in range(10):
-                    manager._state[f"worker_{worker_id}_key_{i}"] = i
+                    manager._persistence._state[f"worker_{worker_id}_key_{i}"] = i
                     manager.save()
                     time.sleep(0.001)
                     manager.load()
-            except Exception as e:
+            except (OSError, json.JSONDecodeError, KeyError, StateError) as e:
                 errors.append(e)
 
         threads = [threading.Thread(target=worker, args=(i,)) for i in range(5)]

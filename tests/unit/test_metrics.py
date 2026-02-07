@@ -101,7 +101,7 @@ class TestMetricsCollector:
             )
             state_manager.set_worker_state(worker)
 
-        state_manager._state["tasks"] = {
+        state_manager._persistence._state["tasks"] = {
             "TASK-001": {
                 "status": TaskStatus.COMPLETE.value,
                 "worker_id": 0,
@@ -132,7 +132,7 @@ class TestMetricsCollector:
                 "error": "Test failure",
             },
         }
-        state_manager._state["levels"] = {
+        state_manager._persistence._state["levels"] = {
             "1": {
                 "status": "complete",
                 "started_at": (now - timedelta(minutes=10)).isoformat(),
