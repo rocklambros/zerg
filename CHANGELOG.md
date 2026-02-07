@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-07
+
 ### Added
 
 - Bug report and feature request issue templates with YAML forms (#185)
@@ -28,18 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs` optional dependency group for mkdocs and mkdocs-material (#190)
 - Python 3.13 classifier in pyproject.toml (#189)
 - Coverage badge and GitHub Discussions link in README (#189, #190)
-
-### Changed
-
-- PyPI distribution renamed from `zerg` to `zerg-ai` — `import zerg` and `zerg` CLI unchanged (#180)
-- All `pip install zerg[...]` references updated to `zerg-ai[...]` across docs, README, and source (#180)
-- CHANGELOG frozen: `[Unreleased]` → `[0.2.0] - 2026-02-07` (#182)
-- README Quick Start and Installation sections now show `pip install zerg-ai` (#180)
-
-## [0.2.0] - 2026-02-07
-
-### Added
-
 - `--tone` flag for `/zerg:document` with `educational` (default), `reference`, and `tutorial` tones for documentation style control
 - 3 tone definition files at `zerg/data/tones/` (`educational.md`, `reference.md`, `tutorial.md`) for documentation style guidance
 - `--admin` flag for `/zerg:git --action ship`: use admin merge directly, bypassing branch protection rules (repo owner/admin)
@@ -63,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- PyPI distribution renamed from `zerg` to `zerg-ai` — `import zerg` and `zerg` CLI unchanged (#180)
+- All `pip install zerg[...]` references updated to `zerg-ai[...]` across docs, README, and source (#180)
+- CHANGELOG frozen: `[Unreleased]` → `[0.2.0] - 2026-02-07` (#182)
+- README Quick Start and Installation sections now show `pip install zerg-ai` (#180)
 - docs: comprehensive documentation audit — sync all commands and flags across wiki, command references, and tutorials
 - `/z:plan` anti-implementation guards hardened at 4 locations with PLANNING COMPLETE terminal banner
 - Plan requirements template includes Section 11 "Documentation Impact Analysis"
