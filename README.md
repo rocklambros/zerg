@@ -4,6 +4,13 @@
   <img src="logo/zerg_logo.png" alt="ZERG Logo" width="450">
 </p>
 
+<p align="center">
+  <a href="https://pypi.org/project/zerg-ai/"><img src="https://img.shields.io/pypi/v/zerg-ai" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/zerg-ai/"><img src="https://img.shields.io/pypi/pyversions/zerg-ai" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/rocklambros/zerg" alt="License"></a>
+  <a href="https://github.com/rocklambros/zerg/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/rocklambros/zerg/ci.yml?branch=main&label=CI" alt="CI"></a>
+</p>
+
 **Zero-Effort Rapid Growth** — A parallel Claude Code execution system that coordinates multiple Claude Code instances to build software features simultaneously. ZERG auto-detects your tech stack, fetches security rules, generates dev containers, breaks features into atomic tasks with exclusive file ownership, and launches a swarm of zerglings to execute them in parallel.
 
 ---

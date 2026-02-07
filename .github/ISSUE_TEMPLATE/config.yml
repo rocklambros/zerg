@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions
+    url: https://github.com/rocklambros/zerg/discussions
+    about: Ask questions and get help in GitHub Discussions
+  - name: Security Vulnerabilities
+    url: https://github.com/rocklambros/zerg/security/advisories/new
+    about: Report security vulnerabilities privately via GitHub Security Advisories
