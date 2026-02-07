@@ -102,7 +102,7 @@ class WorkerProtocol:
             try:
                 self.task_parser.parse(self.task_graph_path)
                 logger.info(f"Loaded task graph from {self.task_graph_path}")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: graceful fallback if task graph is corrupt
                 logger.warning(f"Failed to load task graph: {e}")
                 self.task_parser = None
 
@@ -147,7 +147,7 @@ class WorkerProtocol:
                 level=self.config.logging.level,
                 max_size_mb=self.config.logging.max_log_size_mb,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: structured logging is optional, must not block worker
             logger.warning(f"Failed to set up structured logging: {e}")
 
         # Plugin registry (optional, for lifecycle hooks)
@@ -158,7 +158,7 @@ class WorkerProtocol:
                 self._plugin_registry = PluginRegistry()
                 self._plugin_registry.load_yaml_hooks([h.model_dump() for h in self.config.plugins.hooks])
                 self._plugin_registry.load_entry_points()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: plugin init is optional, must not block worker
                 logger.warning(f"Failed to initialize plugin registry: {e}")
                 self._plugin_registry = None
 
@@ -206,7 +206,8 @@ class WorkerProtocol:
             )
         worker_state.status = status
         if current_task is not _SENTINEL:
-            worker_state.current_task = current_task  # type: ignore[assignment]
+            # current_task is either str | None once sentinel is excluded
+            worker_state.current_task = current_task if isinstance(current_task, str) else None
         if tasks_completed is not None:
             worker_state.tasks_completed = tasks_completed
         worker_state.context_usage = self.check_context_usage()
@@ -251,7 +252,7 @@ class WorkerProtocol:
                     self.report_complete(task["id"])
                 else:
                     self.report_failed(task["id"], "Task execution failed")
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: crash handler must catch all, re-raises
             self._update_worker_state(WorkerStatus.CRASHED, current_task=None)
             raise
 
@@ -559,7 +560,7 @@ def run_worker() -> None:
     try:
         protocol = WorkerProtocol()
         protocol.start()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: top-level entry point must catch all for clean exit
         logger.error(f"Worker failed: {e}")
         sys.exit(ExitCode.ERROR)
 

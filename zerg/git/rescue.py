@@ -429,7 +429,8 @@ class RescueEngine:
             Exit code (0 = success, 1 = failure)
         """
         if action == "list":
-            count = int(kwargs.get("count", 20))  # type: ignore[arg-type]
+            raw_count = kwargs.get("count", 20)
+            count = int(raw_count) if raw_count is not None else 20
             ops = self.list_operations(count)
             for op in ops:
                 print(f"[{op.get('timestamp', '?')}] {op.get('operation', '?')}: {op.get('description', '')}")

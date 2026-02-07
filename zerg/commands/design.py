@@ -679,20 +679,22 @@ def validate_task_graph(path: Path, detail_level: str = "standard") -> None:
                         errors.append(f"Task {task_id}, step {step_num}: invalid verify '{step['verify']}'")
 
     # Check file ownership conflicts
-    file_owners: dict[tuple[Any, ...], Any] = {}
+    # Keys are tuples of (file, operation) or (file, operation, level)
+    FileOwnerKey = tuple[Any, ...]
+    file_owners: dict[FileOwnerKey, Any] = {}
     for task in tasks:
         task_id = task.get("id")
         level = task.get("level", 0)
 
         for file in task.get("files", {}).get("create", []):
-            key = (file, "create")
+            key: FileOwnerKey = (file, "create")
             if key in file_owners:
                 owner = file_owners[key]
                 errors.append(f"File conflict: {file} created by both {owner} and {task_id}")
             file_owners[key] = task_id
 
         for file in task.get("files", {}).get("modify", []):
-            key = (file, "modify", level)  # type: ignore[assignment]
+            key = (file, "modify", level)
             if key in file_owners:
                 owner = file_owners[key]
                 msg = f"File conflict: {file} modified by {owner} and {task_id} at L{level}"

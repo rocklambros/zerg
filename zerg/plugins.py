@@ -279,10 +279,13 @@ class PluginRegistry:
         """
         eps = importlib.metadata.entry_points()
 
-        # importlib.metadata.entry_points() returns a dict-like on older
-        # Python and a SelectableGroups on 3.12+.  Handle both.
-        discovered = (
-            eps.select(group=group) if hasattr(eps, "select") else eps.get(group, [])  # type: ignore[attr-defined]
+        # importlib.metadata.entry_points() returns SelectableGroups on 3.12+
+        # with a .select() method; older Pythons return a dict.  The hasattr
+        # guard handles both, but mypy only sees one branch.
+        discovered: Any = (
+            eps.select(group=group)  # type: ignore[union-attr]  # polymorphic API across Python versions
+            if hasattr(eps, "select")
+            else eps.get(group, [])  # type: ignore[union-attr]
         )
 
         for ep in discovered:

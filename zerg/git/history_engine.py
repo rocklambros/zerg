@@ -353,7 +353,7 @@ class HistoryAnalyzer:
                     parts = f.split("/", 1)
                     d = parts[0] if len(parts) > 1 else "."
                     dirs[d] = dirs.get(d, 0) + 1
-                primary_dir = max(dirs, key=dirs.get)  # type: ignore[arg-type]
+                primary_dir = max(dirs, key=lambda k: dirs[k])
             else:
                 primary_dir = "."
 
@@ -468,7 +468,7 @@ class RewritePlanner:
             ct = c.commit_type or CommitType.CHORE
             type_counts[ct] = type_counts.get(ct, 0) + 1
 
-        primary_type = max(type_counts, key=type_counts.get)  # type: ignore[arg-type]
+        primary_type = max(type_counts, key=lambda k: type_counts[k])
 
         # Collect all unique files
         all_files: set[str] = set()

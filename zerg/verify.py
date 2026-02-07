@@ -202,7 +202,7 @@ class VerificationExecutor:
         Returns:
             VerificationExecutionResult (last attempt)
         """
-        last_result = None
+        last_result: VerificationExecutionResult | None = None
 
         for attempt in range(max_retries):
             result = self.verify(command, task_id, **kwargs)
@@ -215,7 +215,8 @@ class VerificationExecutor:
                 logger.info(f"Retry {attempt + 1}/{max_retries} for task {task_id}")
                 time.sleep(retry_delay)
 
-        return last_result  # type: ignore
+        assert last_result is not None, "max_retries must be >= 1"
+        return last_result
 
     def check_result(
         self,
