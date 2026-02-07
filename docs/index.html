@@ -340,6 +340,61 @@
     </section>
 
     <!-- ================================================================
+         Quick Start
+         ================================================================ -->
+    <section id="quickstart" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" role="region" aria-labelledby="quickstart-heading">
+      <div class="max-w-3xl mx-auto">
+        <h2 id="quickstart-heading" class="text-3xl sm:text-4xl font-bold text-center mb-4" style="color: var(--text-primary);">
+          <span class="gradient-text">Quick Start</span>
+        </h2>
+        <p class="text-center mb-10" style="color: var(--text-muted);">From zero to parallel workers in four commands.</p>
+
+        <div class="code-block mb-8">
+          <code><span style="color: #94a3b8;"># Install ZERG</span>
+pip install zerg-ai
+
+<span style="color: #94a3b8;"># Plan your feature</span>
+/zerg:plan user-auth
+
+<span style="color: #94a3b8;"># Design architecture and task graph</span>
+/zerg:design
+
+<span style="color: #94a3b8;"># Launch the swarm</span>
+/zerg:rush --workers=5</code>
+          <button type="button" class="copy-btn" data-copy="pip install zerg-ai
+/zerg:plan user-auth
+/zerg:design
+/zerg:rush --workers=5" aria-label="Copy quick start commands">
+            <svg class="w-4 h-4 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-purple);">1.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Install</strong> &mdash; Get ZERG from PyPI with a single pip command.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-purple);">2.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Plan</strong> &mdash; Interactively capture requirements for your feature.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-green);">3.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Design</strong> &mdash; Auto-generate architecture and parallel task graph.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-green);">4.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Rush</strong> &mdash; Launch 5 parallel workers to build your feature.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
          Section 4: How It Works
          ================================================================ -->
     <section id="how" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" role="region" aria-labelledby="how-heading">
@@ -644,61 +699,6 @@
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================================================================
-         Section 6: Quick Start
-         ================================================================ -->
-    <section id="quickstart" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" role="region" aria-labelledby="quickstart-heading">
-      <div class="max-w-3xl mx-auto">
-        <h2 id="quickstart-heading" class="text-3xl sm:text-4xl font-bold text-center mb-4" style="color: var(--text-primary);">
-          <span class="gradient-text">Quick Start</span>
-        </h2>
-        <p class="text-center mb-10" style="color: var(--text-muted);">From zero to parallel workers in four commands.</p>
-
-        <div class="code-block mb-8">
-          <code><span style="color: #94a3b8;"># Install ZERG</span>
-pip install zerg-ai
-
-<span style="color: #94a3b8;"># Plan your feature</span>
-/zerg:plan user-auth
-
-<span style="color: #94a3b8;"># Design architecture and task graph</span>
-/zerg:design
-
-<span style="color: #94a3b8;"># Launch the swarm</span>
-/zerg:rush --workers=5</code>
-          <button type="button" class="copy-btn" data-copy="pip install zerg-ai
-/zerg:plan user-auth
-/zerg:design
-/zerg:rush --workers=5" aria-label="Copy quick start commands">
-            <svg class="w-4 h-4 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <span>Copy</span>
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div class="flex items-start gap-3">
-            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-purple);">1.</span>
-            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Install</strong> &mdash; Get ZERG from PyPI with a single pip command.</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-purple);">2.</span>
-            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Plan</strong> &mdash; Interactively capture requirements for your feature.</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-green);">3.</span>
-            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Design</strong> &mdash; Auto-generate architecture and parallel task graph.</p>
-          </div>
-          <div class="flex items-start gap-3">
-            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-green);">4.</span>
-            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Rush</strong> &mdash; Launch 5 parallel workers to build your feature.</p>
-          </div>
         </div>
       </div>
     </section>
