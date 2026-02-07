@@ -50,8 +50,8 @@ class RuleInjector:
 
         try:
             rules = self._loader.get_rules_for_files(file_paths)
-        except Exception:
-            logger.debug("Failed to load rules for injection", exc_info=True)
+        except (OSError, ValueError) as exc:
+            logger.debug("Failed to load rules for injection: %s", exc)
             return ""
 
         if not rules:

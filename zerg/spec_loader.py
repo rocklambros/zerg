@@ -98,7 +98,7 @@ class SpecLoader:
         try:
             content = path.read_text(encoding="utf-8")
             return content.strip()
-        except Exception as e:
+        except OSError as e:
             logger.warning(f"Failed to load {path}: {e}")
             return ""
 
@@ -218,7 +218,8 @@ class SpecLoader:
         """
         try:
             specs = self.load_feature_specs(feature)
-        except Exception:
+        except OSError:
+            logger.debug("Failed to load specs for feature %s", feature)
             return ""
 
         if not specs.requirements and not specs.design:

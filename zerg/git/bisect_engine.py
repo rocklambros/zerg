@@ -12,6 +12,7 @@ import subprocess
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from zerg.exceptions import GitError
 from zerg.git.commit_engine import COMMIT_TYPE_PATTERNS
 from zerg.git.config import GitConfig
 from zerg.git.types import CommitInfo, CommitType
@@ -704,7 +705,7 @@ class BisectEngine:
             tag = result.stdout.strip() if result.stdout else ""
             if tag and result.returncode == 0:
                 return tag
-        except Exception:
+        except GitError:
             pass
 
         # Fall back to first commit
@@ -715,7 +716,7 @@ class BisectEngine:
                 "HEAD",
             )
             return result.stdout.strip().splitlines()[0]
-        except Exception:
+        except (GitError, IndexError):
             return "HEAD~10"
 
     def _detect_test_command(self) -> str | None:
@@ -764,7 +765,7 @@ class BisectEngine:
         timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         try:
             branch = self._runner.current_branch()
-        except Exception:
+        except GitError:
             branch = "unknown"
 
         # Sanitize branch name for filename

@@ -93,7 +93,7 @@ class TokenAggregator:
                 per_worker=per_worker,
                 breakdown_totals=breakdown_totals,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: aggregation is best-effort reporting
             logger.warning("Failed to aggregate token data", exc_info=True)
             return AggregateResult()
 
@@ -138,7 +138,7 @@ class TokenAggregator:
                 savings_pct=round(pct, 2),
                 breakdown=component_breakdown,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: savings calculation is best-effort reporting
             logger.warning("Failed to calculate token savings", exc_info=True)
             return SavingsResult()
 
@@ -147,6 +147,6 @@ class TokenAggregator:
         try:
             agg = self.aggregate()
             return agg.tokens_per_task
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: efficiency ratio is best-effort reporting
             logger.warning("Failed to compute efficiency ratio", exc_info=True)
             return 0.0

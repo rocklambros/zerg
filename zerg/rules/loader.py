@@ -132,13 +132,13 @@ class RuleLoader:
         for yaml_path in sorted(self._rules_dir.glob("*.yaml")):
             try:
                 rulesets.append(self.load_file(yaml_path))
-            except Exception:
-                logger.warning("Failed to load rule file %s", yaml_path, exc_info=True)
+            except (OSError, ValueError, yaml.YAMLError) as exc:
+                logger.warning("Failed to load rule file %s: %s", yaml_path, exc)
         for yml_path in sorted(self._rules_dir.glob("*.yml")):
             try:
                 rulesets.append(self.load_file(yml_path))
-            except Exception:
-                logger.warning("Failed to load rule file %s", yml_path, exc_info=True)
+            except (OSError, ValueError, yaml.YAMLError) as exc:
+                logger.warning("Failed to load rule file %s: %s", yml_path, exc)
 
         return rulesets
 

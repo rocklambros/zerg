@@ -81,7 +81,7 @@ class SemverCalculator:
                 check=False,
             )
             tags = [line.strip() for line in (result.stdout or "").strip().splitlines() if line.strip()]
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: git tag listing is best-effort fallback
             logger.debug("Failed to list tags, defaulting to 0.0.0")
             return "0.0.0"
 
@@ -427,7 +427,7 @@ class ReleaseCreator:
             runner._run("push", "origin", tag_name)
             result["pushed"] = True
             logger.info("Pushed tag: %s", tag_name)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — intentional: push failure is non-fatal, tag already created
             logger.warning("Failed to push tag: %s", exc)
 
         # Create GitHub release if configured and gh is available
@@ -513,7 +513,7 @@ class ReleaseEngine:
         """
         try:
             return self._execute(bump=bump, pre=pre, dry_run=dry_run)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — intentional: top-level release safety net, must not propagate
             logger.error("Release failed: %s", exc)
             return 1
 
@@ -609,7 +609,7 @@ class ReleaseEngine:
                 "--no-merges",
                 check=False,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: commit listing fallback returns empty
             return []
 
         output = (result.stdout or "").strip()

@@ -70,7 +70,7 @@ class TokenTracker:
             }
 
             self._atomic_write(worker_id, data)
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: token tracking is best-effort, must not crash worker
             logger.warning(
                 "Failed to record task %s for worker %s",
                 task_id,
@@ -106,7 +106,7 @@ class TokenTracker:
                     result[wid] = data
                 except (json.JSONDecodeError, OSError):
                     continue
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: token data reading is best-effort reporting
             logger.warning("Failed to read all token data", exc_info=True)
         return result
 

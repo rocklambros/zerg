@@ -91,7 +91,7 @@ class AdaptiveDetailManager:
             try:
                 zerg_config = ZergConfig.load()
                 self._config = zerg_config.planning
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: config loading is best-effort, falls back to defaults
                 # Use defaults if config can't be loaded
                 self._config = PlanningConfig()
         else:

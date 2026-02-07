@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from zerg.exceptions import GitError
 from zerg.git.config import GitConfig, GitPRConfig
 from zerg.git.types import CommitInfo, CommitType
 from zerg.logging import get_logger
@@ -150,7 +151,7 @@ class ContextAssembler:
                 "--name-only",
                 check=False,
             )
-        except Exception:
+        except (GitError, OSError):
             logger.warning("Failed to get commit log")
             return []
 
@@ -235,7 +236,7 @@ class ContextAssembler:
                 return issues
         except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             logger.debug("GitHub CLI not available or failed; skipping issues")
-        except Exception:
+        except (subprocess.SubprocessError, OSError):
             logger.debug("Unexpected error fetching issues; skipping")
 
         return []
@@ -574,7 +575,7 @@ class PRCreator:
         try:
             branch_result = runner._run("rev-parse", "--abbrev-ref", "HEAD", check=False)
             branch = branch_result.stdout.strip() if branch_result.stdout else "unknown"
-        except Exception:
+        except GitError:
             branch = "unknown"
 
         # Sanitize branch name for filename

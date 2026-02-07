@@ -79,7 +79,7 @@ def detect_context(runner: GitRunner) -> str:
         result = runner._run("branch", "--list", "zerg/*/worker-*", check=False)
         branches = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
         count = len(branches)
-    except Exception:
+    except Exception:  # noqa: BLE001 — intentional: branch detection is best-effort, defaults to solo
         return "solo"
 
     if count == 0:

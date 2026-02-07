@@ -561,7 +561,7 @@ def fetch_rules(
                 logger.warning(f"Failed to fetch {rule_path}: {result.stderr}")
         except subprocess.TimeoutExpired:
             logger.warning(f"Timeout fetching {rule_path}")
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             logger.warning(f"Error fetching {rule_path}: {e}")
 
     return fetched

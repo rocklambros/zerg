@@ -143,7 +143,7 @@ class LoopController:
 
             try:
                 score = improve_fn(i)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: callback can raise anything, loop must abort gracefully
                 logger.error(f"Iteration {i} failed: {e}")
                 status = LoopStatus.ABORTED
                 break

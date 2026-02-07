@@ -99,7 +99,7 @@ class RuleValidator:
 
         try:
             rulesets = loader.load_all()
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             aggregate.valid = False
             aggregate.errors.append(f"Failed to load rules from {rules_dir}: {exc}")
             return aggregate

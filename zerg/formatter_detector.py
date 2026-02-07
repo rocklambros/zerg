@@ -128,7 +128,7 @@ class FormatterDetector:
                     fix_cmd="ruff format .",
                     file_patterns=["*.py"],
                 )
-        except Exception:
+        except (OSError, tomllib.TOMLDecodeError, KeyError):
             pass
 
         return None
@@ -150,7 +150,7 @@ class FormatterDetector:
                     fix_cmd="black .",
                     file_patterns=["*.py"],
                 )
-        except Exception:
+        except (OSError, tomllib.TOMLDecodeError, KeyError):
             pass
 
         return None
@@ -183,7 +183,7 @@ class FormatterDetector:
                     data = json.load(f)
                 if "prettier" in data:
                     return self._create_prettier_config()
-            except Exception:
+            except (OSError, json.JSONDecodeError, KeyError):
                 pass
 
         return None

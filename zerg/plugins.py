@@ -162,7 +162,7 @@ class PluginRegistry:
         for callback in self._hooks.get(event.event_type, []):
             try:
                 callback(event)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: hooks are best-effort, must not crash caller
                 logger.warning(
                     "Hook callback %r failed for event type %r",
                     callback,
@@ -188,7 +188,7 @@ class PluginRegistry:
 
         try:
             return plugin.run(ctx)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — intentional: plugin gate errors must not crash orchestrator
             logger.warning(
                 "Plugin gate %r raised an exception",
                 name,
@@ -235,7 +235,7 @@ class PluginRegistry:
                 result = plugin.build_task_context(task, task_graph, feature)
                 if result:
                     parts.append(result)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: context plugin failures must not block other plugins
                 logger.warning(
                     "Context plugin %r failed for task %r",
                     plugin.name,
@@ -310,7 +310,7 @@ class PluginRegistry:
                         ep.name,
                         type(instance).__name__,
                     )
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: entry point loading is best-effort discovery
                 logger.warning(
                     "Failed to load entry point %r from group %r",
                     ep.name,
