@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from zerg.types import GraphNodeDict
+
 
 def validate_graph_properties(
     task_graph: dict[str, Any],
@@ -22,9 +24,9 @@ def validate_graph_properties(
     errors: list[str] = []
     warnings: list[str] = []
 
-    tasks = task_graph.get("tasks", [])
+    tasks: list[GraphNodeDict] = task_graph.get("tasks", [])
     task_ids = {t["id"] for t in tasks}
-    task_by_id: dict[str, dict[str, Any]] = {t["id"]: t for t in tasks}
+    task_by_id: dict[str, GraphNodeDict] = {t["id"]: t for t in tasks}
 
     # 1. Dependency references — all must point to existing task IDs
     _check_dependency_references(tasks, task_ids, errors)
@@ -53,7 +55,7 @@ def validate_graph_properties(
 
 
 def _check_dependency_references(
-    tasks: list[dict[str, Any]],
+    tasks: list[GraphNodeDict],
     task_ids: set[str],
     errors: list[str],
 ) -> None:
@@ -102,8 +104,8 @@ def _dfs_cycle(
 
 
 def _check_intra_level_cycles(
-    tasks: list[dict[str, Any]],
-    task_by_id: dict[str, dict[str, Any]],
+    tasks: list[GraphNodeDict],
+    task_by_id: dict[str, GraphNodeDict],
     errors: list[str],
 ) -> None:
     """Detect cycles among tasks within the same level."""
@@ -129,9 +131,9 @@ def _check_intra_level_cycles(
 
 
 def _check_orphan_tasks(
-    tasks: list[dict[str, Any]],
+    tasks: list[GraphNodeDict],
     task_ids: set[str],
-    task_by_id: dict[str, dict[str, Any]],
+    task_by_id: dict[str, GraphNodeDict],
     warnings: list[str],
 ) -> None:
     """Warn about L2+ tasks that no other task depends on."""
@@ -155,8 +157,8 @@ def _check_orphan_tasks(
 
 
 def _check_unreachable_tasks(
-    tasks: list[dict[str, Any]],
-    task_by_id: dict[str, dict[str, Any]],
+    tasks: list[GraphNodeDict],
+    task_by_id: dict[str, GraphNodeDict],
     errors: list[str],
 ) -> None:
     """Error on tasks not reachable from L1 roots via dependency edges."""
@@ -195,7 +197,7 @@ def _check_unreachable_tasks(
 
 
 def _check_consumer_references(
-    tasks: list[dict[str, Any]],
+    tasks: list[GraphNodeDict],
     task_ids: set[str],
     errors: list[str],
 ) -> None:
@@ -207,7 +209,7 @@ def _check_consumer_references(
 
 
 def _check_consumer_integration_tests(
-    tasks: list[dict[str, Any]],
+    tasks: list[GraphNodeDict],
     errors: list[str],
 ) -> None:
     """Tasks with non-empty consumers must have an integration_test field."""

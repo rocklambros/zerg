@@ -9,19 +9,23 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from zerg.types import BacklogItemDict
 
-def _get_owned_files(task: dict[str, Any]) -> str:
+
+def _get_owned_files(task: BacklogItemDict) -> str:
     """Extract owned files (create + modify) from a task's file spec."""
-    files_spec = task.get("files", {})
-    owned = []
-    for key in ("create", "modify"):
-        owned.extend(files_spec.get(key, []))
+    files_spec = task.get("files")
+    if not files_spec:
+        return "-"
+    owned: list[str] = []
+    owned.extend(files_spec.get("create", []))
+    owned.extend(files_spec.get("modify", []))
     if not owned:
         return "-"
     return ", ".join(f"`{f}`" for f in owned)
 
 
-def _get_verification(task: dict[str, Any]) -> str:
+def _get_verification(task: BacklogItemDict) -> str:
     """Extract verification command from a task."""
     verification = task.get("verification", {})
     command = verification.get("command", "-")
@@ -30,7 +34,7 @@ def _get_verification(task: dict[str, Any]) -> str:
     return "-"
 
 
-def _get_deps(task: dict[str, Any]) -> str:
+def _get_deps(task: BacklogItemDict) -> str:
     """Format task dependencies."""
     deps = task.get("dependencies", [])
     if not deps:
@@ -38,9 +42,9 @@ def _get_deps(task: dict[str, Any]) -> str:
     return ", ".join(deps)
 
 
-def _group_tasks_by_level(tasks: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
+def _group_tasks_by_level(tasks: list[BacklogItemDict]) -> dict[int, list[BacklogItemDict]]:
     """Group tasks by their level field."""
-    levels: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    levels: dict[int, list[BacklogItemDict]] = defaultdict(list)
     for task in tasks:
         level = task.get("level", 1)
         levels[level].append(task)
@@ -57,7 +61,7 @@ def _get_level_name(level_num: int, levels_spec: dict[str, Any] | None) -> str:
     return f"Level {level_num}"
 
 
-def compute_critical_path(tasks: list[dict[str, Any]]) -> list[str]:
+def compute_critical_path(tasks: list[BacklogItemDict]) -> list[str]:
     """Compute the DAG longest-path by estimate_minutes.
 
     Uses dynamic programming on the topologically sorted task graph to find
@@ -77,7 +81,7 @@ def compute_critical_path(tasks: list[dict[str, Any]]) -> list[str]:
         return [tasks[0]["id"]]
 
     # Build lookup structures
-    task_map: dict[str, dict[str, Any]] = {t["id"]: t for t in tasks}
+    task_map: dict[str, BacklogItemDict] = {t["id"]: t for t in tasks}
     estimates: dict[str, int] = {t["id"]: t.get("estimate_minutes", 15) for t in tasks}
 
     # Topological sort via Kahn's algorithm
@@ -130,7 +134,7 @@ def compute_critical_path(tasks: list[dict[str, Any]]) -> list[str]:
 
 
 def estimate_sessions(
-    tasks: list[dict[str, Any]],
+    tasks: list[BacklogItemDict],
     max_workers: int = 5,
     session_minutes: int = 90,
 ) -> dict[str, int | float]:
@@ -210,7 +214,7 @@ def _render_header(
 
 def _render_execution_summary(
     lines: list[str],
-    levels: dict[int, list[dict[str, Any]]],
+    levels: dict[int, list[BacklogItemDict]],
     levels_spec: dict[str, Any] | None,
     max_parallel: int,
     total_tasks: int,
@@ -236,7 +240,7 @@ def _render_execution_summary(
 
 def _render_task_backlog_by_level(
     lines: list[str],
-    levels: dict[int, list[dict[str, Any]]],
+    levels: dict[int, list[BacklogItemDict]],
     levels_spec: dict[str, Any] | None,
 ) -> None:
     """Render the per-level task backlog tables."""
@@ -269,8 +273,8 @@ def _render_task_backlog_by_level(
 def _render_critical_path(
     lines: list[str],
     critical_path_ids: list[str],
-    tasks: list[dict[str, Any]],
-    levels: dict[int, list[dict[str, Any]]],
+    tasks: list[BacklogItemDict],
+    levels: dict[int, list[BacklogItemDict]],
 ) -> None:
     """Render the critical path ASCII diagram section."""
     lines.append("## Critical Path")
@@ -328,7 +332,7 @@ def _render_critical_path(
 
 def _render_progress_tracking(
     lines: list[str],
-    levels: dict[int, list[dict[str, Any]]],
+    levels: dict[int, list[BacklogItemDict]],
     total_tasks: int,
 ) -> None:
     """Render the progress tracking table."""
@@ -375,7 +379,7 @@ def _render_estimated_sessions(
 
 def _render_blockers(
     lines: list[str],
-    tasks: list[dict[str, Any]],
+    tasks: list[BacklogItemDict],
 ) -> None:
     """Render the blockers and notes section."""
     lines.append("## Blockers & Notes")
@@ -395,7 +399,7 @@ def _render_blockers(
 
 def _render_verification_commands(
     lines: list[str],
-    tasks: list[dict[str, Any]],
+    tasks: list[BacklogItemDict],
 ) -> None:
     """Render the verification commands section."""
     lines.append("## Verification Commands")

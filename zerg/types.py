@@ -30,6 +30,14 @@ __all__ = [
     "TaskMetrics",
     "LevelMetrics",
     "FeatureMetrics",
+    # Backlog types
+    "BacklogItemDict",
+    # Diagnostics types
+    "DiagnosticResultDict",
+    # Graph validation types
+    "GraphNodeDict",
+    # State types
+    "StateDict",
 ]
 
 from dataclasses import dataclass, field
@@ -125,6 +133,94 @@ class TaskGraph(TypedDict, total=False):
     critical_path_minutes: int
     tasks: list[Task]
     levels: dict[str, LevelSpec]
+
+
+# ============================================================================
+# Backlog types
+# ============================================================================
+
+
+class BacklogItemDict(TypedDict, total=False):
+    """A task item as used by backlog generation and rendering.
+
+    Mirrors the Task TypedDict but is used specifically in backlog contexts
+    where tasks flow through grouping, rendering, and status-update functions.
+    """
+
+    id: str
+    title: str
+    description: str
+    level: int
+    dependencies: list[str]
+    files: FileSpec
+    verification: VerificationSpec
+    estimate_minutes: int
+    status: str
+    execution: TaskExecution
+    critical_path: bool
+    consumers: list[str]
+
+
+# ============================================================================
+# Diagnostics types
+# ============================================================================
+
+
+class DiagnosticResultDict(TypedDict, total=False):
+    """Consolidated environment diagnostics result from EnvDiagnosticsEngine.run_all().
+
+    Contains sub-dicts for each diagnostic domain plus collected evidence.
+    """
+
+    python: dict[str, Any]
+    docker: dict[str, Any]
+    resources: dict[str, Any]
+    config: list[str]
+    evidence: list[dict[str, Any]]
+
+
+# ============================================================================
+# Graph validation types
+# ============================================================================
+
+
+class GraphNodeDict(TypedDict, total=False):
+    """A task node as consumed by graph validation functions.
+
+    Contains fields needed for dependency analysis, cycle detection,
+    consumer verification, and reachability checks.
+    """
+
+    id: str
+    title: str
+    level: int
+    dependencies: list[str]
+    consumers: list[str]
+    integration_test: str
+
+
+# ============================================================================
+# State types
+# ============================================================================
+
+
+class StateDict(TypedDict, total=False):
+    """Top-level ZERG execution state persisted to disk.
+
+    Represents the structure created by PersistenceLayer._create_initial_state()
+    and managed by all state/ submodules.
+    """
+
+    feature: str
+    started_at: str
+    current_level: int
+    tasks: dict[str, Any]
+    workers: dict[str, Any]
+    levels: dict[str, Any]
+    execution_log: list[dict[str, Any]]
+    metrics: dict[str, Any] | None
+    paused: bool
+    error: str | None
 
 
 # ============================================================================
