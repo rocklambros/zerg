@@ -6,6 +6,7 @@ import contextlib
 import json
 from pathlib import Path
 
+from zerg.fs_utils import collect_files
 from zerg.performance.types import DetectedStack
 
 # Extension-to-language mapping
@@ -24,7 +25,7 @@ _EXTENSION_MAP: dict[str, str] = {
     ".h": "c/cpp",
 }
 
-# Directories to skip during scanning
+# Directories to skip during scanning (also used by _detect_kubernetes)
 _SKIP_DIRS: set[str] = {
     "node_modules",
     ".git",
@@ -66,21 +67,27 @@ def _should_skip(path: Path) -> bool:
 
 def _detect_languages(project_path: Path) -> list[str]:
     """Detect programming languages by scanning file extensions."""
+    # Single traversal via collect_files for all known extensions
+    grouped = collect_files(
+        project_path,
+        extensions=set(_EXTENSION_MAP.keys()),
+        exclude_dirs=_SKIP_DIRS,
+    )
+
     languages: set[str] = set()
     count = 0
-
-    for file_path in project_path.rglob("*"):
+    # Iterate over collected files, respecting _MAX_SCAN_FILES cap
+    for ext, file_list in grouped.items():
+        lang = _EXTENSION_MAP.get(ext)
+        if not lang:
+            continue
+        for _fp in file_list:
+            if count >= _MAX_SCAN_FILES:
+                break
+            languages.add(lang)
+            count += 1
         if count >= _MAX_SCAN_FILES:
             break
-        if not file_path.is_file():
-            continue
-        if _should_skip(file_path.relative_to(project_path)):
-            continue
-
-        lang = _EXTENSION_MAP.get(file_path.suffix.lower())
-        if lang:
-            languages.add(lang)
-        count += 1
 
     return sorted(languages)
 
@@ -160,28 +167,22 @@ def _detect_kubernetes(project_path: Path) -> bool:
     if (project_path / "Chart.yaml").is_file():
         return True
 
-    # Scan YAML files for Kubernetes resource definitions
+    # Scan YAML files for Kubernetes resource definitions (single traversal)
     k8s_markers = ("kind: Deployment", "kind: Service")
     try:
-        for yaml_file in project_path.rglob("*.yaml"):
-            if _should_skip(yaml_file.relative_to(project_path)):
-                continue
-            try:
-                content = yaml_file.read_text(encoding="utf-8")
-                if any(marker in content for marker in k8s_markers):
-                    return True
-            except OSError:
-                continue
-
-        for yml_file in project_path.rglob("*.yml"):
-            if _should_skip(yml_file.relative_to(project_path)):
-                continue
-            try:
-                content = yml_file.read_text(encoding="utf-8")
-                if any(marker in content for marker in k8s_markers):
-                    return True
-            except OSError:
-                continue
+        grouped = collect_files(
+            project_path,
+            extensions={".yaml", ".yml"},
+            exclude_dirs=_SKIP_DIRS,
+        )
+        for ext in (".yaml", ".yml"):
+            for yaml_file in grouped.get(ext, []):
+                try:
+                    content = yaml_file.read_text(encoding="utf-8")
+                    if any(marker in content for marker in k8s_markers):
+                        return True
+                except OSError:
+                    continue
     except OSError:
         pass
 

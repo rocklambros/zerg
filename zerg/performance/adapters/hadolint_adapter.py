@@ -55,14 +55,24 @@ class HadolintAdapter(BaseToolAdapter):
 
     @staticmethod
     def _find_dockerfiles(project_path: str) -> list[Path]:
-        """Return all Dockerfile-like files under *project_path*."""
+        """Return all Dockerfile-like files under *project_path*.
+
+        Uses a single rglob traversal instead of separate passes for
+        ``*.Dockerfile`` and ``Dockerfile.*`` patterns.
+        """
         root = Path(project_path)
         results: list[Path] = []
         default = root / "Dockerfile"
         if default.is_file():
             results.append(default)
-        results.extend(sorted(root.rglob("*.Dockerfile")))
-        results.extend(sorted(root.rglob("Dockerfile.*")))
+        # Single traversal — collect files whose name contains "Dockerfile"
+        for p in sorted(root.rglob("*")):
+            if not p.is_file():
+                continue
+            name = p.name
+            # Match *.Dockerfile (e.g. prod.Dockerfile) and Dockerfile.* (e.g. Dockerfile.dev)
+            if name.endswith(".Dockerfile") or (name.startswith("Dockerfile.") and name != "Dockerfile"):
+                results.append(p)
         # Deduplicate while preserving order
         seen: set[Path] = set()
         unique: list[Path] = []

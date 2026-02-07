@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from zerg.fs_utils import collect_files
 from zerg.repo_map_js import JSSymbol, extract_js_file
 
 logger = logging.getLogger(__name__)
@@ -406,6 +407,26 @@ def invalidate_cache() -> None:
         logger.debug("Invalidating cache for RepoMap")
 
 
+# Directories to always skip during file collection
+_SKIP_DIRS = frozenset(
+    {
+        "node_modules",
+        "__pycache__",
+        "venv",
+        ".venv",
+        "dist",
+        "build",
+    }
+)
+
+# Language extension mapping (mirrors build_map logic)
+_LANG_EXTENSIONS: dict[str, list[str]] = {
+    "python": [".py"],
+    "javascript": [".js", ".jsx"],
+    "typescript": [".ts", ".tsx"],
+}
+
+
 def _build_map_impl(root: Path, languages: list[str]) -> SymbolGraph:
     """Internal implementation of build_map (without caching).
 
@@ -418,27 +439,26 @@ def _build_map_impl(root: Path, languages: list[str]) -> SymbolGraph:
     """
     graph = SymbolGraph()
 
-    # Collect files by extension
-    extensions: dict[str, list[str]] = {}
+    # Build the set of desired extensions and a mapping back to language type
+    desired_exts: set[str] = set()
+    ext_to_lang: dict[str, str] = {}
     if "python" in languages:
-        extensions[".py"] = ["python"]
+        desired_exts.add(".py")
+        ext_to_lang[".py"] = "python"
     if "javascript" in languages:
-        extensions[".js"] = ["javascript"]
-        extensions[".jsx"] = ["javascript"]
+        desired_exts.update({".js", ".jsx"})
+        ext_to_lang[".js"] = "javascript"
+        ext_to_lang[".jsx"] = "javascript"
     if "typescript" in languages:
-        extensions[".ts"] = ["typescript"]
-        extensions[".tsx"] = ["typescript"]
+        desired_exts.update({".ts", ".tsx"})
+        ext_to_lang[".ts"] = "typescript"
+        ext_to_lang[".tsx"] = "typescript"
 
-    for ext, langs in extensions.items():
-        for filepath in root.rglob(f"*{ext}"):
-            # Skip common non-source directories
-            parts = filepath.relative_to(root).parts
-            if any(
-                p.startswith(".") or p in ("node_modules", "__pycache__", "venv", ".venv", "dist", "build")
-                for p in parts
-            ):
-                continue
+    # Single traversal via collect_files instead of per-extension rglob calls
+    grouped = collect_files(root, extensions=desired_exts, exclude_dirs=_SKIP_DIRS)
 
+    for ext, file_list in grouped.items():
+        for filepath in file_list:
             module_name = _path_to_module(filepath, root)
 
             if ext == ".py":
@@ -458,25 +478,6 @@ def _build_map_impl(root: Path, languages: list[str]) -> SymbolGraph:
 # Incremental indexing — MD5-based staleness detection
 # ---------------------------------------------------------------------------
 
-# Language extension mapping (mirrors build_map logic)
-_LANG_EXTENSIONS: dict[str, list[str]] = {
-    "python": [".py"],
-    "javascript": [".js", ".jsx"],
-    "typescript": [".ts", ".tsx"],
-}
-
-# Directories to always skip during file collection
-_SKIP_DIRS = frozenset(
-    {
-        "node_modules",
-        "__pycache__",
-        "venv",
-        ".venv",
-        "dist",
-        "build",
-    }
-)
-
 
 def _md5_file(filepath: Path) -> str:
     """Return hex MD5 digest of a file's contents."""
@@ -490,28 +491,21 @@ def _md5_file(filepath: Path) -> str:
 def _collect_files(root: Path, languages: list[str]) -> list[Path]:
     """Collect source files matching *languages* under *root*.
 
-    Uses single-pass directory traversal for performance.
+    Uses ``collect_files()`` from ``zerg.fs_utils`` for a single-pass
+    directory traversal instead of a manual rglob.
     """
     exts: set[str] = set()
     for lang in languages:
         exts.update(_LANG_EXTENSIONS.get(lang, []))
 
-    # Single traversal, filter in memory
+    # Single traversal via fs_utils
+    grouped = collect_files(root, extensions=exts, exclude_dirs=_SKIP_DIRS)
+
+    # Flatten the grouped dict into a single sorted list
     result: list[Path] = []
-    for fp in root.rglob("*"):
-        if not fp.is_file():
-            continue
-
-        # Check extension
-        if fp.suffix not in exts:
-            continue
-
-        # Check skip directories
-        parts = fp.relative_to(root).parts
-        if any(p.startswith(".") or p in _SKIP_DIRS for p in parts):
-            continue
-
-        result.append(fp)
+    for file_list in grouped.values():
+        result.extend(file_list)
+    result.sort()
     return result
 
 
