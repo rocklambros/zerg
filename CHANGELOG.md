@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- GitHub environments (`pypi`, `testpypi`) for trusted OIDC publishing (#181)
+- 5 required CI status checks on `main` branch protection: `quality`, `smoke`, `test (1)`, `test (2)`, `audit` (#179)
+- Pre-release tag support in `release.yml` version validation (#183)
+
+### Changed
+
+- PyPI distribution renamed from `zerg` to `zerg-ai` — `import zerg` and `zerg` CLI unchanged (#180)
+- All `pip install zerg[...]` references updated to `zerg-ai[...]` across docs, README, and source (#180)
+- CHANGELOG frozen: `[Unreleased]` → `[0.2.0] - 2026-02-07` (#182)
+- README Quick Start and Installation sections now show `pip install zerg-ai` (#180)
+
 ## [0.2.0] - 2026-02-07
 
 ### Added
