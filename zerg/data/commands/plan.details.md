@@ -312,6 +312,28 @@ After implementation, execute `/zerg:document` to update all documentation surfa
 - Ensure all ZERG commands and flags are accounted for in documentation
 - Wiki command pages must follow the `zerg-*.md` naming convention (non-command pages unaffected)
 - Before executing documentation updates, plan the work via `/zerg:design` and estimate via `/zerg:estimate`
+
+---
+
+## 11. Documentation Impact Analysis
+
+### 11.1 Files Requiring Documentation Updates
+| File | Current State | Required Update | Priority |
+|------|--------------|-----------------|----------|
+| `CHANGELOG.md` | | | Must |
+| `README.md` | | | |
+| `docs/commands-quick.md` | | | |
+| `docs/commands-deep.md` | | | |
+| `.gsd/wiki/Command-Reference.md` | | | |
+| `.gsd/wiki/Tutorial.md` | | | |
+| `CLAUDE.md` | | | |
+
+### 11.2 Documentation Tasks for Design Phase
+- [ ] CHANGELOG.md update task (ALWAYS required)
+- [ ] README.md update (if applicable)
+- [ ] Command reference updates (if command/flag functionality changed)
+- [ ] CLAUDE.md update (if project conventions changed)
+- [ ] Wiki updates (if user-facing behavior changed)
 ```
 
 ---

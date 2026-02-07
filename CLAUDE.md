@@ -227,6 +227,10 @@ Use `/zerg:status` to view the CONTEXT BUDGET section showing:
 - Per-task context population rate
 - Security rule filtering stats
 
+## Documentation Impact Analysis
+
+The `/z:plan` command now includes Section 11 "Documentation Impact Analysis" in its requirements template. This ensures every feature plan explicitly identifies which docs need updating. The `/z:design` command mandates CHANGELOG.md and documentation update tasks in every task graph.
+
 ## PR Documentation Rules
 
 When creating a pull request, **always update CHANGELOG.md** under the `[Unreleased]` section with a brief entry describing the change. Use the appropriate category:

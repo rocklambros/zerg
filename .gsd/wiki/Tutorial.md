@@ -847,6 +847,21 @@ Use `--dry-run` to preview what would be removed.
 
 ---
 
+## Documentation Tones
+
+The `/zerg:document` command supports three documentation tones via the `--tone` flag:
+
+- **educational** (default): Concept-first documentation with CONCEPT, NARRATIVE, DIAGRAM, and COMMAND sections for every concept
+- **reference**: Terse tables and API signatures for quick lookup
+- **tutorial**: Step-by-step walkthrough with simulated terminal dialogues
+
+Example:
+```
+/zerg:document zerg/launcher.py --tone reference
+```
+
+---
+
 ## Quick Reference
 
 ### Phase Summary

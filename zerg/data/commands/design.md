@@ -121,8 +121,31 @@ Depends on Integration.
 Final polish.
 - Documentation
 - Type coverage
+- CHANGELOG.md update (required — add entries under [Unreleased])
 - Lint fixes
 ```
+
+### Mandatory Documentation Tasks
+
+Every task graph MUST include these documentation tasks. This is non-negotiable.
+
+#### CHANGELOG.md (ALWAYS Required)
+
+Every task graph MUST include a CHANGELOG.md update task in Level 5 (Quality). This task:
+- Updates the `[Unreleased]` section with entries for all changes in this feature
+- Uses categories: Added, Changed, Fixed, Removed
+- Depends on all testing-phase tasks
+
+#### Doc Update Tasks (Conditional)
+
+When a feature changes command/flag functionality, the task graph MUST also include tasks to update:
+- `README.md` — if CLI usage examples change
+- `docs/commands-quick.md` and `docs/commands-deep.md` — if command flags change
+- `.gsd/wiki/Command-Reference.md` — if user-facing commands change
+- `.gsd/wiki/Tutorial.md` — if workflows change
+- `CLAUDE.md` — if project conventions change
+
+These doc update tasks go in Level 4 or 5 (after implementation/testing, before or alongside quality).
 
 ### File Ownership Matrix
 
@@ -588,6 +611,7 @@ Reply with:
 - User has explicitly approved
 - Claude Tasks created for all tasks with correct dependencies
 - Consumer matrix populated for all tasks with created files
+- Task graph includes a CHANGELOG.md update task in the final quality level
 
 ## Help
 

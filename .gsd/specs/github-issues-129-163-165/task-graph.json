@@ -1,0 +1,365 @@
+{
+  "feature": "github-issues-129-163-165",
+  "version": "2.0",
+  "generated": "2026-02-07T00:00:00Z",
+  "total_tasks": 11,
+  "estimated_duration_minutes": 80,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create educational tone definition",
+      "description": "Create zerg/data/tones/educational.md defining the educational documentation tone. Must include: tone name/description, required sections per concept (CONCEPT, NARRATIVE, DIAGRAM, COMMAND), output structure template, and example output. This is the DEFAULT tone for /zerg:document.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/data/tones/educational.md"],
+        "modify": [],
+        "read": ["zerg/data/commands/document.md"]
+      },
+      "acceptance_criteria": [
+        "File exists at zerg/data/tones/educational.md",
+        "Contains CONCEPT, NARRATIVE, DIAGRAM, COMMAND section definitions",
+        "Includes example output demonstrating the tone",
+        "Explains when to use this tone"
+      ],
+      "verification": {
+        "command": "test -f zerg/data/tones/educational.md && grep -q 'CONCEPT' zerg/data/tones/educational.md && grep -q 'NARRATIVE' zerg/data/tones/educational.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["documentation"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/unit/test_document_tone.py",
+      "context": "## Spec Context\nFR-001: Add --tone educational|reference|tutorial flag to /zerg:document\nFR-002: educational is the DEFAULT tone (not reference)\nFR-004: Educational tone: every concept has CONCEPT, NARRATIVE, DIAGRAM, COMMAND sections\n\nThe educational tone was manually developed for issue #129. It teaches 'why' not just 'what'. Every concept gets a plain-language explanation, a narrative connecting it to the bigger picture, a Mermaid diagram, and concrete CLI examples.\n\n## Dependencies\nNo upstream dependencies — this is a foundation task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Create reference tone definition",
+      "description": "Create zerg/data/tones/reference.md defining the reference documentation tone. This preserves the current terse documentation behavior: tables, API signatures, parameter lists, minimal prose.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/data/tones/reference.md"],
+        "modify": [],
+        "read": ["zerg/data/commands/document.md"]
+      },
+      "acceptance_criteria": [
+        "File exists at zerg/data/tones/reference.md",
+        "Defines terse table-driven output style",
+        "Includes example output demonstrating the tone",
+        "Matches current /zerg:document default behavior"
+      ],
+      "verification": {
+        "command": "test -f zerg/data/tones/reference.md && grep -qi 'reference' zerg/data/tones/reference.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["documentation"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/unit/test_document_tone.py",
+      "context": "## Spec Context\nFR-005: Reference tone: terse tables and API signatures (current behavior)\n\nThe reference tone preserves backward compatibility with current /zerg:document output. It's the 'just the facts' style — parameter tables, return types, function signatures. No narrative, no diagrams unless structurally necessary.\n\n## Dependencies\nNo upstream dependencies — this is a foundation task."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Create tutorial tone definition",
+      "description": "Create zerg/data/tones/tutorial.md defining the tutorial documentation tone. Step-by-step walkthrough style with simulated dialogues and progressive complexity.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/data/tones/tutorial.md"],
+        "modify": [],
+        "read": ["zerg/data/commands/document.md"]
+      },
+      "acceptance_criteria": [
+        "File exists at zerg/data/tones/tutorial.md",
+        "Defines step-by-step walkthrough style",
+        "Includes simulated dialogue examples",
+        "Shows progressive complexity structure"
+      ],
+      "verification": {
+        "command": "test -f zerg/data/tones/tutorial.md && grep -qi 'tutorial' zerg/data/tones/tutorial.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["documentation"],
+      "consumers": ["TASK-004"],
+      "integration_test": "tests/unit/test_document_tone.py",
+      "context": "## Spec Context\nFR-006: Tutorial tone: step-by-step walkthrough with simulated dialogues\n\nThe tutorial tone generates documentation as a guided walkthrough. Each concept is introduced progressively, building on previous steps. Includes simulated terminal sessions showing what the user types and what they see.\n\n## Dependencies\nNo upstream dependencies — this is a foundation task."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add --tone flag to /zerg:document",
+      "description": "Modify zerg/commands/document.py to add --tone click option (educational|reference|tutorial, default educational). Modify zerg/data/commands/document.md prompt to instruct Claude to read the appropriate tone file from zerg/data/tones/{tone}.md and apply its style.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/document.py", "zerg/data/commands/document.md"],
+        "read": ["zerg/data/tones/educational.md", "zerg/data/tones/reference.md", "zerg/data/tones/tutorial.md"]
+      },
+      "acceptance_criteria": [
+        "--tone flag accepted by Click with choices educational|reference|tutorial",
+        "Default tone is educational",
+        "Tone value passed through to renderer/prompt layer",
+        "document.md instructs Claude to read zerg/data/tones/{tone}.md",
+        "Help text updated to show --tone flag",
+        "document.md stays under 300 lines"
+      ],
+      "verification": {
+        "command": "cd /Users/klambros/PycharmProjects/ZERG && python -c \"from zerg.commands.document import document; print('OK')\" && grep -q 'tone' zerg/commands/document.py && grep -q 'tone' zerg/data/commands/document.md",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "click"],
+      "consumers": ["TASK-008"],
+      "integration_test": "tests/unit/test_document_tone.py",
+      "context": "## Security Rules (Python)\n- Use click.Choice for input validation (already standard pattern)\n- No user-controlled file paths — tone maps to a fixed set of files\n\n## Spec Context\nFR-001: Add --tone educational|reference|tutorial flag\nFR-002: educational is DEFAULT\nFR-003: Tone definitions stored at zerg/data/tones/{tone}.md\n\nExisting document.py has @click.option for --type, --output, --depth, --update. Add --tone in the same pattern. The prompt file (document.md) must instruct Claude to read the tone file and follow its style guidelines.\n\n## Dependencies\nTASK-001/002/003 create the tone definition files at zerg/data/tones/."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Harden plan command anti-implementation guards",
+      "description": "Add redundant anti-implementation guards to plan.core.md at 4 locations: (1) strengthen existing top-of-file banner, (2) new guard before Phase 2, (3) new guard before Phase 5, (4) strengthen post-approval section with PLANNING COMPLETE terminal banner. Sync identical changes to plan.md parent file.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.core.md", "zerg/data/commands/plan.md"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "plan.core.md has anti-implementation guards at 4+ locations",
+        "Each guard contains 'MUST NEVER' or equivalent strong language",
+        "Post-approval section shows PLANNING COMPLETE terminal banner",
+        "Banner includes explicit EXIT statement",
+        "plan.md parent file synced with core changes",
+        "TaskCreate/TaskUpdate references preserved (no drift)"
+      ],
+      "verification": {
+        "command": "count=$(grep -c 'MUST NEVER\\|DO NOT.*implement\\|DO NOT.*write code\\|DO NOT.*design' zerg/data/commands/plan.core.md); test $count -ge 4 && echo \"OK: $count guards\" || echo \"FAIL: only $count guards\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["prompt-engineering"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-007: Add redundant anti-implementation guards to plan.core.md at 4 locations\nFR-008: Plan terminal output: 'PLANNING COMPLETE' banner with explicit EXIT statement\n\nIssue #163: /z:plan occasionally bypasses the plan->design->rush workflow and auto-implements. The existing guard at top-of-file is insufficient because Claude forgets it by Phase 5. Redundant guards at decision boundaries prevent drift.\n\nCurrent plan.core.md already has one guard section at the top. Add 3 more at strategic locations. The parent plan.md must stay synced.\n\n## Anti-Drift\nplan.core.md and plan.md both contain TaskCreate/TaskUpdate references. These are load-bearing — DO NOT remove them."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Add Section 11 Documentation Impact Analysis to plan template",
+      "description": "Add Section 11 'Documentation Impact Analysis' to the requirements.md template in plan.details.md. This section appears after Section 10 and includes a file impact table and a documentation tasks checklist for the design phase.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.details.md"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "plan.details.md requirements template includes Section 11",
+        "Section 11 has subsections: 11.1 Files Requiring Documentation Updates, 11.2 Documentation Tasks for Design Phase",
+        "11.1 contains a table template with File, Current State, Required Update, Priority columns",
+        "11.2 contains a checklist including CHANGELOG (always required), README, command refs, CLAUDE.md, wiki"
+      ],
+      "verification": {
+        "command": "grep -q 'Documentation Impact Analysis' zerg/data/commands/plan.details.md && grep -q '11.1' zerg/data/commands/plan.details.md && grep -q '11.2' zerg/data/commands/plan.details.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-009: Add Section 11 'Documentation Impact Analysis' to plan's requirements.md template\n\nIssue #165: Neither /z:plan nor /z:design systematically track documentation impact. Section 11 is added to the requirements template so every feature plan explicitly identifies which docs need updating.\n\nThe template in plan.details.md currently ends at Section 10 (Documentation). Section 11 goes after it, inside the template markdown code block."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Add mandatory documentation tasks to design command",
+      "description": "Modify design.core.md to include a 'Mandatory Documentation Tasks' subsection in the Phase 2 implementation plan. This subsection requires: (1) CHANGELOG.md task ALWAYS in Level 5 quality phase, (2) doc update tasks whenever command/flag functionality changes. Sync changes to design.md parent file.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/design.core.md", "zerg/data/commands/design.md"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "design.core.md has 'Mandatory Documentation Tasks' subsection",
+        "CHANGELOG.md task required in every task graph Level 5",
+        "Doc update tasks required when command/flag behavior changes",
+        "design.md parent file synced with core changes",
+        "Completion criteria updated to include doc task requirement",
+        "TaskCreate/TaskUpdate references preserved (no drift)"
+      ],
+      "verification": {
+        "command": "grep -q 'Mandatory Documentation Tasks' zerg/data/commands/design.core.md && grep -q 'CHANGELOG' zerg/data/commands/design.core.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["prompt-engineering"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-010: Design command always generates CHANGELOG.md task in Level 5 quality phase\nFR-011: Design command generates doc update tasks whenever command/flag functionality changes\n\nIssue #165: Features ship without updated docs. The design command must enforce documentation tasks in every task graph. design.core.md already mentions CHANGELOG in Phase 5 example but doesn't mandate it. Make it a hard requirement.\n\n## Anti-Drift\ndesign.core.md and design.md contain TaskCreate/TaskUpdate references. These are load-bearing — DO NOT remove them."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Create unit tests for --tone flag",
+      "description": "Create tests/unit/test_document_tone.py with tests for: (1) default tone is educational, (2) explicit --tone reference works, (3) explicit --tone tutorial works, (4) invalid --tone value rejected, (5) tone definition files exist at expected paths. Uses Click CliRunner with mocked doc_engine dependencies.",
+      "phase": "testing",
+      "level": 3,
+      "dependencies": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "files": {
+        "create": ["tests/unit/test_document_tone.py"],
+        "modify": [],
+        "read": ["zerg/commands/document.py", "tests/unit/test_wiki_document.py"]
+      },
+      "acceptance_criteria": [
+        "Test file exists at tests/unit/test_document_tone.py",
+        "Tests cover: default tone, explicit tones, invalid tone, tone file existence",
+        "All tests pass with mocked doc_engine",
+        "Follows existing test patterns from test_wiki_document.py"
+      ],
+      "verification": {
+        "command": "cd /Users/klambros/PycharmProjects/ZERG && python -m pytest tests/unit/test_document_tone.py -x -q --timeout=60",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest", "click-testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- No dangerous deserialization\n- Use subprocess safely if needed\n\n## Spec Context\nTC-001: Default tone — No --tone flag → Educational tone used\nTC-002: Explicit reference — --tone reference → Reference style output\nTC-003: Invalid tone — --tone bogus → Click rejects with error\n\nExisting test patterns in test_wiki_document.py use Click CliRunner with mocked doc_engine imports. Follow the same _make_mock_doc_engine() helper pattern.\n\n## Dependencies\nTASK-004 modifies document.py to add --tone flag. Tests must verify the flag is parsed correctly and passed through."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Update project docs: CHANGELOG, README, command refs",
+      "description": "Update CHANGELOG.md [Unreleased] section with entries for --tone flag, plan guards, and doc impact analysis. Update README.md to show --tone flag in usage examples. Update docs/commands-quick.md and docs/commands-deep.md with --tone row in document flag table.",
+      "phase": "quality",
+      "level": 4,
+      "dependencies": ["TASK-008"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md", "README.md", "docs/commands-quick.md", "docs/commands-deep.md"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "CHANGELOG.md has entries under [Unreleased] for all 3 issues",
+        "README.md shows --tone flag in /zerg:document examples",
+        "docs/commands-quick.md has --tone row in document flag table",
+        "docs/commands-deep.md has --tone documentation"
+      ],
+      "verification": {
+        "command": "grep -q 'tone' CHANGELOG.md && grep -q 'tone' docs/commands-quick.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-012: Update project documentation (README, wiki, command refs, CLAUDE.md) for this feature\n\nCHANGELOG entries needed:\n- Added: --tone flag for /zerg:document with educational (default), reference, tutorial tones\n- Added: 3 tone definition files at zerg/data/tones/\n- Changed: /z:plan anti-implementation guards hardened at 4 locations\n- Changed: Plan requirements template includes Section 11 Documentation Impact Analysis\n- Changed: /z:design mandates CHANGELOG and doc tasks in task graphs"
+    },
+    {
+      "id": "TASK-010",
+      "title": "Update wiki and CLAUDE.md",
+      "description": "Update .gsd/wiki/Command-Reference.md with --tone flag for /zerg:document. Update .gsd/wiki/Tutorial.md with tone examples. Update CLAUDE.md to document the new documentation impact analysis requirement for /z:plan and /z:design.",
+      "phase": "quality",
+      "level": 4,
+      "dependencies": ["TASK-008"],
+      "files": {
+        "create": [],
+        "modify": [".gsd/wiki/Command-Reference.md", ".gsd/wiki/Tutorial.md", "CLAUDE.md"],
+        "read": []
+      },
+      "acceptance_criteria": [
+        "Command-Reference.md shows --tone flag for /zerg:document",
+        "Tutorial.md mentions tone in documentation examples",
+        "CLAUDE.md documents documentation impact analysis requirement"
+      ],
+      "verification": {
+        "command": "grep -q 'tone' .gsd/wiki/Command-Reference.md && grep -q 'tone' .gsd/wiki/Tutorial.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-012: Update project documentation for this feature\n\nCommand-Reference.md is a large wiki page (~28K tokens). Find the /zerg:document section and add --tone to its flag table. Tutorial.md should mention tone selection in its documentation examples. CLAUDE.md needs a note about the new convention that /z:plan and /z:design track documentation impact."
+    },
+    {
+      "id": "TASK-011",
+      "title": "Run wiring verification",
+      "description": "Verify all new modules have production callers and imports resolve. Run validate_commands for structural checks, then scoped pytest for new + affected tests.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-009", "TASK-010"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": ["zerg/**/*.py", "tests/**/*.py"]
+      },
+      "acceptance_criteria": [
+        "validate_commands passes",
+        "All new and affected tests pass",
+        "No drift detected in command files"
+      ],
+      "verification": {
+        "command": "cd /Users/klambros/PycharmProjects/ZERG && python -m zerg.validate_commands && python -m pytest tests/unit/test_document_tone.py tests/unit/test_wiki_document.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Verification\nFinal quality gate. Runs validate_commands to check command file integrity and drift detection, then runs scoped pytest on new and affected test files."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 15
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "testing",
+      "tasks": ["TASK-008"],
+      "parallel": false,
+      "estimated_minutes": 15,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "documentation",
+      "tasks": ["TASK-009", "TASK-010"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality-wiring",
+      "tasks": ["TASK-011"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

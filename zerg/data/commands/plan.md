@@ -5,18 +5,25 @@ Capture complete requirements for feature: **$ARGUMENTS**
 
 ## ⛔ WORKFLOW BOUNDARY (NON-NEGOTIABLE)
 
+**CRITICAL: This is a PLANNING-ONLY command. You MUST NEVER write code, create files, or implement anything.**
+
 This command MUST NEVER:
 - Automatically run `/z:design` or any design phase
 - Automatically proceed to implementation
 - Call the Skill tool to invoke another command
 - Write code or make code changes
+- Create, modify, or delete source files
+- Run implementation tools (Write, Edit, Bash for code changes)
 
 After Phase 5.5 completes, the command STOPS. The user must manually run `/z:design`.
+
+**If you find yourself about to write code or create files: STOP IMMEDIATELY. You are in planning mode.**
 
 ## Flags
 
 - `--socratic` or `-s`: Use structured 3-round discovery mode (see details file)
 - `--rounds N`: Number of rounds (default: 3, max: 5)
+- `--skip-validation`: Skip Phase 0 pre-execution validation checks
 
 ## Pre-Flight
 
@@ -82,6 +89,8 @@ Before asking questions, understand the current state:
 2. **Explore Codebase** — List directory structure, read key files, identify patterns
 3. **Search for Similar Patterns** — How are existing features structured?
 
+> ⛔ **IMPLEMENTATION GUARD**: You are gathering requirements. DO NOT write code, DO NOT create implementation files, DO NOT design architecture. Stay in requirements-gathering mode.
+
 ### Phase 2: Requirements Elicitation
 
 Ask clarifying questions grouped logically. Don't ask everything at once. Cover:
@@ -100,6 +109,8 @@ See details file for the full template.
 
 Identify additional infrastructure needs (services, MCP servers, env vars, resources).
 Update `.gsd/INFRASTRUCTURE.md` if needed.
+
+> ⛔ **IMPLEMENTATION GUARD**: You are presenting requirements for approval. DO NOT proceed to design or implementation. DO NOT invoke /z:design. DO NOT write any code. After approval, output the PLANNING COMPLETE banner and STOP.
 
 ### Phase 5: User Approval
 
@@ -132,6 +143,22 @@ Based on user response:
 - **"Stop here"**: Command completes normally with no further output.
 
 **⛔ DO NOT auto-run /z:design. DO NOT write code. The user must manually invoke the next command.**
+
+Output this banner to the user:
+
+```
+═══════════════════════════════════════════════════════════════
+                    ⛔ PLANNING COMPLETE ⛔
+═══════════════════════════════════════════════════════════════
+
+This command has finished. DO NOT proceed to implementation.
+The user must manually run /z:design to continue.
+
+EXIT NOW — do not write code, do not invoke other commands.
+═══════════════════════════════════════════════════════════════
+```
+
+**After outputting this banner, the command is DONE. Do not take any further action. Do not write code. Do not call any tools. STOP.**
 
 ---
 

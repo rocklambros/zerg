@@ -9,6 +9,7 @@ Generate documentation for a specific component, module, or command.
                         [--output PATH]
                         [--depth shallow|standard|deep]
                         [--update]
+                        [--tone educational|reference|tutorial]
 ```
 
 ## Arguments
@@ -30,6 +31,19 @@ Generate documentation for a specific component, module, or command.
   - `standard` - Public API + key internals
   - `deep` - Full documentation with examples
 - `--update`: Update existing documentation in-place
+- `--tone`: Documentation tone. Default: `educational`
+  - `educational` - Concept-first with CONCEPT, NARRATIVE, DIAGRAM, COMMAND sections (default)
+  - `reference` - Terse tables and API signatures for quick lookup
+  - `tutorial` - Step-by-step walkthrough with simulated dialogues
+
+## Tone
+
+The `--tone` flag controls the documentation style. Before generating documentation, read the tone definition file at `zerg/data/tones/{tone}.md` and follow its style guidelines, required sections, and output structure template.
+
+Available tones:
+- **educational** (default): Every concept gets CONCEPT, NARRATIVE, DIAGRAM, COMMAND sections. Teaches "why" not just "what".
+- **reference**: Terse tables, API signatures, parameter lists. Quick lookup format.
+- **tutorial**: Step-by-step walkthrough with numbered steps, expected output, and troubleshooting.
 
 ## Pipeline
 
@@ -114,5 +128,7 @@ Flags:
   --depth shallow|standard|deep
                     Documentation depth (default: standard)
   --update          Update existing documentation in-place
+  --tone educational|reference|tutorial
+                    Documentation tone (default: educational)
   --help            Show this help message
 ```
