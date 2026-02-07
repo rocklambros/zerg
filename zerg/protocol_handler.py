@@ -247,7 +247,7 @@ class ProtocolHandler:
 
             return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: task execution catch-all; logs error and records failure
             logger.error(f"Task {task_id} failed: {e}")
             self.state.append_event(
                 "task_exception",
@@ -377,7 +377,7 @@ class ProtocolHandler:
                 task_id=task_id,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: subprocess invocation catch-all; returns structured result
             duration_ms = int((time.time() - start_time) * 1000)
             logger.error(f"Claude Code invocation error: {e}")
 
@@ -567,7 +567,7 @@ class ProtocolHandler:
                     diff_text = diff_result.stdout + unstaged.stdout
                     if diff_text:
                         artifact.capture_git_diff(diff_text)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — intentional: best-effort artifact capture; non-critical
                     logger.debug(f"Best-effort artifact capture failed: {e}")
 
             # BF-009: Record HEAD before commit for verification
@@ -610,7 +610,7 @@ class ProtocolHandler:
 
             return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: commit catch-all; logs error and records failure event
             logger.error(f"Commit failed for {task_id}: {e}")
             self.state.append_event(
                 "commit_failed",

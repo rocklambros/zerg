@@ -402,7 +402,7 @@ def validate_rules(rules_dir: Path | None = None) -> tuple[bool, list[str]]:
                 errors.extend(result.errors)
     except ImportError:
         return True, ["Rules module not available"]
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: validation must not crash; records error and continues
         errors.append(f"Rules validation error: {e}")
 
     return not errors, errors

@@ -208,7 +208,7 @@ class TestEventEmitter:
             try:
                 for i in range(10):
                     emitter.emit(f"event_{n}_{i}")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 errors.append(e)
 
         threads = [threading.Thread(target=emit_events, args=(i,)) for i in range(5)]

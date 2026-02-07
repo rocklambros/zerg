@@ -213,7 +213,7 @@ class TestThreadSafety:
                 config = ZergConfig.load()
                 with lock:
                     results.append(config)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 with lock:
                     errors.append(e)
 
@@ -249,7 +249,7 @@ class TestThreadSafety:
                 config = ZergConfig.load(force_reload=force)
                 with lock:
                     results.append(config)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 with lock:
                     errors.append(e)
 
@@ -289,7 +289,7 @@ class TestThreadSafety:
                     # Verify config is valid
                     _ = config.workers.max_concurrent
                     _ = config.to_dict()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 with lock:
                     errors.append(e)
 
@@ -347,7 +347,7 @@ class TestInvalidateCache:
                     config = ZergConfig.load()
                     _ = config.workers.max_concurrent
                     ZergConfig.invalidate_cache()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 with lock:
                     errors.append(e)
 

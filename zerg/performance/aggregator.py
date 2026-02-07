@@ -130,7 +130,7 @@ class PerformanceAuditor:
                     findings = future.result(timeout=300)
                     all_findings.extend(findings)
                     logger.info("Adapter %s: %d findings", adapter.name, len(findings))
-                except Exception:
+                except Exception:  # noqa: BLE001 — intentional: best-effort adapter run; skip failed adapters
                     logger.warning("Adapter %s failed", adapter.name, exc_info=True)
 
         return all_findings

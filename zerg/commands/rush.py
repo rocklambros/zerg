@@ -222,7 +222,7 @@ def rush(
                     current = current_feature_file.read_text().strip()
                     if current == feature:
                         current_feature_file.unlink()
-                except Exception:
+                except Exception:  # noqa: BLE001 — intentional: non-critical cleanup; failure is harmless
                     pass  # Non-critical cleanup
         else:
             pct = status["progress"]["percent"]
@@ -231,7 +231,7 @@ def rush(
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted[/yellow]")
         raise SystemExit(130) from None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         if verbose:
             console.print_exception()

@@ -32,7 +32,7 @@ class TestConcurrentWorkerLogging:
                         event="task_started" if i == 0 else None,
                     )
                 writer.close()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 errors.append(f"Worker {worker_id}: {e}")
 
         # Run 3 workers concurrently

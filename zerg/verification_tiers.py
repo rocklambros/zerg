@@ -198,7 +198,7 @@ class VerificationTiers:
                 stderr=f"Command validation failed: {e}",
                 duration_ms=duration_ms,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: tier execution catch-all; returns structured TierResult
             duration_ms = int((time.time() - start) * 1000)
             return TierResult(
                 tier=tier,

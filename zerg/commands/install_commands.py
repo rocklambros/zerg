@@ -36,7 +36,7 @@ def _get_source_dir() -> Path:
         resolved = Path(str(pkg_dir))
         if resolved.is_dir():
             return resolved
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: best-effort package resource lookup; falls back to file path
         logger.debug(f"Install check failed: {e}")
 
     # Fallback: relative to this file
@@ -259,7 +259,7 @@ def install_commands(target: str | None, copy: bool, force: bool) -> None:
             console.print(
                 f"[green]Installed {count}/{total} ZERG commands[/green] ({method} to {target_dir}/{{zerg,z}}/)"
             )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1) from e
 
@@ -291,7 +291,7 @@ def uninstall_commands(target: str | None) -> None:
             console.print("[dim]No ZERG commands found to remove[/dim]")
         else:
             console.print(f"[green]Removed {count} ZERG commands[/green] from {target_dir}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1) from e
 
@@ -315,5 +315,5 @@ def auto_install_commands() -> None:
         count = _install(target_dir, source_dir)
         if count > 0:
             console.print(f"  [green]\u2713[/green] Installed {count} ZERG slash commands globally")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — intentional: best-effort auto-install; failure is non-critical
         logger.debug("Auto-install commands failed: %s", exc)

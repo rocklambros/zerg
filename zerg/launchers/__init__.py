@@ -74,7 +74,7 @@ def get_plugin_launcher(name: str, registry: Any) -> Any | None:
     try:
         launcher = plugin.create_launcher(None)
         return launcher
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: plugin instantiation fallback; returns None on failure
         logger.warning(f"Plugin launcher '{name}' failed to create launcher instance: {e}")
         return None
 

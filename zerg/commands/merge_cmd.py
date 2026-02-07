@@ -134,7 +134,7 @@ def merge_cmd(
                 console.print("\nResolve conflicts manually or use [cyan]zerg retry[/cyan]")
                 raise SystemExit(1)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: fallback to direct coordinator on orchestrator failure
             # Fall back to direct merge coordinator
             logger.warning(f"Orchestrator merge failed, using direct coordinator: {e}")
             result = merge_coordinator.full_merge_flow(level)
@@ -151,7 +151,7 @@ def merge_cmd(
                 console.print("\nResolve conflicts manually or use [cyan]zerg retry[/cyan]")
                 raise SystemExit(1) from None
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         raise SystemExit(1) from e
 

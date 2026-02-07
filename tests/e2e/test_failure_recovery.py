@@ -234,7 +234,7 @@ class TestGracefulDegradation:
         # Should not raise
         try:
             orch._spawn_worker(0)
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: test isolation; ensuring spawn failure doesn't crash suite
             pass  # May raise, but shouldn't crash catastrophically
 
 

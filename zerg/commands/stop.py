@@ -98,7 +98,7 @@ def stop(
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Aborted[/yellow]")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         raise SystemExit(1) from None
 
@@ -181,7 +181,7 @@ def stop_workers_graceful(
                 worker_state.status = WorkerStatus.STOPPING
                 state.set_worker_state(worker_state)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: best-effort graceful stop; continues to next worker
             logger.warning(f"Failed to signal worker {worker_id}: {e}")
             console.print(f"  worker-{worker_id}: [red]signal failed[/red]")
 
@@ -254,7 +254,7 @@ def stop_workers_force(
                 },
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: best-effort force kill; continues to next worker
             logger.error(f"Failed to kill worker {worker_id}: {e}")
             console.print(f"  worker-{worker_id}: [red]kill failed: {e}[/red]")
 

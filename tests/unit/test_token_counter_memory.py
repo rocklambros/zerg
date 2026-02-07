@@ -114,7 +114,7 @@ class TestTokenCounterCache:
 
                     with lock:
                         results.append(result)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 with lock:
                     errors.append(e)
 

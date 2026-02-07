@@ -122,7 +122,7 @@ class SampleClass:
             try:
                 graph = build_map(temp_repo)
                 results.append(graph)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 errors.append(e)
 
         # Launch threads

@@ -406,7 +406,7 @@ class CommandExecutor:
                 validated=True,
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: catch-all for subprocess errors; returns structured CommandResult
             duration_ms = int((time.time() - start_time) * 1000)
             cmd_result = CommandResult(
                 command=cmd_args,

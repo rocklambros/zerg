@@ -507,7 +507,7 @@ def action_ship(git: GitOps, base: str, draft: bool, reviewer: str | None, no_me
                 return 1
 
             console.print(f"[green]\u2713[/green] Merged with commit {result.merge_commit}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: fallback to gh merge on ZERG merge failure
             console.print(f"[yellow]ZERG merge failed, falling back to gh merge:[/yellow] {e}")
             use_zerg_merge = False
 
@@ -738,7 +738,7 @@ def git_cmd(
     except GitError as e:
         console.print(f"\n[red]Git error:[/red] {e}")
         raise SystemExit(1) from e
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         logger.exception("Git command failed")
         raise SystemExit(1) from e

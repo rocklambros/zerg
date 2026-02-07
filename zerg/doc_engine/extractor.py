@@ -59,7 +59,7 @@ def _unparse_node(node: ast.expr) -> str:
     """Convert an AST expression node back to source string."""
     try:
         return ast.unparse(node)
-    except Exception:
+    except Exception:  # noqa: BLE001 — intentional: best-effort AST unparse; returns placeholder on failure
         return "<unknown>"
 
 

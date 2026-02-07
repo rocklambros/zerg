@@ -205,7 +205,7 @@ class LintChecker(BaseChecker):
                 issues=[f"Command validation failed: {e}"],
                 score=0.0,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: best-effort lint check; failure must not crash analyzer
             return AnalysisResult(
                 check_type=CheckType.LINT,
                 passed=False,
@@ -286,7 +286,7 @@ class SecurityChecker(BaseChecker):
                 issues=[f"Security tool not installed ({e}) — skipped"],
                 score=0.0,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: best-effort security scan; failure must not crash analyzer
             logger.exception("Security check failed")
             return AnalysisResult(
                 check_type=CheckType.SECURITY,
@@ -383,7 +383,7 @@ class DeadCodeChecker(BaseChecker):
                 issues=["vulture not installed — skipping dead code analysis"],
                 score=0.0,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: best-effort dead code analysis; failure must not crash analyzer
             return AnalysisResult(
                 check_type=CheckType.DEAD_CODE,
                 passed=False,
@@ -425,7 +425,7 @@ class WiringChecker(BaseChecker):
                 issues=[f"Could not import validate_commands: {e}"],
                 score=0.0,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: best-effort wiring check; failure must not crash analyzer
             return AnalysisResult(
                 check_type=CheckType.WIRING,
                 passed=False,
@@ -577,7 +577,7 @@ class CrossFileChecker(BaseChecker):
             try:
                 tree = self._cache.parse(pf)
                 exports_by_file[str(pf)] = collect_exports(tree)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: best-effort AST parsing; skip unparseable files
                 logger.debug("Failed to parse %s for exports", pf)
                 continue
 
@@ -589,7 +589,7 @@ class CrossFileChecker(BaseChecker):
                 for _module_name, name in collect_imports(tree):
                     if name:
                         all_imported_names.add(name)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: best-effort AST parsing; skip unparseable files
                 logger.debug("Failed to parse %s for imports", pf)
                 continue
 
@@ -645,7 +645,7 @@ class ImportChainChecker(BaseChecker):
                 for module_name, _name in collect_imports(tree):
                     if module_name and module_name.startswith("zerg"):
                         graph[mod_name].add(module_name)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: best-effort AST parsing; skip unparseable files
                 logger.debug("Failed to parse %s for dependency graph", pf)
                 continue
 
@@ -721,7 +721,7 @@ class ContextEngineeringChecker(BaseChecker):
                 issues=[f"Could not import validate_commands: {e}"],
                 score=0.0,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: best-effort context engineering check; failure must not crash analyzer
             return AnalysisResult(
                 check_type=CheckType.CONTEXT_ENGINEERING,
                 passed=False,
@@ -1043,7 +1043,7 @@ def analyze(
         raise SystemExit(130) from None
     except SystemExit:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         logger.exception("Analyze command failed")
         raise SystemExit(1) from e

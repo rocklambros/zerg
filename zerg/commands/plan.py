@@ -124,7 +124,7 @@ def plan(
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted[/yellow]")
         raise SystemExit(130) from None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         if verbose:
             console.print_exception()
@@ -191,7 +191,7 @@ def import_from_github_issue(url: str) -> str | None:
     except subprocess.TimeoutExpired:
         console.print("[red]Error:[/red] Timed out fetching issue")
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: best-effort issue fetch; returns None on failure
         console.print(f"[red]Error:[/red] {e}")
         return None
 

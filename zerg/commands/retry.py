@@ -97,7 +97,7 @@ def retry(
             state.set_paused(False)
             console.print("[dim]Execution unpaused[/dim]")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         raise SystemExit(1) from e
 
@@ -226,7 +226,7 @@ def retry_task(
 
         return True
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: retry must not propagate; logs error and returns False
         logger.error(f"Failed to retry task {task_id}: {e}")
         return False
 
@@ -264,6 +264,6 @@ def retry_all_failed_tasks(
             retried = orchestrator.retry_all_failed()
             return len(retried), retried
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: batch retry must not propagate; logs error and returns empty
         logger.error(f"Failed to retry all failed tasks: {e}")
         return 0, []

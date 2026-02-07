@@ -223,7 +223,7 @@ class TestConcurrentStateAccess:
                     _ = manager.get_current_level()
                     # Write new level
                     manager.set_current_level(manager.get_current_level() + 1)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 errors.append(e)
 
         threads = [threading.Thread(target=read_write_cycle) for _ in range(5)]

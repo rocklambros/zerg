@@ -336,7 +336,7 @@ class StepGenerator:
                     lines.append("    # TODO: Implement test")
                     lines.append("    assert False, 'Not implemented'")
                     return "\n".join(lines)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: best-effort AST pattern extraction; falls back to template
                 pass  # Fall through to generic template
 
         # Generic test template
@@ -386,7 +386,7 @@ class Test{self._pascal_case(task.title)}:
                     lines.append("    # TODO: Implement")
                     lines.append("    raise NotImplementedError")
                     return "\n".join(lines)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: best-effort AST pattern extraction; falls back to template
                 pass  # Fall through to generic template
 
         # Generic implementation template

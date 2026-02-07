@@ -113,7 +113,7 @@ def wiki(
                     page_path = output_dir / f"{page_name}.md"
                     page_path.write_text(content)
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: best-effort page generation; skip and continue
                 logger.warning("Failed to generate page for %s: %s", source_file, e)
                 continue
 
@@ -168,7 +168,7 @@ def wiki(
 
     except SystemExit:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: CLI top-level catch-all; logs and exits gracefully
         console.print(f"\n[red]Error:[/red] {e}")
         logger.exception("Wiki command failed")
         raise SystemExit(1) from e

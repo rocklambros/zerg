@@ -266,7 +266,7 @@ class TestConcurrentAccessThreadSafety:
                         branch=f"zerg/test/worker-{i}",
                     )
                     registry.register(i, worker)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                     errors.append(f"Register error for worker {i}: {e}")
 
         def read_workers() -> None:
@@ -275,7 +275,7 @@ class TestConcurrentAccessThreadSafety:
                     _ = registry.all()
                     _ = len(registry)
                     _ = list(registry.keys())
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                     errors.append(f"Read error: {e}")
 
         threads = []
@@ -315,7 +315,7 @@ class TestConcurrentAccessThreadSafety:
             for wid in ids:
                 try:
                     registry.unregister(wid)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                     errors.append(f"Unregister error for {wid}: {e}")
 
         def register_new_workers(start: int, count: int) -> None:
@@ -330,7 +330,7 @@ class TestConcurrentAccessThreadSafety:
                             branch=f"zerg/test/new-{i}",
                         ),
                     )
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                     errors.append(f"Register error for {i}: {e}")
 
         threads = [
@@ -377,7 +377,7 @@ class TestConcurrentAccessThreadSafety:
             for st in status_sequence:
                 try:
                     registry.update_status(0, st)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                     errors.append(f"Update error: {e}")
 
         threads = [

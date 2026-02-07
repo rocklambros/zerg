@@ -121,7 +121,7 @@ class Orchestrator:
                 log_dir=self.repo_path / Path(lc.directory), worker_id="orchestrator",
                 feature=feature, level=lc.level, max_size_mb=lc.max_log_size_mb,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: structured logging setup is non-critical
             pass
 
         self._running = False
@@ -301,7 +301,7 @@ class Orchestrator:
                 else:
                     _, res = self.gates.run_all_gates(feature=self.feature, level=level, required_only=req_only)
                 return sum(1 for r in res if r.result == GateResult.PASS) / len(res) if res else 1.0
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: gate score fallback; returns 0.0 on failure
                 return 0.0
 
         gr = merge_result.gate_results if merge_result and merge_result.gate_results else None
@@ -387,7 +387,7 @@ class Orchestrator:
         ls = self.levels.get_status()
         try:
             md = MetricsCollector(self.state).compute_feature_metrics().to_dict()
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: metrics computation is non-critical for status
             md = None
         progress = {
             "total": ls["total_tasks"], "completed": ls["completed_tasks"],
@@ -442,7 +442,7 @@ class Orchestrator:
             except KeyboardInterrupt:
                 self.stop()
                 break
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: main loop fatal; records error and force-stops
                 self.state.set_error(str(e))
                 self.stop(force=True)
                 raise

@@ -74,7 +74,7 @@ class TestStructuredLogWriter:
             try:
                 for i in range(50):
                     writer.emit("info", f"Thread {thread_id} entry {i}")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 errors.append(str(e))
 
         threads = [threading.Thread(target=write_entries, args=(t,)) for t in range(5)]

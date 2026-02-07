@@ -266,7 +266,7 @@ class StructuredFileHandler(logging.Handler):
                 data=data,
                 duration_ms=duration_ms,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: logging handler must not raise; delegates to handleError
             self.handleError(record)
 
 

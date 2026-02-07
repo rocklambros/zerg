@@ -223,7 +223,7 @@ def main() -> int:
         print(f"\nWorker {args.worker_id} interrupted")
         return 130  # Standard SIGINT exit code
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: worker entry-point catch-all; logs and exits with error code
         print(f"Worker {args.worker_id} failed: {e}", file=sys.stderr)
         return 1
 

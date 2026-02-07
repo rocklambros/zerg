@@ -109,7 +109,7 @@ class TestThreadSafety:
                     registry.register(wid, _make_worker(wid))
                     assert registry.get(wid) is not None
                     registry.unregister(wid)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — intentional: concurrency test; thread safety validation
                 errors.append(exc)
 
         threads = [threading.Thread(target=register_and_unregister, args=(t,)) for t in range(num_threads)]

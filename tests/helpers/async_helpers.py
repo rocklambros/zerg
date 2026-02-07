@@ -1018,7 +1018,7 @@ class ConcurrentTestRunner:
                 outcome = await coro
                 result.results.append(outcome)
                 result.succeeded += 1
-            except BaseException as e:
+            except BaseException as e:  # noqa: BLE001 — intentional: test helper; collecting all errors for sequential runner
                 result.exceptions.append(e)
                 result.failed += 1
                 if stop_on_error:

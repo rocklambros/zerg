@@ -89,7 +89,7 @@ class ComponentDetector:
                 continue
             try:
                 results[child] = self.detect(child)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: best-effort detection; defaults to MODULE on failure
                 logger.debug("Failed to detect type for %s", child, exc_info=True)
                 results[child] = ComponentType.MODULE
         return results
