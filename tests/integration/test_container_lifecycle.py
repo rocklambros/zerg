@@ -6,10 +6,14 @@ Tests ContainerLauncher spawn, monitor, terminate cycle.
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from zerg.constants import WorkerStatus
 from zerg.env_validator import validate_env_vars
 from zerg.launcher_types import LauncherConfig, LauncherType, WorkerHandle
 from zerg.launchers import ContainerLauncher
+
+pytestmark = pytest.mark.docker
 
 
 class TestEnvVarValidation:

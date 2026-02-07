@@ -11,6 +11,8 @@ from zerg.constants import WorkerStatus
 from zerg.containers import ContainerInfo, ContainerManager
 from zerg.exceptions import ContainerError
 
+pytestmark = pytest.mark.docker
+
 
 @pytest.fixture(autouse=True)
 def mock_zerg_config():

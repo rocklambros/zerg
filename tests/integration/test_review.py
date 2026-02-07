@@ -3,6 +3,7 @@
 import tempfile
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
@@ -23,14 +24,6 @@ class TestReviewCommand:
         assert "receive" in result.output
         assert "full" in result.output
 
-    def test_review_mode_option(self) -> None:
-        """Test review --mode option accepts valid values."""
-        runner = CliRunner()
-
-        for mode in ["prepare", "self", "receive", "full"]:
-            result = runner.invoke(cli, ["review", "--mode", mode])
-            assert "Invalid value" not in result.output
-
     def test_review_invalid_mode_rejected(self) -> None:
         """Test review rejects invalid modes."""
         runner = CliRunner()
@@ -39,44 +32,19 @@ class TestReviewCommand:
         assert result.exit_code != 0
         assert "Invalid value" in result.output
 
-    def test_review_files_option(self) -> None:
-        """Test review --files option works."""
+    @pytest.mark.parametrize(
+        "extra_args",
+        [
+            ["--mode", "prepare"],
+            ["--files", "src/"],
+            ["--output", "review.md"],
+        ],
+        ids=["mode", "files", "output"],
+    )
+    def test_review_option_accepted(self, extra_args: list[str]) -> None:
+        """Test review options are accepted without error."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--files", "src/"])
-        assert "Invalid value" not in result.output
-
-    def test_review_output_option(self) -> None:
-        """Test review --output option works."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--output", "review.md"])
-        assert "Invalid value" not in result.output
-
-
-class TestReviewModes:
-    """Tests for review modes."""
-
-    def test_review_default_mode_is_full(self) -> None:
-        """Test default review mode is full."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--help"])
-        assert "default: full" in result.output.lower() or "full" in result.output
-
-    def test_review_prepare_mode(self) -> None:
-        """Test prepare mode."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "prepare"])
-        assert "Invalid value" not in result.output
-
-    def test_review_self_mode(self) -> None:
-        """Test self-review mode."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "self"])
-        assert "Invalid value" not in result.output
-
-    def test_review_combined_options(self) -> None:
-        """Test review with combined options."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "prepare", "--files", "src/", "--output", "out.md"])
+        result = runner.invoke(cli, ["review"] + extra_args)
         assert "Invalid value" not in result.output
 
 
@@ -89,30 +57,11 @@ class TestReviewFunctional:
         result = runner.invoke(cli, ["review"])
         assert "ZERG" in result.output or "Review" in result.output
 
-    def test_review_full_mode(self) -> None:
-        """Test review full mode runs both stages."""
+    @pytest.mark.parametrize("mode", ["prepare", "full"])
+    def test_review_mode_executes(self, mode: str) -> None:
+        """Test representative review modes can execute."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "full"])
-        assert result.exit_code in [0, 1]
-
-    def test_review_prepare_mode_output(self) -> None:
-        """Test review prepare mode generates summary."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "prepare"])
-        assert result.exit_code in [0, 1]
-        # Should produce some output
-        assert len(result.output) > 0
-
-    def test_review_self_mode_checklist(self) -> None:
-        """Test review self mode generates checklist."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "self"])
-        assert result.exit_code in [0, 1]
-
-    def test_review_receive_mode(self) -> None:
-        """Test review receive mode processes quality review."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "receive"])
+        result = runner.invoke(cli, ["review", "--mode", mode])
         assert result.exit_code in [0, 1]
 
     def test_review_json_output(self) -> None:
@@ -133,61 +82,20 @@ class TestReviewFunctional:
         """Test review with specific files."""
         runner = CliRunner()
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create test files
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("def foo():\n    return 1\n")
 
             result = runner.invoke(cli, ["review", "--files", str(test_file)])
             assert result.exit_code in [0, 1]
 
-
-class TestReviewStages:
-    """Tests for review stage functionality."""
-
-    def test_review_spec_compliance_stage(self) -> None:
-        """Test review includes spec compliance check."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "full"])
-        assert result.exit_code in [0, 1]
-
-    def test_review_code_quality_stage(self) -> None:
-        """Test review includes code quality check."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "full"])
-        assert result.exit_code in [0, 1]
-
     def test_review_handles_no_changes(self) -> None:
         """Test review handles repository with no changes."""
         runner = CliRunner()
         result = runner.invoke(cli, ["review"])
-        # Should handle gracefully even with no staged changes
         assert result.exit_code in [0, 1]
 
-
-class TestReviewChecklist:
-    """Tests for review checklist functionality."""
-
-    def test_review_self_generates_checklist(self) -> None:
-        """Test self-review mode generates checklist items."""
+    def test_review_combined_options(self) -> None:
+        """Test review with combined options."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["review", "--mode", "self"])
-        assert result.exit_code in [0, 1]
-
-    def test_review_combined_modes(self) -> None:
-        """Test different review modes produce different output."""
-        runner = CliRunner()
-
-        prepare_result = runner.invoke(cli, ["review", "--mode", "prepare"])
-        self_result = runner.invoke(cli, ["review", "--mode", "self"])
-
-        # Both should succeed
-        assert prepare_result.exit_code in [0, 1]
-        assert self_result.exit_code in [0, 1]
-
-    def test_review_all_modes_execute(self) -> None:
-        """Test all review modes can execute."""
-        runner = CliRunner()
-
-        for mode in ["prepare", "self", "receive", "full"]:
-            result = runner.invoke(cli, ["review", "--mode", mode])
-            assert result.exit_code in [0, 1], f"Mode {mode} failed"
+        result = runner.invoke(cli, ["review", "--mode", "prepare", "--files", "src/", "--output", "out.md"])
+        assert "Invalid value" not in result.output

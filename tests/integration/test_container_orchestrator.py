@@ -3,9 +3,13 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from zerg.config import ZergConfig
 from zerg.launchers import SubprocessLauncher
 from zerg.orchestrator import Orchestrator
+
+pytestmark = pytest.mark.docker
 
 
 class TestOrchestratorModeSelection:

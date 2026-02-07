@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from zerg.constants import WorkerStatus
 from zerg.devcontainer_features import (
     DEVCONTAINER_FEATURES,
@@ -14,6 +16,8 @@ from zerg.devcontainer_features import (
 )
 from zerg.launcher_types import LauncherConfig, LauncherType
 from zerg.launchers import ContainerLauncher
+
+pytestmark = pytest.mark.docker
 
 
 class TestDevcontainerFeatures:

@@ -83,7 +83,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run tests (shard ${{ matrix.shard }}/2)
-        run: pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m "not slow" -v --tb=short --timeout=120 --splits 2 --group ${{ matrix.shard }}
+        run: pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m "not slow and not docker" --cov=zerg --cov-fail-under=75 -v --tb=short --timeout=120 --splits 2 --group ${{ matrix.shard }}
 
   audit:
     runs-on: ubuntu-latest

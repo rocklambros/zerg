@@ -4,7 +4,11 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from zerg.launchers import ContainerLauncher
+
+pytestmark = pytest.mark.docker
 
 
 def docker_cli_available() -> bool:

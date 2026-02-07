@@ -14,6 +14,8 @@ from zerg.launcher_configurator import LauncherConfigurator
 from zerg.launchers import ContainerLauncher
 from zerg.plugins import PluginRegistry
 
+pytestmark = pytest.mark.docker
+
 
 class TestResourcesConfigDefaults:
     def test_defaults_and_custom(self) -> None:

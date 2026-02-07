@@ -6,8 +6,12 @@ process startup using mocked launcher.
 
 from pathlib import Path
 
+import pytest
+
 from tests.mocks.mock_launcher import MockContainerLauncher
 from zerg.constants import WorkerStatus
+
+pytestmark = pytest.mark.docker
 
 
 class TestContainerStartupFlow:

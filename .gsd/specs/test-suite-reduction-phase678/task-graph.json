@@ -1,0 +1,263 @@
+{
+  "feature": "test-suite-reduction-phase678",
+  "version": "2.0",
+  "generated": "2026-02-06",
+  "total_tasks": 8,
+  "estimated_duration_minutes": 50,
+  "max_parallelization": 6,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Mark integration container tests with @pytest.mark.docker",
+      "description": "Add `pytestmark = pytest.mark.docker` module-level marker to all 11 container integration test files. The marker is already registered in pyproject.toml. Add `import pytest` if not present, then add `pytestmark = pytest.mark.docker` after imports. Do NOT remove any existing skip decorators or markers.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/integration/test_container_detection.py",
+          "tests/integration/test_container_devcontainer.py",
+          "tests/integration/test_container_e2e_live.py",
+          "tests/integration/test_container_e2e.py",
+          "tests/integration/test_container_init_cmd.py",
+          "tests/integration/test_container_launcher_checks.py",
+          "tests/integration/test_container_launcher.py",
+          "tests/integration/test_container_lifecycle.py",
+          "tests/integration/test_container_orchestrator.py",
+          "tests/integration/test_container_rush_cmd.py",
+          "tests/integration/test_container_startup.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import subprocess, sys; r = subprocess.run(['pytest', 'tests/integration/', '-k', 'container', '--collect-only', '-m', 'docker', '-q'], capture_output=True, text=True); print(r.stdout[-200:]); sys.exit(0 if 'test' in r.stdout.lower() else 1)\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-007"],
+      "integration_test": null,
+      "context": "## Task Context\nAdd `pytestmark = pytest.mark.docker` to 11 integration container test files.\n\nThe docker marker is already registered in pyproject.toml:\n```\nmarkers = [\n    \"docker: Tests requiring a running Docker daemon\",\n]\n```\n\nPattern to add near top of each file, after imports:\n```python\nimport pytest\n\npytestmark = pytest.mark.docker\n```\n\nExisting example in tests/e2e/test_docker_real.py:16 uses the same pattern.\n\nDo NOT remove existing skip decorators (e.g. skip_no_docker in test_container_e2e_live.py).\n\n## Files (11)\ntests/integration/test_container_detection.py\ntests/integration/test_container_devcontainer.py\ntests/integration/test_container_e2e_live.py\ntests/integration/test_container_e2e.py\ntests/integration/test_container_init_cmd.py\ntests/integration/test_container_launcher_checks.py\ntests/integration/test_container_launcher.py\ntests/integration/test_container_lifecycle.py\ntests/integration/test_container_orchestrator.py\ntests/integration/test_container_rush_cmd.py\ntests/integration/test_container_startup.py"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Mark unit container tests with @pytest.mark.docker",
+      "description": "Add `pytestmark = pytest.mark.docker` module-level marker to 2 unit container test files: tests/unit/test_containers.py and tests/unit/test_container_resources.py. Same pattern as TASK-001.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_containers.py",
+          "tests/unit/test_container_resources.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import subprocess, sys; r = subprocess.run(['pytest', 'tests/unit/test_containers.py', 'tests/unit/test_container_resources.py', '--collect-only', '-m', 'docker', '-q'], capture_output=True, text=True); print(r.stdout[-200:]); sys.exit(0 if 'test' in r.stdout.lower() else 1)\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-007"],
+      "integration_test": null,
+      "context": "## Task Context\nAdd `pytestmark = pytest.mark.docker` to 2 unit container test files.\n\nPattern:\n```python\nimport pytest\n\npytestmark = pytest.mark.docker\n```\n\n## Files (2)\ntests/unit/test_containers.py\ntests/unit/test_container_resources.py"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Delete 14 redundant integration test files",
+      "description": "Delete 14 integration test files that are redundant with existing unit tests. These files were audited in the requirements phase and confirmed to duplicate coverage.\n\nFiles to delete:\n1. tests/integration/test_test_cmd.py (32 tests, covered by unit test_test_cmd.py)\n2. tests/integration/test_git_cmd.py (21 tests, covered by unit test_git_cmd.py)\n3. tests/integration/test_git_ops_extended.py (27 tests, covered by unit test_git_ops.py)\n4. tests/integration/test_worker_protocol_extended.py (24 tests, covered by unit test_worker_protocol.py)\n5. tests/integration/test_dedup_behavioral.py (26 tests, covered by unit test_dedup_unified.py)\n6. tests/integration/test_merge_coordination.py (25 tests, covered by unit test_merge_flow.py)\n7. tests/integration/test_merge_flow.py (11 tests, covered by unit test_merge_flow.py)\n8. tests/integration/test_rush_performance.py (14 tests, non-functional perf tests)\n9. tests/integration/test_analyze_all_checks.py (14 tests, covered by unit test_analyze_new_checks.py)\n10. tests/integration/test_design_wiring_injection.py (14 tests, covered by unit tests)\n11. tests/integration/test_wiring_enforcement.py (13 tests, covered by unit tests)\n12. tests/integration/test_inception_mode.py (13 tests, covered by unit tests)\n13. tests/integration/test_orchestrator_fixes.py (13 tests, covered by unit test_orchestrator.py)\n14. tests/integration/test_resilience_e2e.py (16 tests, covered by unit resilience tests)\n\nTotal: ~263 tests removed.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [],
+        "delete": [
+          "tests/integration/test_test_cmd.py",
+          "tests/integration/test_git_cmd.py",
+          "tests/integration/test_git_ops_extended.py",
+          "tests/integration/test_worker_protocol_extended.py",
+          "tests/integration/test_dedup_behavioral.py",
+          "tests/integration/test_merge_coordination.py",
+          "tests/integration/test_merge_flow.py",
+          "tests/integration/test_rush_performance.py",
+          "tests/integration/test_analyze_all_checks.py",
+          "tests/integration/test_design_wiring_injection.py",
+          "tests/integration/test_wiring_enforcement.py",
+          "tests/integration/test_inception_mode.py",
+          "tests/integration/test_orchestrator_fixes.py",
+          "tests/integration/test_resilience_e2e.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import pathlib, sys; files = ['test_test_cmd.py','test_git_cmd.py','test_git_ops_extended.py','test_worker_protocol_extended.py','test_dedup_behavioral.py','test_merge_coordination.py','test_merge_flow.py','test_rush_performance.py','test_analyze_all_checks.py','test_design_wiring_injection.py','test_wiring_enforcement.py','test_inception_mode.py','test_orchestrator_fixes.py','test_resilience_e2e.py']; missing = [f for f in files if pathlib.Path(f'tests/integration/{f}').exists()]; print(f'{14-len(missing)}/14 deleted'); sys.exit(0 if not missing else 1)\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Task Context\nDelete 14 redundant integration test files. Use `rm` or equivalent. These have been pre-audited and confirmed redundant with unit tests.\n\n## Files to delete (14)\ntests/integration/test_test_cmd.py\ntests/integration/test_git_cmd.py\ntests/integration/test_git_ops_extended.py\ntests/integration/test_worker_protocol_extended.py\ntests/integration/test_dedup_behavioral.py\ntests/integration/test_merge_coordination.py\ntests/integration/test_merge_flow.py\ntests/integration/test_rush_performance.py\ntests/integration/test_analyze_all_checks.py\ntests/integration/test_design_wiring_injection.py\ntests/integration/test_wiring_enforcement.py\ntests/integration/test_inception_mode.py\ntests/integration/test_orchestrator_fixes.py\ntests/integration/test_resilience_e2e.py"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Thin batch A: merge_integration, launcher_integration, step_execution",
+      "description": "Thin 3 large integration test files using standard thinning rules:\n\n1. tests/integration/test_merge_integration.py: 47 → 20 tests\n2. tests/integration/test_launcher_integration.py: 34 → 15 tests\n3. tests/integration/test_step_execution.py: 31 → 15 tests\n\nThinning rules:\n- Keep 1 happy-path + 1 error-path test per class\n- Collapse enum tests to 1 parametrized test\n- Parametrize where 3+ tests differ only by input\n- Remove arg permutation tests (keep boundary + typical)\n- Preserve ALL @pytest.mark.smoke tests\n- Remove duplicate assertions on same code path\n\nTarget: ~50 tests total (±5 per file).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/integration/test_merge_integration.py",
+          "tests/integration/test_launcher_integration.py",
+          "tests/integration/test_step_execution.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import subprocess, re, sys; counts = {}; targets = {'test_merge_integration.py': 20, 'test_launcher_integration.py': 15, 'test_step_execution.py': 15}; ok = True;\nfor f, t in targets.items():\n    r = subprocess.run(['pytest', f'tests/integration/{f}', '--collect-only', '-q'], capture_output=True, text=True)\n    m = re.search(r'(\\d+) tests?', r.stdout)\n    c = int(m.group(1)) if m else 0\n    print(f'{f}: {c} tests (target {t}±5)')\n    if abs(c - t) > 5: ok = False\nsys.exit(0 if ok else 1)\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Thinning Rules\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path\n\n## Targets\n- test_merge_integration.py: 47 → 20 (remove ~27)\n- test_launcher_integration.py: 34 → 15 (remove ~19)\n- test_step_execution.py: 31 → 15 (remove ~16)\n\n## Non-Functional\n- No production code changes\n- Remaining tests must still pass\n- Coverage stays ≥ 75%"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Thin batch B: debug, state_integration, context_engineering",
+      "description": "Thin 3 large integration test files using standard thinning rules:\n\n1. tests/integration/test_debug.py: 30 → 15 tests\n2. tests/integration/test_state_integration.py: 29 → 15 tests\n3. tests/integration/test_context_engineering.py: 23 → 12 tests\n\nSame thinning rules as TASK-004.\n\nTarget: ~42 tests total (±5 per file).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/integration/test_debug.py",
+          "tests/integration/test_state_integration.py",
+          "tests/integration/test_context_engineering.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import subprocess, re, sys; targets = {'test_debug.py': 15, 'test_state_integration.py': 15, 'test_context_engineering.py': 12}; ok = True;\nfor f, t in targets.items():\n    r = subprocess.run(['pytest', f'tests/integration/{f}', '--collect-only', '-q'], capture_output=True, text=True)\n    m = re.search(r'(\\d+) tests?', r.stdout)\n    c = int(m.group(1)) if m else 0\n    print(f'{f}: {c} tests (target {t}±5)')\n    if abs(c - t) > 5: ok = False\nsys.exit(0 if ok else 1)\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Thinning Rules\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path\n\n## Targets\n- test_debug.py: 30 → 15 (remove ~15)\n- test_state_integration.py: 29 → 15 (remove ~14)\n- test_context_engineering.py: 23 → 12 (remove ~11)\n\n## Non-Functional\n- No production code changes\n- Remaining tests must still pass\n- Coverage stays ≥ 75%"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Thin batch C: refactor, review, build",
+      "description": "Thin 3 large integration test files using standard thinning rules:\n\n1. tests/integration/test_refactor.py: 23 → 12 tests\n2. tests/integration/test_review.py: 23 → 12 tests\n3. tests/integration/test_build.py: 21 → 12 tests\n\nSame thinning rules as TASK-004.\n\nTarget: ~36 tests total (±5 per file).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/integration/test_refactor.py",
+          "tests/integration/test_review.py",
+          "tests/integration/test_build.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import subprocess, re, sys; targets = {'test_refactor.py': 12, 'test_review.py': 12, 'test_build.py': 12}; ok = True;\nfor f, t in targets.items():\n    r = subprocess.run(['pytest', f'tests/integration/{f}', '--collect-only', '-q'], capture_output=True, text=True)\n    m = re.search(r'(\\d+) tests?', r.stdout)\n    c = int(m.group(1)) if m else 0\n    print(f'{f}: {c} tests (target {t}±5)')\n    if abs(c - t) > 5: ok = False\nsys.exit(0 if ok else 1)\"",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Thinning Rules\n1. Keep 1 happy-path + 1 error-path test per class\n2. Collapse enum tests to 1 parametrized test\n3. Parametrize where 3+ tests differ only by input\n4. Remove arg permutation tests (keep boundary + typical)\n5. Preserve ALL @pytest.mark.smoke tests\n6. Remove duplicate assertions on same code path\n\n## Targets\n- test_refactor.py: 23 → 12 (remove ~11)\n- test_review.py: 23 → 12 (remove ~11)\n- test_build.py: 21 → 12 (remove ~9)\n\n## Non-Functional\n- No production code changes\n- Remaining tests must still pass\n- Coverage stays ≥ 75%"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Update CI config: docker exclusion + coverage floor",
+      "description": "Update .github/workflows/ci.yml:\n\n1. Change test marker from `-m \"not slow\"` to `-m \"not slow and not docker\"` (line 86)\n2. Add `--cov=zerg --cov-fail-under=75` to the test command (line 86)\n\nThe result should be:\n```yaml\nrun: pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m \"not slow and not docker\" --cov=zerg --cov-fail-under=75 -v --tb=short --timeout=120 --splits 2 --group ${{ matrix.shard }}\n```\n\nDo NOT change shard count (keep 2). Do NOT modify any other jobs.",
+      "phase": "integration",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": [],
+        "modify": [
+          ".github/workflows/ci.yml"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'not slow and not docker' .github/workflows/ci.yml && grep -q 'cov-fail-under=75' .github/workflows/ci.yml && echo 'CI config OK'",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["yaml", "ci"],
+      "consumers": ["TASK-008"],
+      "integration_test": null,
+      "context": "## Task Context\nUpdate line 86 of .github/workflows/ci.yml.\n\nCurrent:\n```yaml\nrun: pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m \"not slow\" -v --tb=short --timeout=120 --splits 2 --group ${{ matrix.shard }}\n```\n\nTarget:\n```yaml\nrun: pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m \"not slow and not docker\" --cov=zerg --cov-fail-under=75 -v --tb=short --timeout=120 --splits 2 --group ${{ matrix.shard }}\n```\n\nDo NOT change shard count. Do NOT modify other jobs (quality, smoke, audit)."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Final verification + artifacts",
+      "description": "Run full verification suite and update artifacts:\n\n1. Full test suite: `pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow and not docker' --timeout=120`\n2. Coverage check: `pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow and not docker' --cov=zerg --cov-fail-under=75 --timeout=120`\n3. Smoke tests: `pytest -m smoke -x --timeout=5`\n4. Import check: `python -c 'import zerg; print(\"OK\")'`\n5. Validate commands: `python -m zerg.validate_commands`\n6. Count total tests: must be in range 3,200-3,500\n7. Regenerate `.test_durations`: `pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow and not docker' --store-durations --timeout=120`\n8. Update CHANGELOG.md under [Unreleased] with phase 6-8 summary\n\nIf any check fails, report the failure clearly.",
+      "phase": "verification",
+      "level": 3,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007"],
+      "files": {
+        "create": [],
+        "modify": [
+          ".test_durations",
+          "CHANGELOG.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "pytest tests/ --ignore=tests/e2e --ignore=tests/pressure -m 'not slow and not docker' --cov=zerg --cov-fail-under=75 -q --timeout=120 && pytest -m smoke -x --timeout=5 -q && python -c 'import zerg; print(\"OK\")' && python -m zerg.validate_commands",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Verification Checklist\n1. Full test suite passes with docker exclusion\n2. Coverage ≥ 75%\n3. Smoke tests pass\n4. Import check passes\n5. validate_commands passes\n6. Total test count in 3,200-3,500\n7. .test_durations regenerated\n8. CHANGELOG.md updated under [Unreleased]\n\n## CHANGELOG Entry\nAdd under [Unreleased] → Changed:\n- Test suite reduction phases 6-8: marked 13 container test files with @pytest.mark.docker, deleted 14 redundant integration test files (~263 tests), thinned 9 integration test files (~133 tests), added CI docker exclusion and coverage floor (--cov-fail-under=75)"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006"],
+      "parallel": true,
+      "estimated_minutes": 25
+    },
+    "2": {
+      "name": "integration",
+      "tasks": ["TASK-007"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "verification",
+      "tasks": ["TASK-008"],
+      "parallel": false,
+      "estimated_minutes": 15,
+      "depends_on_levels": [1, 2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

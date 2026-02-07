@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.docker
+
 # Compute project root dynamically from this file's location
 PROJECT_ROOT = str(Path(__file__).resolve().parent.parent.parent)
 TEST_IMAGE = "zerg-worker-test"

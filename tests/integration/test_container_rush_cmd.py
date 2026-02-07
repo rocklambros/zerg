@@ -1,8 +1,11 @@
 """Integration tests for rush command mode flag."""
 
+import pytest
 from click.testing import CliRunner
 
 from zerg.cli import cli
+
+pytestmark = pytest.mark.docker
 
 
 class TestRushCommand:

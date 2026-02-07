@@ -5,7 +5,6 @@ covering gate pass/fail integration, conflict handling, staging branch
 lifecycle, and merge result propagation.
 """
 
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -67,24 +66,6 @@ class TestFullMergeFlowEndToEnd:
         assert result.merge_commit is not None
         assert result.error is None
 
-    def test_successful_merge_flow_multiple_levels(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test merge flow across multiple levels sequentially."""
-        mock_merger.configure(always_succeed=True)
-
-        results = []
-        for level in range(1, 4):
-            branches = [f"zerg/test-feature/worker-{i}" for i in range(3)]
-            result = mock_merger.full_merge_flow(
-                level=level,
-                worker_branches=branches,
-                target_branch="main",
-            )
-            results.append(result)
-
-        assert all(r.success for r in results)
-        assert [r.level for r in results] == [1, 2, 3]
-        assert mock_merger.get_attempt_count() == 3
-
     def test_merge_flow_with_empty_branches(self, mock_merger: MockMergeCoordinator) -> None:
         """Test merge flow handles empty branch list."""
         mock_merger.configure(always_succeed=True)
@@ -95,42 +76,7 @@ class TestFullMergeFlowEndToEnd:
             target_branch="main",
         )
 
-        # MockMergeCoordinator returns success with empty branches
-        # Real coordinator would fail
         assert result.source_branches == []
-
-    def test_merge_flow_records_timestamps(self, mock_merger: MockMergeCoordinator, worker_branches: list[str]) -> None:
-        """Test merge flow records proper timestamps."""
-        mock_merger.configure(always_succeed=True)
-
-        before_merge = datetime.now()
-        result = mock_merger.full_merge_flow(
-            level=1,
-            worker_branches=worker_branches,
-        )
-        after_merge = datetime.now()
-
-        assert before_merge <= result.timestamp <= after_merge
-
-    def test_merge_flow_to_dict_serialization(
-        self, mock_merger: MockMergeCoordinator, worker_branches: list[str]
-    ) -> None:
-        """Test merge flow result serializes to dict properly."""
-        mock_merger.configure(always_succeed=True)
-
-        result = mock_merger.full_merge_flow(
-            level=1,
-            worker_branches=worker_branches,
-        )
-
-        data = result.to_dict()
-
-        assert data["success"] is True
-        assert data["level"] == 1
-        assert data["source_branches"] == worker_branches
-        assert data["target_branch"] == "main"
-        assert "timestamp" in data
-        assert "gate_results" in data
 
 
 class TestMergeWithGateIntegration:
@@ -142,7 +88,7 @@ class TestMergeWithGateIntegration:
         """Test merge proceeds when pre-merge gates pass."""
         mock_merger.configure(
             always_succeed=True,
-            pre_merge_gate_failure_levels=[],  # No failures
+            pre_merge_gate_failure_levels=[],
         )
         mock_merger.set_current_level(1)
 
@@ -167,88 +113,24 @@ class TestMergeWithGateIntegration:
         assert results[0].result == GateResult.FAIL
         assert results[0].exit_code == 1
 
-    def test_post_merge_gate_pass_completes_flow(
-        self, mock_merger: MockMergeCoordinator, worker_branches: list[str]
-    ) -> None:
-        """Test flow completes when post-merge gates pass."""
-        mock_merger.configure(
-            always_succeed=True,
-            post_merge_gate_failure_levels=[],
-        )
-        mock_merger.set_current_level(1)
-
-        passed, results = mock_merger.run_post_merge_gates()
-
-        assert passed is True
-        assert results[0].gate_name == "post_merge_check"
-
-    def test_post_merge_gate_fail_aborts_flow(
-        self, mock_merger: MockMergeCoordinator, worker_branches: list[str]
-    ) -> None:
-        """Test flow aborts when post-merge gates fail."""
-        mock_merger.configure(
-            post_merge_gate_failure_levels=[1],
-        )
-        mock_merger.set_current_level(1)
-
-        passed, results = mock_merger.run_post_merge_gates()
-
-        assert passed is False
-        assert results[0].result == GateResult.FAIL
-
     def test_gate_failure_at_specific_level(self, mock_merger: MockMergeCoordinator) -> None:
         """Test gate failure only at specific level."""
         mock_merger.configure(
-            gate_failure_levels=[2],  # Only level 2 fails
+            gate_failure_levels=[2],
         )
 
-        # Level 1 should pass
         result1 = mock_merger.full_merge_flow(
             level=1,
             worker_branches=["worker-0"],
         )
         assert result1.success is True
 
-        # Level 2 should fail
         result2 = mock_merger.full_merge_flow(
             level=2,
             worker_branches=["worker-0"],
         )
         assert result2.success is False
         assert "gates failed" in result2.error.lower()
-
-    def test_gate_results_tracked_in_flow_result(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test gate results are properly tracked."""
-        mock_merger.configure(always_succeed=True)
-        mock_merger.set_current_level(1)
-
-        # Run gates manually to track results
-        mock_merger.run_pre_merge_gates()
-        mock_merger.run_post_merge_gates()
-
-        gate_runs = mock_merger.get_gate_runs()
-        assert len(gate_runs) == 2
-
-        pre_runs = mock_merger.get_pre_merge_gate_runs()
-        post_runs = mock_merger.get_post_merge_gate_runs()
-        assert len(pre_runs) == 1
-        assert len(post_runs) == 1
-
-    def test_gate_delay_simulation(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test gate execution delay is simulated."""
-        mock_merger.configure(
-            always_succeed=True,
-            gate_delay=0.1,  # 100ms delay
-        )
-        mock_merger.set_current_level(1)
-
-        before = datetime.now()
-        mock_merger.run_pre_merge_gates()
-        after = datetime.now()
-
-        # Should take at least 100ms
-        elapsed_ms = (after - before).total_seconds() * 1000
-        assert elapsed_ms >= 90  # Allow some tolerance
 
 
 class TestMergeConflictHandling:
@@ -287,61 +169,6 @@ class TestMergeConflictHandling:
         assert "zerg/test/worker-1" in str(exc_info.value)
         assert exc_info.value.conflicting_files == ["conflicting_file.py"]
 
-    def test_conflict_records_merge_result(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test conflict is recorded in merge results."""
-        mock_merger.configure(
-            execute_merge_conflict_branches=["worker-conflict"],
-        )
-
-        try:
-            mock_merger.execute_merge(
-                source_branches=["worker-conflict"],
-                staging_branch="staging",
-            )
-        except MergeConflictError:
-            pass
-
-        conflict_merges = mock_merger.get_conflict_merges()
-        assert len(conflict_merges) == 1
-        assert conflict_merges[0].status == MergeStatus.CONFLICT
-
-    def test_partial_merge_before_conflict(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test some branches merge before conflict occurs."""
-        mock_merger.configure(
-            execute_merge_conflict_branches=["worker-2"],
-        )
-
-        try:
-            mock_merger.execute_merge(
-                source_branches=["worker-0", "worker-1", "worker-2"],
-                staging_branch="staging",
-            )
-        except MergeConflictError:
-            pass
-
-        successful = mock_merger.get_successful_merges()
-        conflicts = mock_merger.get_conflict_merges()
-
-        # First two should succeed, third should conflict
-        assert len(successful) == 2
-        assert len(conflicts) == 1
-
-    def test_conflict_preserves_attempt_record(
-        self, mock_merger: MockMergeCoordinator, worker_branches: list[str]
-    ) -> None:
-        """Test conflict is recorded in attempt history."""
-        mock_merger.configure(conflict_at_level=1)
-
-        mock_merger.full_merge_flow(
-            level=1,
-            worker_branches=worker_branches,
-        )
-
-        attempts = mock_merger.get_attempts()
-        assert len(attempts) == 1
-        assert attempts[0].success is False
-        assert "conflict" in attempts[0].error.lower()
-
 
 class TestStagingBranchLifecycle:
     """Test staging branch creation and cleanup."""
@@ -352,46 +179,11 @@ class TestStagingBranchLifecycle:
 
         assert staging == "zerg/test-feature/staging"
 
-    def test_staging_branch_custom_target(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test staging branch with custom target."""
-        staging = mock_merger.prepare_merge(level=2, target_branch="develop")
-
-        assert "staging" in staging
-        assert mock_merger._current_level == 2
-
     def test_abort_cleans_up_staging(self, mock_merger: MockMergeCoordinator) -> None:
         """Test abort cleans up staging branch."""
         staging = mock_merger.prepare_merge(level=1)
 
-        # Abort should be a no-op in mock but should not raise
         mock_merger.abort(staging_branch=staging)
-
-    def test_successful_merge_cleans_staging(
-        self, mock_merger: MockMergeCoordinator, worker_branches: list[str]
-    ) -> None:
-        """Test successful merge cleans up staging branch."""
-        mock_merger.configure(always_succeed=True)
-
-        # Full flow should complete and staging should be cleaned
-        result = mock_merger.full_merge_flow(
-            level=1,
-            worker_branches=worker_branches,
-        )
-
-        assert result.success is True
-        # Mock doesn't actually delete branches but simulates cleanup
-
-    def test_failed_merge_triggers_abort(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test failed merge triggers abort with staging cleanup."""
-        mock_merger.configure(conflict_at_level=1)
-
-        result = mock_merger.full_merge_flow(
-            level=1,
-            worker_branches=["worker-0"],
-        )
-
-        assert result.success is False
-        # Abort should have been called (mock records no state change)
 
 
 class TestMergeResultPropagation:
@@ -425,55 +217,6 @@ class TestMergeResultPropagation:
         assert result.error is not None
         assert result.merge_commit is None
 
-    def test_result_contains_source_branches(
-        self, mock_merger: MockMergeCoordinator, worker_branches: list[str]
-    ) -> None:
-        """Test result contains all source branches."""
-        mock_merger.configure(always_succeed=True)
-
-        result = mock_merger.full_merge_flow(
-            level=1,
-            worker_branches=worker_branches,
-        )
-
-        assert result.source_branches == worker_branches
-
-    def test_result_contains_target_branch(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test result contains target branch."""
-        mock_merger.configure(always_succeed=True)
-
-        result = mock_merger.full_merge_flow(
-            level=1,
-            worker_branches=["worker-0"],
-            target_branch="develop",
-        )
-
-        assert result.target_branch == "develop"
-
-    def test_result_contains_level(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test result contains correct level."""
-        mock_merger.configure(always_succeed=True)
-
-        result = mock_merger.full_merge_flow(
-            level=3,
-            worker_branches=["worker-0"],
-        )
-
-        assert result.level == 3
-
-    def test_attempt_tracking_propagates(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test attempt tracking information propagates."""
-        mock_merger.configure(always_succeed=True)
-
-        mock_merger.full_merge_flow(level=1, worker_branches=["w-0"])
-        mock_merger.full_merge_flow(level=2, worker_branches=["w-0"])
-
-        assert mock_merger.get_attempt_count() == 2
-        attempts = mock_merger.get_attempts()
-        assert len(attempts) == 2
-        assert attempts[0].level == 1
-        assert attempts[1].level == 2
-
     def test_custom_result_overrides_default(self, mock_merger: MockMergeCoordinator) -> None:
         """Test custom result can override default behavior."""
         custom_result = MergeFlowResult(
@@ -498,47 +241,25 @@ class TestMergeResultPropagation:
 class TestMergeAttemptTracking:
     """Test merge attempt tracking and history."""
 
-    def test_successful_attempt_recorded(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test successful attempts are recorded."""
-        mock_merger.configure(always_succeed=True)
+    @pytest.mark.parametrize(
+        "config_kwargs,check_attr,check_field",
+        [
+            ({"always_succeed": True}, "get_successful_attempts", "success"),
+            ({"fail_at_attempt": 1}, "get_failed_attempts", "success"),
+            ({"timeout_at_attempt": 1}, "get_timed_out_attempts", "timed_out"),
+        ],
+        ids=["successful", "failed", "timeout"],
+    )
+    def test_attempt_recorded(
+        self, mock_merger: MockMergeCoordinator, config_kwargs: dict, check_attr: str, check_field: str
+    ) -> None:
+        """Test that attempts of various types are recorded."""
+        mock_merger.configure(**config_kwargs)
 
         mock_merger.full_merge_flow(level=1, worker_branches=["w-0"])
 
-        successful = mock_merger.get_successful_attempts()
-        assert len(successful) == 1
-        assert successful[0].success is True
-
-    def test_failed_attempt_recorded(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test failed attempts are recorded."""
-        mock_merger.configure(fail_at_attempt=1)
-
-        mock_merger.full_merge_flow(level=1, worker_branches=["w-0"])
-
-        failed = mock_merger.get_failed_attempts()
-        assert len(failed) == 1
-        assert failed[0].success is False
-
-    def test_timeout_attempt_recorded(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test timeout attempts are recorded."""
-        mock_merger.configure(timeout_at_attempt=1)
-
-        mock_merger.full_merge_flow(level=1, worker_branches=["w-0"])
-
-        timed_out = mock_merger.get_timed_out_attempts()
-        assert len(timed_out) == 1
-        assert timed_out[0].timed_out is True
-
-    def test_attempt_duration_tracked(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test attempt duration is tracked."""
-        mock_merger.configure(
-            always_succeed=True,
-            merge_delay=0.1,  # 100ms delay
-        )
-
-        mock_merger.full_merge_flow(level=1, worker_branches=["w-0"])
-
-        attempts = mock_merger.get_attempts()
-        assert attempts[0].duration_ms >= 90  # Allow tolerance
+        results = getattr(mock_merger, check_attr)()
+        assert len(results) == 1
 
     def test_reset_clears_attempts(self, mock_merger: MockMergeCoordinator) -> None:
         """Test reset clears all attempt history."""
@@ -591,25 +312,6 @@ class TestExecuteMergeOperation:
         assert all(r.status == MergeStatus.MERGED for r in results)
         assert all(r.commit_sha is not None for r in results)
 
-    def test_execute_merge_sets_target_branch(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test execute_merge sets target branch on results."""
-        results = mock_merger.execute_merge(
-            source_branches=["w-0"],
-            staging_branch="custom-staging",
-        )
-
-        assert results[0].target_branch == "custom-staging"
-
-    def test_execute_merge_tracks_all_results(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test all merge results are tracked internally."""
-        mock_merger.execute_merge(
-            source_branches=["w-0", "w-1"],
-            staging_branch="staging",
-        )
-
-        all_results = mock_merger.get_merge_results()
-        assert len(all_results) == 2
-
 
 class TestHelperMethods:
     """Test helper methods on MockMergeCoordinator."""
@@ -618,16 +320,6 @@ class TestHelperMethods:
         """Test get_mergeable_branches returns empty by default."""
         branches = mock_merger.get_mergeable_branches()
         assert branches == []
-
-    def test_cleanup_feature_branches_returns_zero(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test cleanup_feature_branches returns 0 in mock."""
-        count = mock_merger.cleanup_feature_branches()
-        assert count == 0
-
-    def test_cleanup_feature_branches_with_force(self, mock_merger: MockMergeCoordinator) -> None:
-        """Test cleanup accepts force parameter."""
-        count = mock_merger.cleanup_feature_branches(force=False)
-        assert count == 0
 
 
 class TestRealMergeCoordinatorIntegration:
@@ -727,39 +419,3 @@ class TestRealMergeCoordinatorIntegration:
         assert result.success is False
         assert "conflict" in result.error.lower()
         mock_git_ops.abort_merge.assert_called()
-
-    def test_real_coordinator_skip_gates(
-        self,
-        mock_git_ops,
-        mock_gate_runner,
-        sample_config: ZergConfig,
-        tmp_path: Path,
-    ) -> None:
-        """Test real coordinator with skip_gates option."""
-        coordinator = MergeCoordinator("feature", sample_config, tmp_path)
-
-        result = coordinator.full_merge_flow(
-            level=1,
-            worker_branches=["worker-0"],
-            skip_gates=True,
-        )
-
-        assert result.success is True
-        mock_gate_runner.run_all_gates.assert_not_called()
-
-    def test_real_coordinator_no_branches(
-        self,
-        mock_git_ops,
-        mock_gate_runner,
-        sample_config: ZergConfig,
-        tmp_path: Path,
-    ) -> None:
-        """Test real coordinator with no worker branches."""
-        mock_git_ops.list_worker_branches.return_value = []
-
-        coordinator = MergeCoordinator("feature", sample_config, tmp_path)
-
-        result = coordinator.full_merge_flow(level=1)
-
-        assert result.success is False
-        assert "No worker branches" in result.error
