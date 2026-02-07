@@ -12,10 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/FUNDING.yml` for GitHub Sponsors (#191)
 - `.github/release.yml` for auto-categorized release notes (#191)
 - `lychee` link checker CI job for documentation (#191)
+- Custom single-page landing site (`docs/index.html`) with dark/light mode toggle, glassmorphism design, and scroll animations (#204)
+- 26-command cheat sheet table, pipeline visualization, FAQ accordion, and copy-to-clipboard (#204)
+- Optimized web logo (`docs/assets/img/zerg-logo-web.png`, <200KB) and Open Graph social preview image (#204)
+- Simplified GitHub Pages deployment — direct `docs/` upload replaces MkDocs build (#205)
 
 ### Changed
 
 - Pre-commit config expanded with 6 standard hooks (`trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-json`, `check-toml`, `check-added-large-files`) (#191)
+
+### Removed
+
+- MkDocs-based documentation build (`mkdocs.yml`, `docs/index.md`) — replaced by custom landing page (#204)
 
 ## [0.2.0] - 2026-02-07
 

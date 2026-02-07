@@ -1,0 +1,259 @@
+{
+  "feature": "zerg-website",
+  "version": "2.0",
+  "generated": "2026-02-07T14:30:00Z",
+  "total_tasks": 9,
+  "estimated_duration_minutes": 120,
+  "max_parallelization": 3,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create CSS foundation with dark/light theming and glassmorphism",
+      "description": "Create docs/assets/css/custom.css with CSS custom properties for dark (default) and light themes, glassmorphism card styles (.glass-card with backdrop-filter blur, semi-transparent borders), scroll animation classes (.fade-in to .fade-in.visible), pipeline visualization layout (horizontal desktop, vertical mobile), code block styling with copy button positioning, responsive breakpoints, and transition utilities. Dark palette: navy #0f172a bg, purple #7c3aed accent, green #22c55e accent. Light palette: white/light gray bg with adjusted accents. Include Tailwind dark: class strategy support (darkMode class on html element).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["docs/assets/css/custom.css"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "test -s docs/assets/css/custom.css && echo 'CSS exists and non-empty'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["css", "tailwind"],
+      "consumers": ["TASK-003"],
+      "integration_test": null,
+      "context": "## Spec Context\nDark-first design: Dark navy background (#0f172a or similar). Light mode: Clean white/light gray, toggle via sun/moon icon. Accent colors: Purple (#7c3aed) and toxic green (#22c55e). Glassmorphism: Frosted panels with backdrop-filter: blur(), semi-transparent borders. Scroll animations: Staggered fade-in on section entry (IntersectionObserver). Code blocks: Dark background with syntax-style coloring, copy button.\n\n## Dependencies\nNone — foundation task.\n\n## Key Requirements\n- CSS variables for both themes\n- .glass-card class with backdrop-filter: blur(12px)\n- .fade-in / .fade-in.visible for scroll animations\n- .pipeline class responsive horizontal to vertical\n- No FOUC: inline critical dark mode styles or preload\n- Gradient text utility for hero headline"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Optimize logo and generate OG image",
+      "description": "Resize logo/zerg_logo.png (7.3MB) to max 400px width as docs/assets/img/zerg-logo-web.png (under 200KB). Generate docs/assets/img/og-image.png (1200x630) with dark background (#0f172a) and centered logo for Open Graph social sharing. Use macOS sips for resizing and Python PIL/Pillow for OG image generation. Create docs/assets/img/ directory structure.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["docs/assets/img/zerg-logo-web.png", "docs/assets/img/og-image.png"],
+        "modify": [],
+        "read": ["logo/zerg_logo.png"]
+      },
+      "verification": {
+        "command": "test -f docs/assets/img/zerg-logo-web.png && test $(stat -f%z docs/assets/img/zerg-logo-web.png) -lt 204800 && test -f docs/assets/img/og-image.png && echo 'Logo optimized and OG image created'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["image-processing"],
+      "consumers": ["TASK-003"],
+      "integration_test": null,
+      "context": "## Spec Context\nLogo Optimization: Source: logo/zerg_logo.png (7.6MB). Target: docs/assets/img/zerg-logo-web.png (under 200KB). Resize to max 400px width. Generate separate OG image (1200x630) for social sharing.\n\n## Tool Availability\nmacOS sips is available at /usr/bin/sips. Python3 with PIL/Pillow may be available. Fallback: use sips for resize, create simple OG with Python.\n\n## Dependencies\nNone — foundation task."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Build HTML landing page with all 9 sections",
+      "description": "Create docs/index.html — the complete single-page landing site. Includes: (1) SEO meta tags + Open Graph tags (canonical: zerg-ai.com), (2) Tailwind Play CDN pinned to v3.4.17 with darkMode class config, (3) custom.css link, (4) Sticky nav with logo, section links (Why, How, Commands, Quick Start, FAQ), dark/light toggle icon, prominent GitHub link (icon + text), mobile hamburger, (5) Hero with commanding Zerg-themed headline, gradient text, subheadline, pip install CTA with copy button, 4 glass pillar cards (Secure by Default, Run Anywhere, Massively Parallel, Token Smart), (6) Why ZERG with 4 pain-to-solution pairs, (7) How It Works pipeline (Plan to Design to Rush to Merge) horizontal on desktop/vertical on mobile, (8) Commands cheat sheet table with all 26 /zerg:* commands grouped by category, link to wiki, (9) Quick Start 4-step code block with copy button, (10) Stats section with 3 counter cards (26 commands, 3 exec modes, 30-50% token savings), (11) FAQ accordion with 6 Q&A pairs using details/summary, (12) Footer with GitHub, Wiki, Sponsor, License links and attribution. All sections use .fade-in class for scroll animations. Tailwind utility classes for layout. References custom.css for theming and main.js (deferred script) for interactivity.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": ["docs/index.html"],
+        "modify": [],
+        "read": ["docs/assets/css/custom.css", "docs/assets/img/zerg-logo-web.png", "docs/commands-quick.md"]
+      },
+      "verification": {
+        "command": "python3 -c \"from html.parser import HTMLParser; HTMLParser().feed(open('docs/index.html').read()); print('Valid HTML')\" && test $(grep -c '/zerg:' docs/index.html) -ge 26 && echo 'All 26 commands present'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 40,
+      "skills_required": ["html", "tailwind", "design"],
+      "consumers": ["TASK-004", "TASK-005", "TASK-007", "TASK-008"],
+      "integration_test": null,
+      "context": "## Spec Context\nSections: (1) Sticky nav bar — fixed top, semi-transparent + backdrop blur, logo + wordmark left, section anchors center, dark/light toggle + GitHub link right, hamburger on mobile. (2) Hero — playful Zerg-themed headline, gradient text, subheadline explaining ZERG, pip install CTA with copy button, 4 glass pillar cards. (3) Why ZERG — 4 bullet pairs pain-to-solution. (4) How It Works — Plan-Design-Rush-Merge pipeline, horizontal desktop, vertical mobile. (5) Commands — all 26 commands in table, grouped by category. (6) Quick Start — 4-step code block. (7) Stats — animated counters. (8) FAQ — details/summary accordion. (9) Footer.\n\nVisual: Dark navy #0f172a, purple #7c3aed, green #22c55e accents. Glassmorphism cards. Gradient headline text. System font stack, monospace for code.\n\nThe 26 commands: brainstorm, design, init, plan, rush, cleanup, logs, merge, retry, status, stop, analyze, build, refactor, review, security, test, create-command, debug, git, plugins, worker, document, estimate, explain, index, select-tool.\n\nCanonical URL: https://zerg-ai.com (future domain). OG URL should use this.\n\n## Implementation Notes (from issue validation)\n- HERO HEADLINE: Issue #206 suggests: 'The only Claude Code orchestrator that auto-secures, containerizes, and parallelizes your entire feature.' Use this or a close variant incorporating the swarm metaphor.\n- LICENSE: Footer must say 'Apache 2.0' (NOT MIT). The repo license is Apache 2.0.\n- LAZY LOADING: Add loading='lazy' to all images below the fold (logo in nav can be eager, everything else lazy). Required for <2s load target per #209.\n\n## Dependencies\nTASK-001 creates custom.css with .glass-card, .fade-in, theme variables.\nTASK-002 creates optimized logo at docs/assets/img/zerg-logo-web.png and OG image."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Implement JavaScript interactivity",
+      "description": "Create docs/assets/js/main.js as single IIFE with all interactive features: (1) Dark/light mode toggle — read localStorage('theme'), apply .dark class to html, toggle sun/moon icon, persist choice. Default to dark. Respect prefers-color-scheme on first visit. (2) Mobile hamburger menu — toggle nav link visibility on small screens. (3) Copy-to-clipboard — find all .copy-btn elements, use navigator.clipboard.writeText with fallback to textarea method, show 'Copied!' feedback. (4) FAQ accordion — enhance native details/summary with smooth height animation using CSS transitions. (5) Scroll animations — IntersectionObserver on all .fade-in elements, add .visible when entering viewport with staggered delays. (6) Stat counter animation — when stats section enters viewport, animate numbers from 0 to target using requestAnimationFrame. (7) Smooth scroll — intercept anchor clicks, scrollTo with offset for sticky nav height. (8) Active nav highlighting — IntersectionObserver on sections, highlight corresponding nav link.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": ["docs/assets/js/main.js"],
+        "modify": [],
+        "read": ["docs/index.html"]
+      },
+      "verification": {
+        "command": "node --check docs/assets/js/main.js && echo 'JS syntax valid'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["javascript", "dom"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nInteractivity requirements: Dark/light toggle persists via localStorage. Copy-to-clipboard on code blocks. FAQ accordion smooth expand/collapse. Scroll animations staggered fade-in. Stat counters animate on scroll. Mobile hamburger menu. Active nav highlighting.\n\nGraceful degradation: Content must be readable with JS disabled. details/summary works natively. Dark mode defaults without JS (class='dark' on html). Copy buttons hidden without JS.\n\n## Implementation Notes (from issue validation)\n- FAQ CHEVRON: Add chevron/arrow icon rotation animation on FAQ expand/collapse (per #208). Rotate 90deg or 180deg when details is open. Use CSS transition on a chevron span/svg inside each summary element.\n- SCROLL ANIMATIONS: Include subtle scale-up (e.g. transform: scale(1.02)) on glass pillar cards when entering viewport, in addition to the standard fade-in (per #209).\n\n## Dependencies\nTASK-003 creates index.html with DOM structure: .copy-btn buttons, .fade-in sections, details/summary FAQ, nav with anchors, #stats with data-target attributes, mobile menu button.\n\n## Security (JavaScript)\n- No dynamic code execution\n- No innerHTML with user input (static content only)\n- navigator.clipboard API (secure context only)\n- No external script dependencies\n- IIFE to avoid global scope pollution"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update deployment workflow and remove MkDocs",
+      "description": "Modify .github/workflows/docs.yml to: (1) Remove python setup step, (2) Remove pip install mkdocs-material step, (3) Remove mkdocs build step, (4) Change upload-pages-artifact path from site/ to docs/, (5) Add docs.yml itself to path triggers, (6) Keep existing deploy job unchanged. Also delete docs/index.md (replaced by index.html) and delete mkdocs.yml (no longer needed). Verify the workflow YAML is valid.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": [],
+        "modify": [".github/workflows/docs.yml"],
+        "read": [],
+        "delete": ["docs/index.md", "mkdocs.yml"]
+      },
+      "verification": {
+        "command": "python3 -c \"import yaml; yaml.safe_load(open('.github/workflows/docs.yml')); print('Valid YAML')\" && ! test -f mkdocs.yml && ! test -f docs/index.md && echo 'Workflow updated, MkDocs removed'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["github-actions", "yaml"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nDeployment: Repurpose .github/workflows/docs.yml. Change build step: replace mkdocs build with simple file copy/upload of docs/. Update path triggers to include docs/**. Remove mkdocs.yml trigger. Upload docs/ as pages artifact instead of site/.\n\nMkDocs removal: Delete mkdocs.yml. Delete docs/index.md (replaced by index.html). Keep all other .md docs files.\n\n## Current Workflow\nCurrent docs.yml: checkout, setup-python, pip install mkdocs-material, mkdocs build --strict --clean, upload site/, deploy.\nNew: checkout, upload docs/, deploy. Much simpler.\n\n## Dependencies\nTASK-003 creates docs/index.html which replaces docs/index.md as the landing page."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Validate HTML, accessibility, and all acceptance criteria",
+      "description": "Run comprehensive validation: (1) HTML parsing validation, (2) Verify all 26 commands present in cheat sheet, (3) Verify JS syntax with node --check, (4) Verify logo size under 200KB, (5) Verify OG image exists, (6) Verify workflow YAML valid, (7) Verify docs/index.md deleted, (8) Verify mkdocs.yml deleted, (9) Check all section IDs present (hero, why, how, commands, quickstart, stats, faq), (10) Check nav links match section IDs, (11) Check dark/light toggle markup exists, (12) Check copy-to-clipboard buttons exist, (13) Verify alt text on images for accessibility. Report all findings. File any fixes needed as notes for TASK-007/TASK-008.",
+      "phase": "testing",
+      "level": 4,
+      "dependencies": ["TASK-004", "TASK-005"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": ["docs/index.html", "docs/assets/css/custom.css", "docs/assets/js/main.js", ".github/workflows/docs.yml"]
+      },
+      "verification": {
+        "command": "python3 -c \"from html.parser import HTMLParser; HTMLParser().feed(open('docs/index.html').read()); print('Valid')\" && node --check docs/assets/js/main.js && python3 -c \"import yaml; yaml.safe_load(open('.github/workflows/docs.yml')); print('YAML valid')\" && echo 'All validations passed'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["testing", "accessibility"],
+      "consumers": ["TASK-007", "TASK-008"],
+      "integration_test": null,
+      "context": "## Spec Context\nAcceptance Criteria: (1) All 7 content sections render, (2) Dark/light toggle works and persists, (3) All 26 commands in table, (4) Copy-to-clipboard works, (5) FAQ accordion expands/collapses, (6) Sticky nav scrolls correctly, (7) Mobile hamburger works, (8) Existing docs accessible, (9) Logo under 200KB, (10) OG meta tags present, (11) No JS framework deps, (12) Workflow deploys.\n\nNFRs: Lighthouse Performance >90, Accessibility >95, WCAG AA.\n\n## Dependencies\nTASK-004 creates main.js with all interactivity.\nTASK-005 updates workflow and removes MkDocs."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Apply responsive fixes and accessibility improvements",
+      "description": "Based on TASK-006 validation findings, apply fixes to index.html and custom.css: (1) Ensure all images have meaningful alt text, (2) Ensure sufficient color contrast (WCAG AA — 4.5:1 for text, 3:1 for large text) in both dark and light modes, (3) Add aria-labels to interactive elements (toggle button, hamburger, copy buttons), (4) Ensure focus styles visible for keyboard navigation, (5) Add skip-to-content link, (6) Test and fix responsive layout at 320px, 768px, 1024px, 1440px breakpoints, (7) Ensure hamburger menu is keyboard-accessible, (8) Add role and aria attributes to FAQ accordion.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-006"],
+      "files": {
+        "create": [],
+        "modify": ["docs/index.html", "docs/assets/css/custom.css"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'aria-label' docs/index.html && grep -q 'skip' docs/index.html && echo 'Accessibility attributes present'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["accessibility", "css"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nNFRs: Lighthouse Accessibility >95, WCAG AA compliance, Mobile responsive 320px-2560px, JavaScript disabled means content readable.\n\n## Dependencies\nTASK-006 produces validation report with specific issues to fix."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Polish SEO, Open Graph tags, and final content",
+      "description": "Final polish pass on index.html: (1) Verify/fix all Open Graph meta tags (og:title, og:description, og:image, og:url with zerg-ai.com canonical), (2) Add Twitter Card meta tags (twitter:card, twitter:title, twitter:description, twitter:image), (3) Verify canonical URL set to https://zerg-ai.com, (4) Add structured data (JSON-LD for SoftwareApplication), (5) Verify favicon reference, (6) Add cache-busting query params to CSS/JS links (?v=1.0), (7) Final copy review on hero headline and subheadline, (8) Verify all external links open in new tab with rel='noopener noreferrer'.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-006"],
+      "files": {
+        "create": [],
+        "modify": ["docs/index.html"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'og:title' docs/index.html && grep -q 'og:image' docs/index.html && grep -q 'twitter:card' docs/index.html && grep -q 'canonical' docs/index.html && echo 'SEO tags present'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["seo", "html"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nSEO meta tags + Open Graph. Canonical URL: zerg-ai.com (planned custom domain). OG image: docs/assets/img/og-image.png (1200x630). Site title: ZERG — Parallel Claude Code Execution. Description: Overwhelm features with coordinated AI workers.\n\n## Security\n- All external links must have rel='noopener noreferrer'\n- No sensitive data in meta tags\n- Canonical URL uses HTTPS\n\n## Dependencies\nTASK-006 produces validation report with specific SEO issues to fix."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Update CHANGELOG.md and final quality check",
+      "description": "Add entries under [Unreleased] > Added in CHANGELOG.md: (1) Custom single-page landing site at docs/index.html with dark/light mode, (2) 26-command cheat sheet, glassmorphism design, scroll animations, (3) Optimized web logo and Open Graph image, (4) Simplified GitHub Pages deployment (removed MkDocs dependency). Under [Unreleased] > Removed: (1) MkDocs-based documentation build (mkdocs.yml). Run final validation that all files exist and pass checks.",
+      "phase": "quality",
+      "level": 5,
+      "dependencies": ["TASK-006"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'landing' CHANGELOG.md && grep -q 'MkDocs' CHANGELOG.md && echo 'CHANGELOG updated'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nDocumentation Impact: CHANGELOG.md entry under [Unreleased] > Added for custom landing page. Under Removed for MkDocs removal.\n\n## Dependencies\nTASK-006 confirms all features working before documenting."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-003"],
+      "parallel": false,
+      "estimated_minutes": 40,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-004", "TASK-005"],
+      "parallel": true,
+      "estimated_minutes": 30,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "testing",
+      "tasks": ["TASK-006"],
+      "parallel": false,
+      "estimated_minutes": 20,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "quality",
+      "tasks": ["TASK-007", "TASK-008", "TASK-009"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [4]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TASK-007", "TASK-008"],
+        "reason": "Both modify docs/index.html in Level 5",
+        "resolution": "TASK-007 modifies accessibility attributes and CSS; TASK-008 modifies head meta tags. Non-overlapping regions, but sequential execution recommended for safety."
+      }
+    ]
+  }
+}

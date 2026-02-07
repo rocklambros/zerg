@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ZERG — Parallel Claude Code orchestrator. Auto-secures, containerizes, and parallelizes your entire feature with coordinated AI workers.">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="ZERG — Parallel Claude Code Execution">
+  <meta property="og:description" content="Overwhelm features with coordinated AI workers. Secure, containerized, parallel execution with context engineering.">
+  <meta property="og:image" content="https://zerg-ai.com/assets/img/og-image.png">
+  <meta property="og:url" content="https://zerg-ai.com">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ZERG">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ZERG — Parallel Claude Code Execution">
+  <meta name="twitter:description" content="Overwhelm features with coordinated AI workers. Secure, containerized, parallel execution with context engineering.">
+  <meta name="twitter:image" content="https://zerg-ai.com/assets/img/og-image.png">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://zerg-ai.com">
+
+  <title>ZERG — Parallel Claude Code Execution</title>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ZERG",
+    "description": "Parallel Claude Code execution system. Overwhelm features with coordinated AI workers.",
+    "url": "https://zerg-ai.com",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Linux, Windows",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "license": "https://opensource.org/licenses/Apache-2.0"
+  }
+  </script>
+
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', 'Consolas', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="assets/css/custom.css?v=1.0">
+</head>
+<body class="font-sans antialiased">
+
+  <!-- Skip Navigation Link -->
+  <a href="#hero" class="skip-link">Skip to main content</a>
+
+  <!-- ================================================================
+       Section 1: Sticky Navigation Bar
+       ================================================================ -->
+  <nav class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b" style="background: var(--glass-bg); border-color: var(--glass-border);" aria-label="Primary navigation">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+
+        <!-- Left: Logo + Wordmark -->
+        <a href="#hero" class="flex items-center gap-2" aria-label="ZERG home">
+          <img src="assets/img/zerg-logo-web.png" alt="ZERG zergling logo" class="h-8" width="59" height="32" loading="lazy">
+          <span class="text-xl font-bold" style="color: var(--text-primary);">ZERG</span>
+        </a>
+
+        <!-- Center: Desktop Nav Links -->
+        <div class="hidden md:flex items-center gap-8" role="navigation" aria-label="Main navigation">
+          <a href="#why" class="text-sm font-medium hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">Why</a>
+          <a href="#how" class="text-sm font-medium hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">How</a>
+          <a href="#commands" class="text-sm font-medium hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">Commands</a>
+          <a href="#quickstart" class="text-sm font-medium hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">Quick Start</a>
+          <a href="#faq" class="text-sm font-medium hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">FAQ</a>
+        </div>
+
+        <!-- Right: Theme Toggle + GitHub + Mobile Menu -->
+        <div class="flex items-center gap-4">
+          <!-- Theme Toggle -->
+          <button id="theme-toggle" type="button" class="p-2 rounded-lg transition-colors" style="color: var(--text-muted);" aria-label="Toggle dark mode">
+            <!-- Sun icon (shown in dark mode) -->
+            <svg class="w-5 h-5 dark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <!-- Moon icon (shown in light mode) -->
+            <svg class="w-5 h-5 light-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+
+          <!-- GitHub Link -->
+          <a href="https://github.com/rocklambros/zerg" target="_blank" rel="noopener noreferrer" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors" style="color: var(--text-secondary); background: var(--accent-purple-soft);" aria-label="View ZERG on GitHub">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span>GitHub</span>
+          </a>
+
+          <!-- Mobile Menu Button -->
+          <button id="mobile-menu-btn" type="button" class="md:hidden p-2 rounded-lg transition-colors" style="color: var(--text-muted);" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-menu">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="hidden md:hidden pb-4" role="navigation" aria-label="Mobile navigation">
+        <div class="flex flex-col gap-2 pt-2 border-t" style="border-color: var(--border-color);">
+          <a href="#why" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors" style="color: var(--text-secondary);">Why</a>
+          <a href="#how" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors" style="color: var(--text-secondary);">How</a>
+          <a href="#commands" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors" style="color: var(--text-secondary);">Commands</a>
+          <a href="#quickstart" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors" style="color: var(--text-secondary);">Quick Start</a>
+          <a href="#faq" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors" style="color: var(--text-secondary);">FAQ</a>
+          <a href="https://github.com/rocklambros/zerg" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors" style="color: var(--text-secondary);" aria-label="View ZERG on GitHub">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ================================================================
+         Section 2: Hero
+         ================================================================ -->
+    <section id="hero" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 fade-in" role="region" aria-labelledby="hero-heading">
+      <div class="max-w-5xl mx-auto text-center">
+        <h1 id="hero-heading" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+          <span class="gradient-text">The only Claude Code orchestrator that auto-secures, containerizes, and parallelizes your entire feature.</span>
+        </h1>
+        <p class="text-lg sm:text-xl max-w-3xl mx-auto mb-10" style="color: var(--text-secondary);">
+          Overwhelm features with coordinated AI workers. Plan, design, rush, merge &mdash; all in parallel.
+        </p>
+
+        <!-- Install CTA -->
+        <div class="max-w-md mx-auto mb-16">
+          <div class="code-block text-center">
+            <code>pip install zerg-ai</code>
+            <button type="button" class="copy-btn" data-copy="pip install zerg-ai" aria-label="Copy install command">
+              <svg class="w-4 h-4 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Glass Pillar Cards -->
+        <h2 class="sr-only">Key Features</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+
+          <!-- Pillar 1: Secure by Default -->
+          <div class="glass-card fade-in text-left">
+            <div class="mb-4" style="color: var(--accent-purple);">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">Secure by Default</h3>
+            <p class="text-sm" style="color: var(--text-secondary);">Auto-fetched OWASP rules. Language-specific security. Zero manual config.</p>
+          </div>
+
+          <!-- Pillar 2: Run Anywhere -->
+          <div class="glass-card fade-in text-left">
+            <div class="mb-4" style="color: var(--accent-purple);">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">Run Anywhere</h3>
+            <p class="text-sm" style="color: var(--text-secondary);">Docker containers, subprocess, or task mode. Git worktrees for isolation.</p>
+          </div>
+
+          <!-- Pillar 3: Massively Parallel -->
+          <div class="glass-card fade-in text-left">
+            <div class="mb-4" style="color: var(--accent-green);">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">Massively Parallel</h3>
+            <p class="text-sm" style="color: var(--text-secondary);">Coordinated workers with dependency-aware scheduling. 5+ workers building simultaneously.</p>
+          </div>
+
+          <!-- Pillar 4: Token Smart -->
+          <div class="glass-card fade-in text-left">
+            <div class="mb-4" style="color: var(--accent-green);">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <path d="M9 9h6v6H9z"></path>
+                <path d="M9 1v3"></path>
+                <path d="M15 1v3"></path>
+                <path d="M9 20v3"></path>
+                <path d="M15 20v3"></path>
+                <path d="M20 9h3"></path>
+                <path d="M20 14h3"></path>
+                <path d="M1 9h3"></path>
+                <path d="M1 14h3"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">Token Smart</h3>
+            <p class="text-sm" style="color: var(--text-secondary);">Context engineering: command splitting, scoped budgets. 30-50% token savings per worker.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         Section 3: Why ZERG
+         ================================================================ -->
+    <section id="why" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" style="background: var(--bg-secondary);" role="region" aria-labelledby="why-heading">
+      <div class="max-w-5xl mx-auto">
+        <h2 id="why-heading" class="text-3xl sm:text-4xl font-bold text-center mb-16" style="color: var(--text-primary);">
+          Why <span class="gradient-text">ZERG</span>?
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+          <!-- Pain 1 -->
+          <div class="glass-card fade-in">
+            <div class="flex items-start gap-3 mb-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(239, 68, 68, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </span>
+              <p class="text-sm font-medium" style="color: var(--text-muted);">Manual CLAUDE.md for every project</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(34, 197, 94, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <p class="text-sm font-semibold" style="color: var(--text-primary);">Auto-detects stack, fetches security rules, generates configs</p>
+            </div>
+          </div>
+
+          <!-- Pain 2 -->
+          <div class="glass-card fade-in">
+            <div class="flex items-start gap-3 mb-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(239, 68, 68, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </span>
+              <p class="text-sm font-medium" style="color: var(--text-muted);">One agent, sequential execution</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(34, 197, 94, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <p class="text-sm font-semibold" style="color: var(--text-primary);">5+ workers building in parallel with dependency-aware scheduling</p>
+            </div>
+          </div>
+
+          <!-- Pain 3 -->
+          <div class="glass-card fade-in">
+            <div class="flex items-start gap-3 mb-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(239, 68, 68, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </span>
+              <p class="text-sm font-medium" style="color: var(--text-muted);">Context rot across long sessions</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(34, 197, 94, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <p class="text-sm font-semibold" style="color: var(--text-primary);">Spec-driven workers &mdash; stateless, restartable, no conversation history</p>
+            </div>
+          </div>
+
+          <!-- Pain 4 -->
+          <div class="glass-card fade-in">
+            <div class="flex items-start gap-3 mb-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(239, 68, 68, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </span>
+              <p class="text-sm font-medium" style="color: var(--text-muted);">Token waste on repeated context</p>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="inline-block w-6 h-6 rounded-full flex-shrink-0 mt-0.5" style="background: rgba(34, 197, 94, 0.2);">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <p class="text-sm font-semibold" style="color: var(--text-primary);">Context engineering: command splitting + scoped budgets = 30-50% savings</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         Section 4: How It Works
+         ================================================================ -->
+    <section id="how" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" role="region" aria-labelledby="how-heading">
+      <div class="max-w-5xl mx-auto">
+        <h2 id="how-heading" class="text-3xl sm:text-4xl font-bold text-center mb-16" style="color: var(--text-primary);">
+          How It <span class="gradient-text">Works</span>
+        </h2>
+
+        <div class="pipeline">
+
+          <!-- Step 1: Plan -->
+          <div class="pipeline-step fade-in">
+            <div class="flex justify-center mb-3" style="color: var(--accent-purple);">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              </svg>
+            </div>
+            <p class="pipeline-step-label">Step 1</p>
+            <p class="pipeline-step-title">Plan</p>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">Capture requirements through interactive questioning</p>
+          </div>
+
+          <!-- Step 2: Design -->
+          <div class="pipeline-step fade-in">
+            <div class="flex justify-center mb-3" style="color: var(--accent-purple);">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="2" width="20" height="20" rx="2"></rect>
+                <line x1="2" y1="8" x2="22" y2="8"></line>
+                <line x1="8" y1="2" x2="8" y2="22"></line>
+              </svg>
+            </div>
+            <p class="pipeline-step-label">Step 2</p>
+            <p class="pipeline-step-title">Design</p>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">Generate architecture and atomic task graph</p>
+          </div>
+
+          <!-- Step 3: Rush -->
+          <div class="pipeline-step fade-in">
+            <div class="flex justify-center mb-3" style="color: var(--accent-green);">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
+                <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path>
+                <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path>
+                <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path>
+              </svg>
+            </div>
+            <p class="pipeline-step-label">Step 3</p>
+            <p class="pipeline-step-title">Rush</p>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">Launch parallel workers with exclusive file ownership</p>
+          </div>
+
+          <!-- Step 4: Merge -->
+          <div class="pipeline-step fade-in">
+            <div class="flex justify-center mb-3" style="color: var(--accent-green);">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="18" r="3"></circle>
+                <circle cx="6" cy="6" r="3"></circle>
+                <path d="M6 21V9a9 9 0 0 0 9 9"></path>
+              </svg>
+            </div>
+            <p class="pipeline-step-label">Step 4</p>
+            <p class="pipeline-step-title">Merge</p>
+            <p class="text-xs mt-1" style="color: var(--text-muted);">Quality gates, automated merges, level by level</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         Section 5: Commands Cheat Sheet
+         ================================================================ -->
+    <section id="commands" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" style="background: var(--bg-secondary);" role="region" aria-labelledby="commands-heading">
+      <div class="max-w-5xl mx-auto">
+        <h2 id="commands-heading" class="text-3xl sm:text-4xl font-bold text-center mb-4" style="color: var(--text-primary);">
+          <span class="gradient-text">26 Commands</span>. One Toolkit.
+        </h2>
+        <p class="text-center mb-12" style="color: var(--text-muted);">Every command you need to plan, build, test, and ship.</p>
+
+        <!-- Core Workflow -->
+        <div class="mb-10 fade-in">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2" style="color: var(--accent-purple);">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            Core Workflow
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" style="color: var(--text-primary);">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <th class="text-left py-2 pr-4 font-semibold" style="color: var(--text-muted);">Command</th>
+                  <th class="text-left py-2 font-semibold" style="color: var(--text-muted);">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:brainstorm</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Open-ended feature discovery with competitive research</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:plan</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Capture requirements through interactive questioning</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:design</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Generate architecture and task graph for parallel execution</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:rush</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Launch parallel workers to execute task graph</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Monitoring & Control -->
+        <div class="mb-10 fade-in">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2" style="color: var(--accent-purple);">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Monitoring &amp; Control
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" style="color: var(--text-primary);">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <th class="text-left py-2 pr-4 font-semibold" style="color: var(--text-muted);">Command</th>
+                  <th class="text-left py-2 font-semibold" style="color: var(--text-muted);">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:status</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Display real-time execution progress</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:logs</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Stream, filter, and aggregate worker logs</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:merge</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Manually trigger level merge operations</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:retry</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Retry failed or blocked tasks</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:stop</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Stop workers gracefully or forcefully</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-purple);">/zerg:cleanup</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Remove ZERG artifacts and free resources</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Quality & Analysis -->
+        <div class="mb-10 fade-in">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2" style="color: var(--accent-green);">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Quality &amp; Analysis
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" style="color: var(--text-primary);">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <th class="text-left py-2 pr-4 font-semibold" style="color: var(--text-muted);">Command</th>
+                  <th class="text-left py-2 font-semibold" style="color: var(--text-muted);">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-green);">/zerg:analyze</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Static analysis, complexity metrics, and quality assessment</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-green);">/zerg:build</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Build orchestration with auto-detection and error recovery</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-green);">/zerg:refactor</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Automated code improvement and cleanup</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-green);">/zerg:review</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Two-stage code review workflow</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-green);">/zerg:security</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Security scanning and rules management</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap" style="color: var(--accent-green);">/zerg:test</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Execute tests with coverage and generation</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Utilities -->
+        <div class="mb-10 fade-in">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2" style="color: var(--text-muted);">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            Utilities
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" style="color: var(--text-primary);">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <th class="text-left py-2 pr-4 font-semibold" style="color: var(--text-muted);">Command</th>
+                  <th class="text-left py-2 font-semibold" style="color: var(--text-muted);">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:create-command</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Scaffold new ZERG commands with Task integration</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:debug</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Deep diagnostic investigation with error intelligence</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:git</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Git operations with intelligent commits, PRs, and releases</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:plugins</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Extend ZERG with quality gates, hooks, and launchers</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:worker</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Internal worker execution protocol</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Documentation & AI -->
+        <div class="mb-10 fade-in">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2" style="color: var(--text-muted);">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            Documentation &amp; AI
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" style="color: var(--text-primary);">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <th class="text-left py-2 pr-4 font-semibold" style="color: var(--text-muted);">Command</th>
+                  <th class="text-left py-2 font-semibold" style="color: var(--text-muted);">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:document</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Generate documentation for a single component</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:estimate</td>
+                  <td class="py-2" style="color: var(--text-secondary);">PERT effort estimation with post-execution comparison</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:explain</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Educational code explanations with four depth layers</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:index</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Generate complete documentation wiki</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td class="py-2 pr-4 font-mono text-xs whitespace-nowrap">/zerg:select-tool</td>
+                  <td class="py-2" style="color: var(--text-secondary);">Intelligent tool routing across MCP, native tools, and agents</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <a href="https://github.com/rocklambros/zerg/wiki" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-80" style="color: var(--accent-purple);">
+            Full documentation
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         Section 6: Quick Start
+         ================================================================ -->
+    <section id="quickstart" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" role="region" aria-labelledby="quickstart-heading">
+      <div class="max-w-3xl mx-auto">
+        <h2 id="quickstart-heading" class="text-3xl sm:text-4xl font-bold text-center mb-4" style="color: var(--text-primary);">
+          <span class="gradient-text">Quick Start</span>
+        </h2>
+        <p class="text-center mb-10" style="color: var(--text-muted);">From zero to parallel workers in four commands.</p>
+
+        <div class="code-block mb-8">
+          <code><span style="color: #94a3b8;"># Install ZERG</span>
+pip install zerg-ai
+
+<span style="color: #94a3b8;"># Plan your feature</span>
+/zerg:plan user-auth
+
+<span style="color: #94a3b8;"># Design architecture and task graph</span>
+/zerg:design
+
+<span style="color: #94a3b8;"># Launch the swarm</span>
+/zerg:rush --workers=5</code>
+          <button type="button" class="copy-btn" data-copy="pip install zerg-ai
+/zerg:plan user-auth
+/zerg:design
+/zerg:rush --workers=5" aria-label="Copy quick start commands">
+            <svg class="w-4 h-4 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-purple);">1.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Install</strong> &mdash; Get ZERG from PyPI with a single pip command.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-purple);">2.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Plan</strong> &mdash; Interactively capture requirements for your feature.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-green);">3.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Design</strong> &mdash; Auto-generate architecture and parallel task graph.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="font-mono font-bold flex-shrink-0" style="color: var(--accent-green);">4.</span>
+            <p style="color: var(--text-secondary);"><strong style="color: var(--text-primary);">Rush</strong> &mdash; Launch 5 parallel workers to build your feature.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         Section 7: Stats
+         ================================================================ -->
+    <section id="stats" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" style="background: var(--bg-secondary);" role="region" aria-label="Project statistics">
+      <div class="max-w-4xl mx-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+
+          <!-- Stat 1 -->
+          <div class="glass-card text-center fade-in">
+            <p class="text-5xl font-extrabold mb-2 gradient-text" data-target="26">0</p>
+            <p class="text-lg font-bold mb-1" style="color: var(--text-primary);">Commands</p>
+            <p class="text-sm" style="color: var(--text-muted);">Complete CLI toolkit</p>
+          </div>
+
+          <!-- Stat 2 -->
+          <div class="glass-card text-center fade-in">
+            <p class="text-5xl font-extrabold mb-2 gradient-text" data-target="3">0</p>
+            <p class="text-lg font-bold mb-1" style="color: var(--text-primary);">Execution Modes</p>
+            <p class="text-sm" style="color: var(--text-muted);">Container, subprocess, task</p>
+          </div>
+
+          <!-- Stat 3 -->
+          <div class="glass-card text-center fade-in">
+            <p class="text-5xl font-extrabold mb-2 gradient-text" data-target="50">0<span class="text-3xl">%</span></p>
+            <p class="text-lg font-bold mb-1" style="color: var(--text-primary);">Token Savings</p>
+            <p class="text-sm" style="color: var(--text-muted);">Context engineering efficiency</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         Section 8: FAQ
+         ================================================================ -->
+    <section id="faq" class="py-20 px-4 sm:px-6 lg:px-8 fade-in" role="region" aria-labelledby="faq-heading">
+      <div class="max-w-3xl mx-auto">
+        <h2 id="faq-heading" class="text-3xl sm:text-4xl font-bold text-center mb-12" style="color: var(--text-primary);">
+          Frequently Asked <span class="gradient-text">Questions</span>
+        </h2>
+
+        <div class="divide-y" style="border-color: var(--border-color);">
+
+          <details>
+            <summary>
+              What is ZERG?
+              <span class="chevron" aria-hidden="true">&#x203A;</span>
+            </summary>
+            <div class="faq-answer">
+              <p>ZERG is a parallel execution system for Claude Code. It coordinates multiple Claude instances to work on features simultaneously, splitting tasks by file ownership to eliminate merge conflicts.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              What do I need to get started?
+              <span class="chevron" aria-hidden="true">&#x203A;</span>
+            </summary>
+            <div class="faq-answer">
+              <p>Python 3.10+, Claude Code CLI, and optionally Docker for container mode. Install with <code class="font-mono text-sm px-1.5 py-0.5 rounded" style="background: var(--code-bg); color: var(--code-text);">pip install zerg-ai</code> and run <code class="font-mono text-sm px-1.5 py-0.5 rounded" style="background: var(--code-bg); color: var(--code-text);">/zerg:init</code> inside Claude Code.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              Is it free?
+              <span class="chevron" aria-hidden="true">&#x203A;</span>
+            </summary>
+            <div class="faq-answer">
+              <p>ZERG is open source under the Apache 2.0 license. You'll need your own Anthropic API key or Claude Pro/Team subscription for the Claude Code instances.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              How does it handle API keys?
+              <span class="chevron" aria-hidden="true">&#x203A;</span>
+            </summary>
+            <div class="faq-answer">
+              <p>For subprocess/task mode, workers inherit your Claude Code session. For container mode, mount <code class="font-mono text-sm px-1.5 py-0.5 rounded" style="background: var(--code-bg); color: var(--code-text);">~/.claude</code> (OAuth) or pass <code class="font-mono text-sm px-1.5 py-0.5 rounded" style="background: var(--code-bg); color: var(--code-text);">ANTHROPIC_API_KEY</code> as an env var.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              Do I need Docker?
+              <span class="chevron" aria-hidden="true">&#x203A;</span>
+            </summary>
+            <div class="faq-answer">
+              <p>No. ZERG's default task mode runs entirely within Claude Code using the Task tool. Docker is only needed for container mode isolation.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              How does ZERG compare to other tools?
+              <span class="chevron" aria-hidden="true">&#x203A;</span>
+            </summary>
+            <div class="faq-answer">
+              <p>ZERG is purpose-built for Claude Code with spec-driven workers, exclusive file ownership (no merge conflicts), and context engineering for token efficiency. It's not a general CI/CD tool &mdash; it's an AI orchestrator.</p>
+            </div>
+          </details>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================================================================
+       Section 9: Footer
+       ================================================================ -->
+  <footer class="py-12 px-4 sm:px-6 lg:px-8 border-t" style="background: var(--bg-secondary); border-color: var(--border-color);">
+    <div class="max-w-5xl mx-auto">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+
+        <!-- Left: Links -->
+        <div class="flex flex-wrap items-center justify-center gap-6 text-sm" style="color: var(--text-muted);">
+          <a href="https://github.com/rocklambros/zerg" target="_blank" rel="noopener noreferrer" class="hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">GitHub</a>
+          <a href="https://github.com/rocklambros/zerg/wiki" target="_blank" rel="noopener noreferrer" class="hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">Wiki</a>
+          <a href="https://github.com/sponsors/rocklambros" target="_blank" rel="noopener noreferrer" class="hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">Sponsor</a>
+          <a href="https://github.com/rocklambros/zerg/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="hover:opacity-80 transition-opacity" style="color: var(--text-secondary);">Apache 2.0</a>
+        </div>
+
+        <!-- Right: Attribution -->
+        <div class="text-sm text-center sm:text-right" style="color: var(--text-muted);">
+          <p>Built with Claude Code</p>
+          <p>&copy; 2026 ZERG Contributors</p>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <script defer src="assets/js/main.js?v=1.0"></script>
+</body>
+</html>
