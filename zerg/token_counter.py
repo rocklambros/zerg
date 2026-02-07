@@ -38,7 +38,8 @@ class TokenCounter:
             try:
                 zerg_config = ZergConfig.load()
                 self._config = zerg_config.token_metrics
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: config load spans I/O, YAML, Pydantic; safe fallback to defaults
+                logger.debug("Failed to load ZergConfig for token metrics; using defaults", exc_info=True)
                 self._config = TokenMetricsConfig()
 
         self._cache_path = Path(STATE_DIR) / "token-cache.json"
@@ -75,8 +76,8 @@ class TokenCounter:
                 self._cache_store(text_hash, result)
 
             return result
-        except Exception:
-            logger.warning("Token counting failed, using heuristic fallback")
+        except Exception:  # noqa: BLE001 — intentional: count() must never raise; API contract guarantees a result
+            logger.warning("Token counting failed, using heuristic fallback", exc_info=True)
             return TokenResult(
                 count=max(1, round(len(text) / self._config.fallback_chars_per_token)),
                 mode="estimated",
@@ -87,7 +88,8 @@ class TokenCounter:
         """Attempt API-based counting, fall back to heuristic."""
         try:
             return self._count_api(text)
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: API counting is best-effort; any failure falls back to heuristic
+            logger.debug("API token counting failed, falling back to heuristic", exc_info=True)
             return TokenResult(
                 count=self._count_heuristic(text),
                 mode="estimated",
@@ -134,8 +136,8 @@ class TokenCounter:
                         if count >= self.MAX_CACHE_ENTRIES:
                             break
                 logger.debug("Loaded %d entries from token cache file", count)
-        except Exception:
-            logger.debug("Failed to load token cache from file")
+        except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+            logger.debug("Failed to load token cache from file: %s", exc)
 
     def _cache_lookup(self, text_hash: str) -> TokenResult | None:
         """O(1) in-memory lookup."""
@@ -197,11 +199,11 @@ class TokenCounter:
                 os.replace(tmp_path, str(self._cache_path))
                 with self._cache_lock:
                     self._cache_dirty = False
-            except Exception:
+            except OSError:
                 try:
                     os.unlink(tmp_path)
                 except OSError:
                     pass
                 raise
-        except Exception:
-            logger.debug("Failed to persist token cache to file")
+        except OSError as exc:
+            logger.debug("Failed to persist token cache to file: %s", exc)

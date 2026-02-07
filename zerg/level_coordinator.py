@@ -146,7 +146,7 @@ class LevelCoordinator:
                     data={"level": level, "tasks": len(task_ids)},
                 )
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: plugin events are best-effort; never block level start
             logger.warning(f"Failed to emit LEVEL_COMPLETE event: {e}")
 
         # Create Claude Tasks for this level
@@ -281,7 +281,7 @@ class LevelCoordinator:
                     f"{metrics.tasks_completed}/{metrics.tasks_total} tasks, "
                     f"{metrics.total_duration_ms}ms total"
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: metrics are informational; never block level completion
                 logger.warning(f"Failed to compute metrics: {e}")
 
             # Emit plugin lifecycle events
@@ -298,7 +298,7 @@ class LevelCoordinator:
                         data={"level": level, "merge_commit": merge_result.merge_commit},
                     )
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: plugin events are best-effort; never block merge completion
                 logger.debug(f"Status update failed: {e}")
 
             # Rebase worker branches onto merged base
@@ -307,7 +307,7 @@ class LevelCoordinator:
             # Generate STATE.md after level completion
             try:
                 self.state.generate_state_md()
-            except Exception as e:
+            except OSError as e:
                 logger.warning(f"Failed to generate STATE.md: {e}")
 
             # Notify callbacks
@@ -409,7 +409,7 @@ class LevelCoordinator:
                 # Workers will need to pull the merged changes
                 # This is handled when they start their next task
                 logger.debug(f"Worker {worker_id} branch {worker.branch} marked for rebase")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: rebase tracking is best-effort; never block level advance
                 logger.warning(f"Failed to track rebase for worker {worker_id}: {e}")
 
     def pause_for_intervention(self, reason: str) -> None:

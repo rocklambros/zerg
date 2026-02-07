@@ -73,7 +73,7 @@ class ContextEngineeringPlugin(ContextPlugin):
         """
         try:
             return self._build_context_inner(task, task_graph, feature)
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: catch-all with fallback; failure modes span I/O, import, config
             if self._config.fallback_to_full:
                 logger.warning(
                     "Context plugin failed for task %s; falling back to full context",
@@ -204,7 +204,7 @@ class ContextEngineeringPlugin(ContextPlugin):
         if self._formatter is not None:
             try:
                 assembled = self._formatter.abbreviate(assembled)
-            except Exception:
+            except Exception:  # noqa: BLE001 — intentional: formatter is best-effort; never block context delivery
                 logger.debug(
                     "CompactFormatter.abbreviate failed; returning uncompressed context",
                     exc_info=True,
@@ -239,8 +239,8 @@ class ContextEngineeringPlugin(ContextPlugin):
                 mode = result.mode
 
             tracker.record_task(worker_id, task_id, breakdown, mode=mode)
-        except Exception:
-            pass  # Token tracking is informational, never fail
+        except Exception:  # noqa: BLE001 — intentional: token tracking is informational, never fail
+            logger.debug("Token metric recording failed", exc_info=True)
 
     def _build_depth_section(self, max_tokens: int) -> str:
         """Inject analysis depth guidance from ZERG_ANALYSIS_DEPTH env var."""
@@ -332,7 +332,7 @@ class ContextEngineeringPlugin(ContextPlugin):
             section = injector.inject_rules(task, max_tokens=max_tokens)
             if section:
                 return f"## Engineering Rules (task-scoped)\n\n{section}"
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: rules injection is best-effort; failure modes include import, I/O, config
             logger.debug("Engineering rules injection failed; skipping section", exc_info=True)
         return ""
 
@@ -348,7 +348,7 @@ class ContextEngineeringPlugin(ContextPlugin):
 
         try:
             filtered_paths = filter_rules_for_files(file_paths, rules_dir)
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: security filtering is best-effort; spans I/O, parsing, config
             logger.debug("Security rule filtering failed; skipping section", exc_info=True)
             return ""
 
@@ -366,7 +366,7 @@ class ContextEngineeringPlugin(ContextPlugin):
         try:
             loader = SpecLoader()
             return loader.format_task_context(task, feature, max_tokens=max_tokens)
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: spec loading is best-effort; failure modes span I/O, parsing
             logger.debug("Spec context loading failed; skipping section", exc_info=True)
             return ""
 
@@ -393,7 +393,7 @@ class ContextEngineeringPlugin(ContextPlugin):
             graph = build_map(".", languages=["python", "javascript", "typescript"])
             context = graph.query(file_paths, keywords, max_tokens=max_tokens)
             return context
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: repo map is best-effort; failure modes span import, I/O, parsing
             logger.debug("Repo map context failed; skipping section", exc_info=True)
             return ""
 
@@ -426,6 +426,6 @@ class ContextEngineeringPlugin(ContextPlugin):
             if decision.recommended_servers:
                 servers = ", ".join(decision.server_names)
                 return f"## MCP Servers (task-scoped)\n\nRecommended: {servers}"
-        except Exception:
+        except Exception:  # noqa: BLE001 — intentional: MCP routing is best-effort; failure modes span import, config, I/O
             logger.debug("MCP routing failed; skipping section", exc_info=True)
         return ""

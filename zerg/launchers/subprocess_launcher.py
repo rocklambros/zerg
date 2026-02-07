@@ -166,7 +166,7 @@ class SubprocessLauncher(WorkerLauncher):
             logger.info(f"Spawned worker {worker_id} with PID {process.pid}")
             return SpawnResult(success=True, worker_id=worker_id, handle=handle)
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError, ValueError) as e:
             logger.error(f"Failed to spawn worker {worker_id}: {e}")
             return SpawnResult(success=False, worker_id=worker_id, error=str(e))
 
@@ -251,7 +251,7 @@ class SubprocessLauncher(WorkerLauncher):
             logger.info(f"Terminated worker {worker_id} (exit code: {handle.exit_code})")
             return True
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError) as e:
             logger.error(f"Failed to terminate worker {worker_id}: {e}")
             return False
 
@@ -455,7 +455,7 @@ class SubprocessLauncher(WorkerLauncher):
             logger.info(f"Spawned async worker {worker_id} with PID {process.pid}")
             return SpawnResult(success=True, worker_id=worker_id, handle=handle)
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError, ValueError) as e:
             logger.error(f"Failed to spawn async worker {worker_id}: {e}")
             return SpawnResult(success=False, worker_id=worker_id, error=str(e))
 
@@ -529,7 +529,7 @@ class SubprocessLauncher(WorkerLauncher):
                 logger.info(f"Async terminated worker {worker_id} (exit code: {handle.exit_code})")
                 return True
 
-            except Exception as e:
+            except (OSError, ProcessLookupError) as e:
                 logger.error(f"Failed to async terminate worker {worker_id}: {e}")
                 return False
 

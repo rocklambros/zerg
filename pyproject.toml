@@ -76,7 +76,7 @@ line-length = 120
 exclude = [".zerg", "tests/fixtures"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "I", "UP", "BLE001"]
 fixable = ["ALL"]
 ignore = []
 

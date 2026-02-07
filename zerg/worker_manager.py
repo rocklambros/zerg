@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -190,13 +189,15 @@ class WorkerManager:
         )
 
         # Emit plugin lifecycle event
-        with contextlib.suppress(Exception):
+        try:
             self._plugin_registry.emit_event(
                 LifecycleEvent(
                     event_type=PluginHookEvent.WORKER_SPAWNED.value,
                     data={"worker_id": worker_id, "feature": self.feature},
                 )
             )
+        except Exception:  # noqa: BLE001 — intentional: plugin events are best-effort; never block worker spawn
+            logger.debug("Failed to emit WORKER_SPAWNED event", exc_info=True)
 
         return worker_state
 
@@ -216,7 +217,7 @@ class WorkerManager:
             try:
                 self.spawn_worker(worker_id)
                 spawned += 1
-            except Exception as e:
+            except (RuntimeError, OSError) as e:
                 logger.error(f"Failed to spawn worker {worker_id}: {e}")
                 # Continue with other workers
 
@@ -312,7 +313,7 @@ class WorkerManager:
         try:
             wt_path = self.worktrees.get_worktree_path(self.feature, worker_id)
             self.worktrees.delete(wt_path, force=True)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: worktree deletion spans git/OS errors; must not block termination
             logger.warning(f"Failed to delete worktree for worker {worker_id}: {e}")
 
         # Release port
@@ -341,13 +342,15 @@ class WorkerManager:
             return
 
         # Emit plugin lifecycle event
-        with contextlib.suppress(Exception):
+        try:
             self._plugin_registry.emit_event(
                 LifecycleEvent(
                     event_type=PluginHookEvent.WORKER_EXITED.value,
                     data={"worker_id": worker_id, "feature": self.feature},
                 )
             )
+        except Exception:  # noqa: BLE001 — intentional: plugin events are best-effort; never block exit handling
+            logger.debug("Failed to emit WORKER_EXITED event", exc_info=True)
 
         # Record crash in circuit breaker
         if worker.status == WorkerStatus.CRASHED and self._circuit_breaker is not None:
@@ -400,13 +403,13 @@ class WorkerManager:
                 # Reset circuit breaker on successful respawn
                 if self._circuit_breaker is not None:
                     self._circuit_breaker.reset(worker_id)
-            except Exception as e:
+            except (RuntimeError, OSError) as e:
                 logger.error(f"Failed to restart worker {worker_id}: {e}")
                 # Clean up worktree if spawn failed
                 if old_worktree:
                     try:
                         self.worktrees.delete(Path(old_worktree), force=True)
-                    except Exception as cleanup_err:
+                    except Exception as cleanup_err:  # noqa: BLE001 — intentional: cleanup must not propagate; worktree errors are diverse
                         logger.warning(f"Failed to clean up worktree: {cleanup_err}")
 
     def respawn_workers_for_level(self, level: int) -> int:
@@ -460,7 +463,7 @@ class WorkerManager:
             try:
                 self.spawn_worker(worker_id)
                 spawned += 1
-            except Exception as e:
+            except (RuntimeError, OSError) as e:
                 logger.error(f"Failed to respawn worker {worker_id}: {e}")
 
         if spawned > 0:
