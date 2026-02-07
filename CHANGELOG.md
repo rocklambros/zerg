@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `.github/FUNDING.yml` for GitHub Sponsors (#191)
+- `.github/release.yml` for auto-categorized release notes (#191)
+- `lychee` link checker CI job for documentation (#191)
+
+### Changed
+
+- Pre-commit config expanded with 6 standard hooks (`trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-json`, `check-toml`, `check-added-large-files`) (#191)
+
 ## [0.2.0] - 2026-02-07
 
 ### Added

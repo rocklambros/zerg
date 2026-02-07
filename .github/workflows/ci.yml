@@ -110,3 +110,27 @@ jobs:
           # Run pip-audit without --strict since local package (zerg) isn't on PyPI
           # This still catches actual vulnerabilities in dependencies
           pip-audit --desc
+
+  link-check:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check documentation links
+        uses: lychee/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --retry-wait-time 5
+            --max-retries 3
+            --timeout 30
+            --exclude 'localhost'
+            --exclude '127\.0\.0\.1'
+            --exclude 'example\.com'
+            --exclude 'img\.shields\.io/pypi'
+            docs/**/*.md
+            README.md
+            CONTRIBUTING.md
+            CHANGELOG.md
+          fail: true
