@@ -374,7 +374,7 @@ class TestInitCommand:
         (tmp_path / ".git").mkdir()
         with patch(
             "zerg.commands.init.integrate_security_rules",
-            side_effect=Exception("Network error"),
+            side_effect=RuntimeError("Network error"),
         ):
             runner = CliRunner()
             result = runner.invoke(cli, ["init", "--with-security-rules"])

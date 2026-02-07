@@ -58,6 +58,16 @@ class StateManager:
     # === Properties delegated to PersistenceLayer ===
 
     @property
+    def _state(self) -> dict[str, Any]:
+        """Access the in-memory state dict (backward compat for direct access)."""
+        return self._persistence.state
+
+    @_state.setter
+    def _state(self, value: dict[str, Any]) -> None:
+        """Set the in-memory state dict (backward compat)."""
+        self._persistence.state = value
+
+    @property
     def feature(self) -> str:
         """Feature name for state isolation."""
         return self._persistence.feature
