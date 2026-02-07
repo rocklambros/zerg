@@ -1,0 +1,39 @@
+name: Feature Request
+description: Suggest a new feature for ZERG
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem Statement
+      description: What problem does this solve?
+      placeholder: Describe the problem or need you're addressing
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like
+      placeholder: Explain how you would like this feature to work
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives_considered
+    attributes:
+      label: Alternatives Considered
+      description: Describe alternatives you've considered
+      placeholder: What other approaches or solutions have you thought about?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other context or screenshots
+      placeholder: Add any other information that might be helpful (screenshots, links, examples, etc.)
+    validations:
+      required: false

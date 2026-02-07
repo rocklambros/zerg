@@ -1,6 +1,6 @@
 # Contributing to ZERG
 
-Thank you for your interest in contributing to ZERG, the parallel Claude Code execution system. This guide covers everything you need to get started.
+Thank you for your interest in contributing to ZERG, the parallel Claude Code execution system. This guide covers everything you need to get started. Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ## Prerequisites
 

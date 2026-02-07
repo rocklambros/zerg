@@ -1,0 +1,87 @@
+name: Bug Report
+description: Report a bug in ZERG
+labels: ["bug"]
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a clear and concise description of the bug
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro_steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Run command...
+        2. Observe...
+        3. Note error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Describe expected behavior...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: Describe actual behavior...
+    validations:
+      required: true
+
+  - type: input
+    id: zerg_version
+    attributes:
+      label: ZERG Version
+      description: What version of ZERG are you using?
+      placeholder: "e.g., 0.2.0 or git hash"
+    validations:
+      required: true
+
+  - type: input
+    id: python_version
+    attributes:
+      label: Python Version
+      description: What Python version are you using?
+      placeholder: "e.g., 3.10.5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Error Output
+      description: Include any relevant logs, stack traces, or error messages
+      placeholder: |
+        ```
+        Paste error output here...
+        ```
+      render: shell
+    validations:
+      required: false

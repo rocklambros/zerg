@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Bug report and feature request issue templates with YAML forms (#185)
+- Issue template config disabling blank issues with Discussions and Security Advisory links (#185)
+- Pull request template with Summary, Changes, Test Plan, and Checklist sections (#186)
+- Code of Conduct (Contributor Covenant v2.1) with GitHub Security Advisories enforcement (#186)
+- Dependabot configuration for weekly pip dependency updates (#187)
+- README badges: PyPI version, Python version, License, CI status (#188)
+- `0.2.x` added to SECURITY.md supported versions table
+- Code of Conduct reference in CONTRIBUTING.md (#186)
 - GitHub environments (`pypi`, `testpypi`) for trusted OIDC publishing (#181)
 - 5 required CI status checks on `main` branch protection: `quality`, `smoke`, `test (1)`, `test (2)`, `audit` (#179)
 - Pre-release tag support in `release.yml` version validation (#183)
