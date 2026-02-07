@@ -476,7 +476,7 @@ class DebugCommand:
             intel_evidence = intel.get_evidence(result.error_intel)
             for ev in intel_evidence:
                 result.evidence.append(ev.description)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: error intel is optional enhanced diagnostic
             logger.warning(f"Error intelligence failed: {e}")
 
         # Enhanced: Log Correlation (when feature provided)
@@ -490,7 +490,7 @@ class DebugCommand:
                 timeline_raw = log_result.get("timeline", [])
                 result.timeline = [TEType(**e) if isinstance(e, dict) else e for e in timeline_raw]
                 result.correlations = log_result.get("correlations", [])
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: log correlation is optional enhanced diagnostic
                 logger.warning(f"Log correlation failed: {e}")
 
         # Enhanced: Hypothesis Engine
@@ -510,7 +510,7 @@ class DebugCommand:
                     for ev_str in result.evidence
                 ]
                 result.scored_hypotheses = hypo_engine.analyze(result.error_intel, typed_evidence)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: hypothesis engine is optional enhanced diagnostic
             logger.warning(f"Hypothesis engine failed: {e}")
 
         # Enhanced: Code-Aware Fixes
@@ -531,7 +531,7 @@ class DebugCommand:
                 ]
                 fix_result = fixer.analyze(result.error_intel, typed_evidence_fix)
                 result.fix_suggestions = fix_result.get("suggestions", [])
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: code fixer is optional enhanced diagnostic
             logger.warning(f"Code fixer failed: {e}")
 
         # Enhanced: Environment Diagnostics
@@ -541,7 +541,7 @@ class DebugCommand:
 
                 env_engine = EnvDiagnosticsEngine()
                 result.env_report = env_engine.run_all()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: env diagnostics is optional enhanced diagnostic
                 logger.warning(f"Environment diagnostics failed: {e}")
 
         return result
@@ -575,7 +575,7 @@ class DebugCommand:
 
             if result.log_patterns:
                 result.evidence.append(f"{len(result.log_patterns)} error pattern(s) in logs")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: ZERG state introspection is best-effort
             logger.warning(f"ZERG diagnostics failed: {e}")
             result.evidence.append(f"ZERG diagnostics error: {e}")
 
@@ -598,7 +598,7 @@ class DebugCommand:
                 result.evidence.append(f"{len(health.orphaned_worktrees)} orphaned worktree(s)")
             if health.disk_free_gb < 1.0:
                 result.evidence.append(f"Low disk space: {health.disk_free_gb:.1f} GB free")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: system diagnostics is best-effort
             logger.warning(f"System diagnostics failed: {e}")
             result.evidence.append(f"System diagnostics error: {e}")
 
@@ -614,7 +614,7 @@ class DebugCommand:
             if result.recovery_plan.needs_design:
                 result.design_escalation = True
                 result.design_escalation_reason = result.recovery_plan.design_reason
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: recovery planning is best-effort
             logger.warning(f"Recovery planning failed: {e}")
             result.evidence.append(f"Recovery planning error: {e}")
 
@@ -863,8 +863,8 @@ def _load_stacktrace_file(filepath: str) -> str:
         path = Path(filepath)
         if path.exists():
             return path.read_text(encoding="utf-8")
-    except Exception as e:
-        logger.debug(f"Diagnostic check failed: {e}")
+    except OSError as e:
+        logger.debug(f"Stack trace file load failed: {e}")
     return ""
 
 
@@ -1000,8 +1000,8 @@ def _resolve_inputs(
             feature = introspector.find_latest_feature()
             if feature:
                 console.print(f"[dim]Auto-detected feature: {feature}[/dim]")
-        except Exception as e:
-            logger.debug(f"Diagnostic check failed: {e}")
+        except Exception as e:  # noqa: BLE001 — intentional: feature auto-detection is best-effort
+            logger.debug(f"Feature auto-detection failed: {e}")
 
     # If only feature given (no error), set a default symptom
     if not error_message and not stack_trace_content and feature:

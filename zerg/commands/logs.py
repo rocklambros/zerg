@@ -186,6 +186,7 @@ def logs(
     except KeyboardInterrupt:
         console.print("\n[dim]Stopped[/dim]")
     except Exception as e:
+        logger.exception("Logs command failed")
         console.print(f"\n[red]Error:[/red] {e}")
         raise SystemExit(1) from None
 
@@ -268,7 +269,8 @@ def _show_task_artifacts(log_dir: Path, task_id: str) -> None:
                             console.print(line)
             else:
                 console.print(content)
-        except Exception as e:
+        except (OSError, json.JSONDecodeError) as e:
+            logger.warning(f"Error reading artifact {name}: {e}")
             console.print(f"[red]Error reading {name}: {e}[/red]")
         console.print()
 
@@ -284,7 +286,7 @@ def _get_launcher_type() -> str:
 
         config = ZergConfig.load()
         return config.workers.launcher_type
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: launcher type detection is best-effort, defaults to subprocess
         logger.debug(f"Mode detection failed: {e}")
         return "subprocess"
 
@@ -457,7 +459,7 @@ def show_logs(
                 if entry:
                     entry["_file"] = log_file.name
                     entries.append(entry)
-        except Exception as e:
+        except OSError as e:
             logger.warning(f"Error reading {log_file}: {e}")
 
     # Sort by timestamp
@@ -529,7 +531,7 @@ def stream_logs(
                                 else:
                                     console.print(format_log_entry(entry))
 
-                except Exception as e:
+                except OSError as e:
                     logger.warning(f"Error reading {log_file}: {e}")
 
         time.sleep(0.5)

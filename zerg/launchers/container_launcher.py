@@ -185,8 +185,8 @@ class ContainerLauncher(WorkerLauncher):
 
             return SpawnResult(success=True, worker_id=worker_id, handle=handle)
 
-        except Exception as e:
-            logger.error(f"Failed to spawn container for worker {worker_id}: {e}")
+        except Exception as e:  # noqa: BLE001 — intentional: spawn must report all failures gracefully
+            logger.exception(f"Failed to spawn container for worker {worker_id}")
             return SpawnResult(success=False, worker_id=worker_id, error=str(e))
 
     def _build_container_cmd(
@@ -332,8 +332,8 @@ class ContainerLauncher(WorkerLauncher):
         except (subprocess.TimeoutExpired, TimeoutError):
             logger.error("Docker run timed out")
             return None
-        except Exception as e:
-            logger.error(f"Docker run error: {e}")
+        except Exception as e:  # noqa: BLE001 — intentional: container start must not crash caller
+            logger.exception(f"Docker run error: {e}")
             return None
 
     def _start_container(
@@ -395,8 +395,8 @@ class ContainerLauncher(WorkerLauncher):
                 )
                 if result.returncode == 0 and result.stdout.strip() == "true":
                     return True
-            except (subprocess.TimeoutExpired, Exception):
-                pass
+            except (subprocess.SubprocessError, OSError) as e:  # noqa: BLE001 — intentional: polling loop retries on transient failures
+                logger.debug(f"Container readiness check failed (retrying): {e}")
             time.sleep(0.5)
 
         return False
@@ -429,7 +429,7 @@ class ContainerLauncher(WorkerLauncher):
                 timeout=30,
             )
             return result.returncode == 0
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             logger.error(f"Failed to run worker entry: {e}")
             return False
 
@@ -458,8 +458,8 @@ class ContainerLauncher(WorkerLauncher):
                 if result.returncode == 0:
                     logger.debug(f"Worker process verified running in {container_id[:12]}")
                     return True
-            except (subprocess.TimeoutExpired, Exception) as e:
-                logger.debug(f"Process check failed: {e}")
+            except (subprocess.SubprocessError, OSError) as e:  # noqa: BLE001 — intentional: polling loop retries on transient failures
+                logger.debug(f"Process check failed (retrying): {e}")
             _time.sleep(0.5)
 
         logger.warning(f"Worker process not found in container {container_id[:12]} after {timeout}s")
@@ -479,7 +479,7 @@ class ContainerLauncher(WorkerLauncher):
                 timeout=10,
             )
             logger.debug(f"Cleaned up failed container {container_id[:12]}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: cleanup must not fail, any error is swallowed
             logger.warning(f"Failed to clean up container: {e}")
 
         # Remove from tracking
@@ -562,7 +562,7 @@ class ContainerLauncher(WorkerLauncher):
 
                 return handle.status
 
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError, ValueError) as e:
             logger.error(f"Failed to monitor container: {e}")
             return handle.status if handle else WorkerStatus.STOPPED
         finally:
@@ -618,13 +618,13 @@ class ContainerLauncher(WorkerLauncher):
             # Force kill on timeout -- best effort, ignore secondary failures
             try:
                 await run_fn(["docker", "kill", container_id], 5)
-            except (subprocess.TimeoutExpired, TimeoutError, Exception):
-                logger.debug(f"Force kill also failed for worker {worker_id}, proceeding with cleanup")
+            except (subprocess.SubprocessError, OSError, TimeoutError) as e:  # noqa: BLE001 — intentional: force-kill is last-resort best-effort
+                logger.debug(f"Force kill also failed for worker {worker_id}, proceeding with cleanup: {e}")
             handle.status = WorkerStatus.STOPPED
             return True
 
-        except Exception as e:
-            logger.error(f"Failed to terminate container: {e}")
+        except Exception:  # noqa: BLE001 — intentional: terminate must not crash orchestrator
+            logger.exception(f"Failed to terminate container for worker {worker_id}")
             return False
 
         finally:
@@ -689,7 +689,7 @@ class ContainerLauncher(WorkerLauncher):
                 timeout=10,
             )
             return result.stdout + result.stderr
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             logger.error(f"Failed to get container logs: {e}")
             return ""
 
@@ -726,7 +726,7 @@ class ContainerLauncher(WorkerLauncher):
                 logger.error(f"Failed to create network: {result.stderr}")
                 return False
 
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             logger.error(f"Network setup error: {e}")
             return False
 
@@ -743,8 +743,8 @@ class ContainerLauncher(WorkerLauncher):
                 timeout=10,
             )
             return result.returncode == 0
-        except Exception as e:
-            logger.debug(f"Container check failed: {e}")
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.debug(f"Image existence check failed: {e}")
             return False
 
     async def spawn_async(
@@ -874,8 +874,8 @@ class ContainerLauncher(WorkerLauncher):
 
             return SpawnResult(success=True, worker_id=worker_id, handle=handle)
 
-        except Exception as e:
-            logger.error(f"Failed to spawn async container for worker {worker_id}: {e}")
+        except Exception as e:  # noqa: BLE001 — intentional: async spawn must report all failures gracefully
+            logger.exception(f"Failed to spawn async container for worker {worker_id}")
             return SpawnResult(success=False, worker_id=worker_id, error=str(e))
 
     async def _start_container_async(

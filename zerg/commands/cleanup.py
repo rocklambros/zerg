@@ -102,6 +102,7 @@ def cleanup(
         console.print("\n[green]✓[/green] Cleanup complete")
 
     except Exception as e:
+        logger.exception("Cleanup command failed")
         console.print(f"\n[red]Error:[/red] {e}")
         raise SystemExit(1) from None
 
@@ -140,7 +141,7 @@ def discover_features() -> list[str]:
                 parts = branch.name.split("/")
                 if len(parts) >= 2:
                     features.add(parts[1])
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — intentional: branch listing is best-effort discovery
         logger.debug(f"Branch listing failed: {e}")
 
     return sorted(features)
@@ -188,8 +189,8 @@ def create_cleanup_plan(
                 for branch in branches:
                     if branch.name.startswith(f"zerg/{feature}/"):
                         plan["branches"].append(branch.name)
-            except Exception as e:
-                logger.debug(f"Container listing failed: {e}")
+            except Exception as e:  # noqa: BLE001 — intentional: branch listing is best-effort during plan
+                logger.debug(f"Branch listing failed during plan: {e}")
 
         # Find containers
         plan["containers"].append(f"zerg-worker-{feature}-*")
@@ -287,7 +288,8 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
                 console.print(f"  [green]✓[/green] {wt_path}")
             else:
                 console.print(f"  [dim]-[/dim] {wt_path} (not found)")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: cleanup continues on individual worktree failure
+            logger.warning(f"Worktree removal failed for {wt_path}: {e}")
             console.print(f"  [red]✗[/red] {wt_path}: {e}")
             errors.append(str(e))
 
@@ -299,7 +301,8 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
             try:
                 git.delete_branch(branch, force=True)
                 console.print(f"  [green]✓[/green] {branch}")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — intentional: cleanup continues on individual branch failure
+                logger.warning(f"Branch deletion failed for {branch}: {e}")
                 console.print(f"  [red]✗[/red] {branch}: {e}")
                 errors.append(str(e))
 
@@ -318,7 +321,8 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
                 console.print(f"  [green]✓[/green] Stopped {stopped} container(s) matching {pattern}")
             else:
                 console.print(f"  [dim]-[/dim] No containers matching {pattern}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — intentional: container stop is best-effort during cleanup
+            logger.warning(f"Container stop failed for pattern {pattern}: {e}")
             console.print(f"  [yellow]![/yellow] {pattern}: {e}")
 
     # Remove state files
@@ -328,7 +332,8 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
             try:
                 Path(state_file).unlink()
                 console.print(f"  [green]✓[/green] {state_file}")
-            except Exception as e:
+            except OSError as e:
+                logger.warning(f"State file removal failed for {state_file}: {e}")
                 console.print(f"  [red]✗[/red] {state_file}: {e}")
                 errors.append(str(e))
 
@@ -339,7 +344,8 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
             try:
                 Path(log_file).unlink()
                 console.print(f"  [green]✓[/green] {log_file}")
-            except Exception as e:
+            except OSError as e:
+                logger.warning(f"Log file removal failed for {log_file}: {e}")
                 console.print(f"  [red]✗[/red] {log_file}: {e}")
                 errors.append(str(e))
 
@@ -350,7 +356,8 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
             try:
                 shutil.rmtree(spec_dir)
                 console.print(f"  [green]✓[/green] Removed spec dir {spec_dir}")
-            except Exception as e:
+            except OSError as e:
+                logger.warning(f"Spec directory removal failed for {spec_dir}: {e}")
                 console.print(f"  [red]✗[/red] {spec_dir}: {e}")
                 errors.append(str(e))
 
@@ -362,7 +369,8 @@ def execute_cleanup(plan: dict[str, Any], config: ZergConfig) -> None:
             if current in plan["features"]:
                 current_feature_file.unlink()
                 console.print("  [green]✓[/green] Cleared active feature pointer")
-        except Exception as e:
+        except OSError as e:
+            logger.warning(f"Failed to clear .current-feature: {e}")
             console.print(f"  [red]✗[/red] .current-feature: {e}")
             errors.append(str(e))
 
@@ -410,6 +418,7 @@ def cleanup_structured_logs(config: ZergConfig, dry_run: bool = False) -> None:
                         shutil.rmtree(task_dir)
                         console.print(f"  [green]Removed:[/green] {task_dir.name}")
                     except OSError as e:
+                        logger.warning(f"Task artifact removal failed for {task_dir.name}: {e}")
                         console.print(f"  [red]Error:[/red] {task_dir.name}: {e}")
                         errors.append(str(e))
                 cleaned_tasks += 1
@@ -445,6 +454,7 @@ def cleanup_structured_logs(config: ZergConfig, dry_run: bool = False) -> None:
                         jsonl_file.unlink()
                         console.print(f"  [green]Removed:[/green] {jsonl_file.name} ({reason})")
                     except OSError as e:
+                        logger.warning(f"Worker log removal failed for {jsonl_file.name}: {e}")
                         console.print(f"  [red]Error:[/red] {jsonl_file.name}: {e}")
                         errors.append(str(e))
                 cleaned_workers += 1
@@ -464,6 +474,7 @@ def cleanup_structured_logs(config: ZergConfig, dry_run: bool = False) -> None:
                     orchestrator_file.unlink()
                     console.print("\n  [green]Removed:[/green] orchestrator.jsonl")
                 except OSError as e:
+                    logger.warning(f"Orchestrator log removal failed: {e}")
                     errors.append(str(e))
 
     if dry_run:
