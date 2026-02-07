@@ -2,6 +2,11 @@
 
 from typing import Any
 
+# Known detail value types used across the exception hierarchy.
+# The base ``details`` field remains dict[str, Any] for backward compatibility,
+# but callers should prefer these narrower types where possible.
+ErrorDetailValue = str | int | float | bool | list[str] | None
+
 
 class ZergError(Exception):
     """Base exception for all ZERG errors."""

@@ -38,6 +38,17 @@ __all__ = [
     "GraphNodeDict",
     # State types
     "StateDict",
+    # Worker metrics types (batch 2)
+    "WorkerMetricsSummaryDict",
+    "WorkerMetricsDict",
+    # Status formatter types (batch 2)
+    "HeartbeatDict",
+    "EscalationDict",
+    "StatusFormatterDict",
+    # Task sync types (batch 2)
+    "TaskSyncDict",
+    # PR data types (batch 2)
+    "PRDataDict",
 ]
 
 from dataclasses import dataclass, field
@@ -221,6 +232,120 @@ class StateDict(TypedDict, total=False):
     metrics: dict[str, Any] | None
     paused: bool
     error: str | None
+
+
+# ============================================================================
+# Worker metrics summary types (batch 2)
+# ============================================================================
+
+
+class WorkerMetricsSummaryDict(TypedDict, total=False):
+    """Aggregate execution summary returned by WorkerMetricsCollector.get_summary().
+
+    Contains high-level statistics across all workers for a feature execution.
+    """
+
+    execution_id: str
+    feature: str
+    started_at: str
+    completed_at: str | None
+    duration_seconds: float
+    worker_count: int
+    levels_completed: int
+    total_levels: int
+    total_tasks: int
+    completed_tasks: int
+    failed_tasks: int
+    success_rate: float
+    total_task_duration_seconds: float
+    total_idle_seconds: float
+    avg_worker_utilization: float
+    avg_context_usage: float
+    peak_context_usage: float
+    parallel_efficiency: float
+
+
+# ============================================================================
+# Status formatter types (batch 2)
+# ============================================================================
+
+
+class HeartbeatDict(TypedDict, total=False):
+    """Worker heartbeat data consumed by status_formatter.format_health_table().
+
+    Each entry represents a single heartbeat snapshot from a running worker.
+    """
+
+    worker_id: int
+    timestamp: str
+    task_id: str | None
+    step: str
+    progress_pct: int
+
+
+class EscalationDict(TypedDict, total=False):
+    """Escalation event consumed by status_formatter.format_escalations().
+
+    Tracks unresolved worker issues surfaced to the orchestrator.
+    """
+
+    worker_id: int
+    task_id: str
+    category: str
+    message: str
+    resolved: bool
+
+
+# ============================================================================
+# Task sync types (batch 2)
+# ============================================================================
+
+
+class TaskSyncDict(TypedDict, total=False):
+    """Serialized ClaudeTask representation from TaskSyncBridge.
+
+    Mirrors ClaudeTask.to_dict() output for orchestrator visibility.
+    """
+
+    task_id: str
+    subject: str
+    description: str
+    status: str
+    level: int
+    feature: str
+    worker_id: int | None
+    created_at: str
+    updated_at: str
+    active_form: str | None
+    task_list_id: str
+
+
+# ============================================================================
+# PR data types (batch 2)
+# ============================================================================
+
+
+class PRDataDict(TypedDict, total=False):
+    """Generated PR content from PRGenerator.generate().
+
+    Contains the structured data needed to create a pull request.
+    """
+
+    title: str
+    body: str
+    labels: list[str]
+    reviewers: list[str]
+
+
+# ============================================================================
+# Batch 2 convenience aliases
+# ============================================================================
+
+#: Alias for WorkerMetricsSummaryDict (task-graph compatibility name).
+WorkerMetricsDict = WorkerMetricsSummaryDict
+
+#: Alias grouping the two status-formatter dicts under one name.
+StatusFormatterDict = HeartbeatDict
 
 
 # ============================================================================

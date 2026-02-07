@@ -21,6 +21,7 @@ from zerg.logging import get_logger
 
 if TYPE_CHECKING:
     from zerg.git.base import GitRunner
+    from zerg.types import PRDataDict
 
 logger = get_logger("git.pr_engine")
 
@@ -284,7 +285,7 @@ class ContextAssembler:
 class PRGenerator:
     """Generates structured PR title, body, labels, and reviewers."""
 
-    def generate(self, context: PRContext, config: GitPRConfig) -> dict[str, Any]:
+    def generate(self, context: PRContext, config: GitPRConfig) -> PRDataDict:
         """Generate PR data from assembled context.
 
         Args:
@@ -492,7 +493,7 @@ class PRCreator:
     def create(
         self,
         runner: GitRunner,
-        pr_data: dict[str, Any],
+        pr_data: PRDataDict,
         draft: bool = False,
     ) -> dict[str, Any]:
         """Create a PR using gh CLI or save as draft file.
@@ -554,7 +555,7 @@ class PRCreator:
             logger.warning("gh pr create timed out")
             return self._save_draft(runner, pr_data)
 
-    def _save_draft(self, runner: GitRunner, pr_data: dict[str, Any]) -> dict[str, Any]:
+    def _save_draft(self, runner: GitRunner, pr_data: PRDataDict) -> dict[str, Any]:
         """Save PR body to a draft file for manual creation.
 
         Args:

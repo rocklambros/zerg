@@ -7,7 +7,10 @@ and token-aggregation data into ASCII table strings for the /zerg:status dashboa
 from __future__ import annotations
 
 from datetime import UTC
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from zerg.types import EscalationDict, HeartbeatDict
 
 # Dashboard width matching existing status.core.md format
 DASHBOARD_WIDTH = 79
@@ -43,7 +46,7 @@ def _build_separator(widths: list[int], left: str, mid: str, right: str) -> str:
     return left + mid.join(segments) + right
 
 
-def _determine_status(heartbeat: dict[str, Any], stall_timeout: int = 120) -> str:
+def _determine_status(heartbeat: HeartbeatDict, stall_timeout: int = 120) -> str:
     """Determine worker status from heartbeat data."""
     from datetime import datetime
 
@@ -77,8 +80,8 @@ def _count_restarts(progress_data: list[dict[str, Any]], worker_id: int) -> int:
 
 
 def format_health_table(
-    heartbeats: list[dict[str, Any]],
-    escalations: list[dict[str, Any]] | None = None,
+    heartbeats: list[HeartbeatDict],
+    escalations: list[EscalationDict] | None = None,
     progress_data: list[dict[str, Any]] | None = None,
     stall_timeout: int = 120,
 ) -> str:
@@ -132,7 +135,7 @@ def format_health_table(
     return "\n".join(lines)
 
 
-def format_escalations(escalations: list[dict[str, Any]]) -> str:
+def format_escalations(escalations: list[EscalationDict]) -> str:
     """Format escalation data for the status dashboard.
 
     Args:

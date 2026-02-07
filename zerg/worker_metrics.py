@@ -5,11 +5,16 @@ including task execution timing, context usage, resource consumption, and
 aggregated statistics.
 """
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from zerg.types import WorkerMetricsSummaryDict
 
 
 @dataclass
@@ -273,7 +278,7 @@ class WorkerMetrics:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "WorkerMetrics":
+    def from_dict(cls, data: dict[str, Any]) -> WorkerMetrics:
         """Create from dictionary.
 
         Args:
@@ -465,7 +470,7 @@ class WorkerMetricsCollector:
         else:
             self._levels[level].failed_tasks += 1
 
-    def get_summary(self) -> dict[str, Any]:
+    def get_summary(self) -> WorkerMetricsSummaryDict:
         """Get execution summary across all workers.
 
         Returns:
