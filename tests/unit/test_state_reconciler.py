@@ -201,6 +201,177 @@ class TestLevelTransitionReconciliation:
         assert result.success is True
 
 
+class TestStaleWorkerDetection:
+    """Tests for stale worker heartbeat detection."""
+
+    @pytest.fixture
+    def setup_with_heartbeat(self):
+        mock_state = MagicMock()
+        mock_state._state = {"tasks": {}, "workers": {}}
+        mock_levels = MagicMock()
+        mock_heartbeat = MagicMock()
+        reconciler = StateReconciler(
+            state=mock_state,
+            levels=mock_levels,
+            heartbeat_monitor=mock_heartbeat,
+        )
+        return reconciler, mock_state, mock_levels, mock_heartbeat
+
+    def test_periodic_calls_check_stale_workers_when_monitor_present(self, setup_with_heartbeat) -> None:
+        """Test periodic reconciliation checks stale workers when heartbeat monitor exists."""
+        reconciler, mock_state, mock_levels, mock_heartbeat = setup_with_heartbeat
+        mock_state._state = {
+            "tasks": {},
+            "workers": {"1": {"status": "running"}, "2": {"status": "running"}},
+        }
+        mock_heartbeat.get_stalled_workers.return_value = [2]
+        result = reconciler.reconcile_periodic()
+        mock_heartbeat.get_stalled_workers.assert_called_once_with([1, 2], 120)
+        assert result.workers_checked == 1
+        assert result.success is True
+
+    def test_check_stale_workers_skips_when_no_monitor(self) -> None:
+        """Test stale worker check is skipped when no heartbeat monitor."""
+        mock_state = MagicMock()
+        mock_state._state = {"tasks": {}, "workers": {"1": {"status": "running"}}}
+        mock_levels = MagicMock()
+        reconciler = StateReconciler(state=mock_state, levels=mock_levels, heartbeat_monitor=None)
+        result = reconciler.reconcile_periodic()
+        assert result.workers_checked == 0
+
+    def test_check_stale_workers_reports_multiple_stale(self, setup_with_heartbeat) -> None:
+        """Test multiple stale workers are each counted."""
+        reconciler, mock_state, mock_levels, mock_heartbeat = setup_with_heartbeat
+        mock_state._state = {
+            "tasks": {},
+            "workers": {"1": {"status": "running"}, "2": {"status": "idle"}, "3": {"status": "ready"}},
+        }
+        mock_heartbeat.get_stalled_workers.return_value = [1, 3]
+        result = reconciler.reconcile_periodic()
+        assert result.workers_checked == 2
+
+
+class TestReconcileTaskStatesFailedSync:
+    """Tests for failed task state sync path in _reconcile_task_states."""
+
+    @pytest.fixture
+    def setup(self):
+        mock_state = MagicMock()
+        mock_state._state = {"tasks": {}, "workers": {}}
+        mock_levels = MagicMock()
+        reconciler = StateReconciler(state=mock_state, levels=mock_levels)
+        return reconciler, mock_state, mock_levels
+
+    def test_syncs_failed_task_to_level_controller(self, setup) -> None:
+        """Test failed tasks on disk are synced to LevelController."""
+        reconciler, mock_state, mock_levels = setup
+        mock_state._state = {
+            "tasks": {"B-L2-001": {"status": "failed", "level": 2, "worker_id": 3}},
+            "workers": {},
+        }
+        mock_levels.get_task_status.return_value = "pending"
+        result = reconciler.reconcile_periodic()
+        assert result.divergences_found == 1
+        mock_levels.mark_task_failed.assert_called_once_with("B-L2-001")
+        failed_fixes = [f for f in result.fixes_applied if f.fix_type == "task_status_sync"]
+        assert len(failed_fixes) == 1
+        assert failed_fixes[0].new_value == "failed"
+        assert failed_fixes[0].reason == "Disk shows failed, syncing to LevelController"
+
+    def test_no_fix_when_both_show_failed(self, setup) -> None:
+        """Test no fix when disk and LevelController both show failed."""
+        reconciler, mock_state, mock_levels = setup
+        mock_state._state = {
+            "tasks": {"B-L2-001": {"status": "failed", "level": 2, "worker_id": 3}},
+            "workers": {},
+        }
+        mock_levels.get_task_status.return_value = "failed"
+        result = reconciler.reconcile_periodic()
+        assert result.divergences_found == 0
+        mock_levels.mark_task_failed.assert_not_called()
+
+
+class TestReconcileTaskStatesInProgressSync:
+    """Tests for in_progress/claimed task sync path in _reconcile_task_states."""
+
+    @pytest.fixture
+    def setup(self):
+        mock_state = MagicMock()
+        mock_state._state = {"tasks": {}, "workers": {}}
+        mock_levels = MagicMock()
+        reconciler = StateReconciler(state=mock_state, levels=mock_levels)
+        return reconciler, mock_state, mock_levels
+
+    def test_syncs_in_progress_task_to_level_controller(self, setup) -> None:
+        """Test in_progress tasks on disk are synced to LevelController."""
+        reconciler, mock_state, mock_levels = setup
+        mock_state._state = {
+            "tasks": {"C-L1-001": {"status": "in_progress", "level": 1, "worker_id": 7}},
+            "workers": {},
+        }
+        mock_levels.get_task_status.return_value = "pending"
+        result = reconciler.reconcile_periodic()
+        assert result.divergences_found == 1
+        mock_levels.mark_task_in_progress.assert_called_once_with("C-L1-001", 7)
+        ip_fixes = [f for f in result.fixes_applied if f.fix_type == "task_status_sync"]
+        assert len(ip_fixes) == 1
+        assert ip_fixes[0].new_value == "in_progress"
+        assert ip_fixes[0].reason == "Disk shows in_progress, syncing to LevelController"
+
+    def test_syncs_claimed_task_to_level_controller(self, setup) -> None:
+        """Test claimed tasks on disk are synced to LevelController."""
+        reconciler, mock_state, mock_levels = setup
+        mock_state._state = {
+            "tasks": {"C-L1-002": {"status": "claimed", "level": 1, "worker_id": 4}},
+            "workers": {},
+        }
+        mock_levels.get_task_status.return_value = "pending"
+        result = reconciler.reconcile_periodic()
+        assert result.divergences_found == 1
+        mock_levels.mark_task_in_progress.assert_called_once_with("C-L1-002", 4)
+
+    def test_no_fix_when_both_show_in_progress(self, setup) -> None:
+        """Test no fix when disk and LevelController agree on in_progress."""
+        reconciler, mock_state, mock_levels = setup
+        mock_state._state = {
+            "tasks": {"C-L1-001": {"status": "in_progress", "level": 1, "worker_id": 7}},
+            "workers": {},
+        }
+        mock_levels.get_task_status.return_value = "in_progress"
+        result = reconciler.reconcile_periodic()
+        assert result.divergences_found == 0
+        mock_levels.mark_task_in_progress.assert_not_called()
+
+    def test_no_fix_when_claimed_matches_claimed(self, setup) -> None:
+        """Test no fix when disk shows claimed and LevelController shows claimed."""
+        reconciler, mock_state, mock_levels = setup
+        mock_state._state = {
+            "tasks": {"C-L1-003": {"status": "claimed", "level": 1, "worker_id": 2}},
+            "workers": {},
+        }
+        mock_levels.get_task_status.return_value = "claimed"
+        result = reconciler.reconcile_periodic()
+        assert result.divergences_found == 0
+        mock_levels.mark_task_in_progress.assert_not_called()
+
+
+class TestLevelTransitionExceptionHandling:
+    """Tests for exception handling in level transition reconciliation."""
+
+    def test_handles_exception_in_level_transition(self) -> None:
+        """Test level transition reconciliation handles exceptions gracefully."""
+        mock_state = MagicMock()
+        mock_state._state = {"tasks": {"A-L1-001": {"status": "complete", "level": 1}}, "workers": {}}
+        mock_levels = MagicMock()
+        mock_levels.get_task_status.side_effect = RuntimeError("Level transition error")
+        reconciler = StateReconciler(state=mock_state, levels=mock_levels)
+        result = reconciler.reconcile_level_transition(1)
+        assert result.success is False
+        assert result.reconciliation_type == "level_transition"
+        assert result.level_checked == 1
+        assert any("Level transition reconciliation failed" in e for e in result.errors)
+
+
 class TestErrorHandling:
     """Tests for error handling in reconciliation."""
 

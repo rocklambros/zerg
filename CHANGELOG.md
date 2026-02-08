@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Comprehensive unit tests for 19 under-covered modules, raising overall coverage from 77% to 83%
 - `.github/FUNDING.yml` for GitHub Sponsors (#191)
 - `.github/release.yml` for auto-categorized release notes (#191)
 - `lychee` link checker CI job for documentation (#191)

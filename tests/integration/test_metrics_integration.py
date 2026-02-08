@@ -114,7 +114,7 @@ class TestMetricsWithStateManager:
 class TestStatusCommandMetrics:
     """Tests for metrics in status command output."""
 
-    def test_json_status_includes_metrics(self, tmp_path: Path) -> None:
+    def test_json_status_includes_metrics(self, tmp_path: Path, monkeypatch) -> None:
         """Status --json output includes metrics section."""
         # Set up state
         state_dir = tmp_path / ".zerg" / "state"
@@ -130,6 +130,23 @@ class TestStatusCommandMetrics:
         collector = MetricsCollector(state)
         state.store_metrics(collector.compute_feature_metrics())
 
+        # Patch StateManager in the status command module so the CLI reads
+        # from the same tmp_path state directory the test populated above.
+        # NOTE: ``import zerg.commands.status`` resolves to the Click command
+        # object (due to re-export in __init__.py), so we grab the real module
+        # from sys.modules.
+        import sys
+
+        status_mod = sys.modules["zerg.commands.status"]
+
+        _OrigStateManager = StateManager
+
+        class _PatchedStateManager(_OrigStateManager):
+            def __init__(self, feature: str, state_dir_arg: str | Path | None = None) -> None:
+                super().__init__(feature, state_dir=state_dir_arg or state_dir)
+
+        monkeypatch.setattr(status_mod, "StateManager", _PatchedStateManager)
+
         # Run status command with --json
         runner = CliRunner()
         result = runner.invoke(
@@ -138,10 +155,9 @@ class TestStatusCommandMetrics:
             catch_exceptions=False,
         )
 
-        # May fail if state directory isn't found, but if it works:
-        if result.exit_code == 0:
-            output = json.loads(result.output)
-            assert "metrics" in output
+        assert result.exit_code == 0, f"CLI failed with output:\n{result.output}"
+        output = json.loads(result.output)
+        assert "metrics" in output
 
     def test_status_displays_without_crash(self, tmp_path: Path) -> None:
         """Status command doesn't crash when displaying metrics."""
