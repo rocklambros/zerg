@@ -144,7 +144,7 @@ class TestCombinedEnforcement:
         state.load()
 
         parser = Mock()
-        parser.get_dependencies.side_effect = lambda tid: (["TASK-L1-001"] if tid == "TASK-L2-001" else [])
+        parser.get_dependencies.side_effect = lambda tid: ["TASK-L1-001"] if tid == "TASK-L2-001" else []
 
         checker = DependencyChecker(parser, state)
 
