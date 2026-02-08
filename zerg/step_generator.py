@@ -15,7 +15,7 @@ For high detail, includes code_snippet with realistic patterns.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     pass
 
 
-class DetailLevel(str, Enum):
+class DetailLevel(StrEnum):
     """Detail level for step generation."""
 
     STANDARD = "standard"  # No steps (backward compatible)
@@ -33,7 +33,7 @@ class DetailLevel(str, Enum):
     HIGH = "high"  # TDD steps with code snippets
 
 
-class StepAction(str, Enum):
+class StepAction(StrEnum):
     """Action types for execution steps."""
 
     WRITE_TEST = "write_test"
@@ -44,7 +44,7 @@ class StepAction(str, Enum):
     COMMIT = "commit"
 
 
-class VerifyMode(str, Enum):
+class VerifyMode(StrEnum):
     """Verification modes for step execution."""
 
     EXIT_CODE = "exit_code"  # 0 = success

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = get_logger("step_executor")
 
 
-class StepAction(str, Enum):
+class StepAction(StrEnum):
     """TDD step action types."""
 
     WRITE_TEST = "write_test"
@@ -33,7 +33,7 @@ class StepAction(str, Enum):
     COMMIT = "commit"
 
 
-class StepVerify(str, Enum):
+class StepVerify(StrEnum):
     """Step verification modes."""
 
     EXIT_CODE = "exit_code"  # Expect exit code 0 (success)
@@ -41,7 +41,7 @@ class StepVerify(str, Enum):
     NONE = "none"  # No verification needed
 
 
-class StepState(str, Enum):
+class StepState(StrEnum):
     """Step execution states."""
 
     PENDING = "pending"
