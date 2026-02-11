@@ -94,6 +94,63 @@ class TestDetectFeature:
         result = detect_feature()
         assert result == "new-feature"
 
+    def test_detect_feature_zerg_feature_env_var_priority(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ZERG_FEATURE env var takes priority over .current-feature file."""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ZERG_FEATURE", "env-feature")
+
+        # Create .current-feature with a different name
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True)
+        (gsd_dir / ".current-feature").write_text("file-feature")
+
+        from zerg.commands._utils import detect_feature
+
+        result = detect_feature()
+        assert result == "env-feature"
+
+    def test_detect_feature_empty_env_var_falls_through(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Empty ZERG_FEATURE env var falls through to .current-feature file."""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ZERG_FEATURE", "")
+
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True)
+        (gsd_dir / ".current-feature").write_text("file-feature")
+
+        from zerg.commands._utils import detect_feature
+
+        result = detect_feature()
+        assert result == "file-feature"
+
+    def test_detect_feature_env_var_with_whitespace(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """ZERG_FEATURE env var value is stripped of surrounding whitespace."""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ZERG_FEATURE", "  feature-name  ")
+
+        from zerg.commands._utils import detect_feature
+
+        result = detect_feature()
+        assert result == "feature-name"
+
+    def test_detect_feature_whitespace_only_env_var_falls_through(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ZERG_FEATURE with only whitespace falls through like empty string."""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ZERG_FEATURE", "   ")
+
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True)
+        (gsd_dir / ".current-feature").write_text("file-feature")
+
+        from zerg.commands._utils import detect_feature
+
+        result = detect_feature()
+        assert result == "file-feature"
+
     def test_reexport_from_status_works(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """The detect_feature() re-exported from status.py delegates correctly."""
         monkeypatch.chdir(tmp_path)
