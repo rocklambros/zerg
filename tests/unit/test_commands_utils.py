@@ -151,6 +151,64 @@ class TestDetectFeature:
         result = detect_feature()
         assert result == "file-feature"
 
+    def test_detect_feature_handles_read_error(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When .current-feature triggers OSError on read, fall through to state JSON."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .current-feature so .exists() returns True
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True)
+        (gsd_dir / ".current-feature").write_text("should-not-be-read")
+
+        # Create state JSON fallback
+        state_dir = tmp_path / ".zerg" / "state"
+        state_dir.mkdir(parents=True)
+        (state_dir / "fallback-feature.json").write_text(json.dumps({}))
+
+        # Patch read_text to raise OSError for .current-feature
+        original_read_text = Path.read_text
+
+        def patched_read_text(self_path: Path, *args, **kwargs):
+            if self_path.name == ".current-feature":
+                raise OSError("Permission denied")
+            return original_read_text(self_path, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", patched_read_text)
+
+        from zerg.commands._utils import detect_feature
+
+        result = detect_feature()
+        assert result == "fallback-feature"
+
+    def test_detect_feature_handles_unicode_error(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When .current-feature triggers UnicodeDecodeError on read, fall through to state JSON."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .current-feature so .exists() returns True
+        gsd_dir = tmp_path / ".gsd"
+        gsd_dir.mkdir(parents=True)
+        (gsd_dir / ".current-feature").write_text("should-not-be-read")
+
+        # Create state JSON fallback
+        state_dir = tmp_path / ".zerg" / "state"
+        state_dir.mkdir(parents=True)
+        (state_dir / "fallback-feature.json").write_text(json.dumps({}))
+
+        # Patch read_text to raise UnicodeDecodeError for .current-feature
+        original_read_text = Path.read_text
+
+        def patched_read_text(self_path: Path, *args, **kwargs):
+            if self_path.name == ".current-feature":
+                raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+            return original_read_text(self_path, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", patched_read_text)
+
+        from zerg.commands._utils import detect_feature
+
+        result = detect_feature()
+        assert result == "fallback-feature"
+
     def test_reexport_from_status_works(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """The detect_feature() re-exported from status.py delegates correctly."""
         monkeypatch.chdir(tmp_path)
