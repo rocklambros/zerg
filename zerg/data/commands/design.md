@@ -5,7 +5,7 @@ Generate technical architecture and prepare for parallel execution.
 ## Pre-Flight
 
 ```bash
-FEATURE=$(cat .gsd/.current-feature 2>/dev/null)
+FEATURE=${ZERG_FEATURE:-$(cat .gsd/.current-feature 2>/dev/null)}
 TASK_LIST=${CLAUDE_CODE_TASK_LIST_ID:-$FEATURE}
 
 if [ -z "$FEATURE" ]; then
@@ -223,7 +223,7 @@ Generate `task-graph.json` for the orchestrator:
   "total_tasks": {N},
   "estimated_duration_minutes": {N},
   "max_parallelization": {N},
-  
+
   "tasks": [
     {
       "id": "TASK-001",
@@ -289,7 +289,7 @@ Generate `task-graph.json` for the orchestrator:
       "integration_test": null
     }
   ],
-  
+
   "levels": {
     "1": {
       "name": "foundation",
@@ -326,7 +326,7 @@ Generate `task-graph.json` for the orchestrator:
       "depends_on_levels": [4]
     }
   },
-  
+
   "conflict_matrix": {
     "description": "Tasks that cannot run in parallel due to shared files",
     "conflicts": []
@@ -341,7 +341,7 @@ Generate `task-graph.json` for the orchestrator:
 
 ## Metadata
 - **Feature**: {feature}
-- **Status**: DRAFT | REVIEW | APPROVED  
+- **Status**: DRAFT | REVIEW | APPROVED
 - **Created**: {timestamp}
 - **Author**: Factory Design Mode
 
@@ -623,4 +623,3 @@ When `--help` is passed in `$ARGUMENTS`, display usage and exit:
 Flags:
   --help              Show this help message
 ```
-

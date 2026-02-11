@@ -6,7 +6,7 @@ Display current factory execution status.
 ## Load State
 
 ```bash
-FEATURE=$(cat .gsd/.current-feature 2>/dev/null)
+FEATURE=${ZERG_FEATURE:-$(cat .gsd/.current-feature 2>/dev/null)}
 TASK_LIST=${CLAUDE_CODE_TASK_LIST_ID:-$FEATURE}
 SPEC_DIR=".gsd/specs/$FEATURE"
 

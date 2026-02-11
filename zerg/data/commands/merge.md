@@ -6,7 +6,7 @@ Manually trigger or manage level merge operations.
 ## Pre-Flight
 
 ```bash
-FEATURE=$(cat .gsd/.current-feature 2>/dev/null)
+FEATURE=${ZERG_FEATURE:-$(cat .gsd/.current-feature 2>/dev/null)}
 TASK_LIST=${CLAUDE_CODE_TASK_LIST_ID:-$FEATURE}
 STATE_FILE=".zerg/state/$FEATURE.json"
 SPEC_DIR=".gsd/specs/$FEATURE"
