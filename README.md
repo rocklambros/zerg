@@ -576,6 +576,40 @@ plugins:
 
 ---
 
+## Multi-Epic Workflows
+
+By default, ZERG tracks the active feature in `.gsd/.current-feature`. This works well for single-feature development, but causes cross-epic interference when two terminals work on different features simultaneously.
+
+### Per-Terminal Feature Isolation
+
+Export `ZERG_FEATURE` in each terminal to scope all commands to that feature:
+
+```bash
+# Terminal 1
+export ZERG_FEATURE=epic-auth
+/z:plan epic-auth
+/z:design
+/z:rush --workers=5
+
+# Terminal 2
+export ZERG_FEATURE=epic-payments
+/z:plan epic-payments
+/z:design
+/z:rush --workers=5
+```
+
+The `ZERG_FEATURE` env var takes priority over the `.gsd/.current-feature` file. Each terminal's commands operate exclusively on its own feature with no cross-contamination.
+
+### Advisory Lockfile
+
+When `/z:rush` starts, it creates `.gsd/specs/{feature}/.lock`. If another terminal tries to rush the same feature, it receives a warning about the concurrent session. This prevents accidental double-execution of the same feature.
+
+### Backward Compatibility
+
+Single-epic users do not need to change anything. The `ZERG_FEATURE` env var is only required for parallel multi-epic workflows. Without it, ZERG falls back to `.gsd/.current-feature` as before.
+
+---
+
 ## Troubleshooting
 
 | Problem | Solution |

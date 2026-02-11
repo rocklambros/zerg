@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ZERG_FEATURE` environment variable for terminal-scoped feature isolation in multi-epic workflows
+- Advisory lockfile system (`.gsd/specs/{feature}/.lock`) to warn about concurrent sessions on the same feature
+- `AskUserQuestion` structured approval gate in `/z:plan` to prevent auto-continuation into design phase
+- Feature-scoped git ship action — `/z:git --action ship` now scopes PRs to the active feature's branches
 - Comprehensive unit tests for 19 under-covered modules, raising overall coverage from 77% to 83%
 - `.github/FUNDING.yml` for GitHub Sponsors (#191)
 - `.github/release.yml` for auto-categorized release notes (#191)
@@ -17,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 26-command cheat sheet table, pipeline visualization, FAQ accordion, and copy-to-clipboard (#204)
 - Optimized web logo (`docs/assets/img/zerg-logo-web.png`, <200KB) and Open Graph social preview image (#204)
 - Simplified GitHub Pages deployment — direct `docs/` upload replaces MkDocs build (#205)
+
+### Fixed
+
+- Level-aware task claiming — workers can no longer claim tasks above the current orchestrator level
+- All 15 command pre-flights now read `ZERG_FEATURE` env var before `.gsd/.current-feature` file
 
 ### Changed
 
