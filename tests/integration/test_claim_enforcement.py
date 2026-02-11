@@ -3,10 +3,12 @@
 Tests OCF-L2-001 and OCF-L2-002:
 - Level enforcement: Workers can only claim tasks for current level
 - Dependency enforcement: Workers cannot claim tasks with incomplete dependencies
+- Protocol-state integration: claim_next_task_async passes current_level correctly
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import Mock
@@ -235,3 +237,166 @@ class TestWorkerProtocolIntegration:
         deps = protocol.dependency_checker.get_incomplete_dependencies("TASK-002")
         # TASK-001 should be incomplete since it was never completed
         assert "TASK-001" in deps
+
+
+def _setup_protocol_for_level_tests(
+    tmp_path: Path,
+    monkeypatch: object,
+    tasks: list[dict],
+) -> object:
+    """Create a WorkerProtocol with a task graph and state for level-aware tests.
+
+    Args:
+        tmp_path: Temporary directory for state and task graph files.
+        monkeypatch: pytest monkeypatch fixture for environment variables.
+        tasks: List of task dicts with id, title, level, dependencies.
+
+    Returns:
+        Configured WorkerProtocol instance with loaded state.
+    """
+    from zerg.protocol_state import WorkerProtocol
+
+    # Build levels dict from tasks
+    levels_dict: dict[str, dict] = {}
+    for task in tasks:
+        level_key = str(task["level"])
+        if level_key not in levels_dict:
+            levels_dict[level_key] = {"name": f"level-{level_key}", "tasks": []}
+        levels_dict[level_key]["tasks"].append(task["id"])
+
+    task_graph = {
+        "feature": "test-feature",
+        "version": "2.0",
+        "tasks": tasks,
+        "levels": levels_dict,
+    }
+
+    task_graph_path = tmp_path / "task-graph.json"
+    task_graph_path.write_text(json.dumps(task_graph))
+
+    # Create a fake git repo
+    git_dir = tmp_path / ".git"
+    if not git_dir.exists():
+        git_dir.mkdir()
+
+    # Set up environment
+    monkeypatch.setenv("ZERG_WORKER_ID", "0")  # type: ignore[union-attr]
+    monkeypatch.setenv("ZERG_FEATURE", "test-feature")  # type: ignore[union-attr]
+    monkeypatch.setenv("ZERG_WORKTREE", str(tmp_path))  # type: ignore[union-attr]
+    monkeypatch.setenv("ZERG_STATE_DIR", str(tmp_path))  # type: ignore[union-attr]
+    monkeypatch.setenv("ZERG_TASK_GRAPH", str(task_graph_path))  # type: ignore[union-attr]
+
+    return WorkerProtocol()
+
+
+class TestProtocolStateLevelAwareClaiming:
+    """Integration tests for level-aware claiming through the protocol_state layer.
+
+    Verifies that claim_next_task_async correctly reads current_level from
+    StateManager.get_current_level() and passes it to claim_task(), ensuring
+    workers only claim tasks at the current execution level.
+    """
+
+    def test_claim_respects_current_level_via_protocol_state(self, tmp_path: Path, monkeypatch) -> None:
+        """claim_next_task_async should only claim tasks at the current level.
+
+        Sets up tasks at levels 1 and 2, sets current_level to 1, and verifies
+        that only level-1 tasks are claimed through the protocol_state layer.
+        """
+        tasks = [
+            {"id": "TASK-001", "title": "Level 1 task", "level": 1, "dependencies": []},
+            {"id": "TASK-002", "title": "Level 2 task", "level": 2, "dependencies": []},
+        ]
+        protocol = _setup_protocol_for_level_tests(tmp_path, monkeypatch, tasks)
+
+        # Register both tasks as PENDING and set current execution level.
+        # Note: set_task_status and set_current_level use atomic_update() which
+        # reloads from disk. Level metadata must be set AFTER all atomic ops
+        # and persisted with a direct save() to avoid being overwritten.
+        protocol.state.set_task_status("TASK-001", TaskStatus.PENDING)
+        protocol.state.set_task_status("TASK-002", TaskStatus.PENDING)
+        protocol.state.set_current_level(1)
+
+        # Set level metadata after all atomic operations, then save directly
+        protocol.state._persistence._state["tasks"]["TASK-001"]["level"] = 1
+        protocol.state._persistence._state["tasks"]["TASK-002"]["level"] = 2
+        protocol.state.save()
+
+        # Claim through protocol_state — should use get_current_level() internally
+        # Use max_wait=0 so it doesn't poll; just tries once and returns
+        claimed = asyncio.run(protocol.claim_next_task_async(max_wait=0, poll_interval=0.01))
+
+        # Should have claimed TASK-001 (level 1), not TASK-002 (level 2)
+        assert claimed is not None
+        assert claimed["id"] == "TASK-001"
+
+        # Verify TASK-002 remains pending (not claimed)
+        assert protocol.state.get_task_status("TASK-002") == TaskStatus.PENDING.value
+
+    def test_claim_skips_higher_level_tasks(self, tmp_path: Path, monkeypatch) -> None:
+        """When current_level is 1, level-2 tasks should remain pending.
+
+        Creates tasks at levels 1 and 2. Sets current_level to 1. Claims
+        the level-1 task, then verifies a second claim attempt returns None
+        because the only remaining task is level 2.
+        """
+        tasks = [
+            {"id": "TASK-A", "title": "Foundation task", "level": 1, "dependencies": []},
+            {"id": "TASK-B", "title": "Core task", "level": 2, "dependencies": []},
+        ]
+        protocol = _setup_protocol_for_level_tests(tmp_path, monkeypatch, tasks)
+
+        # Register tasks as PENDING and set current level via atomic operations.
+        # Level metadata must be set after all atomic ops to avoid reload overwrite.
+        protocol.state.set_task_status("TASK-A", TaskStatus.PENDING)
+        protocol.state.set_task_status("TASK-B", TaskStatus.PENDING)
+        protocol.state.set_current_level(1)
+
+        # Set level metadata after all atomic operations, then save directly
+        protocol.state._persistence._state["tasks"]["TASK-A"]["level"] = 1
+        protocol.state._persistence._state["tasks"]["TASK-B"]["level"] = 2
+        protocol.state.save()
+
+        # First claim: should get TASK-A (level 1)
+        first = asyncio.run(protocol.claim_next_task_async(max_wait=0, poll_interval=0.01))
+        assert first is not None
+        assert first["id"] == "TASK-A"
+
+        # Second claim: TASK-B is level 2, current_level is still 1 -> no match
+        second = asyncio.run(protocol.claim_next_task_async(max_wait=0, poll_interval=0.01))
+        assert second is None
+
+        # TASK-B should still be pending — never claimed
+        assert protocol.state.get_task_status("TASK-B") == TaskStatus.PENDING.value
+
+    def test_claim_allows_current_level_tasks_when_level_advances(self, tmp_path: Path, monkeypatch) -> None:
+        """When current_level advances to 2, level-2 tasks become claimable.
+
+        Creates tasks at levels 1 and 2. Completes level 1, advances
+        current_level to 2, then verifies that level-2 tasks can be claimed.
+        """
+        tasks = [
+            {"id": "TASK-X", "title": "Level 1 work", "level": 1, "dependencies": []},
+            {"id": "TASK-Y", "title": "Level 2 work", "level": 2, "dependencies": []},
+        ]
+        protocol = _setup_protocol_for_level_tests(tmp_path, monkeypatch, tasks)
+
+        # TASK-X already complete, TASK-Y still pending.
+        # Level metadata must be set after all atomic ops to avoid reload overwrite.
+        protocol.state.set_task_status("TASK-X", TaskStatus.COMPLETE)
+        protocol.state.set_task_status("TASK-Y", TaskStatus.PENDING)
+        protocol.state.set_current_level(2)
+
+        # Set level metadata after all atomic operations, then save directly
+        protocol.state._persistence._state["tasks"]["TASK-X"]["level"] = 1
+        protocol.state._persistence._state["tasks"]["TASK-Y"]["level"] = 2
+        protocol.state.save()
+
+        # Claim through protocol_state — current_level is 2, TASK-Y is level 2
+        claimed = asyncio.run(protocol.claim_next_task_async(max_wait=0, poll_interval=0.01))
+
+        assert claimed is not None
+        assert claimed["id"] == "TASK-Y"
+
+        # TASK-X was already complete, should remain complete
+        assert protocol.state.get_task_status("TASK-X") == TaskStatus.COMPLETE.value
