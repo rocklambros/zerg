@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `/z:plan` and `/z:brainstorm` proactively entering Claude Code plan mode — added explicit `EnterPlanMode`/`ExitPlanMode` prohibition to workflow boundary
+- Missing Phase 5.5 post-approval handoff in `/z:plan` — restored `AskUserQuestion` with 'Clear context, then /z:design' option
+
+### Changed
+
+- `/z:plan` now accepts `--issue N` or `#N` flag to load a GitHub issue as brainstorm context, reducing redundant Phase 2 questions
+- `/z:brainstorm` Phase 4 handoff now includes the top issue number in the suggested `/z:plan` command
+
 ## [0.2.2] - 2026-02-13
 
 ### Fixed
