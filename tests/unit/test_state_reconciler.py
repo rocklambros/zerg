@@ -168,7 +168,7 @@ class TestLevelTransitionReconciliation:
         }
         mock_levels.get_task_status.return_value = "in_progress"
         result = reconciler.reconcile_level_transition(1)
-        mock_state.set_task_status.assert_called_with("A-L1-001", "failed", error_message="worker_crash")
+        mock_state.set_task_status.assert_called_with("A-L1-001", "failed", error="worker_crash")
         stuck_fixes = [f for f in result.fixes_applied if f.fix_type == "stuck_task_recovered"]
         assert len(stuck_fixes) == 1
 

@@ -239,10 +239,8 @@ class TestEntryPointDiscovery:
         mock_ep.name = "custom_gate"
         mock_ep.load.return_value = StubGatePlugin
 
-        # Mock Python 3.12+ entry_points() with select method
-        mock_eps_obj = MagicMock()
-        mock_eps_obj.select.return_value = [mock_ep]
-        mock_entry_points.return_value = mock_eps_obj
+        # entry_points(group=...) returns iterable of entry points directly
+        mock_entry_points.return_value = [mock_ep]
 
         registry = PluginRegistry()
         registry.load_entry_points()
@@ -270,9 +268,7 @@ class TestEntryPointDiscovery:
         mock_ep.name = "test_hook"
         mock_ep.load.return_value = TestHook
 
-        mock_eps_obj = MagicMock()
-        mock_eps_obj.select.return_value = [mock_ep]
-        mock_entry_points.return_value = mock_eps_obj
+        mock_entry_points.return_value = [mock_ep]
 
         registry = PluginRegistry()
         TestHook._calls.clear()
@@ -292,9 +288,7 @@ class TestEntryPointDiscovery:
         mock_ep.name = "custom_launcher"
         mock_ep.load.return_value = StubLauncherPlugin
 
-        mock_eps_obj = MagicMock()
-        mock_eps_obj.select.return_value = [mock_ep]
-        mock_entry_points.return_value = mock_eps_obj
+        mock_entry_points.return_value = [mock_ep]
 
         registry = PluginRegistry()
         registry.load_entry_points()
@@ -310,8 +304,8 @@ class TestEntryPointDiscovery:
         mock_ep.name = "legacy_plugin"
         mock_ep.load.return_value = StubGatePlugin
 
-        # Mock pre-3.12 dict-like interface (no select method)
-        mock_entry_points.return_value = {"zerg.plugins": [mock_ep]}
+        # entry_points(group=...) returns iterable directly
+        mock_entry_points.return_value = [mock_ep]
 
         registry = PluginRegistry()
         registry.load_entry_points()
@@ -331,9 +325,7 @@ class TestEntryPointDiscovery:
         mock_ep.name = "invalid"
         mock_ep.load.return_value = NotAPlugin
 
-        mock_eps_obj = MagicMock()
-        mock_eps_obj.select.return_value = [mock_ep]
-        mock_entry_points.return_value = mock_eps_obj
+        mock_entry_points.return_value = [mock_ep]
 
         registry = PluginRegistry()
 
@@ -351,9 +343,7 @@ class TestEntryPointDiscovery:
         mock_ep.name = "broken"
         mock_ep.load.side_effect = ImportError("module not found")
 
-        mock_eps_obj = MagicMock()
-        mock_eps_obj.select.return_value = [mock_ep]
-        mock_entry_points.return_value = mock_eps_obj
+        mock_entry_points.return_value = [mock_ep]
 
         registry = PluginRegistry()
 
@@ -371,9 +361,7 @@ class TestEntryPointDiscovery:
         mock_ep.name = "custom"
         mock_ep.load.return_value = StubLauncherPlugin
 
-        mock_eps_obj = MagicMock()
-        mock_eps_obj.select.return_value = [mock_ep]
-        mock_entry_points.return_value = mock_eps_obj
+        mock_entry_points.return_value = [mock_ep]
 
         registry = PluginRegistry()
         registry.load_entry_points(group="custom.plugins")
