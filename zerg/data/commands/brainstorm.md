@@ -5,12 +5,15 @@ Discover opportunities and generate actionable GitHub issues for domain: **$ARGU
 ## ⛔ WORKFLOW BOUNDARY (NON-NEGOTIABLE)
 
 This command MUST NEVER:
+- Call **EnterPlanMode** or **ExitPlanMode** tools (these have approve→implement semantics that override stop guards)
 - Automatically run `/z:plan` or any planning phase
 - Automatically proceed to design or implementation
 - Call the Skill tool to invoke another command
 - Write code or make code changes
 
 After Phase 4 completes, the command STOPS. The user must manually run `/z:plan`.
+
+**⛔ PLAN MODE PROHIBITION**: Do NOT call EnterPlanMode. This is a discovery/brainstorming command, NOT an implementation task. EnterPlanMode creates a contract where ExitPlanMode signals "ready to implement" — which conflicts with this command's purpose of discovering requirements and stopping. Use Read, Grep, Glob, WebSearch, and AskUserQuestion directly.
 
 ## Flags
 
@@ -186,12 +189,12 @@ Call AskUserQuestion:
   - header: "Next step"
   - options:
     - label: "Clear context, then /z:plan (Recommended)"
-      description: "Run /compact to free token budget, then start /z:plan {top-feature} in fresh context"
+      description: "Run /compact to free token budget, then start /z:plan {top-feature} --issue {top-issue-number} in fresh context"
     - label: "Stop here"
       description: "I'll run /z:plan later in a new session"
 
 Based on user response:
-- **"Clear context, then /z:plan"**: Output: "Run `/compact` to clear context, then run `/z:plan {top-feature}` to begin requirements."
+- **"Clear context, then /z:plan"**: Output: "Run `/compact` to clear context, then run `/z:plan {top-feature} --issue {top-issue-number}` to begin requirements."
 - **"Stop here"**: Command completes normally with no further output.
 
 **⛔ DO NOT auto-run /z:plan. The user must manually invoke it.**
