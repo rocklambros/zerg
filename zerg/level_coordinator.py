@@ -40,6 +40,7 @@ from zerg.types import GateRunResult
 from zerg.worker_registry import WorkerRegistry
 
 if TYPE_CHECKING:
+    # CodeQL: cyclic import is compile-time only; no runtime cycle
     from zerg.backpressure import BackpressureController
 
 logger = get_logger("level_coordinator")

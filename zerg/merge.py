@@ -16,6 +16,7 @@ from zerg.logging import get_logger
 from zerg.types import GateRunResult, MergeResult
 
 if TYPE_CHECKING:
+    # CodeQL: cyclic import is compile-time only; no runtime cycle
     from zerg.level_coordinator import GatePipeline
 
 logger = get_logger("merge")
