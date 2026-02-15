@@ -169,7 +169,7 @@ class GitOps:
                 cwd=self.repo_path,
             )
             return result.stdout.strip()
-        except Exception:
+        except (subprocess.SubprocessError, OSError):
             return "unknown"
 
     def get_status(self) -> dict:
@@ -194,8 +194,8 @@ class GitOps:
                     status.modified.append(filepath)
                 if code == "??":
                     status.untracked.append(filepath)
-        except Exception:
-            pass
+        except (subprocess.SubprocessError, OSError):
+            pass  # Best-effort git status; return partial data
 
         return {
             "branch": status.branch,

@@ -204,7 +204,7 @@ class SecretScanner:
                     content = f.read()
                 vulnerabilities.extend(self.scan_content(content, filepath))
             except OSError:
-                pass
+                pass  # Best-effort file read; skip unreadable files
         return vulnerabilities
 
 

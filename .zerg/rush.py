@@ -58,7 +58,7 @@ class RushCommand:
         if resume:
             try:
                 state = ExecutionState.load()
-            except Exception:
+            except (FileNotFoundError, ValueError, OSError):
                 # No state to resume, create new
                 state = ExecutionState.create(self._get_feature_name(graph_path))
         else:
@@ -161,7 +161,7 @@ class RushCommand:
             if specs_idx + 1 < len(parts) - 1:
                 return parts[specs_idx + 1]
         except ValueError:
-            pass
+            pass  # "specs" not in path; fall through to default
 
         return "default"
 

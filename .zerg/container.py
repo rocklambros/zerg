@@ -168,7 +168,7 @@ class ContainerLauncher:
             container.stop(timeout=timeout)
             container.remove()
         except docker.errors.NotFound:
-            pass
+            pass  # Container already removed; proceed with cleanup
 
         del self.containers[worker_id]
 

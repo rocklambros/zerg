@@ -346,7 +346,7 @@ class ToolDetector:
                 # Extract first line, strip
                 return result.stdout.split("\n")[0].strip()[:50]
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
+            pass  # Optional tool not available or timed out
 
         return ""
 
