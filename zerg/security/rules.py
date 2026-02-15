@@ -352,7 +352,7 @@ def _detect_js_frameworks(project_path: Path, stack: ProjectStack) -> None:
                     elif lang == "database":
                         stack.databases.add(framework)
     except (json.JSONDecodeError, OSError):
-        pass
+        pass  # Config file not found or malformed
 
 
 def _detect_go_frameworks(project_path: Path, stack: ProjectStack) -> None:

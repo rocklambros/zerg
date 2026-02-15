@@ -7,21 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-02-15
+
 ### Fixed
 
 - **Security**: Replaced regex-based HTML stripping with `html.escape()` in PR body sanitization (CWE-79)
 - **Security**: Changed temp script permissions from `0o755` to `0o700` for owner-only access (CWE-732)
-- **CodeQL**: Added explanatory comments to 33 empty except blocks across all modules
-- **CodeQL**: Removed 8 dead global variables (unused constants, patterns, compiled regexes)
-- **CodeQL**: Removed 4 unused logger definitions in diagnostics modules
-- **CodeQL**: Removed 7 unused imports across test fixtures and source files
-- **CodeQL**: Fixed 5 unused local variables (removed dead bindings, prefixed with `_`)
-- **CodeQL**: Removed redundant variable reassignments and self-assignments
-- **CodeQL**: Simplified redundant comparisons and replaced lambda with builtin
-- **CodeQL**: Removed duplicate `import re` statement
-- **CodeQL**: Removed `if True:` wrapper in test file
-- **CodeQL**: Documented TYPE_CHECKING cyclic import guards as false positives
-- **CodeQL**: Documented `__getattr__` lazy loading exports as false positives
+- **Security**: Sanitize PR title at output boundary for defense-in-depth consistency (CWE-79)
+- **Security**: Eliminate temp file permission race window via `mkstemp`+`fchmod` (CWE-377)
+- **Security**: Added `shlex.quote()` to `GIT_SEQUENCE_EDITOR` temp script paths for shell safety (CWE-78)
+- **PR Engine**: Fixed double-sanitization of PR body content — angle brackets and ampersands now render correctly
+- **CodeQL**: Resolved all 115 open alerts (98 fixes + 17 documented false positives)
 - **Plan command**: Fixed `/z:plan` WORKFLOW BOUNDARY to allow spec file generation
 
 ## [0.3.1] - 2026-02-15

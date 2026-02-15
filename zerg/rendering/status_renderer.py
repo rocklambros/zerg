@@ -1040,7 +1040,7 @@ def show_live_status(
                 sleep_fn(0.25)
                 live.update(events_text)
     except KeyboardInterrupt:
-        pass
+        pass  # Suppress interrupt during shutdown
     finally:
         emitter.stop_watching()
         c.print(f"\n[dim]Received {event_count} events[/dim]")
@@ -1100,7 +1100,7 @@ def show_dashboard(
                 live.update(renderer.render())
                 sleep_fn(interval)
         except KeyboardInterrupt:
-            pass
+            pass  # Suppress interrupt during shutdown
 
 
 def show_status(

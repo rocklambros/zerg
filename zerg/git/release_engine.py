@@ -37,15 +37,6 @@ _CONVENTIONAL_RE = re.compile(
 # Commit types that map to minor bumps
 _MINOR_TYPES = frozenset({CommitType.FEAT})
 
-# Commit types that map to patch bumps
-_PATCH_TYPES = frozenset(
-    {
-        CommitType.FIX,
-        CommitType.PERF,
-        CommitType.REFACTOR,
-    }
-)
-
 # Map conventional commit type strings to changelog sections
 _TYPE_TO_SECTION: dict[str, str] = {
     "feat": "Added",

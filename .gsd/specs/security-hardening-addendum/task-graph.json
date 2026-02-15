@@ -1,0 +1,99 @@
+{
+  "feature": "security-hardening-addendum",
+  "version": "2.0",
+  "generated": "2026-02-15",
+  "total_tasks": 3,
+  "estimated_duration_minutes": 5,
+  "max_parallelization": 2,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Sanitize PR title at output boundaries",
+      "description": "Apply _sanitize_pr_content() to PR title in two locations: (1) PRCreator.create() at line 509 where title is extracted from pr_data, and (2) PRCreator._save_draft() at line 586 where title is interpolated into draft markdown content. Uses existing _sanitize_pr_content() function (html.escape-based) already used for body/commits/paths throughout the module.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/git/pr_engine.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/git/pr_engine.py && python -m pytest tests/ -x --timeout=120 -q",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 2,
+      "skills_required": ["python"],
+      "consumers": ["leaf"],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- Use html.escape() for output sanitization (OWASP A05, CWE-79)\n- Sanitize at output boundary, not input\n\n## Spec Context\nFR-001: Apply _sanitize_pr_content() to title at create() line 509\nFR-002: Apply _sanitize_pr_content() to title in draft save at line 586\n_sanitize_pr_content() already exists at line 51, uses html.escape(). Used for body/commits/paths but not title — asymmetry.\n\n## Changes\nLine 509: title = pr_data.get('title', 'Update') → title = _sanitize_pr_content(pr_data.get('title', 'Update'))\nLine 586: Wrap pr_data.get('title', 'PR Draft') in _sanitize_pr_content()"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Eliminate temp file permission race window",
+      "description": "Replace NamedTemporaryFile(delete=False) + os.chmod(0o700) with mkstemp() + os.fchmod(fd, 0o700) + os.fdopen(fd) in two locations: (1) _squash_commits() at lines 546-570 for zerg_rebase_ scripts, and (2) _reorder_commits() at lines 633-662 for zerg_reorder_ scripts. Script content is unchanged — only the file creation mechanism changes to eliminate the race window between creation and chmod.",
+      "phase": "core",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/git/history_engine.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/git/history_engine.py && python -m pytest tests/ -x --timeout=120 -q",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["python"],
+      "consumers": ["leaf"],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- CWE-377: Insecure temporary file — use mkstemp() for atomic secure creation\n- CWE-732: Incorrect permission assignment — set permissions before writing content\n- Use os.fchmod(fd) on the file descriptor, not os.chmod(path) after the fact\n\n## Spec Context\nFR-003: _squash_commits() lines 546-570 — replace NamedTemporaryFile pattern\nFR-004: _reorder_commits() lines 633-662 — same replacement pattern\n\n## Pattern\nBEFORE: tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, prefix='zerg_rebase_') → write → os.chmod(path, 0o700)\nAFTER: fd, script_path = tempfile.mkstemp(suffix='.py', prefix='zerg_rebase_') → os.fchmod(fd, 0o700) → with os.fdopen(fd, 'w') as script_file: → write\nRemove the subsequent os.chmod() call — already handled by fchmod."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Update CHANGELOG and run full verification",
+      "description": "Add entries under [Unreleased] > Fixed in CHANGELOG.md for: (1) PR title sanitization at output boundary for defense-in-depth, (2) temp file permission race window elimination via mkstemp+fchmod. Then run full verification suite: pytest, ruff check, validate_commands.",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/ --timeout=120 -q && ruff check zerg/ tests/ && python -m zerg.validate_commands",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 2,
+      "skills_required": ["documentation"],
+      "consumers": ["leaf"],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd CHANGELOG.md entries under [Unreleased] > Fixed:\n- Sanitize PR title at output boundary in pr_engine.py (defense-in-depth, CWE-79)\n- Eliminate temp file permission race window in history_engine.py (CWE-377)\nUse existing CHANGELOG format. Entries go under Fixed category."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "core",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 3,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "quality",
+      "tasks": ["TASK-003"],
+      "parallel": false,
+      "estimated_minutes": 2,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — each task modifies a different file",
+    "conflicts": []
+  }
+}

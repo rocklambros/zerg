@@ -11,7 +11,6 @@ from zerg.diagnostics.types import (
     ErrorSeverity,
     Evidence,
 )
-from zerg.logging import get_logger
 
 __all__ = [
     "ErrorChainAnalyzer",
@@ -20,8 +19,6 @@ __all__ = [
     "LanguageDetector",
     "MultiLangErrorParser",
 ]
-
-logger = get_logger("error_intel")
 
 
 class LanguageDetector:

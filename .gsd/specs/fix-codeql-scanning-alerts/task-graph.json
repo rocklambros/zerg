@@ -1,0 +1,334 @@
+{
+  "feature": "fix-codeql-scanning-alerts",
+  "version": "2.0",
+  "generated": "2026-02-15T12:00:00-05:00",
+  "total_tasks": 10,
+  "estimated_duration_minutes": 90,
+  "max_parallelization": 9,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Security fixes + zerg/git/ alerts",
+      "description": "Fix 3 HIGH-severity security alerts: (1) Replace regex HTML stripping with html.escape() in pr_engine.py:63. (2) Change os.chmod 0o755 to 0o700 in history_engine.py:572,664. Also fix empty except blocks in history_engine.py:614,703 and bisect_engine.py:709. Remove unused globals: _SMALL_COMMIT_LINES in history_engine.py:34, _PATCH_TYPES in release_engine.py:41-47.",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/git/pr_engine.py",
+          "zerg/git/history_engine.py",
+          "zerg/git/bisect_engine.py",
+          "zerg/git/release_engine.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m py_compile zerg/git/pr_engine.py && python -m py_compile zerg/git/history_engine.py && python -m py_compile zerg/git/bisect_engine.py && python -m py_compile zerg/git/release_engine.py && ruff check zerg/git/pr_engine.py zerg/git/history_engine.py zerg/git/bisect_engine.py zerg/git/release_engine.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "security"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- Use html.escape() for user content, never regex stripping (OWASP A05, CWE-79)\n- Temp files must use 0o700 permissions, not 0o755 (CWE-732)\n\n## Spec Context\nFR-001: Replace regex-based <script>/<iframe> stripping with html.escape(text, quote=True) in _sanitize_pr_body(). Import html module.\nFR-002: Change os.chmod(script_path, 0o755) to os.chmod(script_path, 0o700) at two locations in history_engine.py.\nAlso: Add comments to empty except pass blocks. Remove unused _SMALL_COMMIT_LINES and _PATCH_TYPES globals.\n\n## Empty Except Comments\n- history_engine.py:614,703 — pass  # Best-effort temp file cleanup\n- bisect_engine.py:709 — pass  # Best-effort git cleanup"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Plan command WORKFLOW BOUNDARY fix",
+      "description": "ALREADY COMPLETED. Track only. Fixed plan.md and plan.core.md: replaced overbroad 'MUST NEVER run implementation tools' with explicit PROHIBITED/REQUIRED/ALLOWED sections. Added .plan-complete sentinel file write in Phase 5.5. Files already modified on the fix/codeql-scanning-alerts branch.",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/data/commands/plan.md",
+          "zerg/data/commands/plan.core.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'REQUIRED.*mandatory' zerg/data/commands/plan.md && grep -q 'plan-complete' zerg/data/commands/plan.core.md && echo PASS",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 1,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-015/FR-016: Already implemented. The WORKFLOW BOUNDARY in plan.md and plan.core.md was overbroad — said 'MUST NEVER run implementation tools (Write, Edit, Bash)' which prevented creating requirements.md. Fixed by adding explicit PROHIBITED/REQUIRED/ALLOWED sections and .plan-complete sentinel."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Fix CodeQL alerts in zerg/commands/",
+      "description": "Fix alerts across 12 files in zerg/commands/:\n\nEmpty except (add comments to pass):\n- _utils.py:153,161,167,220 — pass  # Best-effort file cleanup\n- build.py:387 — pass  # Best-effort file cleanup\n- init.py:498 — pass  # Optional tool not available\n- install_commands.py:137 — pass  # Best-effort file cleanup\n- git_cmd.py:231,243 — pass  # Best-effort git cleanup\n- test_cmd.py:465 — pass  # Best-effort file cleanup\n- logs.py:357 — pass  # Malformed JSON; skip entry\n- status.py:230 — pass  # Best-effort JSON display (already has noqa)\n\nImport consolidation:\n- status.py: consolidate double status_renderer import (line 10 + line 14)\n\nUnused locals:\n- wiki.py: remove unused _mermaid binding\n- document.py: remove unused _mermaid, _crossref bindings\n- design.py: inline or suppress FileOwnerKey\n\nMultiple definition:\n- debug.py: remove redundant confidence re-initialization\n\nCyclic import:\n- debug.py: if TYPE_CHECKING import — note as false positive for GitHub UI dismissal",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/commands/_utils.py",
+          "zerg/commands/build.py",
+          "zerg/commands/init.py",
+          "zerg/commands/install_commands.py",
+          "zerg/commands/git_cmd.py",
+          "zerg/commands/test_cmd.py",
+          "zerg/commands/logs.py",
+          "zerg/commands/status.py",
+          "zerg/commands/debug.py",
+          "zerg/commands/design.py",
+          "zerg/commands/document.py",
+          "zerg/commands/wiki.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/commands/_utils.py zerg/commands/build.py zerg/commands/init.py zerg/commands/install_commands.py zerg/commands/git_cmd.py zerg/commands/test_cmd.py zerg/commands/logs.py zerg/commands/status.py zerg/commands/debug.py zerg/commands/design.py zerg/commands/document.py zerg/commands/wiki.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-003: Add explanatory comments to empty except pass blocks.\nFR-007: Remove unused local variables (_mermaid, _crossref, FileOwnerKey).\nFR-008: Consolidate import-and-import-from in status.py.\nFR-010: Remove redundant confidence re-initialization in debug.py.\n\n## Empty Except Comment Templates\n- File cleanup: pass  # Best-effort file cleanup\n- Tool detection: pass  # Optional tool not available\n- JSON fallback: pass  # Malformed data; skip entry\n- Git cleanup: pass  # Best-effort git cleanup"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Fix CodeQL alerts in zerg/ core modules",
+      "description": "Fix alerts across 17 files in zerg/ root:\n\nEmpty except (add comments to pass):\n- formatter_detector.py:128,150,183 — pass  # Config file not found or malformed\n- validate_commands.py:511 — pass  # Non-numeric value; skip\n- token_tracker.py:127 — pass  # Best-effort file cleanup\n- token_counter.py:207 — pass  # Best-effort file read\n- mcp_router.py:182 — pass  # Non-numeric value; skip\n- repo_map.py:584 — pass  # Best-effort file read\n- progress_reporter.py:129 — pass  # Best-effort file cleanup\n- log_aggregator.py:212 — pass  # Best-effort file cleanup\n- heartbeat.py:159 — pass  # Best-effort heartbeat write\n- dryrun.py:233 — pass  # Best-effort file cleanup\n- orchestrator.py:125 — pass  # Structured logging setup non-critical (already has noqa)\n\nUnused globals:\n- repo_map.py: suppress cache vars (used via global keyword within file)\n- repo_map_js.py: remove _METHOD_DECL\n- protocol_types.py: _SENTINEL used cross-file — note for GitHub UI dismissal\n\nRedundant comparison:\n- repo_map_js.py:217 — the line_idx > 0 check is redundant in context of list comprehension starting from index 0; verify and simplify\n- cleanup.py: find and remove redundant inner comparison\n\nMisc:\n- status_formatter.py:251 — replace lambda k: str(k) with str\n- backlog.py:528 — remove insert_pos = insert_pos self-assignment\n- validate_commands.py:780 — remove duplicate import re\n- async_helpers.py: fix ineffectual statements (assign awaited results to _); handle BaseException suppression",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/formatter_detector.py",
+          "zerg/validate_commands.py",
+          "zerg/token_tracker.py",
+          "zerg/token_counter.py",
+          "zerg/mcp_router.py",
+          "zerg/repo_map.py",
+          "zerg/repo_map_js.py",
+          "zerg/progress_reporter.py",
+          "zerg/log_aggregator.py",
+          "zerg/heartbeat.py",
+          "zerg/dryrun.py",
+          "zerg/orchestrator.py",
+          "zerg/async_helpers.py",
+          "zerg/cleanup.py",
+          "zerg/status_formatter.py",
+          "zerg/backlog.py",
+          "zerg/protocol_types.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/formatter_detector.py zerg/validate_commands.py zerg/token_tracker.py zerg/token_counter.py zerg/mcp_router.py zerg/repo_map.py zerg/repo_map_js.py zerg/progress_reporter.py zerg/log_aggregator.py zerg/heartbeat.py zerg/dryrun.py zerg/orchestrator.py zerg/async_helpers.py zerg/cleanup.py zerg/status_formatter.py zerg/backlog.py zerg/protocol_types.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-003: Add comments to empty except pass blocks.\nFR-004: Remove dead globals (_METHOD_DECL in repo_map_js.py).\nFR-010: Remove redundant assignments (backlog.py self-assignment).\nFR-012: Fix redundant comparisons (repo_map_js.py, cleanup.py).\nFR-013: Fix lambda→str, duplicate import re, ineffectual statements in async_helpers.\n\n## Important Notes\n- repo_map.py cache vars (_CACHE, etc.) are written via 'global' keyword and read elsewhere in same file. These are NOT unused — note for GitHub UI dismissal if CodeQL flags them.\n- protocol_types.py _SENTINEL is imported by protocol_state.py — NOT unused.\n- async_helpers.py: assign awaited results to _ to resolve ineffectual-statement alerts."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Fix CodeQL alerts in zerg/diagnostics/ + zerg/performance/",
+      "description": "Fix alerts across 11 files:\n\nEmpty except (add comments to pass):\n- system_diagnostics.py:127 — pass  # Best-effort resource detection\n- system_diagnostics.py:172 — pass  # Attribute not available on this platform\n- env_diagnostics.py:233 — pass  # Non-numeric value; skip\n- env_diagnostics.py:256 — pass  # Malformed env entry; skip\n- log_correlator.py:364 — pass  # Non-numeric value; skip\n- stack_detector.py:111 — pass  # Cache file not found or malformed\n- stack_detector.py:187 — pass  # Best-effort file read\n\nUnused globals:\n- catalog.py: remove RUNTIME_ONLY_TOOLS\n- dive_adapter.py: remove _CONSECUTIVE_RUN_RE\n\nUnused loggers:\n- knowledge_base.py, hypothesis_engine.py, error_intel.py, code_fixer.py: verify logger usage; remove if truly unused\n\nCyclic import:\n- recovery.py: TYPE_CHECKING guard — note for GitHub UI dismissal",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/diagnostics/system_diagnostics.py",
+          "zerg/diagnostics/env_diagnostics.py",
+          "zerg/diagnostics/log_correlator.py",
+          "zerg/diagnostics/knowledge_base.py",
+          "zerg/diagnostics/hypothesis_engine.py",
+          "zerg/diagnostics/error_intel.py",
+          "zerg/diagnostics/code_fixer.py",
+          "zerg/diagnostics/recovery.py",
+          "zerg/performance/stack_detector.py",
+          "zerg/performance/catalog.py",
+          "zerg/performance/adapters/dive_adapter.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/diagnostics/ zerg/performance/stack_detector.py zerg/performance/catalog.py zerg/performance/adapters/dive_adapter.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-003: Add comments to empty except pass blocks.\nFR-004: Remove dead globals (RUNTIME_ONLY_TOOLS, _CONSECUTIVE_RUN_RE).\nFR-005: Remove unused loggers if confirmed dead.\n\n## Important: Logger Verification\nBefore removing a logger, grep the ENTIRE file for 'logger.' usage. CodeQL may flag the getLogger() call but the logger variable may be used in methods/functions lower in the file. Only remove if truly zero references."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Fix CodeQL alerts in zerg/security/ + rendering/ + launchers/ + doc_engine/",
+      "description": "Fix alerts across 8 files:\n\nEmpty except (add comments to pass):\n- scanner.py:333 — pass  # Best-effort file read\n- rules.py:355 — pass  # Config file not found or malformed\n- cve.py:384 — pass  # Non-numeric severity; skip\n- status_renderer.py:1043,1103 — pass  # Suppress interrupt during shutdown\n- doc_engine/detector.py:134 — pass  # Best-effort doc detection\n\nUnused globals:\n- cve.py: remove _ECOSYSTEM_MAP if truly unused\n\nUndefined exports (false positive):\n- launchers/__init__.py: __getattr__ handles WorkerLauncher, SubprocessLauncher, ContainerLauncher; names already in __all__. Note for GitHub UI dismissal.\n\nCyclic imports:\n- dryrun_renderer.py, shared.py: TYPE_CHECKING guards — note for GitHub UI dismissal",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/security/scanner.py",
+          "zerg/security/rules.py",
+          "zerg/security/cve.py",
+          "zerg/rendering/status_renderer.py",
+          "zerg/rendering/dryrun_renderer.py",
+          "zerg/rendering/shared.py",
+          "zerg/launchers/__init__.py",
+          "zerg/doc_engine/detector.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/security/scanner.py zerg/security/rules.py zerg/security/cve.py zerg/rendering/status_renderer.py zerg/rendering/dryrun_renderer.py zerg/rendering/shared.py zerg/launchers/__init__.py zerg/doc_engine/detector.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-003: Add comments to empty except pass blocks.\nFR-004: Remove _ECOSYSTEM_MAP if unused.\nFR-011: launchers/__init__.py __getattr__ handles lazy loading — names in __all__. This is a false positive. Note for dismissal.\nFR-009: TYPE_CHECKING cyclic imports in rendering files — note for dismissal."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Fix CodeQL alerts in .zerg/ runtime files",
+      "description": "Fix alerts across 5 .zerg/ runtime files:\n\nEmpty except (add comments to pass):\n- security.py:207 — pass  # Best-effort file cleanup\n- rush.py:164 — pass  # Non-numeric value; skip\n- quality_tools.py:349 — pass  # Tool not available\n- container.py:171 — pass  # Container already removed\n- git_ops.py:198 — pass  # Best-effort git cleanup",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          ".zerg/security.py",
+          ".zerg/rush.py",
+          ".zerg/quality_tools.py",
+          ".zerg/container.py",
+          ".zerg/git_ops.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m py_compile .zerg/security.py && python -m py_compile .zerg/rush.py && python -m py_compile .zerg/quality_tools.py && python -m py_compile .zerg/container.py && python -m py_compile .zerg/git_ops.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-014: Fix 5 empty except alerts in .zerg/ runtime files. These are runtime files, not generated — they need code fixes.\n\n## Empty Except Comment Templates\n- File cleanup: pass  # Best-effort cleanup\n- Tool detection: pass  # Tool not available\n- Container ops: pass  # Container already removed\n- Git ops: pass  # Best-effort git cleanup\n- Value parsing: pass  # Non-numeric value; skip"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Fix CodeQL alerts in tests/ and fixtures",
+      "description": "Fix alerts across 10 test/fixture files:\n\nEmpty except (add comments to pass):\n- test_worker_commit.py:91 — pass  # Best-effort git cleanup in test\n- test_small_modules.py:162 — pass  # Optional import not available\n\nUnused imports:\n- tests/fixtures/hook_samples/clean/test_file.py: remove unused pytest import\n- tests/fixtures/state_fixtures.py: remove unused FileSpec, TaskExecution, VerificationSpec, TaskStatus\n- tests/fixtures/orchestrator_fixtures.py: remove unused GateRunResult, PortsConfig, QualityGate, ResourcesConfig\n- .zerg/tests/mocks/mock_state.py: remove unused Any import\n\nUnused locals:\n- tests/mocks/mock_launcher.py: rename timeout to _timeout\n\nImport-and-import-from (test pattern — verify if legitimate):\n- test_main_entry.py: import mod + from mod import X pattern (for reload)\n- test_schemas.py: similar pattern\n- test_small_modules.py: similar pattern\n\nMisc:\n- test_main_entry.py:232: remove if True: wrapper\n- test_worker_protocol.py: remove redundant variable reassignment\n- Test fixture with intentional syntax error: note for GitHub UI dismissal",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/unit/test_worker_commit.py",
+          "tests/unit/test_small_modules.py",
+          "tests/unit/test_main_entry.py",
+          "tests/unit/test_worker_protocol.py",
+          "tests/unit/test_schemas.py",
+          "tests/fixtures/hook_samples/clean/test_file.py",
+          "tests/fixtures/state_fixtures.py",
+          "tests/fixtures/orchestrator_fixtures.py",
+          ".zerg/tests/mocks/mock_state.py",
+          "tests/mocks/mock_launcher.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_worker_commit.py tests/unit/test_small_modules.py tests/unit/test_main_entry.py tests/unit/test_worker_protocol.py tests/unit/test_schemas.py --timeout=60 -x -q 2>/dev/null; ruff check tests/fixtures/hook_samples/clean/test_file.py tests/fixtures/state_fixtures.py tests/fixtures/orchestrator_fixtures.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-006: Remove unused imports in test fixtures.\nFR-007: Rename unused timeout to _timeout in mock_launcher.\nFR-008: Import-and-import-from in test files is often intentional (import for reload + from for symbols). Verify before changing.\nFR-013: Remove if True: wrapper in test_main_entry.py. Remove redundant reassignments in test_worker_protocol.py.\n\n## Important: Test Pattern Verification\nIn test files, `import module` + `from module import X` is a common pattern for:\n- reload() testing\n- Patching module-level state\nDo NOT consolidate these without verifying the test doesn't use both forms."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Handle cyclic import false positives",
+      "description": "Address cyclic import alerts in 4 standalone files. These all use TYPE_CHECKING guards which prevent runtime cycles.\n\nFiles:\n- zerg/verify.py: check for TYPE_CHECKING import guard; if present, note for GitHub UI dismissal\n- zerg/verification_gates.py: same\n- zerg/level_coordinator.py: same\n- zerg/merge.py: same (confirmed TYPE_CHECKING on line 8,18)\n\nFor each file: verify the TYPE_CHECKING guard is in place. If any file is missing the guard, add it. Document all as false positives for GitHub UI dismissal.\n\nAlso check for any other fixable alerts in these files (unused imports, etc.) and fix them.",
+      "phase": "fixes",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/verify.py",
+          "zerg/verification_gates.py",
+          "zerg/level_coordinator.py",
+          "zerg/merge.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m py_compile zerg/verify.py && python -m py_compile zerg/verification_gates.py && python -m py_compile zerg/level_coordinator.py && python -m py_compile zerg/merge.py && ruff check zerg/verify.py zerg/verification_gates.py zerg/level_coordinator.py zerg/merge.py",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-009: These files have cyclic import alerts that are already mitigated by TYPE_CHECKING guards. Verify guards exist. If CodeQL still flags them, these are false positives for GitHub UI dismissal.\n\n## TYPE_CHECKING Pattern\nCorrect pattern:\n```python\nfrom __future__ import annotations\nfrom typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from zerg.some_module import SomeType\n```\nThis import never executes at runtime — only used by type checkers."
+    },
+    {
+      "id": "TASK-010",
+      "title": "CHANGELOG update + full verification",
+      "description": "Update CHANGELOG.md under [Unreleased] with Fixed entries for all categories. Then run full verification suite.\n\nCHANGELOG entries:\n- Fixed 3 HIGH-severity CodeQL security alerts (HTML sanitization regex, overly permissive chmod)\n- Fixed 33 empty except blocks with explanatory comments across codebase\n- Removed 8 unused global variables and 7 unused imports\n- Fixed redundant comparisons, self-assignments, and duplicate imports\n- Fixed `/z:plan` WORKFLOW BOUNDARY bug preventing spec file generation\n- Added `.plan-complete` sentinel mechanism to `/z:plan` handoff\n\nVerification:\n1. python -m pytest tests/ --timeout=120\n2. python -m zerg.validate_commands\n3. ruff check zerg/ tests/",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/ --timeout=120 -x -q && python -m zerg.validate_commands && ruff check zerg/ tests/",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nUpdate CHANGELOG.md under [Unreleased] > Fixed section. Use Keep a Changelog format.\nThen run full verification: pytest, validate_commands, ruff check.\nAll must pass before marking this task complete."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "fixes",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009"],
+      "parallel": true,
+      "estimated_minutes": 20
+    },
+    "2": {
+      "name": "quality",
+      "tasks": ["TASK-010"],
+      "parallel": false,
+      "estimated_minutes": 15,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — all tasks have exclusive file ownership",
+    "conflicts": []
+  }
+}

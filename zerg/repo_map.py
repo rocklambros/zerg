@@ -581,7 +581,7 @@ class IncrementalIndex:
             try:
                 os.unlink(tmp_path)
             except OSError:
-                pass
+                pass  # Best-effort file cleanup
         self._last_updated = now
 
     # -- public API ----------------------------------------------------------

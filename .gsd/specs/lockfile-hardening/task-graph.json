@@ -1,0 +1,127 @@
+{
+  "feature": "lockfile-hardening",
+  "version": "2.0",
+  "generated": "2026-02-11T00:00:00Z",
+  "total_tasks": 4,
+  "estimated_duration_minutes": 55,
+  "max_parallelization": 2,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Harden lockfile and detect_feature functions in _utils.py",
+      "description": "Add three private helpers (_validate_feature_name, _safe_read_text, _parse_lock_content) and apply all 5 fixes: (F1) atomic lock creation with os.open(O_CREAT|O_EXCL), (F2) PID ownership check in release_feature_lock, (F3) resilient .read_text() calls via _safe_read_text, (F4) path traversal rejection via _validate_feature_name, (F5) bounds-checked PID/timestamp parsing via _parse_lock_content. No public signature changes.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/_utils.py"],
+        "read": ["zerg/constants.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_lockfile.py tests/unit/test_commands_utils.py -x -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-002", "TASK-003"],
+      "integration_test": "tests/unit/test_lockfile.py",
+      "context": "## Security Rules (Python)\n- Use os.open() with O_CREAT|O_EXCL for atomic file creation (CWE-367 TOCTOU)\n- Validate all user-supplied path components to prevent path traversal (CWE-22)\n- Wrap file I/O in try/except for OSError, UnicodeDecodeError (CWE-755)\n- Validate integer bounds on parsed values (CWE-190)\n\n## Spec Context\nFive findings from code review:\nF1: TOCTOU race in acquire_feature_lock() — gap between exists() and write_text()\nF2: Missing ownership check in release_feature_lock() — any process can delete lock\nF3: Unprotected .read_text() calls at lines 36, 66, 109\nF4: Path traversal via feature name — '../../etc' escapes specs dir\nF5: Integer bounds on PID/timestamp parsing\n\nPublic API unchanged: acquire_feature_lock(feature, gsd_dir) -> bool, release_feature_lock(feature, gsd_dir) -> None, check_feature_lock(feature, gsd_dir) -> dict|None, detect_feature() -> str|None\n\nLock format: 'pid:timestamp' (unchanged)\nStale threshold: 7200 seconds (unchanged)\nMAX_PID: 4194304 (Linux kernel max)\nTimestamp bound: time.time() + 86400\n\n## Dependencies\nNone — this is the foundation task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add lockfile hardening tests to test_lockfile.py",
+      "description": "Add tests covering all 5 findings: atomic race simulation (F1), ownership-validated release (F2), read error resilience in acquire/check (F3), path traversal rejection in acquire/release/check (F4), PID/timestamp bounds checking (F5). ~14 new test methods across TestAcquireFeatureLock, TestReleaseFeatureLock, TestCheckFeatureLock classes.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_lockfile.py"],
+        "read": ["zerg/commands/_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_lockfile.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- Test path traversal vectors: '../', '..\\\\', absolute paths\n- Test bounds: PID 0, -1, 4194305, MAX_INT\n- Test race conditions with mock/monkeypatch\n\n## Spec Context\nTest matrix:\n- F1 atomic: simulate FileExistsError from os.open to prove race safety\n- F2 ownership: create lock with different PID, verify release doesn't delete; create lock with same PID, verify release deletes; corrupt lock fallback deletion\n- F3 reads: mock read_text to raise OSError/PermissionError, verify graceful handling\n- F4 traversal: '../etc', 'foo/bar', 'foo\\\\bar', '' all raise ValueError\n- F5 bounds: PID 0, -1, 4194305 treated as corrupt; timestamp in far future treated as corrupt\n\nExisting test classes: TestAcquireFeatureLock (6 tests), TestReleaseFeatureLock (3 tests), TestCheckFeatureLock (6 tests)\n\n## Dependencies\nTASK-001 modifies _utils.py with new helpers and hardened functions."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add detect_feature read-error tests to test_commands_utils.py",
+      "description": "Add 2 test methods to TestDetectFeature: test_detect_feature_handles_read_error (OSError) and test_detect_feature_handles_unicode_error (UnicodeDecodeError). Both verify detect_feature() falls through to next source when .current-feature is unreadable.",
+      "phase": "testing",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_commands_utils.py"],
+        "read": ["zerg/commands/_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_commands_utils.py -v",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nF3: detect_feature() calls .read_text() at line 36 without error handling. After TASK-001, it uses _safe_read_text() which returns None on OSError/UnicodeDecodeError.\n\nTest 1: Mock Path.read_text to raise OSError when reading .current-feature. Verify detect_feature() falls through to state JSON fallback.\nTest 2: Mock Path.read_text to raise UnicodeDecodeError. Same fallback behavior.\n\nExisting test class: TestDetectFeature (10 tests). Tests use tmp_path and monkeypatch fixtures.\n\n## Dependencies\nTASK-001 wraps detect_feature's read_text in _safe_read_text()."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Update CHANGELOG.md with lockfile-hardening entries",
+      "description": "Add entries under [Unreleased] in CHANGELOG.md. Under 'Fixed': lockfile TOCTOU race, ownership validation, read error resilience, path traversal protection, PID/timestamp bounds checking.",
+      "phase": "quality",
+      "level": 3,
+      "dependencies": ["TASK-002", "TASK-003"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'lockfile' CHANGELOG.md && echo PASS || echo FAIL",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd under [Unreleased] > Fixed:\n- TOCTOU race in advisory lockfile acquisition — now uses atomic file creation\n- Missing ownership check in lockfile release — now validates PID before deletion\n- Unprotected file reads in detect_feature and lockfile functions — now resilient to OS/encoding errors\n- Path traversal vulnerability in feature name handling — now validates against directory escape\n- Unbounded PID/timestamp parsing in lockfile content — now bounds-checked"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001"],
+      "parallel": false,
+      "estimated_minutes": 20
+    },
+    "2": {
+      "name": "testing",
+      "tasks": ["TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 25,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "quality",
+      "tasks": ["TASK-004"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

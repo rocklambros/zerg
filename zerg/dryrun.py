@@ -230,7 +230,7 @@ class DryRunSimulator:
             if free_gb < 1.0:
                 issues.append(f"Low disk space: {free_gb:.1f} GB free")
         except OSError:
-            pass
+            pass  # Best-effort disk usage check
 
         return issues
 

@@ -124,7 +124,7 @@ class SystemDiagnostics:
                     if result == 0:
                         conflicts.append(port)
             except OSError:
-                pass
+                pass  # Best-effort resource detection
         return conflicts
 
     def check_worktrees(self) -> dict[str, Any]:
@@ -169,7 +169,7 @@ class SystemDiagnostics:
                 port_start = self.config.ports.range_start
                 port_end = min(port_start + 10, self.config.ports.range_end)
             except AttributeError:
-                pass
+                pass  # Attribute not available on this platform
 
         ports = self.check_ports(port_start, port_end)
 

@@ -209,7 +209,7 @@ class LogAggregator:
                     except json.JSONDecodeError:
                         continue
         except OSError:
-            pass
+            pass  # Best-effort file read
         return entries
 
     def get_task_artifacts(self, task_id: str) -> dict[str, Path]:

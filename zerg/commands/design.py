@@ -681,14 +681,13 @@ def validate_task_graph(path: Path, detail_level: str = "standard") -> None:
 
     # Check file ownership conflicts
     # Keys are tuples of (file, operation) or (file, operation, level)
-    FileOwnerKey = tuple[Any, ...]
-    file_owners: dict[FileOwnerKey, Any] = {}
+    file_owners: dict[tuple[Any, ...], Any] = {}
     for task in tasks:
         task_id = task.get("id")
         level = task.get("level", 0)
 
         for file in task.get("files", {}).get("create", []):
-            key: FileOwnerKey = (file, "create")
+            key: tuple[Any, ...] = (file, "create")
             if key in file_owners:
                 owner = file_owners[key]
                 errors.append(f"File conflict: {file} created by both {owner} and {task_id}")

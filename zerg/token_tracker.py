@@ -124,5 +124,5 @@ class TokenTracker:
             try:
                 os.unlink(tmp_path)
             except OSError:
-                pass
+                pass  # Best-effort file cleanup
             raise

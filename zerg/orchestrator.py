@@ -122,7 +122,7 @@ class Orchestrator:
                 feature=feature, level=lc.level, max_size_mb=lc.max_log_size_mb,
             )
         except Exception:  # noqa: BLE001 — intentional: structured logging setup is non-critical
-            pass
+            pass  # Structured logging setup non-critical
 
         self._running = False
         self._paused = False

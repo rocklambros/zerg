@@ -6,10 +6,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from zerg.logging import get_logger
-
-logger = get_logger("diagnostics.knowledge_base")
-
 __all__ = ["KnownPattern", "KNOWN_PATTERNS", "PatternMatcher"]
 
 

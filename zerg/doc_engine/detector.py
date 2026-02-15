@@ -111,7 +111,7 @@ class ComponentDetector:
         for child in sorted(all_files):
             try:
                 results[child] = self.detect(child)
-            except Exception:  # noqa: BLE001 — intentional: best-effort detection; defaults to MODULE on failure
+            except Exception:  # noqa: BLE001 — best-effort detection; defaults to MODULE on failure
                 logger.debug("Failed to detect type for %s", child, exc_info=True)
                 results[child] = ComponentType.MODULE
         return results
@@ -131,7 +131,7 @@ class ComponentDetector:
                 if part == "data" and i + 1 < len(parts) and parts[i + 1] == "commands":
                     return True
         except (OSError, ValueError):
-            pass
+            pass  # Best-effort doc detection
         return False
 
     @staticmethod

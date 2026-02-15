@@ -204,7 +204,7 @@ class TokenCounter:
                 try:
                     os.unlink(tmp_path)
                 except OSError:
-                    pass
+                    pass  # Best-effort file cleanup
                 raise
         except OSError as exc:
             logger.debug("Failed to persist token cache to file: %s", exc)

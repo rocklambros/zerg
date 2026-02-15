@@ -126,7 +126,7 @@ class ProgressReporter:
         try:
             self.progress_path.unlink(missing_ok=True)
         except OSError:
-            pass
+            pass  # Best-effort file cleanup
 
     @staticmethod
     def read(worker_id: int, state_dir: str | Path | None = None) -> WorkerProgress | None:

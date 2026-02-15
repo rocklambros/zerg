@@ -706,7 +706,7 @@ class BisectEngine:
             if tag and result.returncode == 0:
                 return tag
         except GitError:
-            pass
+            pass  # Best-effort git cleanup
 
         # Fall back to first commit
         try:

@@ -462,7 +462,7 @@ def _watch_loop(tester: Command, framework: Framework | None, path: str) -> None
                     content = f.read_bytes()
                     hashes[str(f)] = hashlib.md5(content).hexdigest()
                 except OSError:
-                    pass
+                    pass  # Best-effort file cleanup
         return hashes
 
     console.print("[cyan]Watch mode enabled. Press Ctrl+C to stop.[/cyan]\n")

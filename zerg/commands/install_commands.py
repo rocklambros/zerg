@@ -134,7 +134,7 @@ def _install_shortcut_redirects(
                     logger.debug("Shortcut already installed: %s", src.name)
                     continue
             except OSError:
-                pass
+                pass  # Best-effort file cleanup
 
         # Remove existing file/symlink
         if dest.exists() or dest.is_symlink():

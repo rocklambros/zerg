@@ -440,11 +440,6 @@ def cleanup_structured_logs(config: ZergConfig, dry_run: bool = False) -> None:
             if file_mtime < cutoff_time:
                 should_clean = True
                 reason = f"older than {retain_days} days"
-            elif jsonl_file.suffix == ".1":
-                # Rotated files older than retain_days
-                if file_mtime < cutoff_time:
-                    should_clean = True
-                    reason = "rotated file, expired"
 
             if should_clean:
                 if dry_run:

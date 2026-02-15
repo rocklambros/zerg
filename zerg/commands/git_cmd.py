@@ -228,7 +228,7 @@ def action_sync(git: GitOps, base: str) -> int:
             git._run("pull", "--rebase", check=False)
             console.print("  [green]\u2713[/green] Pulled latest changes")
         except GitError:
-            pass
+            pass  # Best-effort git cleanup
 
         # Rebase onto base if different
         if current != base:
@@ -240,7 +240,7 @@ def action_sync(git: GitOps, base: str) -> int:
                 console.print("  [red]Rebase conflict[/red]")
                 return 1
             except GitError:
-                pass
+                pass  # Best-effort git cleanup
 
         console.print("\n[green]\u2713[/green] Branch is up to date")
         return 0

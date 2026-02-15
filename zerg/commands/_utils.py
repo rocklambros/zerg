@@ -150,7 +150,7 @@ def acquire_feature_lock(feature: str, gsd_dir: str = ".gsd") -> bool:
                     try:
                         lock_path.unlink()
                     except OSError:
-                        pass
+                        pass  # Best-effort file cleanup
                 else:
                     return False  # Active lock
             else:
@@ -158,13 +158,13 @@ def acquire_feature_lock(feature: str, gsd_dir: str = ".gsd") -> bool:
                 try:
                     lock_path.unlink()
                 except OSError:
-                    pass
+                    pass  # Best-effort file cleanup
         else:
             # Unreadable lock file, remove
             try:
                 lock_path.unlink()
             except OSError:
-                pass
+                pass  # Best-effort file cleanup
 
     # Ensure parent directory exists
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -217,7 +217,7 @@ def release_feature_lock(feature: str, gsd_dir: str = ".gsd") -> None:
     try:
         lock_path.unlink(missing_ok=True)
     except OSError:
-        pass
+        pass  # Best-effort file cleanup
 
 
 def check_feature_lock(feature: str, gsd_dir: str = ".gsd") -> dict[str, float | int] | None:

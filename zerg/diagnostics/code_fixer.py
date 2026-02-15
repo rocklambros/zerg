@@ -11,9 +11,6 @@ from typing import Any
 from zerg.diagnostics.recovery import RecoveryStep
 from zerg.diagnostics.types import ErrorCategory, ErrorFingerprint, Evidence
 from zerg.fs_utils import collect_files
-from zerg.logging import get_logger
-
-logger = get_logger("diagnostics.code_fixer")
 
 __all__ = [
     "CodeAwareFixer",

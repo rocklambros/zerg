@@ -5,22 +5,36 @@ Capture complete requirements for feature: **$ARGUMENTS**
 
 ## ⛔ WORKFLOW BOUNDARY (NON-NEGOTIABLE)
 
-**CRITICAL: This is a PLANNING-ONLY command. You MUST NEVER write code, create files, or implement anything.**
+**CRITICAL: This is a PLANNING-ONLY command. You gather requirements and write spec files. You MUST NEVER write source code or proceed to implementation.**
 
-This command MUST NEVER:
+### PROHIBITED (absolute — zero exceptions):
 - Call **EnterPlanMode** or **ExitPlanMode** tools (these have approve→implement semantics that override stop guards)
-- Automatically run `/z:design` or any design phase
-- Automatically proceed to implementation
-- Call the Skill tool to invoke another command
-- Write code or make code changes
-- Create, modify, or delete source files
-- Run implementation tools (Write, Edit, Bash for code changes)
+- Automatically run `/z:design` or any design/implementation phase
+- Automatically proceed to implementation after approval
+- Call the **Skill** tool to invoke another command (including `/z:design`)
+- Write, Edit, or Bash against ANY file OUTSIDE of `.gsd/` directory
+- Create, modify, or delete source code files (anything in `zerg/`, `tests/`, `src/`, etc.)
+- Continue executing after the PLANNING COMPLETE banner is output
+
+### REQUIRED (mandatory — the command fails if these don't happen):
+- You **MUST** use the **Write** tool to create `.gsd/specs/{feature}/requirements.md`
+- You **MUST** use **Bash** to create `.gsd/specs/{feature}/` directory and sentinel files
+- You **MUST** call **AskUserQuestion** for Phase 5 approval — never assume approval
+- You **MUST** call **AskUserQuestion** for Phase 5.5 next-step prompt — never skip
+- You **MUST** write `.gsd/specs/{feature}/.plan-complete` sentinel after approval
+- You **MUST** output the PLANNING COMPLETE banner as your final action, then STOP
+
+### ALLOWED tools and their scopes:
+- **Read, Grep, Glob**: Any file (for context gathering)
+- **Write**: ONLY files under `.gsd/specs/{feature}/` (requirements.md, sentinels)
+- **Bash**: ONLY `mkdir -p` and `echo` into `.gsd/` paths; `gh issue view`; `git log`
+- **AskUserQuestion**: For elicitation (Phase 2), approval (Phase 5), handoff (Phase 5.5)
+- **TaskCreate, TaskUpdate**: For Claude Task tracking
+- **WebSearch, WebFetch**: For research if needed
 
 After Phase 5.5 completes, the command STOPS. The user must manually run `/z:design`.
 
-**If you find yourself about to write code or create files: STOP IMMEDIATELY. You are in planning mode.**
-
-**⛔ PLAN MODE PROHIBITION**: Do NOT call EnterPlanMode. This is a requirements-gathering command, NOT an implementation task. EnterPlanMode creates a contract where ExitPlanMode signals "ready to implement" — which conflicts with this command's purpose of writing requirements and stopping. Use Read, Grep, Glob, and AskUserQuestion directly.
+**⛔ PLAN MODE PROHIBITION**: Do NOT call EnterPlanMode. This is a requirements-gathering command, NOT an implementation task. EnterPlanMode creates a contract where ExitPlanMode signals "ready to implement" — which conflicts with this command's purpose of writing requirements and stopping.
 
 ## Flags
 
@@ -200,8 +214,12 @@ User replies with:
 After the user replies "APPROVED":
 
 1. First, call TaskUpdate to mark the plan task `completed`
-2. Update requirements.md with `Status: APPROVED`
-3. Then use AskUserQuestion to prompt the user for next steps:
+2. Update requirements.md with `Status: APPROVED` (use Write tool — this is a .gsd/ file)
+3. Write the sentinel file:
+   ```bash
+   echo "$(date -Iseconds)" > ".gsd/specs/$FEATURE/.plan-complete"
+   ```
+4. Then use AskUserQuestion to prompt the user for next steps:
 
 Call AskUserQuestion:
   - question: "Requirements approved! How would you like to proceed?"

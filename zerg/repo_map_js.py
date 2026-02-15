@@ -38,11 +38,6 @@ _CLASS_DECL = re.compile(
     re.MULTILINE,
 )
 
-_METHOD_DECL = re.compile(
-    r"^\s+(?:async\s+)?(?:static\s+)?(?:get\s+|set\s+)?(\w+)\s*(\([^)]*\))",
-    re.MULTILINE,
-)
-
 _IMPORT_STMT = re.compile(
     r"^import\s+(?:type\s+)?(?:\{([^}]+)\}|(\w+))\s+from\s+['\"]([^'\"]+)['\"]",
     re.MULTILINE,
@@ -214,7 +209,7 @@ def _get_preceding_comment(lines: list[str], line_idx: int) -> str | None:
     """Get JSDoc or single-line comment preceding a declaration."""
     if line_idx <= 0 or line_idx > len(lines):
         return None
-    prev = lines[line_idx - 1].strip() if line_idx > 0 else ""
+    prev = lines[line_idx - 1].strip()
     # Single-line JSDoc: /** ... */
     if prev.startswith("/**") and prev.endswith("*/"):
         return prev[3:-2].strip()

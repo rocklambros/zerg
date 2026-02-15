@@ -12,9 +12,6 @@ from zerg.performance.types import DetectedStack, PerformanceFinding, Severity
 
 logger = logging.getLogger(__name__)
 
-# Pattern: multiple consecutive RUN instructions that could be merged
-_CONSECUTIVE_RUN_RE = re.compile(r"^RUN\s+", re.MULTILINE)
-
 
 class DiveAdapter(BaseToolAdapter):
     """Adapter that statically analyses Dockerfiles for image-size anti-patterns.

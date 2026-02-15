@@ -495,7 +495,7 @@ def build_devcontainer() -> bool:
         if result.returncode == 0:
             devcontainer_cli = "devcontainer"
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+        pass  # Optional tool not available
 
     # Build using devcontainer CLI if available
     if devcontainer_cli:

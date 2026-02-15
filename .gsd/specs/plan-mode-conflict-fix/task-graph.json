@@ -1,0 +1,169 @@
+{
+  "feature": "plan-mode-conflict-fix",
+  "version": "2.0",
+  "generated": "2026-02-13T18:00:00-05:00",
+  "total_tasks": 6,
+  "estimated_duration_minutes": 15,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add plan mode enter/exit to plan.md",
+      "description": "Replace the manual 'Press Shift+Tab twice' instruction in plan.md with EnterPlanMode tool call. Add 'Exit Plan Mode' section with ExitPlanMode call and POST-EXIT GUARD between Phase 2 and Phase 3. Exact changes:\n\n1. Replace lines 52-58 (Enter Plan Mode section) with EnterPlanMode tool call version per requirements Section 5.1.A\n2. Insert 'Exit Plan Mode (Before Phase 3)' section between Phase 2 (line ~101) and Phase 3 (line ~102) per requirements Section 5.1.B\n3. Preserve all other content unchanged",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.md"],
+        "read": [".gsd/specs/plan-mode-conflict-fix/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -c 'EnterPlanMode' zerg/data/commands/plan.md && grep -c 'ExitPlanMode' zerg/data/commands/plan.md && grep -c 'POST-EXIT GUARD' zerg/data/commands/plan.md && python -m zerg.validate_commands 2>&1 | grep -E 'plan\\.md'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-006"],
+      "integration_test": null,
+      "context": "## Spec Context\nThe Enter Plan Mode section (lines 52-58) currently says 'Press Shift+Tab twice' which Claude cannot execute. Replace with:\n\n```\n## Enter Plan Mode\n\nCall the **EnterPlanMode** tool to enter Claude Code plan mode.\n\nPlan mode provides read-only tools (Glob, Grep, Read, WebSearch, AskUserQuestion) for deep\ncodebase exploration. You will stay in plan mode for Phases 1-2, then exit before Phase 3\nwhen you need to write files.\n\n⚠️ Do NOT attempt to write files or run Bash while in plan mode — those tools are restricted.\n```\n\nInsert Exit Plan Mode section between Phase 2 and Phase 3:\n\n```\n## Exit Plan Mode (Before Phase 3)\n\nAfter completing Phase 2, you have gathered all requirements through read-only exploration and\nuser questions. You now need to write files.\n\nWrite your plan summarizing:\n- Key findings from Phase 1 (codebase patterns, tech stack, existing conventions)\n- Requirements gathered from Phase 2 (functional, non-functional, scope, acceptance criteria)\n- Files to be created: `.gsd/specs/{feature}/requirements.md`\n\nThen call **ExitPlanMode** to present the plan for approval.\n\n### ⛔ POST-EXIT GUARD (NON-NEGOTIABLE)\n\nAfter the user approves and plan mode exits, you are STILL inside the `/z:plan` command.\n\nYour ONLY remaining tasks are:\n1. Phase 3: Write `requirements.md` to `.gsd/specs/{feature}/`\n2. Phase 4: Check infrastructure needs\n3. Phase 5: Present requirements for user approval\n4. Phase 5.5: Mark task complete and STOP\n\n**DO NOT implement the feature. DO NOT write code. DO NOT invoke /z:design.**\n**You are writing PLANNING DOCUMENTS, not implementing.**\n```\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add plan mode enter/exit to plan.core.md",
+      "description": "Apply identical changes as TASK-001 but to plan.core.md. Replace lines 100-106 (Enter Plan Mode section) with EnterPlanMode tool call. Add 'Exit Plan Mode' section with ExitPlanMode call and POST-EXIT GUARD between Phase 2 and Phase 3. Content must be character-identical to plan.md changes to maintain split pair consistency.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.core.md"],
+        "read": [".gsd/specs/plan-mode-conflict-fix/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -c 'EnterPlanMode' zerg/data/commands/plan.core.md && grep -c 'ExitPlanMode' zerg/data/commands/plan.core.md && grep -c 'POST-EXIT GUARD' zerg/data/commands/plan.core.md && python -m zerg.validate_commands 2>&1 | grep -E 'plan\\.core\\.md|Split pairs'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-006"],
+      "integration_test": null,
+      "context": "## Spec Context\nIdentical changes to TASK-001 but in plan.core.md. The Enter Plan Mode section is at lines 100-106. Replace 'Press Shift+Tab twice' with EnterPlanMode tool call. Insert Exit Plan Mode section between Phase 2 and Phase 3.\n\nIMPORTANT: plan.core.md has an additional Phase 0 section (lines 52-97) that plan.md does not have. The Enter Plan Mode section appears AFTER Phase 0. The Phase 0 section references 'continue to Enter Plan Mode' at lines 54 and 96 — these references remain valid and should NOT be changed.\n\nThe content of Enter Plan Mode and Exit Plan Mode sections must be character-identical to plan.md to maintain split pair consistency.\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add plan mode enter/exit to brainstorm.md",
+      "description": "Add 'Enter Plan Mode' section after 'Track in Claude Task System' and before 'Workflow Overview'. Add 'Exit Plan Mode' section between Phase 2.7 (YAGNI Gate) and Phase 3 (Issue Generation). Include POST-EXIT GUARD. Exact content per requirements Section 5.2.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.md"],
+        "read": [".gsd/specs/plan-mode-conflict-fix/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -c 'EnterPlanMode' zerg/data/commands/brainstorm.md && grep -c 'ExitPlanMode' zerg/data/commands/brainstorm.md && grep -c 'POST-EXIT GUARD' zerg/data/commands/brainstorm.md && python -m zerg.validate_commands 2>&1 | grep -E 'brainstorm\\.md'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-006"],
+      "integration_test": null,
+      "context": "## Spec Context\nBrainstorm.md currently has NO plan mode sections. Add two new sections:\n\n1. Enter Plan Mode — insert after 'Track in Claude Task System' section (line ~85), before '## Workflow Overview' (line ~87):\n\n```\n## Enter Plan Mode\n\nCall the **EnterPlanMode** tool to enter Claude Code plan mode.\n\nPlan mode provides read-only tools for deep codebase exploration and research. You will stay\nin plan mode for Phases 1-2.7 (Research through YAGNI Gate), then exit before Phase 3 when\nyou need to write files and create GitHub issues.\n\n⚠️ Do NOT attempt to write files or run Bash while in plan mode — those tools are restricted.\n```\n\n2. Exit Plan Mode — insert between Phase 2.7 YAGNI Gate (line ~152) and Phase 3 Issue Generation (line ~153):\n\n```\n## Exit Plan Mode (Before Phase 3)\n\nAfter completing Phase 2.7 (YAGNI Gate), you have completed all discovery. You now need to\nwrite files and create GitHub issues.\n\nWrite your plan summarizing:\n- Research findings from Phase 1\n- Discovery insights from Phase 2\n- Trade-off decisions from Phase 2.5\n- Validated design from Phase 2.6\n- Features passing YAGNI Gate from Phase 2.7\n\nThen call **ExitPlanMode** to present the plan for approval.\n\n### ⛔ POST-EXIT GUARD (NON-NEGOTIABLE)\n\nAfter the user approves and plan mode exits, you are STILL inside `/z:brainstorm`.\n\nYour ONLY remaining tasks are:\n1. Phase 3: Save research/transcript files, create GitHub issues\n2. Phase 4: Present handoff recommendations and STOP\n\n**DO NOT implement features. DO NOT invoke /z:plan. DO NOT write code.**\n**You are completing the brainstorm workflow, not starting implementation.**\n```\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add plan mode enter/exit to brainstorm.core.md",
+      "description": "Apply identical changes as TASK-003 but to brainstorm.core.md. Content must be character-identical to brainstorm.md changes to maintain split pair consistency.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.core.md"],
+        "read": [".gsd/specs/plan-mode-conflict-fix/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -c 'EnterPlanMode' zerg/data/commands/brainstorm.core.md && grep -c 'ExitPlanMode' zerg/data/commands/brainstorm.core.md && grep -c 'POST-EXIT GUARD' zerg/data/commands/brainstorm.core.md && python -m zerg.validate_commands 2>&1 | grep -E 'brainstorm\\.core\\.md|Split pairs'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-006"],
+      "integration_test": null,
+      "context": "## Spec Context\nIdentical changes to TASK-003 but in brainstorm.core.md. The file structure mirrors brainstorm.md exactly (with <!-- SPLIT: core --> header). Both Enter Plan Mode and Exit Plan Mode sections must be character-identical to brainstorm.md.\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update CHANGELOG.md with plan-mode-conflict-fix entries",
+      "description": "Add entries under [Unreleased] section in CHANGELOG.md:\n\n### Fixed\n- Plan mode deadlock in `/z:plan` — replaced manual 'Shift+Tab' instruction with programmatic `EnterPlanMode`/`ExitPlanMode` tool calls\n- Skip-to-implement behavior after plan mode exit — added POST-EXIT GUARD sections to `/z:plan` and `/z:brainstorm`",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'EnterPlanMode' CHANGELOG.md && grep -c 'POST-EXIT GUARD\\|plan mode' CHANGELOG.md",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd entries under the [Unreleased] section (currently empty, line 8-9). Use 'Fixed' category. Two entries:\n1. Plan mode deadlock fix (EnterPlanMode/ExitPlanMode)\n2. Skip-to-implement prevention (POST-EXIT GUARD)\n\n## Dependencies\nDepends on TASK-001 through TASK-004 completing so the changelog accurately reflects changes."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Run validate_commands and verify all changes",
+      "description": "Run `python -m zerg.validate_commands` and verify:\n1. All command files pass structural validation\n2. Split pairs (plan.md/plan.core.md, brainstorm.md/brainstorm.core.md) are consistent\n3. All 4 modified files contain EnterPlanMode, ExitPlanMode, and POST-EXIT GUARD\n4. No regressions in existing validation checks",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": [
+          "zerg/data/commands/plan.md",
+          "zerg/data/commands/plan.core.md",
+          "zerg/data/commands/brainstorm.md",
+          "zerg/data/commands/brainstorm.core.md"
+        ]
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands && for f in plan plan.core brainstorm brainstorm.core; do echo \"--- $f.md ---\" && grep -c 'EnterPlanMode' zerg/data/commands/$f.md && grep -c 'ExitPlanMode' zerg/data/commands/$f.md && grep -c 'POST-EXIT GUARD' zerg/data/commands/$f.md; done",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["validation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFinal validation task. Run validate_commands and verify all 4 files were modified correctly. Check split pair consistency. Expected: all files contain EnterPlanMode (1+), ExitPlanMode (1+), POST-EXIT GUARD (1+).\n\n## Dependencies\nDepends on all prior tasks."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 5
+    },
+    "2": {
+      "name": "quality",
+      "tasks": ["TASK-005", "TASK-006"],
+      "parallel": false,
+      "estimated_minutes": 6,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No file conflicts — each file owned by exactly one task",
+    "conflicts": []
+  }
+}

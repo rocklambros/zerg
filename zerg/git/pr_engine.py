@@ -7,6 +7,7 @@ via the GitHub CLI with graceful degradation when gh is unavailable.
 
 from __future__ import annotations
 
+import html
 import json
 import re
 import subprocess
@@ -50,8 +51,8 @@ _CONVENTIONAL_RE = re.compile(
 def _sanitize_pr_content(text: str) -> str:
     """Sanitize text for inclusion in PR body to prevent injection.
 
-    Strips backtick sequences that could break markdown fences and
-    removes HTML tags that could be used for XSS in PR rendering.
+    Escapes HTML entities and backtick sequences that could break
+    markdown fences or be used for XSS in PR rendering.
 
     Args:
         text: Raw text to sanitize.
@@ -59,9 +60,8 @@ def _sanitize_pr_content(text: str) -> str:
     Returns:
         Sanitized text safe for PR body inclusion.
     """
-    # Remove potential HTML injection
-    sanitized = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL | re.IGNORECASE)
-    sanitized = re.sub(r"<iframe[^>]*>.*?</iframe>", "", sanitized, flags=re.DOTALL | re.IGNORECASE)
+    # Escape all HTML entities to prevent injection
+    sanitized = html.escape(text, quote=True)
     # Escape backtick runs of 3+ that could break code fences
     sanitized = re.sub(r"(`{3,})", r"\\\1", sanitized)
     return sanitized
@@ -195,7 +195,7 @@ class ContextAssembler:
             commits.append(
                 CommitInfo(
                     sha=sha.strip(),
-                    message=_sanitize_pr_content(message.strip()),
+                    message=message.strip(),
                     author=author.strip(),
                     date=date.strip(),
                     files=files,
@@ -506,7 +506,7 @@ class PRCreator:
         Returns:
             Dict with url and number on success, or path on fallback.
         """
-        title = pr_data.get("title", "Update")
+        title = _sanitize_pr_content(pr_data.get("title", "Update"))
         body = pr_data.get("body", "")
         labels = pr_data.get("labels", [])
         reviewers = pr_data.get("reviewers", [])
@@ -583,7 +583,7 @@ class PRCreator:
         safe_branch = re.sub(r"[^\w\-.]", "_", branch)
         draft_path = drafts_dir / f"{safe_branch}.md"
 
-        content = f"# {pr_data.get('title', 'PR Draft')}\n\n{pr_data.get('body', '')}"
+        content = f"# {_sanitize_pr_content(pr_data.get('title', 'PR Draft'))}\n\n{pr_data.get('body', '')}"
         draft_path.write_text(content, encoding="utf-8")
 
         logger.info("PR draft saved to %s", draft_path)

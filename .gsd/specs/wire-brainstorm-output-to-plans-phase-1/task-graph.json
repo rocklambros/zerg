@@ -1,0 +1,142 @@
+{
+  "feature": "wire-brainstorm-output-to-plans-phase-1",
+  "version": "2.0",
+  "generated": "2026-02-14T00:00:00Z",
+  "total_tasks": 5,
+  "estimated_duration_minutes": 15,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add --issue flag and issue loading to plan.md",
+      "description": "Modify plan.md to support --issue N / #N flag for loading GitHub issue context into the planning workflow.\n\nChanges required:\n\n1. **Flags section** (after --skip-validation line): Add:\n   `- \\`--issue N\\` or \\`#N\\`: Load a GitHub issue as brainstorm context for requirements seeding`\n\n2. **Pre-Flight section** (after the echo .started line, before the closing ```): Add issue extraction:\n   ```bash\n   # Extract issue number from --issue N or #N shorthand\n   ISSUE_NUM=\"\"\n   if [[ \"$ARGUMENTS\" =~ --issue[[:space:]]+([0-9]+) ]]; then\n     ISSUE_NUM=\"${BASH_REMATCH[1]}\"\n   elif [[ \"$ARGUMENTS\" =~ \\#([0-9]+) ]]; then\n     ISSUE_NUM=\"${BASH_REMATCH[1]}\"\n   fi\n   ```\n\n3. **Phase 1: Context Gathering** (add as new step 0, before existing step 1): Add:\n   ```\n   0. **Check for issue context** — If `--issue N` or `#N` was provided in arguments:\n      - Run `gh issue view $ISSUE_NUM` to read the issue\n      - Parse title, body, labels, and acceptance criteria\n      - Store as issue context for Phase 2\n      - Output: \"Found GitHub issue #N: '{title}'. Loading brainstorm context from issue body...\"\n      - If `--issue` not provided, skip this step (backward compatible)\n   ```\n\n4. **Phase 2: Requirements Elicitation** (add advisory paragraph after the bullet list): Add:\n   ```\n   > **Issue Context Advisory**: When issue context was loaded in Phase 1, acknowledge what the issue already captured (scope, acceptance criteria, priority, proposed solution). Present a summary: \"Issue #N already covers: [list]. Asking about gaps only.\" Then focus elicitation on areas the issue didn't cover or where plan needs deeper specificity. Use judgment about what's already answered vs. what needs more detail.\n   ```\n\n5. **Help section** (add --issue to flags list): Add:\n   `  --issue N             Load GitHub issue N as brainstorm context`\n\n6. **Usage line in Help** — update to:\n   `/zerg:plan — Capture complete requirements for a feature.`\n   (already correct, just verify)",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.md"],
+        "read": [".gsd/specs/wire-brainstorm-output-to-plans-phase-1/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q '\\-\\-issue' zerg/data/commands/plan.md && grep -q 'ISSUE_NUM' zerg/data/commands/plan.md && grep -q 'Check for issue context' zerg/data/commands/plan.md && grep -q 'Issue Context Advisory' zerg/data/commands/plan.md && echo 'PASS' || echo 'FAIL'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-005"],
+      "integration_test": null,
+      "context": "## Spec Context\nPlan gains --issue N flag (and #N shorthand). When provided, plan reads the issue via gh issue view N and uses it as brainstorm context. Plan Phase 1 adds a step to check for issue context. Plan Phase 2 acknowledges issue content and reduces redundant questions. This is advisory guidance — the model uses judgment.\n\n## File Details\nplan.md is the parent command file. It contains: workflow boundary, flags, pre-flight bash, task tracking, phases 1-5.5, status markers, completion criteria, help section. The core split (plan.core.md) has identical content plus Phase 0 validation.\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Add --issue flag and issue loading to plan.core.md",
+      "description": "Modify plan.core.md with identical changes as TASK-001 (plan.md). The core split has the same sections plus Phase 0.\n\nChanges required (identical to TASK-001):\n\n1. **Flags section** (after --skip-validation line): Add:\n   `- \\`--issue N\\` or \\`#N\\`: Load a GitHub issue as brainstorm context for requirements seeding`\n\n2. **Pre-Flight section** (after the echo .started line, before the closing ```): Add issue extraction:\n   ```bash\n   # Extract issue number from --issue N or #N shorthand\n   ISSUE_NUM=\"\"\n   if [[ \"$ARGUMENTS\" =~ --issue[[:space:]]+([0-9]+) ]]; then\n     ISSUE_NUM=\"${BASH_REMATCH[1]}\"\n   elif [[ \"$ARGUMENTS\" =~ \\#([0-9]+) ]]; then\n     ISSUE_NUM=\"${BASH_REMATCH[1]}\"\n   fi\n   ```\n\n3. **Phase 1: Context Gathering** (add as new step 0, before existing step 1): Add:\n   ```\n   0. **Check for issue context** — If `--issue N` or `#N` was provided in arguments:\n      - Run `gh issue view $ISSUE_NUM` to read the issue\n      - Parse title, body, labels, and acceptance criteria\n      - Store as issue context for Phase 2\n      - Output: \"Found GitHub issue #N: '{title}'. Loading brainstorm context from issue body...\"\n      - If `--issue` not provided, skip this step (backward compatible)\n   ```\n\n4. **Phase 2: Requirements Elicitation** (add advisory paragraph after the bullet list): Add:\n   ```\n   > **Issue Context Advisory**: When issue context was loaded in Phase 1, acknowledge what the issue already captured (scope, acceptance criteria, priority, proposed solution). Present a summary: \"Issue #N already covers: [list]. Asking about gaps only.\" Then focus elicitation on areas the issue didn't cover or where plan needs deeper specificity. Use judgment about what's already answered vs. what needs more detail.\n   ```\n\n5. **Help section** (add --issue to flags list): Add:\n   `  --issue N             Load GitHub issue N as brainstorm context`\n\nIMPORTANT: plan.core.md has a `<!-- SPLIT: core, parent: plan.md -->` header and includes Phase 0 that plan.md does not. Do not remove these. Only add the new content.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/plan.core.md"],
+        "read": [".gsd/specs/wire-brainstorm-output-to-plans-phase-1/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q '\\-\\-issue' zerg/data/commands/plan.core.md && grep -q 'ISSUE_NUM' zerg/data/commands/plan.core.md && grep -q 'Check for issue context' zerg/data/commands/plan.core.md && grep -q 'Issue Context Advisory' zerg/data/commands/plan.core.md && echo 'PASS' || echo 'FAIL'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-005"],
+      "integration_test": null,
+      "context": "## Spec Context\nIdentical changes to TASK-001 but applied to the core split file. plan.core.md has a <!-- SPLIT --> header and includes Phase 0 validation that plan.md does not. Preserve these differences. Only add the --issue flag, pre-flight extraction, Phase 1 step 0, Phase 2 advisory, and help flag.\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add issue number to brainstorm.md Phase 4 handoff",
+      "description": "Modify brainstorm.md to include the top GitHub issue number in the Phase 4 handoff suggestion.\n\nChanges required:\n\n1. **Phase 4: Handoff — AskUserQuestion option description**: Change:\n   ```\n   description: \"Run /compact to free token budget, then start /z:plan {top-feature} in fresh context\"\n   ```\n   To:\n   ```\n   description: \"Run /compact to free token budget, then start /z:plan {top-feature} --issue {top-issue-number} in fresh context\"\n   ```\n\n2. **Phase 4: Handoff — response output for 'Clear context'**: Change:\n   ```\n   - **\"Clear context, then /z:plan\"**: Output: \"Run `/compact` to clear context, then run `/z:plan {top-feature}` to begin requirements.\"\n   ```\n   To:\n   ```\n   - **\"Clear context, then /z:plan\"**: Output: \"Run `/compact` to clear context, then run `/z:plan {top-feature} --issue {top-issue-number}` to begin requirements.\"\n   ```\n\nNote: {top-issue-number} refers to the number of the highest-priority issue created in Phase 3. The model determines this from the issue manifest.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.md"],
+        "read": [".gsd/specs/wire-brainstorm-output-to-plans-phase-1/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q '\\-\\-issue {top-issue-number}' zerg/data/commands/brainstorm.md && echo 'PASS' || echo 'FAIL'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-005"],
+      "integration_test": null,
+      "context": "## Spec Context\nR7: Brainstorm's Phase 4 (Handoff) AskUserQuestion option should include the top issue number in the suggested next command. The {top-issue-number} is determined by the model from the issues created in Phase 3.\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Add issue number to brainstorm.core.md Phase 4 handoff",
+      "description": "Modify brainstorm.core.md with identical changes as TASK-003 (brainstorm.md).\n\nChanges required (identical to TASK-003):\n\n1. **Phase 4: Handoff — AskUserQuestion option description**: Change:\n   ```\n   description: \"Run /compact to free token budget, then start /z:plan {top-feature} in fresh context\"\n   ```\n   To:\n   ```\n   description: \"Run /compact to free token budget, then start /z:plan {top-feature} --issue {top-issue-number} in fresh context\"\n   ```\n\n2. **Phase 4: Handoff — response output for 'Clear context'**: Change:\n   ```\n   - **\"Clear context, then /z:plan\"**: Output: \"Run `/compact` to clear context, then run `/z:plan {top-feature}` to begin requirements.\"\n   ```\n   To:\n   ```\n   - **\"Clear context, then /z:plan\"**: Output: \"Run `/compact` to clear context, then run `/z:plan {top-feature} --issue {top-issue-number}` to begin requirements.\"\n   ```\n\nIMPORTANT: brainstorm.core.md has a `<!-- SPLIT: core, parent: brainstorm.md -->` header. Do not remove it.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/brainstorm.core.md"],
+        "read": [".gsd/specs/wire-brainstorm-output-to-plans-phase-1/requirements.md"]
+      },
+      "verification": {
+        "command": "grep -q '\\-\\-issue {top-issue-number}' zerg/data/commands/brainstorm.core.md && echo 'PASS' || echo 'FAIL'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-005"],
+      "integration_test": null,
+      "context": "## Spec Context\nIdentical changes to TASK-003 but applied to the core split file. brainstorm.core.md has a <!-- SPLIT --> header. Preserve it.\n\n## Dependencies\nNone — this is a Level 1 task."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update CHANGELOG.md with feature entries",
+      "description": "Update CHANGELOG.md under the [Unreleased] section with entries for this feature.\n\nAdd under [Unreleased]:\n\n### Fixed\n\n- `/z:plan` and `/z:brainstorm` proactively entering Claude Code plan mode — added explicit `EnterPlanMode`/`ExitPlanMode` prohibition to workflow boundary\n- Missing Phase 5.5 post-approval handoff in `/z:plan` — restored `AskUserQuestion` with 'Clear context, then /z:design' option\n\n### Changed\n\n- `/z:plan` now accepts `--issue N` or `#N` flag to load a GitHub issue as brainstorm context, reducing redundant Phase 2 questions\n- `/z:brainstorm` Phase 4 handoff now includes the top issue number in the suggested `/z:plan` command",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q '\\-\\-issue' CHANGELOG.md && grep -q 'EnterPlanMode' CHANGELOG.md && echo 'PASS' || echo 'FAIL'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nCHANGELOG entries for the wire-brainstorm-output-to-plans-phase-1 feature. R1-R3 (Fixed): EnterPlanMode prohibition and Phase 5.5 restoration. R4-R7 (Changed): --issue flag and brainstorm handoff.\n\n## Dependencies\nDepends on all L1 tasks completing."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 10
+    },
+    "2": {
+      "name": "quality",
+      "tasks": ["TASK-005"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

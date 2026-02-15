@@ -330,7 +330,7 @@ def _legacy_scan(path: str | Path = ".") -> dict[str, Any]:
                         }
                     )
             except OSError:
-                pass
+                pass  # Best-effort file read
 
     # Determine if scan passed
     results["passed"] = not (results["secrets_found"] or results["sensitive_files"])

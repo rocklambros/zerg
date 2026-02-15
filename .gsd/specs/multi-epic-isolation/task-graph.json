@@ -1,0 +1,302 @@
+{
+  "feature": "multi-epic-isolation",
+  "version": "2.0",
+  "generated": "2026-02-11T00:00:00Z",
+  "total_tasks": 11,
+  "estimated_duration_minutes": 45,
+  "max_parallelization": 8,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Update detect_feature() with ZERG_FEATURE env var and add lockfile helpers",
+      "description": "RC1+RC5: Add ZERG_FEATURE env var as priority 1 in detect_feature(). Add acquire_feature_lock(), release_feature_lock(), check_feature_lock() functions. Priority: env var > .current-feature file > state JSON.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/_utils.py"],
+        "read": ["zerg/constants.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.commands._utils import detect_feature, acquire_feature_lock, release_feature_lock, check_feature_lock; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": ["TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-010"],
+      "integration_test": "tests/integration/test_concurrent_features.py",
+      "context": "## Security Rules (Python)\n- Use parameterized queries for any DB access\n- Use secrets module for random values\n- Validate file paths against traversal\n- Use safe deserialization (json, yaml.safe_load)\n\n## Spec Context\nRC1: .gsd/.current-feature is a global singleton. 15 command markdown files read it. When Terminal 2 plans a new epic, it overwrites Terminal 1's feature pointer. Fix: detect_feature() priority becomes 1) ZERG_FEATURE env var 2) --feature CLI flag 3) .gsd/.current-feature file.\nRC5: No lockfile for exclusive feature access. Add advisory lock at .gsd/specs/{feature}/.lock with PID:timestamp. Auto-expires after 2 hours.\n\n## Dependencies\nNone — this is a foundation task."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Fix level-aware task claiming in protocol_state.py",
+      "description": "RC4: Add current_level=self.state.get_current_level() to the claim_task() call in claim_next_task_async(). This is a one-line change at ~line 371. The claim_task() method already supports the current_level parameter and has level enforcement logic — it's just not being called with it.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/protocol_state.py"],
+        "read": ["zerg/state/task_repo.py", "zerg/state/manager.py"]
+      },
+      "verification": {
+        "command": "python -c \"import ast; tree = ast.parse(open('zerg/protocol_state.py').read()); print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": ["TASK-009"],
+      "integration_test": "tests/integration/test_claim_enforcement.py",
+      "context": "## Security Rules (Python)\n- No special security concerns for this change\n\n## Spec Context\nRC4: protocol_state.py:371 calls claim_task() WITHOUT current_level parameter. task_repo.py:113-118 has level enforcement code but it's BYPASSED (only runs when current_level is not None). state.get_current_level() exists but is never used in the claim path. Fix: add current_level=self.state.get_current_level() to the claim_task() call.\n\n## Dependencies\nNone — this is a foundation task."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Update design, merge, status command pre-flights",
+      "description": "Update pre-flight FEATURE detection in 6 files: design.md, design.core.md, merge.md, merge.core.md, status.md, status.core.md. Change from FEATURE=$(cat .gsd/.current-feature 2>/dev/null) to FEATURE=${ZERG_FEATURE:-$(cat .gsd/.current-feature 2>/dev/null)}",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/data/commands/design.md",
+          "zerg/data/commands/design.core.md",
+          "zerg/data/commands/merge.md",
+          "zerg/data/commands/merge.core.md",
+          "zerg/data/commands/status.md",
+          "zerg/data/commands/status.core.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'ZERG_FEATURE' zerg/data/commands/design.md zerg/data/commands/design.core.md zerg/data/commands/merge.md zerg/data/commands/merge.core.md zerg/data/commands/status.md zerg/data/commands/status.core.md | grep -v ':0$' | wc -l | xargs test 6 -eq",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-011"],
+      "integration_test": null,
+      "context": "## Spec Context\nRC1 propagation: All command markdown files must update pre-flight from FEATURE=$(cat .gsd/.current-feature 2>/dev/null) to FEATURE=${ZERG_FEATURE:-$(cat .gsd/.current-feature 2>/dev/null)}. This ensures env var takes priority when set.\n\n## Dependencies\nTASK-001 establishes the ZERG_FEATURE pattern in Python. These markdown changes mirror the same pattern for slash command pre-flights."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Update rush, stop, cleanup, retry command pre-flights + lockfile check",
+      "description": "Update pre-flight FEATURE detection in 5 files: rush.md, rush.core.md, stop.md, cleanup.md, retry.md. Add lockfile check/warning to rush pre-flight. Add lock cleanup to cleanup.md.",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/data/commands/rush.md",
+          "zerg/data/commands/rush.core.md",
+          "zerg/data/commands/stop.md",
+          "zerg/data/commands/cleanup.md",
+          "zerg/data/commands/retry.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'ZERG_FEATURE' zerg/data/commands/rush.md zerg/data/commands/rush.core.md zerg/data/commands/stop.md zerg/data/commands/cleanup.md zerg/data/commands/retry.md | grep -v ':0$' | wc -l | xargs test 5 -eq",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-011"],
+      "integration_test": null,
+      "context": "## Spec Context\nRC1 propagation + RC5 lockfile integration: Update pre-flights for rush/stop/cleanup/retry. Rush gets additional lockfile check: if .gsd/specs/{feature}/.lock exists and is recent, warn user. Cleanup gets lock cleanup: remove stale .lock files.\n\n## Dependencies\nTASK-001 creates lockfile helper functions in _utils.py. The markdown pre-flights reference the pattern but don't call Python directly — they instruct the LLM on behavior."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update estimate and debug command pre-flights",
+      "description": "Update pre-flight FEATURE detection in 4 files: estimate.md, estimate.core.md, debug.md, debug.core.md. Note: debug files use cat without 2>/dev/null — update to match standard pattern.",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/data/commands/estimate.md",
+          "zerg/data/commands/estimate.core.md",
+          "zerg/data/commands/debug.md",
+          "zerg/data/commands/debug.core.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'ZERG_FEATURE' zerg/data/commands/estimate.md zerg/data/commands/estimate.core.md zerg/data/commands/debug.md zerg/data/commands/debug.core.md | grep -v ':0$' | wc -l | xargs test 4 -eq",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-011"],
+      "integration_test": null,
+      "context": "## Spec Context\nRC1 propagation: Update pre-flights for estimate and debug commands. Debug files currently use FEATURE=$(cat .gsd/.current-feature) without 2>/dev/null — normalize to FEATURE=${ZERG_FEATURE:-$(cat .gsd/.current-feature 2>/dev/null)} for consistency.\n\n## Dependencies\nTASK-001 establishes the ZERG_FEATURE pattern."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Restructure plan approval gate",
+      "description": "RC6: Three changes to plan.core.md and plan.md. (1) Phase 5: Change wording from 'proceed to design phase' to 'requirements are complete and locked'. (2) Phase 5: Add AskUserQuestion structured gate with Approve/Request changes options. (3) Phase 5.5: Move PLANNING COMPLETE banner to be first output after approval, before any tool calls. Also update pre-flight to use ZERG_FEATURE pattern.",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/data/commands/plan.md",
+          "zerg/data/commands/plan.core.md"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'AskUserQuestion' zerg/data/commands/plan.core.md | xargs test 0 -lt && grep -c 'requirements are complete' zerg/data/commands/plan.core.md | xargs test 0 -lt",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown"],
+      "consumers": ["TASK-011"],
+      "integration_test": null,
+      "context": "## Spec Context\nRC6: /z:plan approval gate has structural weaknesses. Phase 5 says 'proceed to design phase' — LLM interprets as 'start designing now'. Approval captured via free-text, not AskUserQuestion structured gate. Fix: (1) Remove 'proceed to design phase', replace with 'requirements are complete and locked'. (2) Add explicit AskUserQuestion with Approve/Request changes. (3) Move PLANNING COMPLETE banner before any tool calls.\n\n## Dependencies\nTASK-001 provides ZERG_FEATURE pattern for pre-flight update."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Scope git ship action to feature branches",
+      "description": "RC2: Update git.details.md ship action to scope commits to the active feature. Ship reads feature from env/file detection. If feature detected, scope PR to only include commits from zerg/{feature}/* branches. PR title: feat({feature}): {summary}. If no feature (non-ZERG workflow), ship unchanged.",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/data/commands/git.details.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'ZERG_FEATURE\\|feature.*branch\\|feat.*feature' zerg/data/commands/git.details.md | xargs test 0 -lt",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["markdown", "git"],
+      "consumers": ["TASK-011"],
+      "integration_test": null,
+      "context": "## Spec Context\nRC2: /z:git --action ship is not feature-scoped. Ship pipeline operates on current git branch, not feature-specific branches. No --feature flag to scope commit/PR/merge to a specific epic. Fix: Ship reads active feature via detect_feature() pattern. Scopes to feature's integration branch. PR title includes feature name: feat({feature}): {summary}.\n\n## Dependencies\nTASK-001 establishes the ZERG_FEATURE detection pattern."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Unit tests for detect_feature() ZERG_FEATURE priority and lockfile helpers",
+      "description": "Add tests to test_commands_utils.py for ZERG_FEATURE env var priority. Create test_lockfile.py for lockfile acquire/release/check/stale expiry. Tests: env var beats file, empty env var falls through, lockfile acquire/release, stale lock expiry, corrupt lock handling.",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["tests/unit/test_lockfile.py"],
+        "modify": ["tests/unit/test_commands_utils.py"],
+        "read": ["zerg/commands/_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_commands_utils.py tests/unit/test_lockfile.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- Use tempfile for test temp directories\n- No hardcoded paths in tests\n\n## Spec Context\nTest detect_feature() updated priority: ZERG_FEATURE env var > .current-feature > state JSON. Test lockfile: acquire creates file, release removes it, check reads lock info, stale locks expire after 2 hours, corrupt locks are cleaned.\n\n## Dependencies\nTASK-001 implements detect_feature() changes and lockfile functions."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Tests for level-aware task claiming",
+      "description": "Update test_claim_enforcement.py to add tests via protocol_state. Add test that protocol_state.claim_next_task_async() passes current_level. Verify workers cannot claim L2 tasks when current level is L1.",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["tests/integration/test_claim_enforcement.py"],
+        "read": ["zerg/protocol_state.py", "zerg/state/task_repo.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/integration/test_claim_enforcement.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- No special security concerns for tests\n\n## Spec Context\nRC4 testing: Verify that protocol_state.claim_next_task_async() now passes current_level to claim_task(). Test that workers cannot claim Level 2 tasks while Level 1 is the current level. Existing tests in test_claim_enforcement.py cover the task_repo level enforcement — add tests for the protocol_state integration.\n\n## Dependencies\nTASK-002 adds current_level parameter to the claim_task() call in protocol_state.py."
+    },
+    {
+      "id": "TASK-010",
+      "title": "Integration test for concurrent feature isolation",
+      "description": "Create tests/integration/test_concurrent_features.py. Test that two features detected via different ZERG_FEATURE env vars return different results. Test that env var takes priority over .current-feature file. Test isolation between concurrent detections.",
+      "phase": "propagation",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": ["tests/integration/test_concurrent_features.py"],
+        "modify": [],
+        "read": ["zerg/commands/_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/integration/test_concurrent_features.py -v --tb=short",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "testing"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Security Rules (Python)\n- No special security concerns for tests\n\n## Spec Context\nAcceptance Criteria: Two terminals can run /z:plan epic-1 and /z:plan epic-2 without overwriting each other's context (when ZERG_FEATURE is exported). Test: set ZERG_FEATURE=epic-1, call detect_feature(), verify returns epic-1. Overwrite .current-feature with epic-2, call detect_feature() again, verify still returns epic-1 (env var wins).\n\n## Dependencies\nTASK-001 implements the ZERG_FEATURE priority in detect_feature()."
+    },
+    {
+      "id": "TASK-011",
+      "title": "Update CHANGELOG.md and README.md with multi-epic documentation",
+      "description": "Add entries under [Unreleased] in CHANGELOG.md for all 6 fixes. Add multi-epic usage section to README.md explaining ZERG_FEATURE env var, advisory lockfile, and parallel epic workflow.",
+      "phase": "quality",
+      "level": 3,
+      "dependencies": ["TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md", "README.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'multi-epic\\|ZERG_FEATURE\\|level-aware' CHANGELOG.md | xargs test 0 -lt && grep -c 'ZERG_FEATURE' README.md | xargs test 0 -lt",
+        "timeout_seconds": 15
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nDocumentation Impact Analysis from requirements: CHANGELOG.md needs entries under [Unreleased] for all 6 RC fixes (Added: ZERG_FEATURE env var, advisory lockfile, AskUserQuestion approval gate; Fixed: level-aware claiming, feature-scoped git ship, command pre-flights). README.md needs multi-epic usage section explaining how to export ZERG_FEATURE per terminal.\n\n## Dependencies\nAll implementation and test tasks must be complete before documentation."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002"],
+      "parallel": true,
+      "estimated_minutes": 10
+    },
+    "2": {
+      "name": "propagation",
+      "tasks": ["TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "quality",
+      "tasks": ["TASK-011"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

@@ -156,7 +156,7 @@ class HeartbeatWriter:
         try:
             self.heartbeat_path.unlink(missing_ok=True)
         except OSError:
-            pass
+            pass  # Best-effort heartbeat cleanup
 
 
 class HeartbeatMonitor:

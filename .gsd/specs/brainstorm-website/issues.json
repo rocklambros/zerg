@@ -1,0 +1,44 @@
+{
+  "epic": {
+    "number": 204,
+    "title": "epic: ZERG website — custom landing page for GitHub Pages",
+    "url": "https://github.com/rocklambros/zerg/issues/204"
+  },
+  "issues": [
+    {
+      "number": 205,
+      "title": "P0: Fix GitHub Pages deployment and repurpose docs.yml for custom site",
+      "priority": "P0",
+      "depends_on": [],
+      "url": "https://github.com/rocklambros/zerg/issues/205"
+    },
+    {
+      "number": 206,
+      "title": "P1: Site structure, nav bar, and hero section with three pillars",
+      "priority": "P1",
+      "depends_on": [205],
+      "url": "https://github.com/rocklambros/zerg/issues/206"
+    },
+    {
+      "number": 207,
+      "title": "P1: Content sections — Why ZERG, How It Works, Commands, Quick Start",
+      "priority": "P1",
+      "depends_on": [206],
+      "url": "https://github.com/rocklambros/zerg/issues/207"
+    },
+    {
+      "number": 208,
+      "title": "P1: Interactive elements — dark/light toggle, FAQ accordion, copy-to-clipboard",
+      "priority": "P1",
+      "depends_on": [206],
+      "url": "https://github.com/rocklambros/zerg/issues/208"
+    },
+    {
+      "number": 209,
+      "title": "P2: Polish — scroll animations, responsive tuning, SEO, Open Graph",
+      "priority": "P2",
+      "depends_on": [207, 208],
+      "url": "https://github.com/rocklambros/zerg/issues/209"
+    }
+  ]
+}

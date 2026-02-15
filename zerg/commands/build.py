@@ -384,7 +384,7 @@ def _watch_loop(builder: BuildCommand, system: BuildSystem | None, cwd: str) -> 
                     content = f.read_bytes()
                     hashes[str(f)] = hashlib.md5(content).hexdigest()
                 except OSError:
-                    pass
+                    pass  # Best-effort file cleanup
         return hashes
 
     console.print("[cyan]Watch mode enabled. Press Ctrl+C to stop.[/cyan]\n")

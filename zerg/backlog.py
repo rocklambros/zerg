@@ -525,7 +525,6 @@ def update_backlog_task_status(
                 no_blockers = "- No blockers identified.\n"
                 if content[insert_pos:].startswith(no_blockers):
                     content = content[:insert_pos] + content[insert_pos + len(no_blockers) :]
-                    insert_pos = insert_pos  # position stays the same
                 content = content[:insert_pos] + blocker_line + "\n" + content[insert_pos:]
 
     path.write_text(content, encoding="utf-8")

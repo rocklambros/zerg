@@ -24,39 +24,6 @@ STATIC_TOOLS: list[str] = [
     "cloc",
 ]
 
-RUNTIME_ONLY_TOOLS: list[str] = [
-    "perf",
-    "perf stat",
-    "perf c2c",
-    "async-profiler",
-    "cachegrind",
-    "strace",
-    "ltrace",
-    "tcpdump",
-    "wrk",
-    "ab",
-    "k6",
-    "hey",
-    "vegeta",
-    "pprof",
-    "go tool pprof",
-    "py-spy",
-    "dtrace",
-    "bpftrace",
-    "valgrind",
-    "iotop",
-    "blktrace",
-    "nethogs",
-    "iftop",
-    "ss",
-    "lsof",
-    "gcc -fopt-info-vec",
-    "clang -Rpass=loop-vectorize",
-    "helm",
-    "kubectl",
-    "kube-bench",
-]
-
 
 class FactorCatalog:
     """Loads and queries the performance evaluation factor catalog."""

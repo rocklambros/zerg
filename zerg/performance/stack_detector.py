@@ -108,7 +108,7 @@ def _detect_frameworks(project_path: Path) -> list[str]:
                 if dep_name in all_deps:
                     frameworks.add(framework_name)
         except (json.JSONDecodeError, OSError):
-            pass
+            pass  # Cache file not found or malformed
 
     # Check Python dependency files
     _detect_python_frameworks(project_path, frameworks)
@@ -184,7 +184,7 @@ def _detect_kubernetes(project_path: Path) -> bool:
                 except OSError:
                     continue
     except OSError:
-        pass
+        pass  # Best-effort file read
 
     return False
 

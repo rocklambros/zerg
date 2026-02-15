@@ -1,0 +1,391 @@
+{
+  "feature": "resolving-the-rest-of-134-completely",
+  "version": "2.0",
+  "generated": "2026-02-06T22:30:00-05:00",
+  "total_tasks": 16,
+  "estimated_duration_minutes": 40,
+  "max_parallelization": 14,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Extend collect_files() with names parameter",
+      "description": "Add optional `names: set[str] | None` parameter to fs_utils.collect_files(). When provided, files whose name contains any of the given strings are collected into a '_by_name' bucket regardless of extension. This enables Pattern C migration (Dockerfile discovery). Keep change minimal — ~4 lines of new logic. Existing behavior unchanged when names=None (default).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/fs_utils.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'fs_utils or collect_files' && ruff check zerg/fs_utils.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": ["TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013", "TASK-014", "TASK-015"],
+      "integration_test": "tests/",
+      "context": "## Spec Context\nAdd `names` param to collect_files() for Pattern C sites (Dockerfile discovery). When names={\"Dockerfile\"}, files whose name contains 'Dockerfile' go into '_by_name' bucket. Files without extensions currently skipped (line 77: `if not suffix: continue`) — the names param must collect these too.\n\n## Current API\ndef collect_files(root, extensions=None, exclude_dirs=_DEFAULT_EXCLUDES) -> dict[str, list[Path]]\n\n## Security (Python)\n- Use pathlib for path operations, avoid string concatenation\n- No subprocess or shell commands"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Migrate dependencies.py rglob to collect_files()",
+      "description": "Replace `root_dir.rglob('*.py')` at line 134 in zerg/doc_engine/dependencies.py with `collect_files(root_dir, extensions={'.py'}).get('.py', [])`. Add `from zerg.fs_utils import collect_files` import. The function is `DependencyGraph.build()`. No exclusion logic exists currently — collect_files() default excludes will apply (node_modules, __pycache__, .git, etc). Verify existing tests pass.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/doc_engine/dependencies.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'dependenc' && ruff check zerg/doc_engine/dependencies.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Migrate Pattern A calls. Replace `root_dir.rglob('*.py')` with collect_files(). The sorted() wrapper is not needed — collect_files() returns sorted lists.\n\n## Current Code (line ~134)\npy_files = sorted(root_dir.rglob('*.py'))\n\n## After\nfrom zerg.fs_utils import collect_files\ngrouped = collect_files(root_dir, extensions={'.py'})\npy_files = grouped.get('.py', [])"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Migrate validate_commands.py rglob to collect_files()",
+      "description": "Replace `package_dir.rglob('*.py')` at line 501 in zerg/validate_commands.py with collect_files(). Function: `validate_command_integrity()`. Has post-rglob filtering via try/except to exclude test files — preserve that logic. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/validate_commands.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'validate_command' && ruff check zerg/validate_commands.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Pattern A migration. Replace sorted(package_dir.rglob('*.py')) with collect_files(). Post-filter logic (try relative_to(tests_dir) to skip tests) stays as-is.\n\n## Current Code (line ~501)\nall_py_files = sorted(package_dir.rglob('*.py'))"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Migrate test_scope.py rglob to collect_files()",
+      "description": "Replace `tests_dir.rglob('*.py')` at line 153 in zerg/test_scope.py with collect_files(). Function: `get_affected_tests()`. Has post-filter: skip files starting with '_'. Preserve that logic. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/test_scope.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'test_scope' && ruff check zerg/test_scope.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Pattern A migration. Replace tests_dir.rglob('*.py') with collect_files(). Post-filter (skip files starting with '_') stays.\n\n## Current Code (line ~153)\nfor test_file in tests_dir.rglob('*.py'):\n    if test_file.name.startswith('_'):\n        continue"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Migrate analyze.py 3 rglob calls to collect_files()",
+      "description": "Replace 3 rglob calls in zerg/commands/analyze.py:\n1. Line 570: `scope_path.rglob('*.py')` in CrossFileChecker.check() — Pattern A\n2. Line 635: `scope_path.rglob('*.py')` in ImportChainChecker.check() — Pattern A\n3. Line 866: multi-ext loop in _collect_sample_files() — Pattern B (5 extensions: .py, .js, .ts, .go, .rs)\n\nAdd single import at top of file. Preserve post-filters (underscore exclusion at sites 1-2, 100-file limit at site 3).",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'analyze' && ruff check zerg/commands/analyze.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1 + FR-2: 2 Pattern A sites + 1 Pattern B site in same file.\n\n## Site 1 (line ~570)\npy_files = sorted(scope_path.rglob('*.py'))\n→ collect_files(scope_path, {'.py'}).get('.py', [])\n\n## Site 2 (line ~635)\npy_files = sorted(scope_path.rglob('*.py'))\n→ collect_files(Path('zerg/'), {'.py'}).get('.py', [])\n\n## Site 3 (line ~866)\nfor ext in ['*.py','*.js','*.ts','*.go','*.rs']:\n    files.extend(str(f) for f in target.rglob(ext))\nreturn files[:100]\n→ grouped = collect_files(target, {'.py','.js','.ts','.go','.rs'})\nfiles = [str(f) for ext in grouped for f in grouped[ext]]\nreturn files[:100]"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Migrate wiki.py rglob to collect_files()",
+      "description": "Replace `(project_root / 'zerg').rglob('*.py')` at line 99 in zerg/commands/wiki.py with collect_files(). Function: `wiki()`. Has post-filter: exclude files starting with '__'. Preserve that. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/wiki.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'wiki' && ruff check zerg/commands/wiki.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Pattern A migration.\n\n## Current Code (line ~99)\npy_files = sorted((project_root / 'zerg').rglob('*.py'))\npy_files = [f for f in py_files if not f.name.startswith('__')]"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Migrate refactor.py rglob to collect_files()",
+      "description": "Replace `target.rglob('*.py')` at line 424 in zerg/commands/refactor.py with collect_files(). Function: `_collect_py_files()`. Has post-filter: string-based __pycache__ and .git exclusion + 50-file limit. collect_files() handles __pycache__/.git via _DEFAULT_EXCLUDES, so remove manual string check. Keep 50-file limit. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/refactor.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'refactor' && ruff check zerg/commands/refactor.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Pattern A. collect_files() default excludes handle __pycache__ and .git, so manual string-in-path check can be removed.\n\n## Current Code (line ~424)\nfor f in target.rglob('*.py'):\n    if '__pycache__' in str(f) or '.git' in str(f):\n        continue\n    files.append(str(f))\nreturn files[:50]"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Migrate code_fixer.py rglob to collect_files()",
+      "description": "Replace `project_root.rglob('*.py')` at line 65 in zerg/diagnostics/code_fixer.py with collect_files(). Function: `trace_import_chain()`. No existing exclusion logic — collect_files() defaults will apply. Preserve OSError handling around file reads. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/diagnostics/code_fixer.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'code_fixer or fixer' && ruff check zerg/diagnostics/code_fixer.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Pattern A.\n\n## Current Code (line ~65)\nfor py_file in project_root.rglob('*.py'):\n    try:\n        content = py_file.read_text()\n    except OSError:\n        continue"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Migrate test_cmd.py 2 rglob calls to collect_files()",
+      "description": "Replace 2 rglob calls in zerg/commands/test_cmd.py:\n1. Line 458: multi-ext loop in get_file_hashes() — Pattern B (5 extensions). Has __pycache__ string filter.\n2. Line 574: `source_dir.rglob('*.py')` in test() — Pattern A. Has 'test' and '__pycache__' string filters.\n\ncollect_files() handles __pycache__ via defaults. Keep 'test' post-filter at site 2. Add single import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/test_cmd.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'test_cmd' && ruff check zerg/commands/test_cmd.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1 + FR-2: 1 Pattern A + 1 Pattern B in same file.\n\n## Site 1 (line ~458, Pattern B)\nfor ext in ['*.py','*.js','*.ts','*.go','*.rs']:\n    for f in target.rglob(ext):\n        if '__pycache__' in str(f): continue\n→ grouped = collect_files(target, {'.py','.js','.ts','.go','.rs'})\n\n## Site 2 (line ~574, Pattern A)\nfor py_file in source_dir.rglob('*.py'):\n    if 'test' in str(py_file) or '__pycache__' in str(py_file): continue\n→ py_files = collect_files(source_dir, {'.py'}).get('.py', [])\n   Keep 'test' filter as post-processing."
+    },
+    {
+      "id": "TASK-010",
+      "title": "Migrate security_rules.py:611 rglob to collect_files()",
+      "description": "Replace `rules_dir.rglob('*.md')` at line 611 in zerg/security_rules.py with collect_files(). Function: `_format_rules_section()`. No exclusion logic needed. Note: security_rules.py:220 is a DOCUMENTED EXCEPTION — do NOT touch that one. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/security_rules.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'security_rules' && ruff check zerg/security_rules.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-1: Pattern A. IMPORTANT: Only migrate line 611 (rules_dir.rglob('*.md')). Line 220 (project_path.rglob('*')) is a documented exception — already single-pass with inline filtering.\n\n## Current Code (line ~611)\nfor rule_file in sorted(rules_dir.rglob('*.md')):\n    rel_path = rule_file.relative_to(rules_dir)"
+    },
+    {
+      "id": "TASK-011",
+      "title": "Migrate build.py rglob to collect_files()",
+      "description": "Replace multi-ext loop at line 380 in zerg/commands/build.py with collect_files(). Function: `get_file_hashes()` in `_watch_loop`. Pattern B with 6 extensions (.py, .js, .ts, .go, .rs, .java). Has OSError handling around file reads — preserve that. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/build.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'build' && ruff check zerg/commands/build.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-2: Pattern B (6 extensions).\n\n## Current Code (line ~380)\nfor ext in ['*.py','*.js','*.ts','*.go','*.rs','*.java']:\n    for f in path.rglob(ext):\n        try: content = f.read_bytes()\n        except OSError: continue\n→ grouped = collect_files(path, {'.py','.js','.ts','.go','.rs','.java'})\nIterate grouped values, keep OSError handling on file reads."
+    },
+    {
+      "id": "TASK-012",
+      "title": "Migrate review.py rglob to collect_files()",
+      "description": "Replace multi-ext loop at line 400 in zerg/commands/review.py with collect_files(). Function: `_collect_files()`. Pattern B with 5 extensions. Has inline __pycache__ string filter + 50-file limit. collect_files() handles __pycache__. Keep limit. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/review.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'review' && ruff check zerg/commands/review.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-2: Pattern B.\n\n## Current Code (line ~400)\nfor ext in ['*.py','*.js','*.ts','*.go','*.rs']:\n    files.extend(str(f) for f in target.rglob(ext) if '__pycache__' not in str(f))\nreturn files[:50]\n→ grouped = collect_files(target, {'.py','.js','.ts','.go','.rs'})\nfiles = [str(f) for ext in grouped for f in grouped[ext]]\nreturn files[:50]"
+    },
+    {
+      "id": "TASK-013",
+      "title": "Migrate detector.py rglob to collect_files()",
+      "description": "Replace `directory.rglob('*')` at line 84 in zerg/doc_engine/detector.py with collect_files(). Function: `detect_all()`. Pattern C — collects ALL files. Already has good filtering (hidden dirs, __pycache__) which collect_files() provides by default. Use `collect_files(directory, extensions=None)` and flatten all buckets. Preserve exception handling.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/doc_engine/detector.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'detector' && ruff check zerg/doc_engine/detector.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-3: Pattern C (wildcard). Already does rglob('*') with manual hidden/cache filtering. collect_files(extensions=None) provides same filtering via _DEFAULT_EXCLUDES. NOTE: collect_files() skips files with no suffix (line 77). detector.py classifies ALL files including suffix-less ones like Makefile. May need to handle suffix-less files — check if detector needs them. If so, use names param or iterate rglob result directly.\n\n## Current Code (line ~84)\nfor child in sorted(directory.rglob('*')):\n    if child.is_dir(): continue\n    if any(part.startswith('.') or part == '__pycache__' for part in child.parts): continue\n    results[child] = self.detect(child)"
+    },
+    {
+      "id": "TASK-014",
+      "title": "Migrate dive_adapter.py rglob to collect_files()",
+      "description": "Replace `root.rglob('*')` at line 69 in zerg/performance/adapters/dive_adapter.py with collect_files(). Function: `_find_dockerfiles()`. Pattern C — finds Dockerfiles by name pattern. Use `collect_files(root, names={'Dockerfile'})` and get '_by_name' bucket. Keep deduplication logic and the 'default = root / Dockerfile' check. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/performance/adapters/dive_adapter.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'dive' && ruff check zerg/performance/adapters/dive_adapter.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-3: Pattern C (Dockerfile matching). Use names={'Dockerfile'} to find all files with 'Dockerfile' in name. Keep dedup logic and default Dockerfile check.\n\n## Current Code (line ~69)\nfor p in sorted(root.rglob('*')):\n    if not p.is_file(): continue\n    name = p.name\n    if name.endswith('.Dockerfile') or (name.startswith('Dockerfile.') and name != 'Dockerfile'):\n        results.append(p)"
+    },
+    {
+      "id": "TASK-015",
+      "title": "Migrate hadolint_adapter.py rglob to collect_files()",
+      "description": "Replace `root.rglob('*')` at line 69 in zerg/performance/adapters/hadolint_adapter.py with collect_files(). Function: `_find_dockerfiles()`. Identical to dive_adapter.py. Same migration pattern. Add import.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["zerg/performance/adapters/hadolint_adapter.py"],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/ -x -q --tb=short -k 'hadolint' && ruff check zerg/performance/adapters/hadolint_adapter.py",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nFR-3: Pattern C (Dockerfile matching). Identical to dive_adapter.py migration.\n\n## Current Code (line ~69)\nfor p in sorted(root.rglob('*')):\n    if not p.is_file(): continue\n    name = p.name\n    if name.endswith('.Dockerfile') or (name.startswith('Dockerfile.') and name != 'Dockerfile'):\n        results.append(p)"
+    },
+    {
+      "id": "TASK-016",
+      "title": "Final verification: rglob audit + full test suite",
+      "description": "Run final verification:\n1. `grep -r '\\.rglob(' zerg/ --include='*.py'` — confirm only documented exceptions remain (fs_utils.py:58, security_rules.py:220, rush.py:323, ast_analyzer.py:450)\n2. `python -m pytest tests/ -x -q --tb=short` — full test suite\n3. `ruff check zerg/` — linting\n4. Verify no new files created",
+      "phase": "verification",
+      "level": 3,
+      "dependencies": ["TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013", "TASK-014", "TASK-015"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -rn '\\.rglob(' zerg/ --include='*.py' && python -m pytest tests/ -x -q --tb=short && ruff check zerg/",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Acceptance Criteria\ngrep output must show ONLY:\n- zerg/fs_utils.py:58 (canonical)\n- zerg/security_rules.py:220 (documented exception)\n- zerg/commands/rush.py:323 (documented exception)\n- zerg/ast_analyzer.py:450 (documented exception)\n\nAll tests pass. ruff clean."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001"],
+      "parallel": false,
+      "estimated_minutes": 5
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013", "TASK-014", "TASK-015"],
+      "parallel": true,
+      "estimated_minutes": 10,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "verification",
+      "tasks": ["TASK-016"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [2]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — each task owns exactly one file. All Level 2 tasks are independent.",
+    "conflicts": []
+  }
+}

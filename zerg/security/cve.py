@@ -30,13 +30,6 @@ logger = logging.getLogger(__name__)
 # Ecosystem configuration
 # ---------------------------------------------------------------------------
 
-_ECOSYSTEM_MAP: dict[str, str] = {
-    "requirements.txt": "PyPI",
-    "package.json": "npm",
-    "Cargo.toml": "crates.io",
-    "go.mod": "Go",
-}
-
 _LOCKFILE_COMPANIONS: dict[str, list[str]] = {
     "requirements.txt": [
         "requirements.lock",
@@ -381,7 +374,7 @@ def _osv_severity(vuln: dict[str, Any]) -> str:
                 return "medium"
             return "low"
         except (ValueError, TypeError):
-            pass
+            pass  # Non-numeric severity; skip
     # Default based on whether there's a CVE
     aliases = vuln.get("aliases", [])
     if any(a.startswith("CVE-") for a in aliases):

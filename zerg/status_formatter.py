@@ -248,7 +248,7 @@ def format_token_table(worker_tokens: dict[str, Any] | None) -> str:
     grand_total = 0
     grand_tasks = 0
 
-    for wid in sorted(worker_tokens.keys(), key=lambda k: str(k)):
+    for wid in sorted(worker_tokens.keys(), key=str):
         wdata = worker_tokens[wid]
         w_tokens = int(wdata.get("total_tokens", 0))
         w_tasks = int(wdata.get("tasks_completed", 0))

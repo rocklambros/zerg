@@ -623,22 +623,18 @@ class DebugCommand:
 
     def _determine_root_cause(self, parsed: ParsedError, hypotheses: list[Hypothesis]) -> tuple[str, str, float]:
         """Determine most likely root cause."""
-        confidence = 0.5
-
         if parsed.error_type and parsed.file:
-            confidence = 0.9
             return (
                 f"{parsed.error_type} at {parsed.file}:{parsed.line}",
                 f"Review code at {parsed.file} line {parsed.line}. Error: {parsed.message}",
-                confidence,
+                0.9,
             )
 
         if parsed.error_type:
-            confidence = 0.7
             return (
                 f"{parsed.error_type}: {parsed.message}",
                 f"Investigate {parsed.error_type} - {parsed.message}",
-                confidence,
+                0.7,
             )
 
         if hypotheses:

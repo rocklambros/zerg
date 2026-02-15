@@ -354,7 +354,7 @@ def parse_log_line(line: str) -> dict[str, Any] | None:
         result: dict[str, Any] = json.loads(line)
         return result
     except json.JSONDecodeError:
-        pass
+        pass  # Malformed JSON; skip entry
 
     # Try plain format
     # Format: 2025-01-25 10:30:45 [INFO] worker:123 - Message

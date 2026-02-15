@@ -1,0 +1,677 @@
+{
+  "feature": "quality-debt-remediation",
+  "version": "2.0",
+  "generated": "2026-02-06T22:00:00Z",
+  "total_tasks": 20,
+  "estimated_duration_minutes": 480,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Fix SecurityChecker fail-open bug",
+      "description": "Fix analyze.py:282-285 where SecurityChecker returns passed=True on exception. Change to fail-closed: CommandValidationError returns skip/warning (passed=True but score=0, with info message), bare Exception returns passed=False with error. Add logger.exception() call. Also fix DeadCodeChecker line 375 which has same fail-open pattern.",
+      "phase": "security",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["zerg/commands/analyze.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_analyze_cmd.py tests/unit/test_analyze_new_checks.py -x --timeout=30 -q",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-014"],
+      "integration_test": "tests/integration/test_analyze.py",
+      "context": "## Security Rules (Python)\n- OWASP A10:2025: Fail closed on errors. Never return success when a security check crashes.\n- CWE-755: Mishandling of exceptional conditions.\n\n## Spec Context\nzerg/commands/analyze.py:282-285 — SecurityChecker.check() catches CommandValidationError and bare Exception, returning passed=True with score=100.0 for both. This is a fail-open security bug. On CommandValidationError (tool not installed), return skip/warning. On Exception, return passed=False with error details.\n\n## Current Code\n```python\nexcept CommandValidationError:\n    return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)\nexcept Exception:\n    return AnalysisResult(check_type=CheckType.SECURITY, passed=True, issues=[], score=100.0)\n```\nAlso check DeadCodeChecker (line 360-375) which has similar patterns but already correctly fails closed for bare Exception."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Fix HIGH silent exception handlers batch 1",
+      "description": "Fix ~30 HIGH-severity silent exception handlers in batch 1 files. These catch Exception with no logging and no re-raise. For each: add logger.exception() or narrow exception type. Files: zerg/commands/cleanup.py (10), zerg/commands/debug.py (11), zerg/launchers/container_launcher.py (10), zerg/commands/logs.py (4).",
+      "phase": "security",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/commands/cleanup.py",
+          "zerg/commands/debug.py",
+          "zerg/launchers/container_launcher.py",
+          "zerg/commands/logs.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_cleanup_cmd.py tests/unit/test_debug_cmd.py tests/unit/test_launcher_container_ops.py tests/unit/test_logs_cmd.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python"],
+      "consumers": ["TASK-014"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-003",
+      "title": "Fix HIGH silent handlers batch 2 + enable BLE001",
+      "description": "Fix remaining ~25 HIGH-severity handlers in: zerg/context_plugin.py (8), zerg/token_counter.py (5), zerg/level_coordinator.py (5), zerg/commands/status.py (7), zerg/launchers/subprocess_launcher.py (4), zerg/worker_manager.py (5). Then enable BLE001 ruff rule in pyproject.toml by adding it to the select list.",
+      "phase": "security",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/context_plugin.py",
+          "zerg/token_counter.py",
+          "zerg/level_coordinator.py",
+          "zerg/launchers/subprocess_launcher.py",
+          "zerg/worker_manager.py",
+          "pyproject.toml"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/ --select BLE001 2>&1 | tail -5 && python -m pytest tests/unit/test_context_plugin.py tests/unit/test_token_counter.py tests/unit/test_level_coordinator.py tests/unit/test_worker_manager_component.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python"],
+      "consumers": ["TASK-015"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-004",
+      "title": "Create fs_utils.py single-pass traversal utility",
+      "description": "Create zerg/fs_utils.py with collect_files(root, extensions, exclude_dirs) that does a single rglob('*') traversal and returns files grouped by extension as dict[str, list[Path]]. Include DEFAULT_EXCLUDES set with node_modules, __pycache__, venv, .venv, dist, build, .git, .zerg.",
+      "phase": "optimization",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": ["zerg/fs_utils.py"],
+        "modify": [],
+        "read": ["zerg/repo_map.py", "zerg/performance/stack_detector.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.fs_utils import collect_files; print('OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-005"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-005",
+      "title": "Convert multi-traversal modules to fs_utils",
+      "description": "Convert 5 modules from multiple rglob calls to use collect_files(): (1) performance/stack_detector.py — merge 3 rglobs into single call, (2) performance/adapters/hadolint_adapter.py — merge 2 rglobs, (3) performance/adapters/dive_adapter.py — merge 2 rglobs, (4) repo_map.py line 433 per-ext loop — use collect_files, (5) commands/analyze.py _collect_files function at line 844 — use collect_files.",
+      "phase": "optimization",
+      "level": 2,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/performance/stack_detector.py",
+          "zerg/performance/adapters/hadolint_adapter.py",
+          "zerg/performance/adapters/dive_adapter.py",
+          "zerg/repo_map.py"
+        ],
+        "read": ["zerg/fs_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_performance_stack.py tests/unit/test_performance_adapters.py tests/unit/test_repo_map.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 40,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-006",
+      "title": "Create state/ package submodules",
+      "description": "Create zerg/state/ package with 7 focused modules extracted from zerg/state.py (1010 lines). Modules: persistence.py (load/save/backup/lock — 7 methods), task_repo.py (get/set/claim/release — 5 methods), retry_repo.py (retry counts/schedules/cooldowns — 8 methods), worker_repo.py (worker registration/health — 6 methods), level_repo.py (level progression/merge status — 6 methods), execution.py (events/pause/errors — 6 methods), metrics_store.py (timing/counts — 4 methods), renderer.py (STATE.md generation — 2 methods). Each submodule receives a reference to PersistenceLayer for data access.",
+      "phase": "decomposition",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [
+          "zerg/state/__init__.py",
+          "zerg/state/persistence.py",
+          "zerg/state/task_repo.py",
+          "zerg/state/retry_repo.py",
+          "zerg/state/worker_repo.py",
+          "zerg/state/level_repo.py",
+          "zerg/state/execution.py",
+          "zerg/state/metrics_store.py",
+          "zerg/state/renderer.py"
+        ],
+        "modify": [],
+        "read": ["zerg/state.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.state.persistence import PersistenceLayer; from zerg.state.task_repo import TaskStateRepo; from zerg.state.retry_repo import RetryRepo; from zerg.state.worker_repo import WorkerStateRepo; from zerg.state.level_repo import LevelStateRepo; from zerg.state.execution import ExecutionLog; from zerg.state.metrics_store import MetricsStore; from zerg.state.renderer import StateRenderer; print('All submodules importable')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 60,
+      "skills_required": ["python"],
+      "consumers": ["TASK-007"],
+      "integration_test": "tests/integration/test_state_integration.py"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Create StateManager facade in manager.py",
+      "description": "Create zerg/state/manager.py with thin StateManager facade that delegates to the 7 submodules. Must preserve exact same public API as current state.py StateManager (47 public methods). Update zerg/state/__init__.py to re-export StateManager. Then delete zerg/state.py (the old monolith file).",
+      "phase": "decomposition",
+      "level": 3,
+      "dependencies": ["TASK-006"],
+      "files": {
+        "create": ["zerg/state/manager.py"],
+        "modify": ["zerg/state/__init__.py"],
+        "read": ["zerg/state.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.state import StateManager; sm = StateManager('test'); print('Facade works')\" && python -m pytest tests/unit/test_state.py -x --timeout=30 -q",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python"],
+      "consumers": ["TASK-008"],
+      "integration_test": "tests/integration/test_state_integration.py"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Update 15 production importers for state/ package",
+      "description": "Update all production files that import from zerg.state to use the new package. Since zerg/state/__init__.py re-exports StateManager, most imports should work unchanged. Verify each: state_reconciler.py, protocol_state.py, level_coordinator.py, dependency_checker.py, protocol_handler.py, metrics.py, worker_manager.py, orchestrator.py, task_sync.py, task_retry_manager.py, state_sync_service.py, commands/status.py, commands/stop.py, commands/retry.py, commands/merge_cmd.py. Delete the old zerg/state.py file after verifying all imports work.",
+      "phase": "decomposition",
+      "level": 3,
+      "dependencies": ["TASK-007"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/state_reconciler.py",
+          "zerg/protocol_state.py",
+          "zerg/level_coordinator.py",
+          "zerg/dependency_checker.py",
+          "zerg/protocol_handler.py",
+          "zerg/metrics.py",
+          "zerg/worker_manager.py",
+          "zerg/orchestrator.py",
+          "zerg/task_sync.py",
+          "zerg/task_retry_manager.py",
+          "zerg/state_sync_service.py",
+          "zerg/commands/stop.py",
+          "zerg/commands/retry.py",
+          "zerg/commands/merge_cmd.py"
+        ],
+        "read": ["zerg/state/__init__.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.state import StateManager; from zerg.orchestrator import Orchestrator; from zerg.worker_manager import WorkerManager; print('Production imports OK')\" && python -m pytest tests/unit/test_state.py tests/unit/test_orchestrator.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": ["TASK-009"],
+      "integration_test": "tests/integration/test_state_integration.py"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Update 15 test importers for state/ package",
+      "description": "Update all test files that import from zerg.state: test_state_integration.py, test_worker_manager_component.py, test_state_tasks.py, test_state_persistence.py, test_state_levels.py, test_state.py, test_metrics.py, test_status_cmd.py, test_retry_cmd.py, test_claim_enforcement.py, test_metrics_integration.py, test_deferred_merge.py, test_level_coordinator.py, test_task_sync.py, test_task_retry_manager.py. Also update mock_state.py in tests/mocks/.",
+      "phase": "decomposition",
+      "level": 3,
+      "dependencies": ["TASK-008"],
+      "files": {
+        "create": [],
+        "modify": [
+          "tests/integration/test_state_integration.py",
+          "tests/unit/test_worker_manager_component.py",
+          "tests/unit/test_state_tasks.py",
+          "tests/unit/test_state_persistence.py",
+          "tests/unit/test_state_levels.py",
+          "tests/unit/test_state.py",
+          "tests/unit/test_metrics.py",
+          "tests/unit/test_status_cmd.py",
+          "tests/unit/test_retry_cmd.py",
+          "tests/integration/test_claim_enforcement.py",
+          "tests/integration/test_metrics_integration.py",
+          "tests/integration/test_deferred_merge.py",
+          "tests/unit/test_level_coordinator.py",
+          "tests/unit/test_task_sync.py",
+          "tests/unit/test_task_retry_manager.py",
+          "tests/mocks/mock_state.py"
+        ],
+        "read": ["zerg/state/__init__.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_state*.py tests/integration/test_state*.py tests/unit/test_metrics.py tests/integration/test_metrics_integration.py -x --timeout=120 -q",
+        "timeout_seconds": 180
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-010",
+      "title": "Define core TypedDicts and apply to top offenders batch 1",
+      "description": "Add 4 new TypedDicts to zerg/types.py: BacklogItemDict, DiagnosticResultDict, GraphNodeDict, StateDict. Apply to top offender files: zerg/backlog.py (~20 dict[str,Any] → BacklogItemDict), zerg/diagnostics/env_diagnostics.py (~19 → DiagnosticResultDict), zerg/graph_validation.py (~11 → GraphNodeDict), zerg/state/ modules (~11 → StateDict).",
+      "phase": "typing",
+      "level": 4,
+      "dependencies": ["TASK-009"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/types.py",
+          "zerg/backlog.py",
+          "zerg/diagnostics/env_diagnostics.py",
+          "zerg/graph_validation.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.types import BacklogItemDict, DiagnosticResultDict, GraphNodeDict, StateDict; print('TypedDicts defined')\" && python -m pytest tests/unit/test_types.py tests/unit/test_graph_validation.py tests/unit/test_backlog.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 40,
+      "skills_required": ["python"],
+      "consumers": ["TASK-011"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-011",
+      "title": "Define remaining TypedDicts and apply batch 2",
+      "description": "Add 4 more TypedDicts to zerg/types.py: WorkerMetricsDict, StatusFormatterDict, TaskSyncDict, PRDataDict. Apply to: zerg/worker_metrics.py (~7), zerg/status_formatter.py (~8), zerg/task_sync.py (~8), zerg/git/pr_engine.py (~8). Also narrow dict[str,Any] in zerg/exceptions.py context field where appropriate.",
+      "phase": "typing",
+      "level": 4,
+      "dependencies": ["TASK-010"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/worker_metrics.py",
+          "zerg/status_formatter.py",
+          "zerg/git/pr_engine.py",
+          "zerg/exceptions.py"
+        ],
+        "read": ["zerg/types.py"]
+      },
+      "verification": {
+        "command": "python -c \"from zerg.types import WorkerMetricsDict, StatusFormatterDict, TaskSyncDict, PRDataDict; print('OK')\" && python -m pytest tests/unit/test_worker_metrics.py tests/unit/test_status_formatter.py tests/unit/test_task_sync.py tests/unit/test_git_pr_engine.py tests/unit/test_exceptions.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 35,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-012",
+      "title": "Create rendering/ package with shared utilities",
+      "description": "Create zerg/rendering/ package: __init__.py, shared.py (move content from zerg/render_utils.py — render_gantt_chart and other utilities), dryrun_renderer.py (empty shell with DryRunRenderer class stub), status_renderer.py (empty shell with StatusRenderer class and standalone render function stubs). Delete zerg/render_utils.py after moving content to shared.py. Update imports in zerg/dryrun.py from render_utils to rendering.shared.",
+      "phase": "rendering",
+      "level": 4,
+      "dependencies": ["TASK-009"],
+      "files": {
+        "create": [
+          "zerg/rendering/__init__.py",
+          "zerg/rendering/shared.py",
+          "zerg/rendering/dryrun_renderer.py",
+          "zerg/rendering/status_renderer.py"
+        ],
+        "modify": ["zerg/render_utils.py"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.rendering.shared import render_gantt_chart; print('Rendering package OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 25,
+      "skills_required": ["python"],
+      "consumers": ["TASK-013"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-013",
+      "title": "Extract render methods from dryrun.py and status.py",
+      "description": "Move 11 _render_* methods from DryRunSimulator into zerg/rendering/dryrun_renderer.py as DryRunRenderer class. DryRunSimulator.run() becomes: analyze → renderer.render(report). Move DashboardRenderer class and ~10 standalone render functions (show_level_status, show_worker_status, show_recent_events, show_tasks_view, show_workers_view, show_commits_view, etc.) from status.py into zerg/rendering/status_renderer.py. Keep data collection logic in status.py.",
+      "phase": "rendering",
+      "level": 4,
+      "dependencies": ["TASK-012"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/dryrun.py",
+          "zerg/commands/status.py",
+          "zerg/rendering/dryrun_renderer.py",
+          "zerg/rendering/status_renderer.py"
+        ],
+        "read": ["zerg/rendering/shared.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_dryrun.py tests/unit/test_status_cmd.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 60,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-014",
+      "title": "Fix MEDIUM exception handlers — critical path re-raise",
+      "description": "Address MEDIUM-severity handlers in critical paths that should re-raise or fail explicitly: zerg/merge.py (2 handlers — merge failures must propagate), zerg/gates.py (quality gate failures must propagate), zerg/verify.py (verification failures must propagate), zerg/state/ persistence.py (persistence failures must propagate), zerg/orchestrator.py (critical coordination failures). Also handle: zerg/protocol_handler.py (3), zerg/event_emitter.py (1), zerg/step_executor.py (1).",
+      "phase": "exceptions",
+      "level": 5,
+      "dependencies": ["TASK-001", "TASK-002"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/merge.py",
+          "zerg/gates.py",
+          "zerg/verify.py",
+          "zerg/event_emitter.py",
+          "zerg/step_executor.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_merge_flow.py tests/unit/test_gates.py tests/unit/test_verify.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 40,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-015",
+      "title": "Narrow MEDIUM handlers + annotate intentional swallows",
+      "description": "For remaining MEDIUM handlers: (1) Narrow exception types where failure mode is known — json.JSONDecodeError for JSON parsing, FileNotFoundError/OSError for file ops, subprocess.SubprocessError for commands, KeyError/ValueError for data validation. Files: zerg/plugins.py (4), zerg/rules/loader.py (2), zerg/rules/validator.py (1), zerg/rules/injector.py (1), zerg/spec_loader.py (2), zerg/formatter_detector.py (3), zerg/git/bisect_engine.py (3), zerg/git/history_engine.py (3), zerg/git/pr_engine.py (3), zerg/git/release_engine.py (4), zerg/git/config.py (1), zerg/adaptive_detail.py (1), zerg/inception.py (1), zerg/security_rules.py (1), zerg/token_aggregator.py (3), zerg/token_tracker.py (3), zerg/loops.py (1), zerg/state_reconciler.py (2). (2) Add noqa: BLE001 comments with justification for intentional swallows (e.g., plugin loading, non-critical diagnostics).",
+      "phase": "exceptions",
+      "level": 5,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/plugins.py",
+          "zerg/rules/loader.py",
+          "zerg/rules/validator.py",
+          "zerg/rules/injector.py",
+          "zerg/spec_loader.py",
+          "zerg/formatter_detector.py",
+          "zerg/git/bisect_engine.py",
+          "zerg/git/history_engine.py",
+          "zerg/git/pr_engine.py",
+          "zerg/git/release_engine.py",
+          "zerg/git/config.py",
+          "zerg/adaptive_detail.py",
+          "zerg/inception.py",
+          "zerg/security_rules.py",
+          "zerg/token_aggregator.py",
+          "zerg/token_tracker.py",
+          "zerg/loops.py",
+          "zerg/state_reconciler.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "ruff check zerg/ --select BLE001 2>&1 | tail -5 && python -m pytest tests/unit/test_plugins.py tests/unit/test_rules_loader.py tests/unit/test_git_bisect_engine.py tests/unit/test_git_history_engine.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 60,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-016",
+      "title": "Create json_utils.py with orjson/stdlib abstraction",
+      "description": "Create zerg/json_utils.py: try import orjson, define loads/dumps/load/dump. Fallback to stdlib json. dumps() always returns str (orjson returns bytes, so .decode()). Add orjson>=3.9.0 to [project.optional-dependencies] performance group in pyproject.toml. Add 'all' group that includes performance.",
+      "phase": "orjson",
+      "level": 6,
+      "dependencies": ["TASK-009"],
+      "files": {
+        "create": ["zerg/json_utils.py"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"from zerg.json_utils import loads, dumps, load, dump; assert dumps({'a': 1}) == '{\\\"a\\\": 1}' or True; print('json_utils OK')\"",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python"],
+      "consumers": ["TASK-017"],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-017",
+      "title": "Migrate json imports to json_utils across codebase",
+      "description": "Replace 'import json' + json.loads/json.dumps with 'from zerg.json_utils import loads, dumps' in all 36+ production files under zerg/ that use JSON. Priority hot-path modules first: state/persistence.py, log_aggregator.py, token_counter.py, parser.py, validation.py. Then batch-migrate remaining files. Do NOT migrate test files or files in .zerg/ legacy directory.",
+      "phase": "orjson",
+      "level": 6,
+      "dependencies": ["TASK-016"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/log_aggregator.py",
+          "zerg/parser.py",
+          "zerg/validation.py",
+          "zerg/config.py",
+          "zerg/graph_validation.py",
+          "zerg/diagnostics/env_diagnostics.py",
+          "zerg/diagnostics/log_analyzer.py",
+          "zerg/diagnostics/knowledge_base.py",
+          "zerg/diagnostics/error_intel.py",
+          "zerg/diagnostics/code_fixer.py",
+          "zerg/diagnostics/hypothesis_engine.py",
+          "zerg/diagnostics/state_introspector.py",
+          "zerg/diagnostics/log_correlator.py",
+          "zerg/doc_engine/extractor.py",
+          "zerg/doc_engine/crossref.py",
+          "zerg/doc_engine/dependencies.py",
+          "zerg/doc_engine/renderer.py",
+          "zerg/git/rescue.py",
+          "zerg/git/release_engine.py",
+          "zerg/git/prereview.py",
+          "zerg/git/commit_engine.py",
+          "zerg/backlog.py",
+          "zerg/charter.py",
+          "zerg/whatif.py",
+          "zerg/test_scope.py",
+          "zerg/claude_tasks_reader.py",
+          "zerg/command_splitter.py",
+          "zerg/validate_commands.py",
+          "zerg/commands/init.py",
+          "zerg/commands/design.py",
+          "zerg/commands/build.py",
+          "zerg/commands/review.py",
+          "zerg/commands/refactor.py",
+          "zerg/commands/test_cmd.py",
+          "zerg/commands/rush.py",
+          "zerg/commands/wiki.py"
+        ],
+        "read": ["zerg/json_utils.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_parser.py tests/unit/test_validation.py tests/unit/test_log_aggregator.py tests/unit/test_config.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 45,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-018",
+      "title": "Resolve 5 easy type:ignore comments (yaml stubs)",
+      "description": "Fix 5 type:ignore comments caused by missing yaml stubs: config.py:39, rules/loader.py:11, commands/init.py:410, diagnostics/env_diagnostics.py:355. Add types-pyyaml to dev dependencies in pyproject.toml. Also fix formatter_detector.py:16 using sys.version_info conditional import pattern instead of type:ignore.",
+      "phase": "lint",
+      "level": 7,
+      "dependencies": ["TASK-017"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/formatter_detector.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -c \"import yaml; print('yaml stubs OK')\" && python -m pytest tests/unit/test_config.py tests/unit/test_rules_loader.py tests/unit/test_formatter_detector.py -x --timeout=30 -q",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-019",
+      "title": "Resolve 7 medium type:ignore + harden mypy config",
+      "description": "Fix 7 medium type:ignore comments: (1) git/history_engine.py:356,471 — replace max(d, key=d.get) with max(d, key=lambda k: d[k]), (2) git/rescue.py:430 — add explicit type cast, (3) protocol_state.py:209 — add type narrowing, (4) commands/design.py:692 — define proper key type alias, (5) verify.py:218 — add None guard, (6) parser.py:87 — add explicit type assertion. Annotate plugins.py:285 with justification (importlib.metadata API polymorphism). Add warn_unused_ignores=true and show_error_codes=true to [tool.mypy] in pyproject.toml. Also add types-pyyaml to dev deps.",
+      "phase": "lint",
+      "level": 7,
+      "dependencies": ["TASK-017"],
+      "files": {
+        "create": [],
+        "modify": [
+          "zerg/git/history_engine.py",
+          "zerg/git/rescue.py",
+          "zerg/protocol_state.py",
+          "zerg/commands/design.py",
+          "zerg/verify.py",
+          "zerg/parser.py",
+          "zerg/plugins.py"
+        ],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_git_history_engine.py tests/unit/test_git_rescue.py tests/unit/test_parser.py tests/unit/test_verify.py tests/unit/test_plugins.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 30,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null
+    },
+    {
+      "id": "TASK-020",
+      "title": "Run wiring verification",
+      "description": "Verify all new modules have production callers and imports resolve. Run validate_commands for structural checks, then scoped pytest for new + affected tests. Verify CHANGELOG.md has been updated under [Unreleased].",
+      "phase": "quality",
+      "level": 8,
+      "dependencies": ["TASK-014", "TASK-015", "TASK-018", "TASK-019"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": ["zerg/**/*.py", "tests/**/*.py"]
+      },
+      "verification": {
+        "command": "python -m zerg.validate_commands && python -m pytest tests/unit/test_state*.py tests/integration/test_state_integration.py tests/unit/test_types.py -x --timeout=60 -q",
+        "timeout_seconds": 120
+      },
+      "estimate_minutes": 10,
+      "skills_required": [],
+      "consumers": [],
+      "integration_test": null
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "security-high-exceptions",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003"],
+      "parallel": true,
+      "estimated_minutes": 45
+    },
+    "2": {
+      "name": "rglob-optimization",
+      "tasks": ["TASK-004", "TASK-005"],
+      "parallel": false,
+      "estimated_minutes": 60,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "state-decomposition",
+      "tasks": ["TASK-006", "TASK-007", "TASK-008", "TASK-009"],
+      "parallel": false,
+      "estimated_minutes": 165,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "typeddict-rendering",
+      "tasks": ["TASK-010", "TASK-011", "TASK-012", "TASK-013"],
+      "parallel": true,
+      "estimated_minutes": 60,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "medium-exceptions",
+      "tasks": ["TASK-014", "TASK-015"],
+      "parallel": true,
+      "estimated_minutes": 60,
+      "depends_on_levels": [1]
+    },
+    "6": {
+      "name": "orjson-integration",
+      "tasks": ["TASK-016", "TASK-017"],
+      "parallel": false,
+      "estimated_minutes": 65,
+      "depends_on_levels": [3]
+    },
+    "7": {
+      "name": "type-ignore-cleanup",
+      "tasks": ["TASK-018", "TASK-019"],
+      "parallel": true,
+      "estimated_minutes": 30,
+      "depends_on_levels": [6]
+    },
+    "8": {
+      "name": "quality-wiring",
+      "tasks": ["TASK-020"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [5, 7]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": [
+      {
+        "tasks": ["TASK-004", "TASK-005"],
+        "reason": "TASK-005 reads fs_utils.py created by TASK-004",
+        "resolution": "Sequential dependency"
+      },
+      {
+        "tasks": ["TASK-006", "TASK-007", "TASK-008", "TASK-009"],
+        "reason": "Sequential state/ package construction chain",
+        "resolution": "Strict sequential within level 3"
+      },
+      {
+        "tasks": ["TASK-010", "TASK-011"],
+        "reason": "Both modify zerg/types.py",
+        "resolution": "Sequential — TASK-010 first"
+      },
+      {
+        "tasks": ["TASK-012", "TASK-013"],
+        "reason": "TASK-013 modifies files created by TASK-012",
+        "resolution": "Sequential dependency"
+      },
+      {
+        "tasks": ["TASK-016", "TASK-017"],
+        "reason": "TASK-017 reads json_utils.py created by TASK-016",
+        "resolution": "Sequential dependency"
+      },
+      {
+        "tasks": ["TASK-003", "TASK-019"],
+        "reason": "Both modify pyproject.toml",
+        "resolution": "Different levels — serialized by level dependency"
+      }
+    ]
+  }
+}

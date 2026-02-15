@@ -361,7 +361,7 @@ class ErrorEvolutionTracker:
             if density < 0.1:
                 return "decreasing"
         except (ValueError, TypeError):
-            pass
+            pass  # Non-numeric value; skip
 
         # Multiple workers affected suggests increasing
         if len(pattern.worker_ids) >= 3:

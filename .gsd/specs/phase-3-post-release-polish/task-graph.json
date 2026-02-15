@@ -1,0 +1,142 @@
+{
+  "feature": "phase-3-post-release-polish",
+  "version": "2.0",
+  "generated": "2026-02-07",
+  "total_tasks": 5,
+  "estimated_duration_minutes": 15,
+  "max_parallelization": 4,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Create GitHub FUNDING.yml",
+      "description": "Create .github/FUNDING.yml with github: rocklambros. Comment out buy_me_a_coffee and open_collective as placeholders.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".github/FUNDING.yml"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "test -f .github/FUNDING.yml && grep -q 'github: rocklambros' .github/FUNDING.yml",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 3,
+      "skills_required": ["yaml"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nCreate `.github/FUNDING.yml` with `github: rocklambros`. Comment out `buy_me_a_coffee` and `open_collective` as placeholders. Verify Sponsor button appears on repo page.\n\n## File Content\n```yaml\ngithub: rocklambros\n# buy_me_a_coffee:\n# open_collective:\n```"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Create release notes config",
+      "description": "Create .github/release.yml (NOT a workflow) with 5 categories: New Features (enhancement), Bug Fixes (bug), Documentation (documentation), Dependencies (dependencies), Other Changes (*). Exclude skip-changelog and duplicate labels.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [".github/release.yml"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "test -f .github/release.yml && python3 -c \"import yaml; d=yaml.safe_load(open('.github/release.yml')); assert len(d['changelog']['categories']) == 5\"",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["yaml"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nCreate `.github/release.yml` — the release config file, NOT a workflow.\n\nCategories:\n- \"New Features\" -> `enhancement` label\n- \"Bug Fixes\" -> `bug` label\n- \"Documentation\" -> `documentation` label\n- \"Dependencies\" -> `dependencies` label\n- \"Other Changes\" -> `*` (catch-all)\n\nExclude `skip-changelog` and `duplicate` labels from release notes."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Add lychee link checker CI job",
+      "description": "Add a 'link-check' job to .github/workflows/ci.yml using lychee/lychee-action. Scope: docs/**/*.md, README.md, CONTRIBUTING.md, CHANGELOG.md. Exclude: localhost, example.com, PyPI badge URLs. Non-blocking (continue-on-error: true). Run on PRs and pushes to main (same triggers as existing jobs).",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".github/workflows/ci.yml"],
+        "read": []
+      },
+      "verification": {
+        "command": "python3 -c \"import yaml; ci=yaml.safe_load(open('.github/workflows/ci.yml')); assert 'link-check' in ci['jobs']\"",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["github-actions", "yaml"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd `lychee` link checker as a CI job in `.github/workflows/ci.yml`.\n- Scope: `docs/**/*.md`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`\n- Exclude: localhost URLs, example.com, PyPI badge URLs (flaky)\n- Run on: PRs and pushes to main (same triggers as existing jobs)\n- Failure mode: warning (non-blocking) initially via `continue-on-error: true`\n- Configure retries and timeouts for external URL flakiness\n\n## Existing CI Jobs\nThe file already has: quality, smoke, test, audit. Add link-check as a new independent job with NO dependencies on other jobs.\n\n## Security Rules (YAML)\n- check-yaml validates structure\n- Pin action versions to specific tags"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Expand pre-commit hooks",
+      "description": "Add pre-commit/pre-commit-hooks repo to .pre-commit-config.yaml AFTER existing ruff block. Hooks: trailing-whitespace, end-of-file-fixer, check-yaml, check-json, check-toml, check-added-large-files (--maxkb=500). Do NOT modify existing ruff hooks.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": [".pre-commit-config.yaml"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'id:' .pre-commit-config.yaml | grep -q '8'",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["yaml", "pre-commit"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nCurrent config has only `ruff` + `ruff-format` (2 hooks).\nAdd `pre-commit/pre-commit-hooks` repo with 6 hooks:\n- `trailing-whitespace`\n- `end-of-file-fixer`\n- `check-yaml`\n- `check-json`\n- `check-toml`\n- `check-added-large-files` (args: ['--maxkb=500'])\n\nPreserve existing ruff hooks unchanged. Append new repo block after ruff block.\n\n## Current .pre-commit-config.yaml\n```yaml\nrepos:\n  - repo: https://github.com/astral-sh/ruff-pre-commit\n    rev: v0.14.14\n    hooks:\n      - id: ruff\n        args: [--fix]\n      - id: ruff-format\n```\n\nUse latest stable rev for pre-commit-hooks (v5.0.0)."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Update CHANGELOG.md",
+      "description": "Add entries under [Unreleased] section: Added: .github/FUNDING.yml for GitHub Sponsors. Added: .github/release.yml for auto-categorized release notes. Added: lychee link checker CI job for documentation. Changed: Pre-commit config expanded with 6 standard hooks.",
+      "phase": "quality",
+      "level": 2,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -q 'FUNDING.yml' CHANGELOG.md && grep -q 'release.yml' CHANGELOG.md && grep -q 'lychee' CHANGELOG.md && grep -q 'pre-commit' CHANGELOG.md",
+        "timeout_seconds": 10
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["markdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAdd under `[Unreleased]`:\n- **Added**: `.github/FUNDING.yml` for GitHub Sponsors\n- **Added**: `.github/release.yml` for auto-categorized release notes\n- **Added**: `lychee` link checker CI job for documentation\n- **Changed**: Pre-commit config expanded with 6 standard hooks\n\n## Current CHANGELOG.md\nHas `## [Unreleased]` section (currently empty) followed by `## [0.2.0] - 2026-02-07`."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "parallel": true,
+      "estimated_minutes": 10
+    },
+    "2": {
+      "name": "quality",
+      "tasks": ["TASK-005"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [1]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "Tasks that cannot run in parallel due to shared files",
+    "conflicts": []
+  }
+}

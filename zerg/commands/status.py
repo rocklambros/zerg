@@ -7,6 +7,8 @@ from pathlib import Path
 import click
 from rich.live import Live
 
+# Module-level import needed for forwarding calls (e.g. _status_renderer.show_level_status);
+# the ``from`` import below re-exports individual symbols for backward compatibility.
 import zerg.rendering.status_renderer as _status_renderer
 from zerg.claude_tasks_reader import ClaudeTasksReader
 from zerg.constants import SPECS_DIR
@@ -227,7 +229,7 @@ def status(
                                 task_ids = lvl_data.get("tasks", [])
                                 console.print(f"  L{lvl_num} ({name}): {len(task_ids)} tasks")
                         except Exception:  # noqa: BLE001 -- best-effort JSON display
-                            pass
+                            pass  # Best-effort JSON display
                         console.print(
                             f"\nRun [cyan]zerg rush[/cyan] to start execution,"
                             f" or [cyan]zerg cleanup -f {feature}[/cyan] to remove."

@@ -230,7 +230,7 @@ class ResourceDiagnostics:
                     total_bytes = int(stdout)
                     result["total_gb"] = round(total_bytes / (1024**3), 2)
                 except ValueError:
-                    pass
+                    pass  # Non-numeric value; skip
 
             # macOS: approximate available from vm_stat
             stdout, ok = self._run_cmd(["vm_stat"])
@@ -253,7 +253,7 @@ class ResourceDiagnostics:
                     available_bytes = pages_free * page_size
                     result["available_gb"] = round(available_bytes / (1024**3), 2)
                 except (ValueError, IndexError):
-                    pass
+                    pass  # Malformed env entry; skip
 
         elif sys.platform == "linux":
             # Linux: read /proc/meminfo

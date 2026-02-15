@@ -12,9 +12,6 @@ from zerg.diagnostics.types import (
     Evidence,
     ScoredHypothesis,
 )
-from zerg.logging import get_logger
-
-logger = get_logger("diagnostics.hypothesis_engine")
 
 __all__ = [
     "BayesianScorer",

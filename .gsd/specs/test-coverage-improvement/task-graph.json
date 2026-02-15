@@ -1,0 +1,465 @@
+{
+  "feature": "test-coverage-improvement",
+  "version": "2.0",
+  "generated": "2026-02-07T00:00:00Z",
+  "total_tasks": 19,
+  "estimated_duration_minutes": 70,
+  "max_parallelization": 7,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Add direct unit tests for merge.py MergeCoordinator",
+      "description": "Create tests/unit/test_merge_coordinator.py with direct tests for MergeCoordinator class. Current coverage: 25% (109/145 lines uncovered). Target: 80%. Test merge_level(), run_quality_gates(), finalize() methods. Mock git operations and state manager. Use parametrize for success/failure/partial scenarios. ~15 tests.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_merge_coordinator.py"],
+        "modify": [],
+        "read": ["zerg/merge.py", "tests/unit/test_merge_cmd.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_merge_coordinator.py -v --timeout=30 && python -m pytest tests/unit/test_merge_coordinator.py --cov=zerg/merge --cov-report=term-missing --timeout=30 2>&1 | grep 'zerg/merge.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/merge.py\nMergeCoordinator handles post-level merge operations. Key classes: MergeCoordinator with merge_level(), run_quality_gates(), finalize(). Uncovered lines: 69-75, 87-89, 108-142, 161-196, 216-251, 270-290, 298-306, 328-414, 429, 440. Uses StateManager, git_ops. Existing test_merge_cmd.py tests CLI layer only.\n\n## Test Pattern\nUse MagicMock for StateManager and git subprocess calls. Parametrize quality gate pass/fail scenarios."
+    },
+    {
+      "id": "TASK-002",
+      "title": "Enhance state_reconciler.py test coverage",
+      "description": "Enhance tests/unit/test_state_reconciler.py with additional tests. Current coverage: 28% (128/177 lines uncovered). Target: 80%. Add tests for reconcile(), detect_drift(), repair_state() and all reconciliation paths. ~12 new tests.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_state_reconciler.py"],
+        "read": ["zerg/state_reconciler.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_state_reconciler.py -v --timeout=30 && python -m pytest tests/unit/test_state_reconciler.py --cov=zerg/state_reconciler --cov-report=term-missing --timeout=30 2>&1 | grep 'zerg/state_reconciler.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/state_reconciler.py\n177 lines, 128 uncovered. StateReconciler detects and repairs drift between Claude Tasks and state JSON. Uncovered lines: 39, 66, 71, 75, 133-159, 175-205, 221-227, 236-294, 312-336, 345-387, 396-406, 418-463, 479-495. Existing test file has basic tests but skips reconciliation logic paths."
+    },
+    {
+      "id": "TASK-003",
+      "title": "Create unit tests for ports.py",
+      "description": "Create tests/unit/test_ports.py. Current coverage: 33% (51/76 lines uncovered). Target: 90%. Test port allocation, release, conflict detection, is_port_available(). Mock socket operations. ~10 tests.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_ports.py"],
+        "modify": [],
+        "read": ["zerg/ports.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_ports.py -v --timeout=30 && python -m pytest tests/unit/test_ports.py --cov=zerg/ports --cov-report=term-missing --timeout=30 2>&1 | grep 'zerg/ports.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/ports.py\n76 lines, 51 uncovered. Port allocation for worker processes. Functions: allocate_port(), release_port(), is_port_available(), find_free_port_range(). Uses socket module. Uncovered lines: 31-40, 54-81, 89, 97-99, 103-105, 113, 125-127, 136-138, 148, 161-162, 174-180, 189-190."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Create unit tests for status_renderer.py",
+      "description": "Create tests/unit/test_status_renderer.py. Current coverage: 45% (367/665 lines uncovered). Target: 70%. Test render methods with mock Rich console. Use parametrize for different state inputs. ~20 tests focusing on highest-value render methods.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_status_renderer.py"],
+        "modify": [],
+        "read": ["zerg/rendering/status_renderer.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_status_renderer.py -v --timeout=30 && python -m pytest tests/unit/test_status_renderer.py --cov=zerg/rendering/status_renderer --cov-report=term-missing --timeout=30 2>&1 | grep 'status_renderer.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["python", "pytest", "rich"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/rendering/status_renderer.py\n665 lines, 367 uncovered. LARGEST uncovered module. Rich-based terminal rendering for /zerg:status output. Multiple render_*() methods for different status sections. Mock Rich Console to capture output. Focus on render_header(), render_tasks(), render_progress(), render_workers()."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Create unit tests for subprocess_launcher.py",
+      "description": "Create tests/unit/test_subprocess_launcher.py. Current coverage: 50% (120/238 lines uncovered). Target: 80%. Test SubprocessLauncher.launch(), wait(), kill(), error handling. Mock subprocess.Popen. ~15 tests.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_subprocess_launcher.py"],
+        "modify": [],
+        "read": ["zerg/launchers/subprocess_launcher.py", "zerg/launchers/base.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_subprocess_launcher.py -v --timeout=30 && python -m pytest tests/unit/test_subprocess_launcher.py --cov=zerg/launchers/subprocess_launcher --cov-report=term-missing --timeout=30 2>&1 | grep 'subprocess_launcher.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/launchers/subprocess_launcher.py\n238 lines, 120 uncovered. SubprocessLauncher extends BaseLauncher. Key methods: launch(), _build_command(), _wait_for_completion(), _handle_timeout(). Uncovered lines: 99, 106-107, 110-111, 138-143, 200, 209, 211, 213, 237, 244-246, 304, 318-336, 361-460, 474-492, 507-542."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Create batch tests for performance adapters",
+      "description": "Create tests/unit/test_perf_adapters_batch.py covering pipdeptree (25%), jscpd (29%), cloc (30%), deptry (38%) adapters. Use parametrize with mock subprocess output for each tool. Target: 80% each. ~20 parameterized tests.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_perf_adapters_batch.py"],
+        "modify": [],
+        "read": ["zerg/performance/adapters/pipdeptree_adapter.py", "zerg/performance/adapters/jscpd_adapter.py", "zerg/performance/adapters/cloc_adapter.py", "zerg/performance/adapters/deptry_adapter.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_perf_adapters_batch.py -v --timeout=30",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Modules: 4 performance adapters\nAll follow same pattern: parse subprocess output from external tools. pipdeptree_adapter.py (60 lines, 45 uncovered), jscpd_adapter.py (66 lines, 47 uncovered), cloc_adapter.py (47 lines, 33 uncovered), deptry_adapter.py (42 lines, 26 uncovered). Each has run() and parse_output() methods. Mock subprocess.run with sample tool output."
+    },
+    {
+      "id": "TASK-007",
+      "title": "Enhance history_engine.py test coverage",
+      "description": "Enhance tests/unit/test_git_history_engine.py. Current coverage: 52% (196/409 lines uncovered). Target: 75%. Add tests for commit parsing, blame analysis, history traversal uncovered paths. ~15 new tests.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_git_history_engine.py"],
+        "read": ["zerg/git/history_engine.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_git_history_engine.py -v --timeout=30 && python -m pytest tests/unit/test_git_history_engine.py --cov=zerg/git/history_engine --cov-report=term-missing --timeout=30 2>&1 | grep 'history_engine.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["python", "pytest", "git"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/git/history_engine.py\n409 lines, 196 uncovered. HistoryEngine provides git log parsing, blame analysis, commit traversal. Uncovered: lines 104-115, 148, 199, 262-276, 284-285, 294-296, 301-304, 321-322, 327-330, 345-366, 385, 408-416, 481-485, 529-614, 626-703, 731-737. Mock git subprocess output."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Create unit tests for state repository modules",
+      "description": "Create tests/unit/test_state_repos.py covering metrics_store (61%), retry_repo (62%), task_repo (64%), worker_repo (69%). Direct CRUD testing with in-memory state. Target: 90% each. ~15 parameterized tests.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_state_repos.py"],
+        "modify": [],
+        "read": ["zerg/state/metrics_store.py", "zerg/state/retry_repo.py", "zerg/state/task_repo.py", "zerg/state/worker_repo.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_state_repos.py -v --timeout=30",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Modules: 4 state repos\nmetrics_store.py (23 lines, 9 uncovered), retry_repo.py (56 lines, 21 uncovered), task_repo.py (100 lines, 36 uncovered), worker_repo.py (52 lines, 16 uncovered). All are data access layer classes with CRUD methods. Use in-memory dicts to test without filesystem."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Enhance inception.py test coverage",
+      "description": "Enhance tests/unit/test_inception_detection.py. Current coverage: 66% (67/195 lines uncovered). Target: 85%. Add tests for project detection, template selection, uncovered branches at lines 83-93, 265, 369-489. ~8 new tests.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_inception_detection.py"],
+        "read": ["zerg/inception.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_inception_detection.py -v --timeout=30 && python -m pytest tests/unit/test_inception_detection.py --cov=zerg/inception --cov-report=term-missing --timeout=30 2>&1 | grep 'zerg/inception.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/inception.py\n195 lines, 67 uncovered. Project inception/detection logic. Uncovered: lines 83-85, 88, 91-93, 265, 369-423, 428-456, 471-489. Existing test_inception_detection.py covers basics but misses template selection and complex project type detection."
+    },
+    {
+      "id": "TASK-010",
+      "title": "Enhance spec_loader.py test coverage",
+      "description": "Enhance tests/unit/test_spec_loader.py. Current coverage: 62% (49/130 lines uncovered). Target: 85%. Add tests for file loading edge cases, parse errors, missing files. Uncovered: lines 101-103, 188, 196, 219-290. ~8 new tests.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_spec_loader.py"],
+        "read": ["zerg/spec_loader.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_spec_loader.py -v --timeout=30 && python -m pytest tests/unit/test_spec_loader.py --cov=zerg/spec_loader --cov-report=term-missing --timeout=30 2>&1 | grep 'zerg/spec_loader.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/spec_loader.py\n130 lines, 49 uncovered. Loads and parses spec files (requirements.md, design.md, task-graph.json). Uncovered lines: 101-103, 188, 196, 219-247, 258-269, 281-290. Mock filesystem for loading tests."
+    },
+    {
+      "id": "TASK-011",
+      "title": "Create unit tests for container_launcher.py",
+      "description": "Create tests/unit/test_container_launcher.py. Current coverage: 69% (101/327 lines uncovered). Target: 80%. Test Docker command building, volume mounts, env injection, auth methods. Mock subprocess. ~10 tests.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_container_launcher.py"],
+        "modify": [],
+        "read": ["zerg/launchers/container_launcher.py", "zerg/launchers/base.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_container_launcher.py -v --timeout=30 && python -m pytest tests/unit/test_container_launcher.py --cov=zerg/launchers/container_launcher --cov-report=term-missing --timeout=30 2>&1 | grep 'container_launcher.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12,
+      "skills_required": ["python", "pytest", "docker"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/launchers/container_launcher.py\n327 lines, 101 uncovered. ContainerLauncher extends BaseLauncher for Docker execution. Key methods: _build_docker_command(), _mount_volumes(), _inject_env(). Uncovered: 93, 133-137, 249-254, 332-337, 397-399, 461-462, 538-546, 557-559, 621-622, 679-694, 726-731, 746-748, 773-879, 901-940."
+    },
+    {
+      "id": "TASK-012",
+      "title": "Enhance level_coordinator.py test coverage",
+      "description": "Enhance tests/unit/test_level_coordinator.py. Current coverage: 71% (70/241 lines uncovered). Target: 85%. Add tests for level transitions, dependency resolution, error recovery. ~10 new tests.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_level_coordinator.py"],
+        "read": ["zerg/level_coordinator.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_level_coordinator.py -v --timeout=30 && python -m pytest tests/unit/test_level_coordinator.py --cov=zerg/level_coordinator --cov-report=term-missing --timeout=30 2>&1 | grep 'zerg/level_coordinator.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 12,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/level_coordinator.py\n241 lines, 70 uncovered. LevelCoordinator manages level-based task execution. Uncovered: 149-150, 165, 218-226, 248, 261-267, 284-285, 301-302, 310-327, 412-413, 469-471, 495-537, 548-573, 591-612. Focus on advance_level(), check_level_complete(), handle_failure()."
+    },
+    {
+      "id": "TASK-013",
+      "title": "Create unit tests for protocol_handler.py",
+      "description": "Create tests/unit/test_protocol_handler.py. Current coverage: 73% (52/194 lines uncovered). Target: 85%. Test message parsing, dispatch, error handling. ~8 tests.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_protocol_handler.py"],
+        "modify": [],
+        "read": ["zerg/protocol_handler.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_protocol_handler.py -v --timeout=30 && python -m pytest tests/unit/test_protocol_handler.py --cov=zerg/protocol_handler --cov-report=term-missing --timeout=30 2>&1 | grep 'zerg/protocol_handler.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/protocol_handler.py\n194 lines, 52 uncovered. Handles worker protocol messages. Uncovered: 131, 141, 151-152, 187, 198-212, 224, 235-236, 250-281, 343, 409-422, 475-476, 491, 504, 514-596, 613-623."
+    },
+    {
+      "id": "TASK-014",
+      "title": "Create unit tests for rendering/shared.py",
+      "description": "Create tests/unit/test_rendering_shared.py. Current coverage: 67% (20/61 lines uncovered). Target: 90%. Test formatting helpers. ~5 tests.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_rendering_shared.py"],
+        "modify": [],
+        "read": ["zerg/rendering/shared.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_rendering_shared.py -v --timeout=30 && python -m pytest tests/unit/test_rendering_shared.py --cov=zerg/rendering/shared --cov-report=term-missing --timeout=30 2>&1 | grep 'shared.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/rendering/shared.py\n61 lines, 20 uncovered. Shared rendering utilities. Uncovered: 34-39, 52-54, 75, 79, 138-149."
+    },
+    {
+      "id": "TASK-015",
+      "title": "Enhance git/rescue.py test coverage",
+      "description": "Enhance tests/unit/test_git_rescue.py. Current coverage: 70% (55/185 lines uncovered). Target: 85%. Add tests for rescue operations, state recovery. ~8 new tests.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/unit/test_git_rescue.py"],
+        "read": ["zerg/git/rescue.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_git_rescue.py -v --timeout=30 && python -m pytest tests/unit/test_git_rescue.py --cov=zerg/git/rescue --cov-report=term-missing --timeout=30 2>&1 | grep 'rescue.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest", "git"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/git/rescue.py\n185 lines, 55 uncovered. Git rescue operations for recovering from failed states. Uncovered: 128, 131-133, 214-216, 245, 254-255, 293, 345-370, 384-419, 440, 443-454."
+    },
+    {
+      "id": "TASK-016",
+      "title": "Create unit tests for launchers/base.py",
+      "description": "Create tests/unit/test_launcher_base.py. Current coverage: 73% (25/93 lines uncovered). Target: 90%. Test base launcher methods, validation, lifecycle. ~5 tests.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_launcher_base.py"],
+        "modify": [],
+        "read": ["zerg/launchers/base.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_launcher_base.py -v --timeout=30 && python -m pytest tests/unit/test_launcher_base.py --cov=zerg/launchers/base --cov-report=term-missing --timeout=30 2>&1 | grep 'base.py'",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 8,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Module: zerg/launchers/base.py\n93 lines, 25 uncovered. BaseLauncher abstract base class. Uncovered: 61, 73, 86, 99, 160-177, 385, 399-413."
+    },
+    {
+      "id": "TASK-017",
+      "title": "Create tests for small modules (render_utils, json_utils, retry_backoff, trivy_adapter)",
+      "description": "Create tests/unit/test_small_modules.py covering render_utils.py (0%, 2 lines), json_utils.py (58%, 11 uncovered), retry_backoff.py (67%, 5 uncovered), trivy_adapter.py (68%, 27 uncovered). Target: 90%+ each. ~15 tests total.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": [],
+      "files": {
+        "create": ["tests/unit/test_small_modules.py"],
+        "modify": [],
+        "read": ["zerg/render_utils.py", "zerg/json_utils.py", "zerg/retry_backoff.py", "zerg/performance/adapters/trivy_adapter.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/test_small_modules.py -v --timeout=30",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Small modules batch\nrender_utils.py: 2 lines, 0% coverage. json_utils.py: 26 lines, 11 uncovered, JSON encoding/decoding utilities. retry_backoff.py: 15 lines, 5 uncovered, exponential backoff calculator. trivy_adapter.py: 84 lines, 27 uncovered, Trivy vulnerability scanner output parser."
+    },
+    {
+      "id": "TASK-018",
+      "title": "Update CHANGELOG.md and verify overall coverage >80%",
+      "description": "Add entry under [Unreleased] in CHANGELOG.md: 'Added - Comprehensive unit tests for 26 under-covered modules, raising overall coverage from 77% to >80%'. Run full coverage report to verify. Run: pytest tests/unit/ -m 'not slow' --cov=zerg --cov-fail-under=80 --timeout=120",
+      "phase": "quality",
+      "level": 4,
+      "dependencies": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-007", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013", "TASK-014", "TASK-015", "TASK-016", "TASK-017", "TASK-019"],
+      "files": {
+        "create": [],
+        "modify": ["CHANGELOG.md"],
+        "read": []
+      },
+      "verification": {
+        "command": "python -m pytest tests/unit/ -m 'not slow' --cov=zerg --cov-fail-under=80 --timeout=120 -q",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Quality gate\nRun full coverage report. Verify >80% overall. Update CHANGELOG.md under [Unreleased] with 'Added' entry for test coverage improvement."
+    },
+    {
+      "id": "TASK-019",
+      "title": "Fix flaky test_json_status_includes_metrics integration test",
+      "description": "Fix tests/integration/test_metrics_integration.py::TestStatusCommandMetrics::test_json_status_includes_metrics. Root cause: test creates StateManager with tmp_path but CLI status command creates a NEW StateManager with default .zerg/state/ dir. The if exit_code == 0 guard silently skips assertions. Fix by patching StateManager in the status command to use tmp_path and removing the conditional guard.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["tests/integration/test_metrics_integration.py"],
+        "read": ["zerg/commands/status.py", "zerg/state/manager.py"]
+      },
+      "verification": {
+        "command": "python -m pytest tests/integration/test_metrics_integration.py::TestStatusCommandMetrics::test_json_status_includes_metrics -v --timeout=30",
+        "timeout_seconds": 60
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["python", "pytest"],
+      "consumers": ["TASK-018"],
+      "integration_test": null,
+      "context": "## Bug: Flaky integration test\ntest_json_status_includes_metrics creates StateManager with tmp_path state_dir but the CLI status command (zerg/commands/status.py:193) creates its own StateManager with default state_dir. The test guard `if result.exit_code == 0:` silently skips assertions. Fix: monkeypatch the state dir or patch StateManager, and remove the conditional guard so the test asserts unconditionally."
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-019"],
+      "parallel": true,
+      "estimated_minutes": 20,
+      "depends_on_levels": []
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-007", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012"],
+      "parallel": true,
+      "estimated_minutes": 15,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-013", "TASK-014", "TASK-015", "TASK-016", "TASK-017"],
+      "parallel": true,
+      "estimated_minutes": 10,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "quality",
+      "tasks": ["TASK-018"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [3]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "No conflicts — all tasks create/modify independent test files",
+    "conflicts": []
+  }
+}

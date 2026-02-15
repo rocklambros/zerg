@@ -179,7 +179,7 @@ class MCPRouter:
                         needed_capabilities.update(server.capabilities)
                         reasoning.append(f"depth tier '{depth_tier}' recommends {server_name}")
                     except ValueError:
-                        pass
+                        pass  # Non-numeric value; skip
             except ValueError:
                 logger.debug("Unknown depth tier: %s", depth_tier)
 

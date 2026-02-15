@@ -125,7 +125,7 @@ class FormatterDetector:
                     file_patterns=["*.py"],
                 )
         except (OSError, tomllib.TOMLDecodeError, KeyError):
-            pass
+            pass  # Config file not found or malformed
 
         return None
 
@@ -147,7 +147,7 @@ class FormatterDetector:
                     file_patterns=["*.py"],
                 )
         except (OSError, tomllib.TOMLDecodeError, KeyError):
-            pass
+            pass  # Config file not found or malformed
 
         return None
 
@@ -180,7 +180,7 @@ class FormatterDetector:
                 if "prettier" in data:
                     return self._create_prettier_config()
             except (OSError, json.JSONDecodeError, KeyError):
-                pass
+                pass  # Config file not found or malformed
 
         return None
 
