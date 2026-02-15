@@ -5,6 +5,9 @@ Covers:
 - zerg/json_utils.py (JSON encoding/decoding with optional orjson)
 - zerg/retry_backoff.py (exponential backoff calculator)
 - zerg/performance/adapters/trivy_adapter.py (Trivy output parser)
+
+Test pattern: uses both `import zerg.render_utils` (for reload/__all__ access)
+and `from zerg.render_utils import X` (for identity checks against originals).
 """
 
 from __future__ import annotations
@@ -159,7 +162,7 @@ try:
 
     _has_orjson = True
 except ImportError:
-    pass
+    pass  # orjson is optional; tests below skip when unavailable
 
 
 @pytest.mark.skipif(not _has_orjson, reason="orjson not installed")

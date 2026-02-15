@@ -53,10 +53,7 @@ import pytest
 
 from zerg.config import (
     LoggingConfig,
-    PortsConfig,
     ProjectConfig,
-    QualityGate,
-    ResourcesConfig,
     WorkersConfig,
     ZergConfig,
 )
@@ -67,8 +64,7 @@ from zerg.constants import (
 )
 from zerg.launcher_types import LauncherConfig, LauncherType, SpawnResult, WorkerHandle
 from zerg.merge import MergeFlowResult
-from zerg.types import GateRunResult, WorkerState
-
+from zerg.types import WorkerState
 
 # =============================================================================
 # Mock Orchestrator Dependencies

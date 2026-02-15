@@ -147,8 +147,7 @@ class TestWorkerProtocolInit:
     @patch("zerg.protocol_state.ZergConfig")
     def test_init_from_environment(self, mock_config_cls, mock_spec_loader_cls, *mocks) -> None:
         """Test initialization from environment variables."""
-        protocol = _make_protocol(mock_config_cls, mock_spec_loader_cls, worker_id=5, feature="env-feature")
-        # Re-create without explicit args to test env
+        # Set up mocks for WorkerProtocol() call below
         mock_config = MagicMock()
         mock_config.context_threshold = 0.70
         mock_config.plugins = MagicMock()
@@ -171,8 +170,7 @@ class TestWorkerProtocolInit:
     @patch("zerg.protocol_state.ZergConfig")
     def test_init_defaults_when_no_env(self, mock_config_cls, mock_spec_loader_cls, *mocks) -> None:
         """Test initialization defaults when no environment vars set."""
-        protocol = _make_protocol(mock_config_cls, mock_spec_loader_cls)
-        # Defaults: worker_id=1 from helper, but without env the default should be 0
+        # Set up mocks for WorkerProtocol() call below
         mock_config = MagicMock()
         mock_config.context_threshold = 0.70
         mock_config.plugins = MagicMock()

@@ -88,7 +88,7 @@ class TestCommitAttemptTracking:
         try:
             git2.commit("Should fail", add_all=True)
         except GitError:
-            pass
+            pass  # Expected: commit configured to fail; verify tracking below
         attempts2 = git2.get_commit_attempts()
         assert len(attempts2) == 1
         assert not attempts2[0].success

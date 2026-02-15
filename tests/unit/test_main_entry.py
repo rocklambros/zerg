@@ -1,4 +1,8 @@
-"""Unit tests for ZERG __main__.py entry point."""
+"""Unit tests for ZERG __main__.py entry point.
+
+Test pattern: uses both `import zerg.__main__` (for reload/attribute access)
+and `from zerg.__main__ import cli` (for direct symbol testing).
+"""
 
 import runpy
 import sys
@@ -227,10 +231,8 @@ class TestDirectMainBlockCoverage:
 
         # Mock the cli to prevent actual execution
         with patch.object(zerg.__main__, "cli") as mock_cli:
-            # Simulate what happens when __name__ == "__main__"
-            # This directly calls the code that would execute in the if block
-            if True:  # Simulate __name__ == "__main__" condition being True
-                mock_cli()
+            # Directly call the code that would execute in the if __name__ == "__main__" block
+            mock_cli()
 
             mock_cli.assert_called_once()
 

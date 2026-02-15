@@ -1,7 +1,5 @@
 """Test file that demonstrates allowed patterns in test context."""
 
-import pytest
-
 
 def test_something():
     """Test that uses print (allowed in tests)."""

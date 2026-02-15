@@ -284,20 +284,18 @@ class MockContainerLauncher(WorkerLauncher):
         self,
         container_id: str,
         worker_id: int,
-        timeout: float | None = None,
+        _timeout: float | None = None,
     ) -> bool:
         """Verify the worker process is running.
 
         Args:
             container_id: Container ID
             worker_id: Worker ID
-            timeout: Verification timeout
+            _timeout: Verification timeout (unused in mock)
 
         Returns:
             True if process is running
         """
-        timeout = timeout or self._process_verify_timeout
-
         # Check for process failure
         if worker_id in self._process_fail_workers:
             return False

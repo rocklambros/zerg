@@ -1,4 +1,8 @@
-"""Unit tests for ZERG schemas module."""
+"""Unit tests for ZERG schemas module.
+
+Test pattern: uses both `import zerg.schemas` (for attribute/docstring access)
+and `from zerg.schemas import X` (for direct symbol testing).
+"""
 
 from pathlib import Path
 

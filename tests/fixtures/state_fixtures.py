@@ -42,9 +42,10 @@ Fixture Dependency Graph:
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 import yaml
@@ -63,26 +64,21 @@ from zerg.constants import (
     Level,
     LevelMergeStatus,
     MergeStatus,
-    TaskStatus,
     WorkerStatus,
 )
 from zerg.types import (
-    FileSpec,
     GateRunResult,
     LevelSpec,
     LevelStatus,
     MergeResult,
     OrchestratorState,
     Task,
-    TaskExecution,
     TaskGraph,
     VerificationResult,
-    VerificationSpec,
     WorkerAssignmentEntry,
     WorkerAssignments,
     WorkerState,
 )
-
 
 # =============================================================================
 # Task Graph Fixtures
